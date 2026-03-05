@@ -5,6 +5,7 @@ export type WorkspaceView = "conversation" | "settings" | "skills" | "mcp" | "wo
 export interface ThreadSummary {
   readonly id: string;
   readonly title: string;
+  readonly cwd: string | null;
   readonly archived: boolean;
   readonly updatedAt: string;
 }

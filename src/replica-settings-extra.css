@@ -1,0 +1,180 @@
+.settings-section-head {
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.settings-section-head strong {
+  font-size: 20px;
+  color: #2d2d2d;
+}
+
+.settings-head-action {
+  border: 0;
+  background: transparent;
+  color: #777;
+  font-size: 15px;
+}
+
+.settings-note {
+  margin: 0;
+  padding: 0 16px 10px;
+  color: #7a7a7a;
+  font-size: 14px;
+}
+
+.settings-note-pad {
+  padding-bottom: 14px;
+}
+
+.settings-inline-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #888;
+}
+
+.settings-toggle {
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: #d7d7d7;
+  position: relative;
+}
+
+.settings-toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.settings-toggle-on {
+  background: #3f98e2;
+}
+
+.settings-toggle-on .settings-toggle-knob {
+  left: 19px;
+}
+
+.settings-reco-row {
+  border-top: 1px solid #e1e1e1;
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.settings-reco-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid #d3d3d3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 11px;
+}
+
+.settings-reco-text strong {
+  display: block;
+  font-size: 17px;
+  color: #2d2d2d;
+}
+
+.settings-reco-text strong span {
+  font-weight: 400;
+  color: #6b6b6b;
+  font-size: 14px;
+}
+
+.settings-reco-text p {
+  margin: 4px 0 0;
+  color: #727272;
+  font-size: 14px;
+}
+
+.settings-mini-btn {
+  border: 0;
+  border-radius: 10px;
+  height: 30px;
+  padding: 0 14px;
+  background: #e8e8e8;
+  color: #444;
+  font-size: 14px;
+}
+
+.settings-env-row {
+  border-top: 1px solid #e1e1e1;
+  min-height: 58px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-env-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings-folder {
+  color: #686868;
+  font-size: 16px;
+}
+
+.settings-env-main strong {
+  font-size: 17px;
+  color: #2d2d2d;
+}
+
+.settings-env-main span {
+  color: #7a7a7a;
+  font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-plus-btn {
+  border: 0;
+  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  background: #e8e8e8;
+  color: #444;
+  font-size: 18px;
+}
+
+.settings-empty,
+.settings-placeholder {
+  padding: 16px;
+  color: #666;
+  font-size: 14px;
+}
+
+@media (max-width: 1080px) {
+  .settings-layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .settings-main {
+    padding: 40px 24px;
+  }
+
+  .settings-popover {
+    width: 300px;
+  }
+}

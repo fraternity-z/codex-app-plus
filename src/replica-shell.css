@@ -1,0 +1,273 @@
+.replica-app {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  height: 100vh;
+  background: #f8f8f8;
+}
+.replica-sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px 12px;
+  border-right: 1px solid #ebebeb;
+  background: #f5f5f5;
+  min-width: 0;
+}
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 6px;
+  margin-bottom: 10px;
+}
+.brand-logo {
+  width: 16px;
+  height: 16px;
+}
+.brand-name {
+  font-size: 24px;
+  letter-spacing: 0.1px;
+  color: #222;
+}
+.sidebar-nav {
+  display: grid;
+  gap: 2px;
+}
+.sidebar-collapse {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 8px 4px;
+  border: 0;
+  padding: 0;
+  color: #8f8f8f;
+  background: transparent;
+  font-size: 8px;
+  line-height: 1;
+}
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #4f4f4f;
+  font-size: 14px;
+  text-align: left;
+}
+.sidebar-nav-item:hover,
+.sidebar-settings:hover {
+  background: #ececec;
+}
+.sidebar-icon {
+  width: 14px;
+  height: 14px;
+  color: #676767;
+}
+.thread-section {
+  margin-top: 16px;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.thread-section-title {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  color: #8d8d8d;
+  font-size: 13px;
+}
+.thread-header-actions {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 0 8px;
+  color: #9a9a9a;
+  font-size: 13px;
+  letter-spacing: 4px;
+}
+.thread-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+.thread-item {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0 6px;
+  color: #555;
+}
+.thread-empty {
+  color: #8d8d8d;
+  font-size: 12px;
+  padding: 6px;
+}
+.thread-header-btn {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 4px;
+  color: #8a8a8a;
+  background: transparent;
+  line-height: 1;
+  padding: 0;
+}
+.thread-header-btn:hover {
+  background: #ececec;
+}
+.thread-item-active {
+  background: #e9e9e9;
+}
+.thread-leading-icon {
+  width: 12px;
+  height: 12px;
+  color: #5e5e5e;
+  flex-shrink: 0;
+}
+.thread-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+.thread-item-tools {
+  margin-left: auto;
+  color: #8b8b8b;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.sidebar-settings {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #5c5c5c;
+  text-align: left;
+}
+.settings-slot {
+  position: relative;
+  margin-top: auto;
+}
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.settings-gear {
+  font-size: 14px;
+}
+.replica-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #f8f8f8;
+}
+.main-toolbar {
+  min-height: 72px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 22px 20px 0;
+}
+.toolbar-title {
+  margin: 0;
+  color: #2c2c2c;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+}
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #646464;
+}
+.toolbar-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  border: 1px solid #e1e1e1;
+  border-radius: 10px;
+  padding: 0 11px;
+  color: #3f3f3f;
+  background: #f8f8f8;
+  font-size: 14px;
+}
+.top-action-icon {
+  width: 15px;
+  height: 15px;
+}
+.toolbar-caret {
+  color: #858585;
+  margin-top: -2px;
+}
+.toolbar-credits {
+  margin-left: 6px;
+  display: inline-flex;
+  gap: 6px;
+  font-size: 18px;
+}
+.toolbar-mini-icons {
+  color: #8f8f8f;
+  font-size: 13px;
+  letter-spacing: 6px;
+}
+.credit-positive {
+  color: #3f9d57;
+}
+.credit-negative {
+  color: #c35555;
+}
+.main-canvas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 180px;
+  color: #727272;
+}
+.center-mark {
+  width: 36px;
+  height: 36px;
+  color: #1f1f1f;
+}
+.canvas-title {
+  margin: 16px 0 2px;
+  font-size: 49px;
+  color: #1f1f1f;
+  font-weight: 500;
+}
+.workspace-pill {
+  border: 0;
+  background: transparent;
+  color: #7a7a7a;
+  font-size: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

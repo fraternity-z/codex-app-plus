@@ -10,6 +10,7 @@ export function mapThreadListResponse(response: ThreadListResponse): ReadonlyArr
   return response.data.map((thread) => ({
     id: thread.id,
     title: thread.name ?? thread.preview,
+    cwd: thread.cwd,
     archived: false,
     updatedAt: toIsoFromUnixSeconds(thread.updatedAt)
   }));

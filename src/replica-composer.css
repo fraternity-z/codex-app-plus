@@ -1,0 +1,102 @@
+.composer-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+}
+.composer-card {
+  width: min(760px, calc(100% - 80px));
+  border: 1px solid #dbdbdb;
+  border-radius: 17px;
+  background: #f8f8f8;
+  overflow: hidden;
+}
+.composer-input {
+  width: 100%;
+  height: 66px;
+  border: 0;
+  resize: none;
+  outline: none;
+  background: transparent;
+  color: #474747;
+  padding: 14px 15px 8px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.composer-bar {
+  height: 40px;
+  border-top: 1px solid #e6e6e6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+.composer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.composer-mini-btn,
+.composer-chip {
+  border: 0;
+  background: transparent;
+  color: #8a8a8a;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 4px;
+}
+.composer-mini-btn {
+  font-size: 22px;
+  line-height: 1;
+  width: 20px;
+  justify-content: center;
+}
+.composer-chip {
+  font-size: 14px;
+}
+.send-btn {
+  width: 23px;
+  height: 23px;
+  border: 0;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.composer-footer {
+  width: min(760px, calc(100% - 80px));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #8f8f8f;
+  font-size: 15px;
+}
+.composer-footer-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.footer-warning {
+  color: #e26f00;
+}
+@media (max-width: 1080px) {
+  .replica-app {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+  .toolbar-credits {
+    display: none;
+  }
+  .canvas-title {
+    font-size: 40px;
+  }
+  .workspace-pill {
+    font-size: 34px;
+  }
+}
