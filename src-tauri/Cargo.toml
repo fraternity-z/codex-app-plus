@@ -1,0 +1,20 @@
+[package]
+name = "codex-app-plus"
+version = "0.1.0"
+description = "Codex App Plus desktop shell"
+authors = ["Codex App Plus"]
+edition = "2021"
+
+[package.metadata.tauri]
+
+[build-dependencies]
+tauri-build = { version = "2.0.2", features = [] }
+
+[dependencies]
+dirs = "6.0.0"
+open = "5.3.2"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.138"
+tauri = { version = "2.2.0", features = [] }
+thiserror = "2.0.11"
+tokio = { version = "1.43.0", features = ["io-util", "macros", "process", "rt-multi-thread", "sync", "time"] }

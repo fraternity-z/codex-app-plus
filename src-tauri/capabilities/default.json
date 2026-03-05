@@ -1,0 +1,22 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capability for Codex App Plus",
+  "windows": ["main"],
+  "permissions": ["core:default"],
+  "commands": {
+    "allow": [
+      "app_server_start",
+      "app_server_stop",
+      "app_server_restart",
+      "rpc_request",
+      "rpc_cancel",
+      "server_request_resolve",
+      "app_open_external",
+      "app_show_notification",
+      "app_show_context_menu",
+      "app_import_official_data"
+    ],
+    "deny": []
+  }
+}
