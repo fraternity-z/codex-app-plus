@@ -16,6 +16,8 @@ import { ComposerFooter } from "./ComposerFooter";
 import { useCallback, useState } from "react";
 import vscodeIconUrl from "../../assets/official/apps/vscode.png";
 
+const MIN_TRIMMED_MESSAGE_LENGTH = 1;
+
 interface HomeViewProps {
   readonly roots: ReadonlyArray<WorkspaceRoot>;
   readonly selectedRootId: string | null;
@@ -158,9 +160,17 @@ function ComposerArea(): JSX.Element {
 }
 
 function ComposerCard(): JSX.Element {
+  const [draft, setDraft] = useState("");
+  const canSend = draft.trim().length >= MIN_TRIMMED_MESSAGE_LENGTH;
+
   return (
     <div className="composer-card">
-      <textarea className="composer-input" placeholder="向 Codex 任意提问，或 添加文件 / 运行命令" />
+      <textarea
+        className="composer-input"
+        placeholder="向 Codex 任意提问，或 添加文件 / 运行命令"
+        value={draft}
+        onChange={(event) => setDraft(event.currentTarget.value)}
+      />
       <div className="composer-bar">
         <div className="composer-left">
           <button type="button" className="composer-mini-btn" aria-label="添加">
@@ -173,7 +183,7 @@ function ComposerCard(): JSX.Element {
             超高 <OfficialChevronRightIcon className="chip-caret" />
           </button>
         </div>
-        <button type="button" className="send-btn" aria-label="发送">
+        <button type="button" className="send-btn" aria-label="发送" disabled={!canSend}>
           <SendArrowIcon className="send-icon" />
         </button>
       </div>

@@ -92,6 +92,13 @@
 .send-btn:hover {
   background: #2a2a2a;
 }
+.send-btn:disabled {
+  background: #cfcfcf;
+  cursor: not-allowed;
+}
+.send-btn:disabled:hover {
+  background: #cfcfcf;
+}
 .send-icon {
   width: 16px;
   height: 16px;

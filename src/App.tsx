@@ -56,9 +56,14 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   }, []);
 
   const addRoot = useCallback(async () => {
-    const root = await requestWorkspaceFolder();
-    if (root !== null) {
-      workspace.addRoot(root);
+    try {
+      const root = await requestWorkspaceFolder();
+      if (root !== null) {
+        workspace.addRoot(root);
+      }
+    } catch (error) {
+      console.error("选择项目文件夹失败", error);
+      window.alert(`选择项目文件夹失败：${String(error)}`);
     }
   }, [workspace]);
 
