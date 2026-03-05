@@ -45,6 +45,17 @@
   background: #ececec;
 }
 
+.toolbar-icon-btn[aria-pressed="true"] {
+  background: #e9e9e9;
+  color: #2f2f2f;
+}
+
+.toolbar-terminal-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
 .sidebar-collapse-toggle {
   position: absolute;
   top: 8px;

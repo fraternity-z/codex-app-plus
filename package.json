@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "generate:licenses": "node ./scripts/generate-third-party-licenses.mjs",
     "generate:protocol": "node ./scripts/generate-protocol.mjs"
   },
   "dependencies": {

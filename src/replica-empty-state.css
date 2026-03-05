@@ -1,0 +1,72 @@
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px;
+  text-align: center;
+}
+
+.empty-title {
+  margin: 0;
+  font-size: 34px;
+  line-height: 1.1;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+.workspace-selector {
+  height: 44px;
+  border: 1px solid #e3e3e3;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.workspace-selector:hover {
+  background: #f7f7f7;
+  border-color: #d8d8d8;
+}
+
+.workspace-selector-label {
+  max-width: min(480px, 70vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #1f1f1f;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.workspace-selector-placeholder .workspace-selector-label {
+  font-weight: 500;
+  color: #7a7a7a;
+}
+
+.workspace-selector-caret {
+  width: 18px;
+  height: 18px;
+  color: #9a9a9a;
+  transform: rotate(90deg);
+}
+
+@media (max-width: 1080px) {
+  .empty-title {
+    font-size: 30px;
+  }
+
+  .workspace-selector {
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .workspace-selector-label {
+    font-size: 16px;
+  }
+}

@@ -92,6 +92,7 @@ export interface HostBridge {
   };
   readonly app: {
     openExternal(url: string): Promise<void>;
+    openCodexConfigToml(): Promise<void>;
     showNotification(input: ShowNotificationInput): Promise<void>;
     showContextMenu(input: ShowContextMenuInput): Promise<void>;
     importOfficialData(input: ImportOfficialDataInput): Promise<void>;

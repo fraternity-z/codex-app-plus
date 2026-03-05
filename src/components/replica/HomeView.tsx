@@ -2,7 +2,6 @@ import {
   OfficialArrowTopRightIcon,
   OfficialChevronRightIcon,
   OfficialCloseIcon,
-  OfficialCodexMarkIcon,
   OfficialFolderIcon,
   OfficialFolderPlusIcon,
   OfficialPlusIcon,
@@ -14,7 +13,7 @@ import { SidebarIcon } from "./icons";
 import type { WorkspaceRoot } from "../../app/useWorkspaceRoots";
 import { SettingsPopover } from "./SettingsPopover";
 import { ComposerFooter } from "./ComposerFooter";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import vscodeIconUrl from "../../assets/official/apps/vscode.png";
 
 interface HomeViewProps {
@@ -82,19 +81,26 @@ function Sidebar(props: SidebarProps): JSX.Element {
 
 interface MainContentProps {
   readonly selectedRootName: string;
+  readonly terminalOpen: boolean;
+  readonly onToggleTerminal: () => void;
 }
 
-function MainContent({ selectedRootName }: MainContentProps): JSX.Element {
+function MainContent({ selectedRootName, terminalOpen, onToggleTerminal }: MainContentProps): JSX.Element {
   return (
     <div className="replica-main">
-      <MainToolbar />
+      <MainToolbar terminalOpen={terminalOpen} onToggleTerminal={onToggleTerminal} />
       <EmptyCanvas selectedRootName={selectedRootName} />
       <ComposerArea />
     </div>
   );
 }
 
-function MainToolbar(): JSX.Element {
+interface MainToolbarProps {
+  readonly terminalOpen: boolean;
+  readonly onToggleTerminal: () => void;
+}
+
+function MainToolbar({ terminalOpen, onToggleTerminal }: MainToolbarProps): JSX.Element {
   return (
     <header className="main-toolbar">
       <h1 className="toolbar-title">新线程</h1>
@@ -110,17 +116,14 @@ function MainToolbar(): JSX.Element {
           <OfficialChevronRightIcon className="toolbar-caret-icon" />
         </button>
         <div className="toolbar-icon-row" aria-label="快捷操作">
-          <button type="button" className="toolbar-icon-btn" aria-label="视图">
-            ◱
-          </button>
-          <button type="button" className="toolbar-icon-btn" aria-label="复制">
-            ⧉
-          </button>
-          <button type="button" className="toolbar-icon-btn" aria-label="窗口">
-            ☐
-          </button>
-          <button type="button" className="toolbar-icon-btn" aria-label="更多">
-            ⋯
+          <button
+            type="button"
+            className="toolbar-icon-btn"
+            aria-label={terminalOpen ? "隐藏终端" : "显示终端"}
+            aria-pressed={terminalOpen}
+            onClick={onToggleTerminal}
+          >
+            <TerminalIcon className="toolbar-terminal-icon" />
           </button>
         </div>
       </div>
@@ -129,14 +132,18 @@ function MainToolbar(): JSX.Element {
 }
 
 function EmptyCanvas({ selectedRootName }: { readonly selectedRootName: string }): JSX.Element {
+  const isPlaceholder = selectedRootName === "选择项目";
+  const selectorClassName = isPlaceholder ? "workspace-selector workspace-selector-placeholder" : "workspace-selector";
+
   return (
     <main className="main-canvas">
-      <OfficialCodexMarkIcon className="center-mark" />
-      <h2 className="canvas-title">开始构建</h2>
-      <button type="button" className="workspace-pill">
-        <span>{selectedRootName}</span>
-        <OfficialChevronRightIcon className="workspace-caret" />
-      </button>
+      <div className="empty-state" aria-label="欢迎界面">
+        <h2 className="empty-title">开始构建</h2>
+        <button type="button" className={selectorClassName}>
+          <span className="workspace-selector-label">{selectedRootName}</span>
+          <OfficialChevronRightIcon className="workspace-selector-caret" />
+        </button>
+      </div>
     </main>
   );
 }
@@ -183,14 +190,27 @@ function SendArrowIcon({ className }: { readonly className?: string }): JSX.Elem
   );
 }
 
+function TerminalIcon({ className }: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={className} viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="3.5" y="4.5" width="13" height="11" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M6.6 8l2 2-2 2" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.8 12h3.6" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function HomeView(props: HomeViewProps): JSX.Element {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(true);
+  const toggleTerminal = useCallback(() => {
+    setTerminalOpen((value) => !value);
+  }, []);
 
   return (
     <div className="replica-app">
       <Sidebar {...props} collapsed={sidebarCollapsed} />
-      <MainContent selectedRootName={props.selectedRootName} />
+      <MainContent selectedRootName={props.selectedRootName} terminalOpen={terminalOpen} onToggleTerminal={toggleTerminal} />
       {terminalOpen ? <TerminalPanel onClose={() => setTerminalOpen(false)} /> : null}
       <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((value) => !value)} />
     </div>

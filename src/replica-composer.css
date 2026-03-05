@@ -102,6 +102,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  z-index: 25;
   color: #8f8f8f;
   font-size: 14px;
 }
@@ -149,7 +151,7 @@
   left: 0;
   bottom: 34px;
   z-index: 30;
-  width: 280px;
+  width: 260px;
   border: 1px solid #dedede;
   border-radius: 16px;
   background: #ffffff;
@@ -161,7 +163,7 @@
   left: auto;
 }
 .composer-footer-popover-sm {
-  width: 220px;
+  width: 200px;
   padding: 6px;
 }
 .composer-footer-popover-title {

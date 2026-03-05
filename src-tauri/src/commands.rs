@@ -67,6 +67,16 @@ pub fn app_open_external(url: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn app_open_codex_config_toml() -> Result<(), String> {
+    let home = dirs::home_dir().ok_or_else(|| "无法解析用户目录".to_string())?;
+    let config_path = home.join(".codex").join("config.toml");
+    if !config_path.exists() {
+        return Err(format!("config.toml 不存在: {}", config_path.display()));
+    }
+    to_result(open::that_detached(config_path).map_err(|e| AppError::Io(e.to_string())))
+}
+
+#[tauri::command]
 pub fn app_show_notification(app: AppHandle, input: ShowNotificationInput) -> Result<(), String> {
     if input.title.trim().is_empty() {
         return Err("notification.title 不能为空".to_string());

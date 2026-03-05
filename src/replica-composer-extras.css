@@ -3,7 +3,7 @@
   height: 16px;
 }
 .composer-branch-popover {
-  width: 360px;
+  width: 340px;
   padding: 10px;
 }
 .branch-search {
@@ -141,15 +141,4 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-@media (max-width: 1080px) {
-  .replica-app {
-    grid-template-columns: 220px minmax(0, 1fr);
-  }
-  .canvas-title {
-    font-size: 40px;
-  }
-  .workspace-pill {
-    font-size: 34px;
-  }
 }

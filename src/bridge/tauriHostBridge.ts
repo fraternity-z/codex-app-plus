@@ -55,6 +55,8 @@ export function createTauriHostBridge(): HostBridge {
         invoke("app_open_external", {
           url
         }),
+      openCodexConfigToml: () =>
+        invoke("app_open_codex_config_toml"),
       showNotification: (input: ShowNotificationInput) =>
         invoke("app_show_notification", {
           input

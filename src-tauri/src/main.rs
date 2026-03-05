@@ -8,8 +8,9 @@ mod process_manager;
 mod rpc_transport;
 
 use commands::{
-    app_import_official_data, app_open_external, app_server_restart, app_server_start, app_server_stop,
-    app_show_context_menu, app_show_notification, rpc_cancel, rpc_request, server_request_resolve,
+    app_import_official_data, app_open_codex_config_toml, app_open_external, app_server_restart,
+    app_server_start, app_server_stop, app_show_context_menu, app_show_notification, rpc_cancel,
+    rpc_request, server_request_resolve,
 };
 use process_manager::ProcessManager;
 
@@ -25,6 +26,7 @@ fn main() {
             rpc_cancel,
             server_request_resolve,
             app_open_external,
+            app_open_codex_config_toml,
             app_show_notification,
             app_show_context_menu,
             app_import_official_data

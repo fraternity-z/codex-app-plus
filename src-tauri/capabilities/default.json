@@ -13,6 +13,7 @@
       "rpc_cancel",
       "server_request_resolve",
       "app_open_external",
+      "app_open_codex_config_toml",
       "app_show_notification",
       "app_show_context_menu",
       "app_import_official_data"

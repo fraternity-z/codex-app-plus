@@ -112,6 +112,121 @@
   font-size: 14px;
 }
 
+.settings-config-card .settings-row-copy {
+  min-width: 0;
+}
+
+.settings-config-card .settings-row-heading {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d2d2d;
+}
+
+.settings-config-card .settings-row-meta {
+  margin: 6px 0 0;
+  color: #7a7a7a;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.settings-config-card .settings-row-meta + .settings-row-meta {
+  margin-top: 4px;
+}
+
+.settings-inline-doc {
+  color: #6d6d6d;
+}
+
+.settings-action-btn {
+  border: 0;
+  border-radius: 999px;
+  height: 34px;
+  padding: 0 14px;
+  background: #e7e7e7;
+  color: #2d2d2d;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.settings-action-btn:hover {
+  background: #dbdbdb;
+}
+
+.settings-action-btn-sm {
+  height: 32px;
+  padding: 0 12px;
+}
+
+.settings-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.28);
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding: 24px;
+}
+
+.settings-dialog {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 48px);
+  background: #f5f5f5;
+  border-radius: 14px;
+  border: 1px solid #d9d9d9;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.settings-dialog-header {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.settings-dialog-header strong {
+  font-size: 16px;
+  color: #2d2d2d;
+}
+
+.settings-dialog-close {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: #e7e7e7;
+  color: #444;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.settings-dialog-close:hover {
+  background: #dbdbdb;
+}
+
+.settings-dialog-body {
+  padding: 14px;
+  min-height: 0;
+}
+
+.settings-dialog-textarea {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  background: #eeeeee;
+  color: #444;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  resize: none;
+}
+
 .settings-env-row {
   border-top: 1px solid #e1e1e1;
   min-height: 58px;

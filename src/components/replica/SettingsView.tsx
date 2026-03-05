@@ -1,4 +1,6 @@
 import type { WorkspaceRoot } from "../../app/useWorkspaceRoots";
+import { useState } from "react";
+import { OpenSourceLicensesDialog } from "./OpenSourceLicensesDialog";
 
 export type SettingsSection =
   | "general"
@@ -16,6 +18,7 @@ interface SettingsViewProps {
   onBackHome: () => void;
   onSelectSection: (section: SettingsSection) => void;
   onAddRoot: () => void;
+  onOpenConfigToml: () => Promise<void>;
 }
 
 interface NavItem {
@@ -120,7 +123,7 @@ function GeneralContent(): JSX.Element {
       <SectionHeader title="常规" />
       <section className="settings-card">
         <div className="settings-row"><div><strong>默认打开目标</strong><p>默认打开文件和文件夹的位置</p></div><span className="settings-chip">VS Code</span></div>
-        <div className="settings-row"><div><strong>Integrated terminal shell</strong><p>Choose which shell opens in the integrated terminal.</p></div><span className="settings-chip">PowerShell</span></div>
+        <div className="settings-row"><div><strong>集成终端 Shell</strong><p>选择集成终端默认打开的 Shell。</p></div><span className="settings-chip">PowerShell</span></div>
         <div className="settings-row"><div><strong>语言</strong><p>应用 UI 语言</p></div><span className="settings-chip">中文（中国）</span></div>
         <div className="settings-row"><div><strong>线程详细信息</strong><p>选择线程中命令输出的显示量</p></div><span className="settings-chip">带代码命令的步骤</span></div>
       </section>
@@ -128,14 +131,29 @@ function GeneralContent(): JSX.Element {
   );
 }
 
-function ConfigContent(): JSX.Element {
+function ConfigContent(props: { onOpenConfigToml: () => Promise<void> }): JSX.Element {
+  const [licensesOpen, setLicensesOpen] = useState(false);
   return (
     <div className="settings-panel-group">
       <SectionHeader title="配置" subtitle="此设置对 Codex 的所有使用场景生效" />
-      <section className="settings-card">
-        <div className="settings-row"><div><strong>config.toml</strong><p>编辑你的配置以自定义代理行为</p></div><button type="button" className="settings-chip">打开 config.toml</button></div>
-        <div className="settings-row"><div><strong>开源许可证</strong><p>捆绑依赖项的第三方声明</p></div><button type="button" className="settings-chip">查看</button></div>
+      <section className="settings-card settings-config-card">
+        <div className="settings-row">
+          <div className="settings-row-copy">
+            <strong className="settings-row-heading">config.toml</strong>
+            <p className="settings-row-meta">编辑你的配置以自定义代理行为</p>
+            <p className="settings-row-meta">编辑后重启 Codex 以应用更改 <span className="settings-inline-doc">文档 ↗</span></p>
+          </div>
+          <button type="button" className="settings-action-btn" onClick={() => void props.onOpenConfigToml()}>打开 config.toml</button>
+        </div>
+        <div className="settings-row">
+          <div className="settings-row-copy">
+            <strong className="settings-row-heading">打开源许可证</strong>
+            <p className="settings-row-meta">捆绑依赖项的第三方声明</p>
+          </div>
+          <button type="button" className="settings-action-btn settings-action-btn-sm" onClick={() => setLicensesOpen(true)}>查看</button>
+        </div>
       </section>
+      <OpenSourceLicensesDialog open={licensesOpen} onClose={() => setLicensesOpen(false)} />
     </div>
   );
 }
@@ -251,10 +269,11 @@ function SettingsContent(props: {
   readonly section: SettingsSection;
   readonly roots: ReadonlyArray<WorkspaceRoot>;
   onAddRoot: () => void;
+  onOpenConfigToml: () => Promise<void>;
 }): JSX.Element {
-  const { section, roots, onAddRoot } = props;
+  const { section, roots, onAddRoot, onOpenConfigToml } = props;
   if (section === "general") return <GeneralContent />;
-  if (section === "config") return <ConfigContent />;
+  if (section === "config") return <ConfigContent onOpenConfigToml={onOpenConfigToml} />;
   if (section === "personalization") return <PersonalizationContent />;
   if (section === "mcp") return <McpContent />;
   if (section === "git") return <GitContent />;
@@ -268,7 +287,7 @@ export function SettingsView(props: SettingsViewProps): JSX.Element {
     <div className="settings-layout">
       <SettingsSidebar section={props.section} onBackHome={props.onBackHome} onSelectSection={props.onSelectSection} />
       <main className="settings-main">
-        <SettingsContent section={props.section} roots={props.roots} onAddRoot={props.onAddRoot} />
+        <SettingsContent section={props.section} roots={props.roots} onAddRoot={props.onAddRoot} onOpenConfigToml={props.onOpenConfigToml} />
       </main>
     </div>
   );

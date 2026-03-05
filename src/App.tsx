@@ -41,6 +41,15 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const [screen, setScreen] = useState<"home" | SettingsSection>("home");
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
 
+  const openConfigToml = useCallback(async () => {
+    try {
+      await hostBridge.app.openCodexConfigToml();
+    } catch (error) {
+      console.error("打开 config.toml 失败", error);
+      window.alert(`打开 config.toml 失败：${String(error)}`);
+    }
+  }, [hostBridge.app]);
+
   const openSettings = useCallback(() => {
     setScreen("general");
     setSettingsMenuOpen(false);
@@ -61,6 +70,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
         onBackHome={() => setScreen("home")}
         onSelectSection={setScreen}
         onAddRoot={addRoot}
+        onOpenConfigToml={openConfigToml}
       />
     );
   }

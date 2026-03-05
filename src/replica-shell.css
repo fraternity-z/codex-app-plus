@@ -19,7 +19,7 @@
   flex-direction: column;
   padding: 8px 10px 12px;
   border-right: 1px solid #ebebeb;
-  background: #f5f5f5;
+  background: #ffffff;
   min-width: 0;
   transition: all 0.3s ease;
   grid-row: 1 / -1;
@@ -249,29 +249,9 @@
   color: #727272;
   background: #ffffff;
 }
-.center-mark {
-  width: 40px;
-  height: 40px;
-  color: #1f1f1f;
-}
-.canvas-title {
-  margin: 16px 0 2px;
-  font-size: 49px;
-  color: #1f1f1f;
-  font-weight: 500;
-}
-.workspace-pill {
-  border: 0;
-  background: transparent;
-  color: #7a7a7a;
-  font-size: 42px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.workspace-caret {
-  width: 20px;
-  height: 20px;
-  color: #9a9a9a;
-  transform: rotate(90deg);
+
+@media (max-width: 1080px) {
+  .replica-app {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
 }
