@@ -75,16 +75,36 @@ function createHostBridge(createSession: ReturnType<typeof vi.fn>): HostBridge {
 }
 
 describe("useTerminalOpenAction", () => {
-  it("passes the selected shell to terminal session creation", async () => {
+  it("fits the terminal before creating the session", async () => {
     const createSession = vi.fn().mockResolvedValue({ sessionId: "terminal-1", shell: "Git Bash" });
+    const fit = vi.fn();
     const setErrorMessage = vi.fn();
     const setShellLabel = vi.fn();
     const setStatus = vi.fn();
     const syncTerminalSize = vi.fn().mockResolvedValue(undefined);
+    const terminalRef = {
+      current: {
+        cols: 80,
+        rows: 20
+      }
+    };
+    const fitAddonRef = {
+      current: {
+        fit: () => {
+          fit();
+          if (terminalRef.current === null) {
+            return;
+          }
+          terminalRef.current.cols = 140;
+          terminalRef.current.rows = 36;
+        }
+      }
+    };
     const { result } = renderHook(() =>
       useTerminalOpenAction({
         creatingRef: { current: false },
         cwd: "E:/code/project",
+        fitAddonRef: fitAddonRef as never,
         hostBridge: createHostBridge(createSession),
         mountedRef: { current: true },
         open: true,
@@ -95,7 +115,7 @@ describe("useTerminalOpenAction", () => {
         setStatus,
         shell: "gitBash",
         syncTerminalSize,
-        terminalRef: { current: null }
+        terminalRef: terminalRef as never
       })
     );
 
@@ -105,10 +125,11 @@ describe("useTerminalOpenAction", () => {
 
     expect(createSession).toHaveBeenCalledWith({
       cwd: "E:/code/project",
-      cols: 120,
-      rows: 32,
+      cols: 140,
+      rows: 36,
       shell: "gitBash"
     });
+    expect(fit).toHaveBeenCalledTimes(1);
     expect(setShellLabel).toHaveBeenCalledWith("Git Bash");
     expect(syncTerminalSize).toHaveBeenCalled();
   });

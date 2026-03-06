@@ -9,8 +9,12 @@ const UNIX_DEFAULT_SHELL: &str = "/bin/bash";
 const WINDOWS_COMMAND_PROMPT_PROGRAM: &str = "cmd.exe";
 const WINDOWS_GIT_BASH_PROGRAM: &str = "C:\\Program Files\\Git\\bin\\bash.exe";
 const WINDOWS_POWERSHELL_PROGRAM: &str = "powershell.exe";
-const WINDOWS_POWERSHELL_UTF8_INIT: &str = "[Console]::InputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); $OutputEncoding = [Console]::OutputEncoding; chcp.com 65001 > $null";
-const WINDOWS_COMMAND_PROMPT_UTF8_INIT: &str = "chcp 65001>nul";
+const WINDOWS_POWERSHELL_INIT: &str = concat!(
+    "[Console]::InputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false); ",
+    "$OutputEncoding = [Console]::OutputEncoding; ",
+    "chcp.com 65001 > $null"
+);
+const WINDOWS_COMMAND_PROMPT_INIT: &str = "chcp 65001>nul";
 
 #[derive(Debug)]
 pub struct ShellConfig {
@@ -52,26 +56,34 @@ fn build_windows_shell_config(
     git_bash_program: &Path,
 ) -> AppResult<ShellConfig> {
     match shell {
-        EmbeddedTerminalShell::PowerShell => Ok(ShellConfig {
-            program: WINDOWS_POWERSHELL_PROGRAM.to_string(),
-            args: vec![
-                "-NoLogo".to_string(),
-                "-NoExit".to_string(),
-                "-Command".to_string(),
-                WINDOWS_POWERSHELL_UTF8_INIT.to_string(),
-            ],
-            label: "PowerShell".to_string(),
-        }),
-        EmbeddedTerminalShell::CommandPrompt => Ok(ShellConfig {
-            program: WINDOWS_COMMAND_PROMPT_PROGRAM.to_string(),
-            args: vec![
-                "/Q".to_string(),
-                "/K".to_string(),
-                WINDOWS_COMMAND_PROMPT_UTF8_INIT.to_string(),
-            ],
-            label: "Command Prompt".to_string(),
-        }),
+        EmbeddedTerminalShell::PowerShell => Ok(build_power_shell_config()),
+        EmbeddedTerminalShell::CommandPrompt => Ok(build_command_prompt_config()),
         EmbeddedTerminalShell::GitBash => build_git_bash_shell_config(git_bash_program),
+    }
+}
+
+fn build_power_shell_config() -> ShellConfig {
+    ShellConfig {
+        program: WINDOWS_POWERSHELL_PROGRAM.to_string(),
+        args: vec![
+            "-NoLogo".to_string(),
+            "-NoExit".to_string(),
+            "-Command".to_string(),
+            WINDOWS_POWERSHELL_INIT.to_string(),
+        ],
+        label: "PowerShell".to_string(),
+    }
+}
+
+fn build_command_prompt_config() -> ShellConfig {
+    ShellConfig {
+        program: WINDOWS_COMMAND_PROMPT_PROGRAM.to_string(),
+        args: vec![
+            "/Q".to_string(),
+            "/K".to_string(),
+            WINDOWS_COMMAND_PROMPT_INIT.to_string(),
+        ],
+        label: "Command Prompt".to_string(),
     }
 }
 
@@ -91,12 +103,14 @@ fn build_git_bash_shell_config(git_bash_program: &Path) -> AppResult<ShellConfig
 
 #[cfg(test)]
 mod tests {
-    use super::{build_windows_shell_config, WINDOWS_POWERSHELL_UTF8_INIT};
+    use super::{
+        build_windows_shell_config, WINDOWS_COMMAND_PROMPT_INIT, WINDOWS_POWERSHELL_INIT,
+    };
     use crate::models::EmbeddedTerminalShell;
     use std::path::PathBuf;
 
     #[test]
-    fn builds_powershell_config_with_utf8_init() {
+    fn builds_powershell_config_with_utf8_console_init() {
         let config = build_windows_shell_config(
             EmbeddedTerminalShell::PowerShell,
             PathBuf::from("C:/Program Files/Git/bin/bash.exe").as_path(),
@@ -111,13 +125,13 @@ mod tests {
                 "-NoLogo".to_string(),
                 "-NoExit".to_string(),
                 "-Command".to_string(),
-                WINDOWS_POWERSHELL_UTF8_INIT.to_string(),
+                WINDOWS_POWERSHELL_INIT.to_string(),
             ]
         );
     }
 
     #[test]
-    fn builds_command_prompt_config_with_utf8_init() {
+    fn builds_command_prompt_config_with_utf8_console_init() {
         let config = build_windows_shell_config(
             EmbeddedTerminalShell::CommandPrompt,
             PathBuf::from("C:/Program Files/Git/bin/bash.exe").as_path(),
@@ -128,7 +142,11 @@ mod tests {
         assert_eq!(config.label, "Command Prompt");
         assert_eq!(
             config.args,
-            vec!["/Q".to_string(), "/K".to_string(), "chcp 65001>nul".to_string()]
+            vec![
+                "/Q".to_string(),
+                "/K".to_string(),
+                WINDOWS_COMMAND_PROMPT_INIT.to_string()
+            ]
         );
     }
 
