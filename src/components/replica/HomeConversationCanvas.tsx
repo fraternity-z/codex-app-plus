@@ -1,24 +1,11 @@
 import { useEffect, useMemo, useRef } from "react";
+import { filterVisibleConversationMessages } from "../../app/conversationMessages";
 import type { ConversationMessage, ThreadSummary } from "../../domain/types";
+import { ConversationMessageContent } from "./ConversationMessageContent";
 
 interface HomeConversationCanvasProps {
   readonly messages: ReadonlyArray<ConversationMessage>;
   readonly selectedThread: ThreadSummary | null;
-}
-
-function roleLabel(role: ConversationMessage["role"]): string {
-  switch (role) {
-    case "assistant":
-      return "Codex";
-    case "system":
-      return "系统";
-    default:
-      return "你";
-  }
-}
-
-function createMessageClassName(role: ConversationMessage["role"]): string {
-  return `home-chat-message home-chat-message-${role}`;
 }
 
 function ConversationPlaceholder(props: { readonly selectedThread: ThreadSummary | null }): JSX.Element {
@@ -39,15 +26,23 @@ function ConversationPlaceholder(props: { readonly selectedThread: ThreadSummary
   );
 }
 
-function ConversationBubble(props: { readonly message: ConversationMessage }): JSX.Element {
+function contentClassName(message: ConversationMessage): string {
+  return message.role === "assistant" ? "home-chat-markdown home-chat-markdown-assistant" : "home-chat-markdown home-chat-markdown-user";
+}
+
+function ConversationMessageItem(props: { readonly message: ConversationMessage }): JSX.Element {
+  if (props.message.role === "assistant") {
+    return (
+      <article className="home-chat-message home-chat-message-assistant" aria-label="AI 消息">
+        <ConversationMessageContent className={contentClassName(props.message)} message={props.message} />
+      </article>
+    );
+  }
+
   return (
-    <article className={createMessageClassName(props.message.role)}>
-      <div className="home-chat-message-header">
-        <span>{roleLabel(props.message.role)}</span>
-        <span>{props.message.status === "streaming" ? "生成中" : "已完成"}</span>
-      </div>
+    <article className="home-chat-message home-chat-message-user" aria-label="用户消息">
       <div className="home-chat-bubble">
-        <pre className="home-chat-text">{props.message.text}</pre>
+        <ConversationMessageContent className={contentClassName(props.message)} message={props.message} />
       </div>
     </article>
   );
@@ -55,7 +50,8 @@ function ConversationBubble(props: { readonly message: ConversationMessage }): J
 
 export function HomeConversationCanvas(props: HomeConversationCanvasProps): JSX.Element {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const lastMessage = props.messages[props.messages.length - 1] ?? null;
+  const visibleMessages = useMemo(() => filterVisibleConversationMessages(props.messages), [props.messages]);
+  const lastMessage = visibleMessages[visibleMessages.length - 1] ?? null;
   const scrollKey = useMemo(() => {
     if (lastMessage === null) {
       return props.selectedThread?.id ?? "empty";
@@ -75,9 +71,9 @@ export function HomeConversationCanvas(props: HomeConversationCanvasProps): JSX.
     <main className="home-conversation" aria-label="会话内容">
       <div ref={scrollRef} className="home-conversation-scroll">
         <div className="home-conversation-thread">
-          {props.messages.length === 0 ? <ConversationPlaceholder selectedThread={props.selectedThread} /> : null}
-          {props.messages.map((message) => (
-            <ConversationBubble key={message.id} message={message} />
+          {visibleMessages.length === 0 ? <ConversationPlaceholder selectedThread={props.selectedThread} /> : null}
+          {visibleMessages.map((message) => (
+            <ConversationMessageItem key={message.id} message={message} />
           ))}
         </div>
       </div>

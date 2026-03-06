@@ -1,4 +1,7 @@
+import type { FitAddon } from "@xterm/addon-fit";
+import type { Terminal } from "@xterm/xterm";
 import { act, renderHook } from "@testing-library/react";
+import type { MutableRefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../bridge/types";
 import { useTerminalOpenAction } from "./terminalRuntime";
@@ -82,29 +85,27 @@ describe("useTerminalOpenAction", () => {
     const setShellLabel = vi.fn();
     const setStatus = vi.fn();
     const syncTerminalSize = vi.fn().mockResolvedValue(undefined);
-    const terminalRef = {
-      current: {
-        cols: 80,
-        rows: 20
-      }
+    const terminalState = {
+      cols: 80,
+      rows: 20
     };
-    const fitAddonRef = {
+    const terminalRef: MutableRefObject<Terminal | null> = {
+      current: terminalState as Terminal
+    };
+    const fitAddonRef: MutableRefObject<FitAddon | null> = {
       current: {
         fit: () => {
           fit();
-          if (terminalRef.current === null) {
-            return;
-          }
-          terminalRef.current.cols = 140;
-          terminalRef.current.rows = 36;
+          terminalState.cols = 140;
+          terminalState.rows = 36;
         }
-      }
+      } as FitAddon
     };
     const { result } = renderHook(() =>
       useTerminalOpenAction({
         creatingRef: { current: false },
         cwd: "E:/code/project",
-        fitAddonRef: fitAddonRef as never,
+        fitAddonRef,
         hostBridge: createHostBridge(createSession),
         mountedRef: { current: true },
         open: true,
@@ -115,7 +116,7 @@ describe("useTerminalOpenAction", () => {
         setStatus,
         shell: "gitBash",
         syncTerminalSize,
-        terminalRef: terminalRef as never
+        terminalRef
       })
     );
 

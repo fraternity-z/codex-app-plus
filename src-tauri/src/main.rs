@@ -3,6 +3,7 @@
 mod app_server_io;
 mod codex_cli;
 mod codex_data;
+mod codex_session_text;
 mod commands;
 mod error;
 mod events;

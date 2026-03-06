@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 
+use crate::codex_session_text::summarize_user_message;
 use crate::error::{AppError, AppResult};
 use crate::models::{
     CodexSessionMessage, CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSummary,
@@ -100,7 +101,7 @@ fn read_session_header(path: &Path) -> AppResult<Option<SessionHeader>> {
             cwd = read_session_cwd(&value);
         }
         if title.is_none() {
-            title = read_message_text(&value, "user").map(|text| summarize_message(&text));
+            title = read_message_text(&value, "user").and_then(|text| summarize_user_message(&text));
         }
         if session_id.is_some() && cwd.is_some() && title.is_some() {
             break;
@@ -282,15 +283,6 @@ fn read_message_text(value: &Value, role: &str) -> Option<String> {
     Some(parts.join("\n"))
 }
 
-fn summarize_message(text: &str) -> String {
-    let title = text
-        .lines()
-        .map(str::trim)
-        .find(|line| !line.is_empty() && !line.starts_with('#') && !line.starts_with('<'))
-        .unwrap_or(text.trim());
-    truncate_text(title, 48)
-}
-
 fn infer_name_from_path(path: &str) -> String {
     path.replace('\\', "/")
         .split('/')
@@ -300,21 +292,13 @@ fn infer_name_from_path(path: &str) -> String {
         .to_string()
 }
 
-fn truncate_text(text: &str, max_chars: usize) -> String {
-    let truncated = text.chars().take(max_chars).collect::<String>();
-    if text.chars().count() > max_chars {
-        return format!("{truncated}...");
-    }
-    truncated
-}
-
 #[cfg(test)]
 mod tests {
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use super::{infer_name_from_path, read_session_summary, summarize_message};
+    use super::{infer_name_from_path, read_session_summary};
 
     fn create_temp_session_file(contents: &str) -> PathBuf {
         let suffix = SystemTime::now()
@@ -324,12 +308,6 @@ mod tests {
         let path = std::env::temp_dir().join(format!("codex-app-plus-session-{suffix}.jsonl"));
         fs::write(&path, contents).expect("write temp session file");
         path
-    }
-
-    #[test]
-    fn summarizes_first_meaningful_line() {
-        let text = "# AGENTS\n\nFix login issue\nDetailed description";
-        assert_eq!(summarize_message(text), "Fix login issue");
     }
 
     #[test]

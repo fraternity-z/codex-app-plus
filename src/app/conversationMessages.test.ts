@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { appendAssistantDelta, completeTurnMessages, mapThreadHistoryToMessages } from "./conversationMessages";
+import {
+  appendAssistantDelta,
+  completeTurnMessages,
+  filterVisibleConversationMessages,
+  mapThreadHistoryToMessages,
+  normalizeConversationMessageText
+} from "./conversationMessages";
 
 describe("conversationMessages", () => {
   it("maps thread history into user and assistant messages", () => {
@@ -36,5 +42,31 @@ describe("conversationMessages", () => {
     const completed = completeTurnMessages(messages, "thread-1", "turn-1");
 
     expect(completed[0]?.status).toBe("done");
+  });
+
+  it("filters system and empty messages from the conversation view", () => {
+    const messages = [
+      { id: "assistant-1", threadId: "thread-1", turnId: "turn-1", itemId: "item-1", role: "assistant", text: "done", status: "done" },
+      { id: "system-1", threadId: "thread-1", turnId: "turn-1", itemId: "item-2", role: "system", text: "hidden", status: "done" },
+      { id: "user-1", threadId: "thread-1", turnId: "turn-2", itemId: "item-3", role: "user", text: "   ", status: "done" }
+    ] as const;
+
+    expect(filterVisibleConversationMessages(messages as never).map((message) => message.id)).toEqual(["assistant-1"]);
+  });
+
+  it("strips injected AGENTS and environment context from loaded user messages", () => {
+    const text = [
+      "# AGENTS.md instructions for E:\\code\\boai",
+      "",
+      "<INSTRUCTIONS>",
+      "Global rules",
+      "</INSTRUCTIONS>",
+      "<environment_context>",
+      "  <cwd>E:\\code\\boai</cwd>",
+      "</environment_context>",
+      "请优化接口查询性能"
+    ].join("\n");
+
+    expect(normalizeConversationMessageText("user", text)).toBe("请优化接口查询性能");
   });
 });

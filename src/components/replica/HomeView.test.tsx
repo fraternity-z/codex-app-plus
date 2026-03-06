@@ -191,4 +191,60 @@ describe("HomeView", () => {
     expect(screen.getByText("帮我检查当前工作区")).toBeInTheDocument();
     expect(screen.getByText("我先检查当前工作区。")).toBeInTheDocument();
   });
+
+  it("hides system prompt messages and renders assistant content in markdown style", () => {
+    const { container } = renderHomeView({
+      messages: [
+        createMessage({ id: "message-system", role: "system", text: "\u4f60\u662f\u7cfb\u7edf\u63d0\u793a\u8bcd\uff0c\u4e0d\u5e94\u8be5\u663e\u793a\u3002" }),
+        createMessage({ id: "message-user", role: "user", text: "\u8bf7\u4f18\u5316\u804a\u5929\u8bb0\u5f55\u5c55\u793a" }),
+        createMessage({
+          id: "message-assistant",
+          role: "assistant",
+          text: "# \u663e\u793a\u4f18\u5316\n\n- \u5e03\u5c40\u66f4\u7d27\u51d1\n- \u533a\u5206 `user` \u548c `assistant`"
+        })
+      ]
+    });
+
+    expect(screen.queryByText("\u4f60\u662f\u7cfb\u7edf\u63d0\u793a\u8bcd\uff0c\u4e0d\u5e94\u8be5\u663e\u793a\u3002")).toBeNull();
+    expect(container.querySelector(".home-chat-message-user")).not.toBeNull();
+    expect(container.querySelector(".home-chat-message-assistant .home-chat-bubble")).toBeNull();
+    expect(container.querySelector(".home-chat-markdown h1")?.textContent).toBe("\u663e\u793a\u4f18\u5316");
+    expect(Array.from(container.querySelectorAll(".home-chat-markdown code")).map((node) => node.textContent)).toEqual([
+      "user",
+      "assistant"
+    ]);
+  });
+
+  it("strips injected AGENTS and environment context from visible user messages", () => {
+    renderHomeView({
+      messages: [
+        createMessage({
+          id: "message-user",
+          role: "user",
+          text: "# AGENTS.md instructions for E:\\code\\boai\n\n<INSTRUCTIONS>\nSystem\n</INSTRUCTIONS>\n<environment_context>\n  <cwd>E:\\code\\boai</cwd>\n</environment_context>\n请只优化 timeline 页性能"
+        })
+      ]
+    });
+
+    expect(screen.queryByText(/AGENTS\.md instructions/)).toBeNull();
+    expect(screen.queryByText(/<environment_context>/)).toBeNull();
+    expect(screen.getByText("请只优化 timeline 页性能")).toBeInTheDocument();
+  });
+
+  it("renders proposed_plan content inside a rounded plan box", () => {
+    const { container } = renderHomeView({
+      messages: [
+        createMessage({
+          id: "message-assistant-plan",
+          role: "assistant",
+          text: "先给结论。\n\n<proposed_plan>\n## 计划书\n\n- 第一步\n- 第二步\n</proposed_plan>\n\n最后补充。"
+        })
+      ]
+    });
+
+    expect(container.querySelector(".home-chat-proposed-plan")).not.toBeNull();
+    expect(container.querySelector(".home-chat-proposed-plan h2")?.textContent).toBe("计划书");
+    expect(screen.getByText("第一步")).toBeInTheDocument();
+    expect(screen.getByText("第二步")).toBeInTheDocument();
+  });
 });

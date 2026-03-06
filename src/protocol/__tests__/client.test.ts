@@ -86,4 +86,25 @@ describe("ProtocolClient", () => {
 
     await expect(client.request("thread/list", { archived: false })).rejects.toThrow(/握手/);
   });
+
+  it("normalizes empty request params to null", async () => {
+    const hostBridge = createHostBridge();
+    const client = new ProtocolClient(hostBridge, {
+      onConnectionChanged: vi.fn(),
+      onNotification: vi.fn(),
+      onServerRequest: vi.fn(),
+      onFatalError: vi.fn()
+    });
+
+    await client.initializeConnection({
+      clientInfo: { name: "test", title: "Test", version: "1.0.0" },
+      capabilities: { experimentalApi: true, optOutNotificationMethods: null }
+    });
+    await client.request("config/mcpServer/reload", undefined);
+
+    expect(hostBridge.rpc.request).toHaveBeenNthCalledWith(2, {
+      method: "config/mcpServer/reload",
+      params: null
+    });
+  });
 });

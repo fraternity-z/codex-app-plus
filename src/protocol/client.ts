@@ -17,6 +17,10 @@ type ProtocolHandlers = {
   onFatalError: (message: string) => void;
 };
 
+function normalizeRequestParams(params: unknown): unknown {
+  return params === undefined ? null : params;
+}
+
 export class ProtocolClient {
   readonly #hostBridge: HostBridge;
   readonly #handlers: ProtocolHandlers;
@@ -103,7 +107,7 @@ export class ProtocolClient {
   private async requestRaw(method: string, params: unknown): Promise<unknown> {
     const response = await this.#hostBridge.rpc.request({
       method,
-      params
+      params: normalizeRequestParams(params)
     });
     return response.result;
   }

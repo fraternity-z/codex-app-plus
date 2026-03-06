@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { ComposerSelection } from "./composerPreferences";
 import type { CodexSessionReadOutput, HostBridge } from "../bridge/types";
 import type { ConversationMessage, ThreadSummary } from "../domain/types";
-import { createUserConversationMessage, mapThreadHistoryToMessages } from "./conversationMessages";
+import {
+  createUserConversationMessage,
+  mapThreadHistoryToMessages,
+  normalizeConversationMessageText
+} from "./conversationMessages";
 import type { ThreadReadParams } from "../protocol/generated/v2/ThreadReadParams";
 import type { ThreadReadResponse } from "../protocol/generated/v2/ThreadReadResponse";
 import type { ThreadResumeParams } from "../protocol/generated/v2/ThreadResumeParams";
@@ -34,15 +38,19 @@ interface UseWorkspaceConversationOptions {
 function mapCodexSessionMessages(threadId: string, response: CodexSessionReadOutput): ReadonlyArray<ConversationMessage> {
   return response.messages
     .filter((message) => message.role === "user" || message.role === "assistant")
-    .map((message) => ({
-      id: message.id,
-      threadId,
-      turnId: null,
-      itemId: message.id,
-      role: message.role as "user" | "assistant",
-      text: message.text,
-      status: "done"
-    }));
+    .map((message) => {
+      const role = message.role as "user" | "assistant";
+      return {
+        id: message.id,
+        threadId,
+        turnId: null,
+        itemId: message.id,
+        role,
+        text: normalizeConversationMessageText(role, message.text),
+        status: "done" as const
+      };
+    })
+    .filter((message) => message.text.trim().length > 0);
 }
 
 function createLoadedThreadKey(thread: ThreadSummary): string {
