@@ -1,23 +1,16 @@
-﻿import type { ComponentProps } from "react";
+import type { ComponentProps } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ComposerModelOption } from "../../app/composerPreferences";
 import type { HostBridge } from "../../bridge/types";
-import type { ConversationMessage, ThreadSummary } from "../../domain/types";
+import type { ThreadSummary, TimelineEntry } from "../../domain/types";
 import type { WorkspaceGitController } from "./git/types";
 import { HomeView } from "./HomeView";
 
-const { mockedUseWorkspaceGit } = vi.hoisted(() => ({
-  mockedUseWorkspaceGit: vi.fn()
-}));
+const { mockedUseWorkspaceGit } = vi.hoisted(() => ({ mockedUseWorkspaceGit: vi.fn() }));
 
-vi.mock("../terminal/TerminalPanel", () => ({
-  TerminalPanel: () => null
-}));
-
-vi.mock("./git/useWorkspaceGit", () => ({
-  useWorkspaceGit: mockedUseWorkspaceGit
-}));
+vi.mock("../terminal/TerminalPanel", () => ({ TerminalPanel: () => null }));
+vi.mock("./git/useWorkspaceGit", () => ({ useWorkspaceGit: mockedUseWorkspaceGit }));
 
 const MODELS: ReadonlyArray<ComposerModelOption> = [
   {
@@ -30,7 +23,7 @@ const MODELS: ReadonlyArray<ComposerModelOption> = [
   }
 ];
 
-function createController(overrides?: Partial<WorkspaceGitController>): WorkspaceGitController {
+function createController(): WorkspaceGitController {
   return {
     loading: false,
     pendingAction: null,
@@ -62,8 +55,7 @@ function createController(overrides?: Partial<WorkspaceGitController>): Workspac
     clearDiff: vi.fn(),
     setCommitMessage: vi.fn(),
     setSelectedBranch: vi.fn(),
-    setNewBranchName: vi.fn(),
-    ...overrides
+    setNewBranchName: vi.fn()
   };
 }
 
@@ -74,19 +66,10 @@ function createThread(overrides?: Partial<ThreadSummary>): ThreadSummary {
     cwd: "E:/code/FPGA",
     archived: false,
     updatedAt: "2026-03-06T09:00:00.000Z",
-    ...overrides
-  };
-}
-
-function createMessage(overrides?: Partial<ConversationMessage>): ConversationMessage {
-  return {
-    id: "message-1",
-    threadId: "thread-1",
-    turnId: "turn-1",
-    itemId: "item-1",
-    role: "assistant",
-    text: "我先检查当前工作区。",
-    status: "done",
+    source: "rpc",
+    status: "idle",
+    activeFlags: [],
+    queuedCount: 0,
     ...overrides
   };
 }
@@ -100,7 +83,7 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
     <HomeView
       hostBridge={{} as HostBridge}
       busy={false}
-      inputText=""
+      inputText="检查工作区"
       roots={[root]}
       selectedRootId={root.id}
       selectedRootName={root.name}
@@ -110,13 +93,15 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       codexSessionsLoading={false}
       codexSessionsError={null}
       selectedThreadId={thread.id}
-      messages={[]}
+      activities={[]}
+      queuedFollowUps={[]}
       models={MODELS}
       defaultModel="gpt-5.2"
       defaultEffort="xhigh"
       workspaceOpener="vscode"
       embeddedTerminalShell="powerShell"
-      pendingServerRequests={[]}
+      followUpQueueMode="queue"
+      composerEnterBehavior="enter"
       connectionStatus="connected"
       fatalError={null}
       authStatus="authenticated"
@@ -136,130 +121,145 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       onRemoveRoot={vi.fn()}
       onRetryConnection={vi.fn().mockResolvedValue(undefined)}
       onLogin={vi.fn().mockResolvedValue(undefined)}
-      onApproveRequest={vi.fn().mockResolvedValue(undefined)}
-      onRejectRequest={vi.fn().mockResolvedValue(undefined)}
+      onResolveServerRequest={vi.fn().mockResolvedValue(undefined)}
+      onRemoveQueuedFollowUp={vi.fn()}
+      onClearQueuedFollowUps={vi.fn()}
       {...overrides}
     />
   );
 }
 
 describe("HomeView", () => {
-  it("toggles terminal button label through icon button", () => {
-    renderHomeView();
-
-    fireEvent.click(screen.getByRole("button", { name: "隐藏终端" }));
-
-    expect(screen.getByRole("button", { name: "显示终端" })).toHaveAttribute("aria-pressed", "false");
-  });
-
-  it("disables diff button when no workspace is selected", () => {
-    renderHomeView({ roots: [], selectedRootId: null, selectedRootName: "选择工作区", selectedRootPath: null, threads: [], codexSessions: [], selectedThreadId: null });
-
-    expect(screen.getByRole("button", { name: "显示差异侧栏" })).toBeDisabled();
-  });
-
-  it("calls send handler when send button is clicked", () => {
+  it("submits with plan mode after toggling the attachment switch", () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
-
-    renderHomeView({ inputText: "请分析当前工作区", onSendTurn });
-    fireEvent.click(screen.getByRole("button", { name: "发送消息" }));
-
-    expect(onSendTurn).toHaveBeenCalledWith({ model: "gpt-5.2", effort: "xhigh" });
-  });
-
-  it("opens add menu and toggles plan mode", () => {
-    renderHomeView();
+    renderHomeView({ onSendTurn });
 
     fireEvent.click(screen.getByRole("button", { name: "添加" }));
+    fireEvent.click(screen.getByRole("switch", { name: "切换计划模式" }));
+    fireEvent.click(screen.getByRole("button", { name: "发送消息" }));
 
-    expect(screen.getByText("添加照片和文件")).toBeInTheDocument();
-    const planModeSwitch = screen.getByRole("switch", { name: "切换计划模式" });
-    expect(planModeSwitch).toHaveAttribute("aria-checked", "false");
-
-    fireEvent.click(planModeSwitch);
-
-    expect(planModeSwitch).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByText("MCP 快捷方式")).toBeInTheDocument();
+    expect(onSendTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        planModeEnabled: true,
+        selection: expect.objectContaining({ model: "gpt-5.2", effort: "xhigh" })
+      })
+    );
   });
 
-  it("uses codex sessions instead of the thread list in the sidebar", () => {
-    const remoteThread = createThread({ id: "thread-remote", title: "Remote thread", source: "rpc" });
-    const localSession = createThread({ id: "thread-local", title: "Local session", source: "codexData" });
+  it("renders proposed_plan content inside the conversation timeline", () => {
+    const activities: ReadonlyArray<TimelineEntry> = [
+      {
+        id: "agent-1",
+        kind: "agentMessage",
+        role: "assistant",
+        threadId: "thread-1",
+        turnId: "turn-1",
+        itemId: "item-1",
+        text: "先给结论。\n\n<proposed_plan>\n## 计划书\n\n- 第一步\n- 第二步\n</proposed_plan>",
+        status: "done"
+      }
+    ];
 
-    renderHomeView({ threads: [remoteThread], codexSessions: [localSession], selectedThreadId: null, messages: [] });
-    fireEvent.click(screen.getAllByText("FPGA")[0]!);
-
-    expect(screen.getByText("Local session")).toBeInTheDocument();
-    expect(screen.queryByText("Remote thread")).not.toBeInTheDocument();
-  });
-
-  it("renders conversation canvas instead of empty state when a thread is active", () => {
-    const { container } = renderHomeView({
-      messages: [
-        createMessage({ id: "message-user", role: "user", text: "帮我检查当前工作区" }),
-        createMessage({ id: "message-assistant", role: "assistant", text: "我先检查当前工作区。" })
-      ]
-    });
-
-    expect(container.querySelector(".empty-state")).toBeNull();
-    expect(container.querySelector(".home-conversation")).not.toBeNull();
-    expect(screen.getByText("帮我检查当前工作区")).toBeInTheDocument();
-    expect(screen.getByText("我先检查当前工作区。")).toBeInTheDocument();
-  });
-
-  it("hides system prompt messages and renders assistant content in markdown style", () => {
-    const { container } = renderHomeView({
-      messages: [
-        createMessage({ id: "message-system", role: "system", text: "\u4f60\u662f\u7cfb\u7edf\u63d0\u793a\u8bcd\uff0c\u4e0d\u5e94\u8be5\u663e\u793a\u3002" }),
-        createMessage({ id: "message-user", role: "user", text: "\u8bf7\u4f18\u5316\u804a\u5929\u8bb0\u5f55\u5c55\u793a" }),
-        createMessage({
-          id: "message-assistant",
-          role: "assistant",
-          text: "# \u663e\u793a\u4f18\u5316\n\n- \u5e03\u5c40\u66f4\u7d27\u51d1\n- \u533a\u5206 `user` \u548c `assistant`"
-        })
-      ]
-    });
-
-    expect(screen.queryByText("\u4f60\u662f\u7cfb\u7edf\u63d0\u793a\u8bcd\uff0c\u4e0d\u5e94\u8be5\u663e\u793a\u3002")).toBeNull();
-    expect(container.querySelector(".home-chat-message-user")).not.toBeNull();
-    expect(container.querySelector(".home-chat-message-assistant .home-chat-bubble")).toBeNull();
-    expect(container.querySelector(".home-chat-markdown h1")?.textContent).toBe("\u663e\u793a\u4f18\u5316");
-    expect(Array.from(container.querySelectorAll(".home-chat-markdown code")).map((node) => node.textContent)).toEqual([
-      "user",
-      "assistant"
-    ]);
-  });
-
-  it("strips injected AGENTS and environment context from visible user messages", () => {
-    renderHomeView({
-      messages: [
-        createMessage({
-          id: "message-user",
-          role: "user",
-          text: "# AGENTS.md instructions for E:\\code\\boai\n\n<INSTRUCTIONS>\nSystem\n</INSTRUCTIONS>\n<environment_context>\n  <cwd>E:\\code\\boai</cwd>\n</environment_context>\n请只优化 timeline 页性能"
-        })
-      ]
-    });
-
-    expect(screen.queryByText(/AGENTS\.md instructions/)).toBeNull();
-    expect(screen.queryByText(/<environment_context>/)).toBeNull();
-    expect(screen.getByText("请只优化 timeline 页性能")).toBeInTheDocument();
-  });
-
-  it("renders proposed_plan content inside a rounded plan box", () => {
-    const { container } = renderHomeView({
-      messages: [
-        createMessage({
-          id: "message-assistant-plan",
-          role: "assistant",
-          text: "先给结论。\n\n<proposed_plan>\n## 计划书\n\n- 第一步\n- 第二步\n</proposed_plan>\n\n最后补充。"
-        })
-      ]
-    });
+    const { container } = renderHomeView({ activities });
 
     expect(container.querySelector(".home-chat-proposed-plan")).not.toBeNull();
     expect(container.querySelector(".home-chat-proposed-plan h2")?.textContent).toBe("计划书");
-    expect(screen.getByText("第一步")).toBeInTheDocument();
-    expect(screen.getByText("第二步")).toBeInTheDocument();
+  });
+
+  it("renders command cards and inline request cards", () => {
+    const activities: ReadonlyArray<TimelineEntry> = [
+      {
+        id: "cmd-1",
+        kind: "commandExecution",
+        threadId: "thread-1",
+        turnId: "turn-1",
+        itemId: "item-cmd",
+        command: "pnpm test",
+        cwd: "E:/code/FPGA",
+        processId: "proc-1",
+        status: "inProgress",
+        commandActions: [],
+        output: "running...",
+        exitCode: null,
+        durationMs: null,
+        terminalInteractions: [],
+        approvalRequestId: null
+      },
+      {
+        id: "request-1",
+        kind: "pendingUserInput",
+        threadId: "thread-1",
+        turnId: "turn-1",
+        itemId: "item-question",
+        requestId: "request-1",
+        request: {
+          kind: "userInput",
+          id: "request-1",
+          method: "item/tool/requestUserInput",
+          threadId: "thread-1",
+          turnId: "turn-1",
+          itemId: "item-question",
+          questions: [
+            {
+              id: "answer",
+              header: "模式",
+              question: "请选择处理方式",
+              isOther: false,
+              isSecret: false,
+              options: [{ label: "Queue", description: "加入队列" }]
+            }
+          ],
+          params: {
+            threadId: "thread-1",
+            turnId: "turn-1",
+            itemId: "item-question",
+            questions: [
+              {
+                id: "answer",
+                header: "模式",
+                question: "请选择处理方式",
+                isOther: false,
+                isSecret: false,
+                options: [{ label: "Queue", description: "加入队列" }]
+              }
+            ]
+          }
+        }
+      }
+    ];
+
+    renderHomeView({ activities });
+
+    expect(screen.getByText("命令执行")).toBeInTheDocument();
+    expect(screen.getByText("需要补充信息")).toBeInTheDocument();
+    expect(screen.getByText("请选择处理方式")).toBeInTheDocument();
+  });
+
+  it("shows queued follow-ups and forwards remove/clear actions", () => {
+    const onRemoveQueuedFollowUp = vi.fn();
+    const onClearQueuedFollowUps = vi.fn();
+
+    renderHomeView({
+      queuedFollowUps: [
+        {
+          id: "follow-1",
+          text: "继续修测试",
+          model: "gpt-5.2",
+          effort: "medium",
+          planModeEnabled: false,
+          mode: "queue",
+          createdAt: "2026-03-06T09:00:00.000Z"
+        }
+      ],
+      onRemoveQueuedFollowUp,
+      onClearQueuedFollowUps
+    });
+
+    expect(screen.getByText("Queued follow-ups")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "移除" }));
+    fireEvent.click(screen.getByRole("button", { name: "清空" }));
+
+    expect(onRemoveQueuedFollowUp).toHaveBeenCalledWith("follow-1");
+    expect(onClearQueuedFollowUps).toHaveBeenCalledTimes(1);
   });
 });

@@ -28,7 +28,10 @@ describe("useCodexSessionCatalog", () => {
         cwd: "E:/code/project-a",
         archived: false,
         updatedAt: "2026-03-06T10:00:00.000Z",
-        source: "codexData"
+        source: "codexData",
+        status: "notLoaded",
+        activeFlags: [],
+        queuedCount: 0
       }
     ]);
   });

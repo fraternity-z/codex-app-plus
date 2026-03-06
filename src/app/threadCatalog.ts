@@ -60,7 +60,10 @@ export function mapCodexSessionsToThreads(sessions: ReadonlyArray<CodexSessionSu
     cwd: session.cwd,
     archived: false,
     updatedAt: session.updatedAt,
-    source: "codexData"
+    source: "codexData",
+    status: "notLoaded",
+    activeFlags: [],
+    queuedCount: 0
   }));
 }
 

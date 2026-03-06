@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
-import { filterVisibleConversationMessages } from "../../app/conversationMessages";
-import type { ConversationMessage, ThreadSummary } from "../../domain/types";
-import { ConversationMessageContent } from "./ConversationMessageContent";
+import type { ServerRequestResolution, ThreadSummary, TimelineEntry } from "../../domain/types";
+import { HomeTimelineEntry } from "./HomeTimelineEntry";
+import { splitActivitiesIntoRenderGroups } from "./localConversationGroups";
 
 interface HomeConversationCanvasProps {
-  readonly messages: ReadonlyArray<ConversationMessage>;
+  readonly activities: ReadonlyArray<TimelineEntry>;
   readonly selectedThread: ThreadSummary | null;
+  readonly onResolveServerRequest: (resolution: ServerRequestResolution) => Promise<void>;
 }
 
 function ConversationPlaceholder(props: { readonly selectedThread: ThreadSummary | null }): JSX.Element {
@@ -13,7 +14,7 @@ function ConversationPlaceholder(props: { readonly selectedThread: ThreadSummary
     return (
       <div className="home-chat-placeholder">
         <p className="home-chat-placeholder-title">选择工作区后即可开始会话</p>
-        <p className="home-chat-placeholder-body">发送第一条消息后，这里会切换成聊天记录视图。</p>
+        <p className="home-chat-placeholder-body">发送第一条消息后，这里会切换为完整的时间线视图。</p>
       </div>
     );
   }
@@ -21,59 +22,64 @@ function ConversationPlaceholder(props: { readonly selectedThread: ThreadSummary
   return (
     <div className="home-chat-placeholder">
       <p className="home-chat-placeholder-title">会话已创建</p>
-      <p className="home-chat-placeholder-body">发送第一条消息后，聊天内容会显示在这里。</p>
+      <p className="home-chat-placeholder-body">发送第一条消息后，计划、命令、审批和文件变更都会显示在这里。</p>
     </div>
   );
 }
 
-function contentClassName(message: ConversationMessage): string {
-  return message.role === "assistant" ? "home-chat-markdown home-chat-markdown-assistant" : "home-chat-markdown home-chat-markdown-user";
+function filterVisibleActivities(activities: ReadonlyArray<TimelineEntry>): ReadonlyArray<TimelineEntry> {
+  return activities.filter((entry) => entry.kind !== "queuedFollowUp");
 }
 
-function ConversationMessageItem(props: { readonly message: ConversationMessage }): JSX.Element {
-  if (props.message.role === "assistant") {
-    return (
-      <article className="home-chat-message home-chat-message-assistant" aria-label="AI 消息">
-        <ConversationMessageContent className={contentClassName(props.message)} message={props.message} />
-      </article>
-    );
+function createScrollKey(entry: TimelineEntry | null): string {
+  if (entry === null) {
+    return "empty";
   }
-
-  return (
-    <article className="home-chat-message home-chat-message-user" aria-label="用户消息">
-      <div className="home-chat-bubble">
-        <ConversationMessageContent className={contentClassName(props.message)} message={props.message} />
-      </div>
-    </article>
-  );
+  if (entry.kind === "agentMessage" || entry.kind === "userMessage" || entry.kind === "plan") {
+    return `${entry.id}:${entry.status}:${entry.text.length}`;
+  }
+  if (entry.kind === "commandExecution") {
+    return `${entry.id}:${entry.status}:${entry.output.length}:${entry.terminalInteractions.length}`;
+  }
+  if (entry.kind === "fileChange") {
+    return `${entry.id}:${entry.status}:${entry.output.length}`;
+  }
+  return entry.id;
 }
 
 export function HomeConversationCanvas(props: HomeConversationCanvasProps): JSX.Element {
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const visibleMessages = useMemo(() => filterVisibleConversationMessages(props.messages), [props.messages]);
-  const lastMessage = visibleMessages[visibleMessages.length - 1] ?? null;
-  const scrollKey = useMemo(() => {
-    if (lastMessage === null) {
-      return props.selectedThread?.id ?? "empty";
-    }
-    return `${lastMessage.id}:${lastMessage.status}:${lastMessage.text.length}`;
-  }, [lastMessage, props.selectedThread]);
+  const visibleActivities = useMemo(() => filterVisibleActivities(props.activities), [props.activities]);
+  const renderGroups = useMemo(() => splitActivitiesIntoRenderGroups(visibleActivities), [visibleActivities]);
+  const lastActivity = visibleActivities[visibleActivities.length - 1] ?? null;
+  const scrollKey = useMemo(() => createScrollKey(lastActivity), [lastActivity]);
 
   useEffect(() => {
     const element = scrollRef.current;
-    if (element === null) {
-      return;
+    if (element !== null) {
+      element.scrollTop = element.scrollHeight;
     }
-    element.scrollTop = element.scrollHeight;
   }, [scrollKey]);
 
   return (
     <main className="home-conversation" aria-label="会话内容">
       <div ref={scrollRef} className="home-conversation-scroll">
         <div className="home-conversation-thread">
-          {visibleMessages.length === 0 ? <ConversationPlaceholder selectedThread={props.selectedThread} /> : null}
-          {visibleMessages.map((message) => (
-            <ConversationMessageItem key={message.id} message={message} />
+          {visibleActivities.length === 0 ? <ConversationPlaceholder selectedThread={props.selectedThread} /> : null}
+          {renderGroups.map((group) => (
+            <section key={group.key} className="home-turn-group">
+              {group.userItems.map((entry) => (
+                <HomeTimelineEntry key={entry.id} entry={entry} onResolveServerRequest={props.onResolveServerRequest} />
+              ))}
+              {group.proposedPlanItem ? <HomeTimelineEntry entry={group.proposedPlanItem} onResolveServerRequest={props.onResolveServerRequest} /> : null}
+              {group.agentItems.map((entry) => (
+                <HomeTimelineEntry key={entry.id} entry={entry} onResolveServerRequest={props.onResolveServerRequest} />
+              ))}
+              {group.assistantItem ? <HomeTimelineEntry entry={group.assistantItem} onResolveServerRequest={props.onResolveServerRequest} /> : null}
+              {group.unifiedDiffItem ? <HomeTimelineEntry entry={group.unifiedDiffItem} onResolveServerRequest={props.onResolveServerRequest} /> : null}
+              {group.approvalItem ? <HomeTimelineEntry entry={group.approvalItem} onResolveServerRequest={props.onResolveServerRequest} /> : null}
+              {group.userInputItem ? <HomeTimelineEntry entry={group.userInputItem} onResolveServerRequest={props.onResolveServerRequest} /> : null}
+            </section>
           ))}
         </div>
       </div>

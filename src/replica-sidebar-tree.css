@@ -84,9 +84,28 @@
   white-space: nowrap;
 }
 
-.workspace-thread-title {
+.workspace-thread-title-row {
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.workspace-thread-title {
+  min-width: 0;
+  flex: 1 1 auto;
   font-size: 13px;
+}
+
+.workspace-thread-badge {
+  flex-shrink: 0;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 10px;
+  line-height: 18px;
 }
 
 .workspace-thread-meta,

@@ -1,29 +1,39 @@
 import { describe, expect, it } from "vitest";
+import type { ThreadSummary } from "../domain/types";
 import { findLatestThreadForWorkspace, listThreadsForWorkspace } from "./workspaceThread";
 
-const THREADS = [
+const THREADS: Array<ThreadSummary> = [
   {
     id: "thread-1",
     title: "older",
     cwd: "E:/code/codex-app-plus",
     archived: false,
-    updatedAt: "2026-03-06T08:00:00.000Z"
+    updatedAt: "2026-03-06T08:00:00.000Z",
+    status: "idle",
+    activeFlags: [],
+    queuedCount: 0
   },
   {
     id: "thread-2",
     title: "latest",
     cwd: "E:\\code\\codex-app-plus\\",
     archived: false,
-    updatedAt: "2026-03-06T09:00:00.000Z"
+    updatedAt: "2026-03-06T09:00:00.000Z",
+    status: "idle",
+    activeFlags: [],
+    queuedCount: 0
   },
   {
     id: "thread-3",
     title: "other",
     cwd: "E:/code/another-workspace",
     archived: false,
-    updatedAt: "2026-03-06T10:00:00.000Z"
+    updatedAt: "2026-03-06T10:00:00.000Z",
+    status: "idle",
+    activeFlags: [],
+    queuedCount: 0
   }
-] as const;
+];
 
 describe("workspaceThread", () => {
   it("returns the latest thread in the selected workspace", () => {
@@ -52,7 +62,10 @@ describe("workspaceThread", () => {
             cwd: "E:/code/codex-app-plus/frontend",
             archived: false,
             updatedAt: "2026-03-06T11:00:00.000Z",
-            source: "codexData"
+            source: "codexData",
+            status: "notLoaded",
+            activeFlags: [],
+            queuedCount: 0
           }
         ],
         "E:/code/codex-app-plus"

@@ -29,6 +29,7 @@ export function createUserConversationMessage(
 ): ConversationMessage {
   return {
     id: createMessageId(threadId, turnId, `user-${turnId}`),
+    kind: "userMessage",
     threadId,
     turnId,
     itemId: `user-${turnId}`,
@@ -72,6 +73,7 @@ export function appendAssistantDelta(
       ...messages,
       {
         id,
+        kind: "agentMessage",
         threadId,
         turnId,
         itemId,
@@ -164,6 +166,7 @@ function mapThreadItemToMessage(
   if (item.type === "agentMessage") {
     return {
       id: createMessageId(threadId, turnId, item.id),
+      kind: "agentMessage",
       threadId,
       turnId,
       itemId: item.id,
@@ -187,6 +190,7 @@ function createHistoryUserConversationMessage(
 
   return {
     id: createMessageId(threadId, turnId, `user-${turnId}`),
+    kind: "userMessage",
     threadId,
     turnId,
     itemId: `user-${turnId}`,

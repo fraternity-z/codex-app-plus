@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { EmbeddedTerminalShell, WorkspaceOpener } from "../bridge/types";
+import type { ComposerEnterBehavior, FollowUpMode } from "../domain/timeline";
 
 export type UiLanguage = "zh-CN" | "en-US";
 export type ThreadDetailLevel = "compact" | "commands" | "full";
@@ -9,6 +10,8 @@ export interface AppPreferences {
   readonly embeddedTerminalShell: EmbeddedTerminalShell;
   readonly uiLanguage: UiLanguage;
   readonly threadDetailLevel: ThreadDetailLevel;
+  readonly followUpQueueMode: FollowUpMode;
+  readonly composerEnterBehavior: ComposerEnterBehavior;
 }
 
 export interface AppPreferencesController extends AppPreferences {
@@ -16,6 +19,8 @@ export interface AppPreferencesController extends AppPreferences {
   setEmbeddedTerminalShell: (shell: EmbeddedTerminalShell) => void;
   setUiLanguage: (language: UiLanguage) => void;
   setThreadDetailLevel: (detailLevel: ThreadDetailLevel) => void;
+  setFollowUpQueueMode: (mode: FollowUpMode) => void;
+  setComposerEnterBehavior: (behavior: ComposerEnterBehavior) => void;
 }
 
 export const APP_PREFERENCES_STORAGE_KEY = "codex-app-plus.app-preferences";
@@ -37,12 +42,16 @@ const EMBEDDED_TERMINAL_SHELLS: ReadonlyArray<EmbeddedTerminalShell> = [
 
 const UI_LANGUAGES: ReadonlyArray<UiLanguage> = ["zh-CN", "en-US"];
 const THREAD_DETAIL_LEVELS: ReadonlyArray<ThreadDetailLevel> = ["compact", "commands", "full"];
+const FOLLOW_UP_QUEUE_MODES: ReadonlyArray<FollowUpMode> = ["queue", "steer", "interrupt"];
+const COMPOSER_ENTER_BEHAVIORS: ReadonlyArray<ComposerEnterBehavior> = ["enter", "cmdIfMultiline"];
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   workspaceOpener: "vscode",
   embeddedTerminalShell: "powerShell",
   uiLanguage: "zh-CN",
-  threadDetailLevel: "commands"
+  threadDetailLevel: "commands",
+  followUpQueueMode: "queue",
+  composerEnterBehavior: "enter"
 };
 
 function isPreferenceValue<T extends string>(allowedValues: ReadonlyArray<T>, value: unknown): value is T {
@@ -66,7 +75,13 @@ function sanitizeStoredPreferences(value: unknown): AppPreferences {
       : DEFAULT_APP_PREFERENCES.uiLanguage,
     threadDetailLevel: isPreferenceValue(THREAD_DETAIL_LEVELS, record.threadDetailLevel)
       ? record.threadDetailLevel
-      : DEFAULT_APP_PREFERENCES.threadDetailLevel
+      : DEFAULT_APP_PREFERENCES.threadDetailLevel,
+    followUpQueueMode: isPreferenceValue(FOLLOW_UP_QUEUE_MODES, record.followUpQueueMode)
+      ? record.followUpQueueMode
+      : DEFAULT_APP_PREFERENCES.followUpQueueMode,
+    composerEnterBehavior: isPreferenceValue(COMPOSER_ENTER_BEHAVIORS, record.composerEnterBehavior)
+      ? record.composerEnterBehavior
+      : DEFAULT_APP_PREFERENCES.composerEnterBehavior
   };
 }
 
@@ -113,8 +128,32 @@ export function useAppPreferences(): AppPreferencesController {
     setPreferences((current) => updatePreferences(current, { threadDetailLevel: detailLevel }));
   }, []);
 
+  const setFollowUpQueueMode = useCallback((followUpQueueMode: FollowUpMode) => {
+    setPreferences((current) => updatePreferences(current, { followUpQueueMode }));
+  }, []);
+
+  const setComposerEnterBehavior = useCallback((composerEnterBehavior: ComposerEnterBehavior) => {
+    setPreferences((current) => updatePreferences(current, { composerEnterBehavior }));
+  }, []);
+
   return useMemo(
-    () => ({ ...preferences, setWorkspaceOpener, setEmbeddedTerminalShell, setUiLanguage, setThreadDetailLevel }),
-    [preferences, setEmbeddedTerminalShell, setThreadDetailLevel, setUiLanguage, setWorkspaceOpener]
+    () => ({
+      ...preferences,
+      setWorkspaceOpener,
+      setEmbeddedTerminalShell,
+      setUiLanguage,
+      setThreadDetailLevel,
+      setFollowUpQueueMode,
+      setComposerEnterBehavior
+    }),
+    [
+      preferences,
+      setComposerEnterBehavior,
+      setEmbeddedTerminalShell,
+      setFollowUpQueueMode,
+      setThreadDetailLevel,
+      setUiLanguage,
+      setWorkspaceOpener
+    ]
   );
 }

@@ -4,6 +4,7 @@ import type {
   UiLanguage
 } from "../../../app/useAppPreferences";
 import type { EmbeddedTerminalShell, WorkspaceOpener } from "../../../bridge/types";
+import type { ComposerEnterBehavior, FollowUpMode } from "../../../domain/timeline";
 import { SettingsSelectRow, type SettingsSelectOption } from "./SettingsSelectRow";
 
 const WORKSPACE_OPENER_OPTIONS: ReadonlyArray<SettingsSelectOption<WorkspaceOpener>> = [
@@ -27,13 +28,21 @@ const UI_LANGUAGE_OPTIONS: ReadonlyArray<SettingsSelectOption<UiLanguage>> = [
 ];
 
 const THREAD_DETAIL_LEVEL_OPTIONS: ReadonlyArray<SettingsSelectOption<ThreadDetailLevel>> = [
-  { value: "compact", label: "简略步骤" },
-  { value: "commands", label: "带代码命令的步骤" },
+  { value: "compact", label: "精简步骤" },
+  { value: "commands", label: "包含命令输出" },
   { value: "full", label: "完整输出" }
 ];
 
-const UI_LANGUAGE_NOTE = "当前仅保存偏好，尚未驱动 UI 翻译。";
-const THREAD_DETAIL_NOTE = "当前仅保存偏好，尚未驱动会话渲染。";
+const FOLLOW_UP_MODE_OPTIONS: ReadonlyArray<SettingsSelectOption<FollowUpMode>> = [
+  { value: "queue", label: "Queue" },
+  { value: "steer", label: "Steer" },
+  { value: "interrupt", label: "Interrupt" }
+];
+
+const COMPOSER_ENTER_OPTIONS: ReadonlyArray<SettingsSelectOption<ComposerEnterBehavior>> = [
+  { value: "enter", label: "Enter 发送" },
+  { value: "cmdIfMultiline", label: "多行时 Ctrl/Cmd+Enter 发送" }
+];
 
 interface GeneralSettingsSectionProps {
   readonly preferences: AppPreferencesController;
@@ -50,33 +59,49 @@ export function GeneralSettingsSection(props: GeneralSettingsSectionProps): JSX.
       <section className="settings-card">
         <SettingsSelectRow
           label="默认打开目标"
-          description="默认打开文件和文件夹的位置"
+          description="打开文件夹或工作区时优先使用的应用。"
           value={preferences.workspaceOpener}
           options={WORKSPACE_OPENER_OPTIONS}
           onChange={preferences.setWorkspaceOpener}
         />
         <SettingsSelectRow
           label="集成终端 Shell"
-          description="选择集成终端默认打开的 Shell。"
+          description="内置终端默认启动的 Shell。"
           value={preferences.embeddedTerminalShell}
           options={TERMINAL_SHELL_OPTIONS}
           onChange={preferences.setEmbeddedTerminalShell}
         />
         <SettingsSelectRow
-          label="语言"
-          description="应用 UI 语言"
+          label="界面语言"
+          description="应用界面显示语言。"
           value={preferences.uiLanguage}
           options={UI_LANGUAGE_OPTIONS}
           onChange={preferences.setUiLanguage}
-          statusNote={UI_LANGUAGE_NOTE}
+          statusNote="当前先保存偏好，未做完整 UI 国际化切换。"
         />
         <SettingsSelectRow
-          label="线程详细信息"
-          description="选择线程中命令输出的显示量"
+          label="线程详情级别"
+          description="控制会话内命令与调试信息的显示粒度。"
           value={preferences.threadDetailLevel}
           options={THREAD_DETAIL_LEVEL_OPTIONS}
           onChange={preferences.setThreadDetailLevel}
-          statusNote={THREAD_DETAIL_NOTE}
+          statusNote="用于控制时间线细节展示。"
+        />
+        <SettingsSelectRow
+          label="Follow-up 模式"
+          description="会话进行中再次发送消息时的默认处理方式。"
+          value={preferences.followUpQueueMode}
+          options={FOLLOW_UP_MODE_OPTIONS}
+          onChange={preferences.setFollowUpQueueMode}
+          statusNote="支持 queue、steer、interrupt 三种模式。"
+        />
+        <SettingsSelectRow
+          label="回车行为"
+          description="Composer 中 Enter 的发送规则。"
+          value={preferences.composerEnterBehavior}
+          options={COMPOSER_ENTER_OPTIONS}
+          onChange={preferences.setComposerEnterBehavior}
+          statusNote="支持 Cmd/Ctrl+Shift+Enter 单次反向 follow-up。"
         />
       </section>
     </div>

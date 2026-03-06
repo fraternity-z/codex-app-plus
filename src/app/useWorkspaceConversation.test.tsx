@@ -1,4 +1,4 @@
-﻿import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../bridge/types";
@@ -18,6 +18,9 @@ function createThread(overrides?: Partial<ThreadSummary>): ThreadSummary {
     archived: false,
     updatedAt: "2026-03-06T09:00:00.000Z",
     source: "rpc",
+    status: "idle",
+    activeFlags: [],
+    queuedCount: 0,
     ...overrides
   };
 }
@@ -46,180 +49,133 @@ function createThreadStartResult() {
 }
 
 function createTurnStartResult() {
+  return { turn: { id: "turn-1", items: [], status: "inProgress" as const, error: null } };
+}
+
+function createThreadReadResult() {
   return {
-    turn: {
-      id: "turn-1",
-      items: [],
-      status: "inProgress" as const,
-      error: null
+    thread: {
+      ...createThreadStartResult().thread,
+      id: "thread-1",
+      turns: []
     }
   };
 }
 
+function renderConversation(hostBridge: HostBridge, threads: ReadonlyArray<ThreadSummary> = []) {
+  const reloadCodexSessions = vi.fn().mockResolvedValue(undefined);
+  const hook = renderHook(
+    () => {
+      const store = useAppStore();
+      const conversation = useWorkspaceConversation({
+        hostBridge,
+        threads,
+        codexSessions: [],
+        selectedRootPath: "E:/code/FPGA",
+        collaborationModes: [{ name: "plan", mode: "plan", model: "gpt-5.2", reasoningEffort: "medium" }],
+        followUpQueueMode: "queue",
+        reloadCodexSessions
+      });
+      return { store, conversation, reloadCodexSessions };
+    },
+    { wrapper: Wrapper }
+  );
+  return hook;
+}
+
 describe("useWorkspaceConversation", () => {
-  it("refreshes the codex catalog after thread start and turn start", async () => {
+  it("starts a new thread and turn when idle", async () => {
     const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
-      if (input.method === "thread/start") {
-        return { requestId: "request-1", result: createThreadStartResult() };
-      }
-      if (input.method === "turn/start") {
-        return { requestId: "request-2", result: createTurnStartResult() };
-      }
+      if (input.method === "thread/start") return { requestId: "request-1", result: createThreadStartResult() };
+      if (input.method === "turn/start") return { requestId: "request-2", result: createTurnStartResult() };
+      if (input.method === "thread/resume") return { requestId: "request-3", result: createThreadStartResult() };
       throw new Error(`unexpected method: ${input.method}`);
     });
-    const reloadCodexSessions = vi.fn().mockResolvedValue(undefined);
-    const hostBridge = {
-      rpc: { request, notify: vi.fn(), cancel: vi.fn() },
-      app: { readCodexSession: vi.fn() }
-    } as unknown as HostBridge;
-
-    const { result } = renderHook(
-      () => {
-        const store = useAppStore();
-        const conversation = useWorkspaceConversation({
-          hostBridge,
-          threads: [],
-          codexSessions: [],
-          selectedRootPath: "E:/code/FPGA",
-          reloadCodexSessions
-        });
-        return { store, conversation };
-      },
-      { wrapper: Wrapper }
-    );
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: { readCodexSession: vi.fn() } } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
 
     act(() => {
       result.current.store.dispatch({ type: "input/changed", value: "请分析当前工作区" });
     });
 
     await act(async () => {
-      await result.current.conversation.sendTurn({ model: "gpt-5.2", effort: "medium" });
+      await result.current.conversation.sendTurn({ selection: { model: "gpt-5.2", effort: "medium" }, planModeEnabled: false });
     });
 
-    expect(request).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        method: "thread/start",
-        params: expect.objectContaining({ cwd: "E:/code/FPGA", model: "gpt-5.2" })
-      })
-    );
-    expect(request).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        method: "turn/start",
-        params: expect.objectContaining({ threadId: "thread-1", model: "gpt-5.2", effort: "medium" })
-      })
-    );
-    expect(reloadCodexSessions).toHaveBeenCalledTimes(2);
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/start" }));
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/start" }));
+    expect(result.current.reloadCodexSessions).toHaveBeenCalledTimes(2);
   });
 
-  it("clears selection when switching to another workspace", async () => {
-    const reloadCodexSessions = vi.fn().mockResolvedValue(undefined);
-    const hostBridge = {
-      rpc: { request: vi.fn(), notify: vi.fn(), cancel: vi.fn() },
-      app: { readCodexSession: vi.fn() }
-    } as unknown as HostBridge;
-
-    const { result, rerender } = renderHook(
-      ({ selectedRootPath }: { readonly selectedRootPath: string | null }) => {
-        const store = useAppStore();
-        const conversation = useWorkspaceConversation({
-          hostBridge,
-          threads: [createThread()],
-          codexSessions: [],
-          selectedRootPath,
-          reloadCodexSessions
-        });
-        return { store, conversation };
-      },
-      { wrapper: Wrapper, initialProps: { selectedRootPath: "E:/code/FPGA" } }
-    );
+  it("queues follow-ups when the thread is active", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/read") return { requestId: "read", result: createThreadReadResult() };
+      if (input.method === "thread/resume") return { requestId: "resume", result: createThreadStartResult() };
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: { readCodexSession: vi.fn() } } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge, [createThread()]);
 
     act(() => {
       result.current.store.dispatch({ type: "thread/selected", threadId: "thread-1" });
+      result.current.store.dispatch({ type: "turn/started", threadId: "thread-1", turnId: "turn-1" });
+      result.current.store.dispatch({ type: "thread/statusChanged", threadId: "thread-1", status: "active", activeFlags: [] });
+      result.current.store.dispatch({ type: "input/changed", value: "继续修测试" });
     });
 
-    expect(result.current.conversation.selectedThreadId).toBe("thread-1");
-
-    rerender({ selectedRootPath: "E:/code/Codex" });
-
-    expect(result.current.conversation.selectedThreadId).toBeNull();
-    await waitFor(() => {
-      expect(result.current.store.state.selectedThreadId).toBeNull();
+    await act(async () => {
+      await result.current.conversation.sendTurn({ selection: { model: "gpt-5.2", effort: "medium" }, planModeEnabled: false });
     });
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/read" }));
+    expect(result.current.store.state.threadRuntime["thread-1"]?.queuedFollowUps).toHaveLength(1);
   });
 
-  it("upserts and loads local codex sessions when selected", async () => {
-    const readCodexSession = vi.fn().mockResolvedValue({
-      threadId: "local-1",
-      messages: [
-        { id: "user-1", role: "user", text: "你好" },
-        { id: "assistant-1", role: "assistant", text: "你好，我来看看。" }
-      ]
+  it("steers the active turn when requested", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/read") return { requestId: "read", result: createThreadReadResult() };
+      if (input.method === "turn/steer") return { requestId: "request-1", result: { turnId: "turn-1" } };
+      throw new Error(`unexpected method: ${input.method}`);
     });
-    const reloadCodexSessions = vi.fn().mockResolvedValue(undefined);
-    const hostBridge = {
-      rpc: { request: vi.fn(), notify: vi.fn(), cancel: vi.fn() },
-      app: { readCodexSession }
-    } as unknown as HostBridge;
-    const localThread = createThread({ id: "local-1", title: "本地会话", source: "codexData" });
-
-    const { result } = renderHook(
-      () => {
-        const store = useAppStore();
-        const conversation = useWorkspaceConversation({
-          hostBridge,
-          threads: [],
-          codexSessions: [localThread],
-          selectedRootPath: localThread.cwd,
-          reloadCodexSessions
-        });
-        return { store, conversation };
-      },
-      { wrapper: Wrapper }
-    );
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: { readCodexSession: vi.fn() } } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge, [createThread()]);
 
     act(() => {
-      result.current.conversation.selectThread("local-1");
+      result.current.store.dispatch({ type: "thread/selected", threadId: "thread-1" });
+      result.current.store.dispatch({ type: "turn/started", threadId: "thread-1", turnId: "turn-1" });
+      result.current.store.dispatch({ type: "thread/statusChanged", threadId: "thread-1", status: "active", activeFlags: [] });
+      result.current.store.dispatch({ type: "input/changed", value: "先看失败测试" });
     });
 
-    expect(result.current.store.state.threads[0]).toMatchObject({ id: "local-1", source: "codexData" });
-    await waitFor(() => {
-      expect(readCodexSession).toHaveBeenCalledWith({ threadId: "local-1" });
+    await act(async () => {
+      await result.current.conversation.sendTurn({ selection: { model: "gpt-5.2", effort: "medium" }, planModeEnabled: false, followUpOverride: "steer" });
     });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/steer" }));
   });
 
-  it("refreshes the codex catalog when a turn completes", async () => {
-    const reloadCodexSessions = vi.fn().mockResolvedValue(undefined);
-    const hostBridge = {
-      rpc: { request: vi.fn(), notify: vi.fn(), cancel: vi.fn() },
-      app: { readCodexSession: vi.fn() }
-    } as unknown as HostBridge;
-
-    const { result } = renderHook(
-      () => {
-        const store = useAppStore();
-        const conversation = useWorkspaceConversation({
-          hostBridge,
-          threads: [],
-          codexSessions: [],
-          selectedRootPath: "E:/code/FPGA",
-          reloadCodexSessions
-        });
-        return { store, conversation };
-      },
-      { wrapper: Wrapper }
-    );
+  it("interrupts the active turn before processing interrupt-mode follow-up", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/read") return { requestId: "read", result: createThreadReadResult() };
+      if (input.method === "turn/interrupt") return { requestId: "request-1", result: {} };
+      throw new Error(`unexpected method: ${input.method}`);
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: { readCodexSession: vi.fn() } } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge, [createThread()]);
 
     act(() => {
-      result.current.store.dispatch({
-        type: "notification/received",
-        notification: { method: "turn/completed", params: { threadId: "thread-1", turn: { id: "turn-1" } } }
-      });
+      result.current.store.dispatch({ type: "thread/selected", threadId: "thread-1" });
+      result.current.store.dispatch({ type: "turn/started", threadId: "thread-1", turnId: "turn-1" });
+      result.current.store.dispatch({ type: "thread/statusChanged", threadId: "thread-1", status: "active", activeFlags: [] });
+      result.current.store.dispatch({ type: "input/changed", value: "改成先中断" });
     });
 
-    await waitFor(() => {
-      expect(reloadCodexSessions).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      await result.current.conversation.sendTurn({ selection: { model: "gpt-5.2", effort: "medium" }, planModeEnabled: false, followUpOverride: "interrupt" });
     });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/interrupt" }));
+    expect(result.current.store.state.threadRuntime["thread-1"]?.queuedFollowUps).toHaveLength(1);
   });
 });

@@ -1,14 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ComposerModelOption, ComposerSelection } from "../../app/composerPreferences";
+import type { SendTurnOptions } from "../../app/useWorkspaceConversation";
 import type { WorkspaceRoot } from "../../app/useWorkspaceRoots";
 import type { EmbeddedTerminalShell, HostBridge, WorkspaceOpener } from "../../bridge/types";
 import type {
   AuthStatus,
   ConnectionStatus,
-  ConversationMessage,
-  ReceivedServerRequest,
-  ThreadSummary
+  ServerRequestResolution,
+  ThreadSummary,
+  TimelineEntry
 } from "../../domain/types";
+import type { ComposerEnterBehavior, FollowUpMode, QueuedFollowUp } from "../../domain/timeline";
 import { TerminalPanel } from "../terminal/TerminalPanel";
 import { HomeConversationCanvas } from "./HomeConversationCanvas";
 import { HomeComposer } from "./HomeComposer";
@@ -32,13 +34,15 @@ interface HomeViewProps {
   readonly codexSessionsLoading: boolean;
   readonly codexSessionsError: string | null;
   readonly selectedThreadId: string | null;
-  readonly messages: ReadonlyArray<ConversationMessage>;
+  readonly activities: ReadonlyArray<TimelineEntry>;
+  readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
   readonly models: ReadonlyArray<ComposerModelOption>;
   readonly defaultModel: string | null;
   readonly defaultEffort: ComposerSelection["effort"];
   readonly workspaceOpener: WorkspaceOpener;
   readonly embeddedTerminalShell: EmbeddedTerminalShell;
-  readonly pendingServerRequests: ReadonlyArray<ReceivedServerRequest>;
+  readonly followUpQueueMode: FollowUpMode;
+  readonly composerEnterBehavior: ComposerEnterBehavior;
   readonly connectionStatus: ConnectionStatus;
   readonly fatalError: string | null;
   readonly authStatus: AuthStatus;
@@ -53,13 +57,14 @@ interface HomeViewProps {
   readonly onSelectThread: (threadId: string | null) => void;
   readonly onInputChange: (text: string) => void;
   readonly onCreateThread: () => Promise<void>;
-  readonly onSendTurn: (selection: ComposerSelection) => Promise<void>;
+  readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
   readonly onAddRoot: () => void;
   readonly onRemoveRoot: (rootId: string) => void;
   readonly onRetryConnection: () => Promise<void>;
   readonly onLogin: () => Promise<void>;
-  readonly onApproveRequest: (requestId: string) => Promise<void>;
-  readonly onRejectRequest: (requestId: string) => Promise<void>;
+  readonly onResolveServerRequest: (resolution: ServerRequestResolution) => Promise<void>;
+  readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
+  readonly onClearQueuedFollowUps: () => void;
 }
 
 interface MainContentProps {
@@ -67,7 +72,8 @@ interface MainContentProps {
   readonly hostBridge: HostBridge;
   readonly gitController: WorkspaceGitController;
   readonly inputText: string;
-  readonly messages: ReadonlyArray<ConversationMessage>;
+  readonly activities: ReadonlyArray<TimelineEntry>;
+  readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
   readonly models: ReadonlyArray<ComposerModelOption>;
   readonly defaultModel: string | null;
   readonly defaultEffort: ComposerSelection["effort"];
@@ -77,15 +83,20 @@ interface MainContentProps {
   readonly selectedThread: ThreadSummary | null;
   readonly terminalOpen: boolean;
   readonly diffOpen: boolean;
+  readonly followUpQueueMode: FollowUpMode;
+  readonly composerEnterBehavior: ComposerEnterBehavior;
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
   readonly onInputChange: (text: string) => void;
-  readonly onSendTurn: (selection: ComposerSelection) => Promise<void>;
+  readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
+  readonly onResolveServerRequest: (resolution: ServerRequestResolution) => Promise<void>;
+  readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
+  readonly onClearQueuedFollowUps: () => void;
   readonly onToggleDiff: () => void;
   readonly onToggleTerminal: () => void;
 }
 
 function MainContent(props: MainContentProps): JSX.Element {
-  const conversationActive = props.selectedThread !== null || props.messages.length > 0;
+  const conversationActive = props.selectedThread !== null || props.activities.length > 0;
 
   return (
     <div className="replica-main">
@@ -104,7 +115,7 @@ function MainContent(props: MainContentProps): JSX.Element {
         onToggleTerminal={props.onToggleTerminal}
       />
       {conversationActive ? (
-        <HomeConversationCanvas messages={props.messages} selectedThread={props.selectedThread} />
+        <HomeConversationCanvas activities={props.activities} selectedThread={props.selectedThread} onResolveServerRequest={props.onResolveServerRequest} />
       ) : (
         <EmptyCanvas selectedRootName={props.selectedRootName} selectedRootPath={props.selectedRootPath} />
       )}
@@ -115,8 +126,13 @@ function MainContent(props: MainContentProps): JSX.Element {
         defaultModel={props.defaultModel}
         defaultEffort={props.defaultEffort}
         selectedRootPath={props.selectedRootPath}
+        queuedFollowUps={props.queuedFollowUps}
+        followUpQueueMode={props.followUpQueueMode}
+        composerEnterBehavior={props.composerEnterBehavior}
         onInputChange={props.onInputChange}
         onSendTurn={props.onSendTurn}
+        onRemoveQueuedFollowUp={props.onRemoveQueuedFollowUp}
+        onClearQueuedFollowUps={props.onClearQueuedFollowUps}
       />
     </div>
   );
@@ -149,7 +165,7 @@ export function HomeView(props: HomeViewProps): JSX.Element {
   const [diffSidebarOpen, setDiffSidebarOpen] = useState(false);
   const gitController = useWorkspaceGit({ hostBridge: props.hostBridge, selectedRootPath: props.selectedRootPath });
   const canShowDiffSidebar = diffSidebarOpen && props.selectedRootPath !== null;
-  const selectedThread = props.threads.find((thread) => thread.id === props.selectedThreadId) ?? null;
+  const selectedThread = useMemo(() => props.threads.find((thread) => thread.id === props.selectedThreadId) ?? null, [props.selectedThreadId, props.threads]);
 
   useEffect(() => {
     if (props.selectedRootPath === null) {
@@ -185,7 +201,8 @@ export function HomeView(props: HomeViewProps): JSX.Element {
         hostBridge={props.hostBridge}
         gitController={gitController}
         inputText={props.inputText}
-        messages={props.messages}
+        activities={props.activities}
+        queuedFollowUps={props.queuedFollowUps}
         models={props.models}
         defaultModel={props.defaultModel}
         defaultEffort={props.defaultEffort}
@@ -195,9 +212,14 @@ export function HomeView(props: HomeViewProps): JSX.Element {
         selectedThread={selectedThread}
         terminalOpen={terminalOpen}
         diffOpen={canShowDiffSidebar}
+        followUpQueueMode={props.followUpQueueMode}
+        composerEnterBehavior={props.composerEnterBehavior}
         onSelectWorkspaceOpener={props.onSelectWorkspaceOpener}
         onInputChange={props.onInputChange}
         onSendTurn={props.onSendTurn}
+        onResolveServerRequest={props.onResolveServerRequest}
+        onRemoveQueuedFollowUp={props.onRemoveQueuedFollowUp}
+        onClearQueuedFollowUps={props.onClearQueuedFollowUps}
         onToggleDiff={toggleDiffSidebar}
         onToggleTerminal={toggleTerminal}
       />

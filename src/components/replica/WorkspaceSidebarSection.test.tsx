@@ -17,7 +17,10 @@ function createThread(root: WorkspaceRoot, index: number): ThreadSummary {
     cwd: root.path,
     archived: false,
     updatedAt: `2026-03-${String(index).padStart(2, "0")}T10:00:00.000Z`,
-    source: "codexData"
+    source: "codexData",
+    status: "notLoaded",
+    activeFlags: [],
+    queuedCount: 0
   };
 }
 

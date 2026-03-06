@@ -12,13 +12,17 @@ export function mapThreadListResponse(response: ThreadListResponse): ReadonlyArr
 }
 
 export function mapThreadToSummary(thread: Thread): ThreadSummary {
+  const activeFlags = thread.status.type === "active" ? thread.status.activeFlags : [];
   return {
     id: thread.id,
     title: thread.name ?? thread.preview,
     cwd: thread.cwd,
     archived: false,
     updatedAt: toIsoFromUnixSeconds(thread.updatedAt),
-    source: "rpc"
+    source: "rpc",
+    status: thread.status.type,
+    activeFlags,
+    queuedCount: 0
   };
 }
 

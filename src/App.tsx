@@ -1,6 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
 import { useCallback, useMemo, useState } from "react";
-import type { ComposerSelection } from "./app/composerPreferences";
 import { useAppController } from "./app/useAppController";
 import { useAppPreferences } from "./app/useAppPreferences";
 import { useCodexSessionCatalog } from "./app/useCodexSessionCatalog";
@@ -9,6 +8,7 @@ import { useWorkspaceConversation } from "./app/useWorkspaceConversation";
 import { useWorkspaceRoots } from "./app/useWorkspaceRoots";
 import { inferWorkspaceNameFromPath } from "./app/workspacePath";
 import type { HostBridge } from "./bridge/types";
+import type { ThreadSummary } from "./domain/types";
 import { HomeView } from "./components/replica/HomeView";
 import { SettingsView, type SettingsSection } from "./components/replica/SettingsView";
 
@@ -17,23 +17,15 @@ interface AppProps {
 }
 
 async function requestWorkspaceFolder(): Promise<{ readonly name: string; readonly path: string } | null> {
-  const selection = await open({
-    title: "选择工作区文件夹",
-    directory: true,
-    multiple: false
-  });
+  const selection = await open({ title: "选择工作区文件夹", directory: true, multiple: false });
   if (selection === null) {
     return null;
   }
   if (Array.isArray(selection)) {
-    throw new Error("当前只支持选择一个工作区文件夹");
+    throw new Error("当前只支持选择一个工作区文件夹。");
   }
-
   const path = selection.trim();
-  if (path.length === 0) {
-    return null;
-  }
-  return { name: inferWorkspaceNameFromPath(path), path };
+  return path.length === 0 ? null : { name: inferWorkspaceNameFromPath(path), path };
 }
 
 export function App({ hostBridge }: AppProps): JSX.Element {
@@ -48,16 +40,40 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const selectedRoot = workspace.roots.find((root) => root.id === workspace.selectedRootId) ?? null;
   const selectedRootName = selectedRoot?.name ?? "选择工作区";
   const selectedRootPath = selectedRoot?.path ?? null;
+
+  const decorateThreads = useCallback(
+    (threads: ReadonlyArray<ThreadSummary>) =>
+      threads.map((thread) => {
+        const runtime = controller.state.threadRuntime[thread.id];
+        if (runtime === undefined) {
+          return thread;
+        }
+        return { ...thread, status: runtime.status, activeFlags: runtime.activeFlags, queuedCount: runtime.queuedFollowUps.length };
+      }),
+    [controller.state.threadRuntime]
+  );
+
+  const threads = useMemo(() => decorateThreads(controller.state.threads), [controller.state.threads, decorateThreads]);
+  const codexThreads = useMemo(() => decorateThreads(codexSessions.sessions), [codexSessions.sessions, decorateThreads]);
+
   const conversation = useWorkspaceConversation({
     hostBridge,
-    threads: controller.state.threads,
-    codexSessions: codexSessions.sessions,
+    threads,
+    codexSessions: codexThreads,
     selectedRootPath,
+    collaborationModes: controller.state.collaborationModes,
+    followUpQueueMode: preferences.followUpQueueMode,
     reloadCodexSessions: codexSessions.reload
   });
-  const messages = useMemo(
-    () => controller.state.messages.filter((message) => message.threadId === conversation.selectedThreadId),
-    [controller.state.messages, conversation.selectedThreadId]
+
+  const activities = useMemo(
+    () => (conversation.selectedThreadId === null ? [] : controller.state.threadActivities[conversation.selectedThreadId] ?? []),
+    [controller.state.threadActivities, conversation.selectedThreadId]
+  );
+
+  const queuedFollowUps = useMemo(
+    () => (conversation.selectedThreadId === null ? [] : controller.state.threadRuntime[conversation.selectedThreadId]?.queuedFollowUps ?? []),
+    [controller.state.threadRuntime, conversation.selectedThreadId]
   );
 
   const openConfigToml = useCallback(async () => {
@@ -95,14 +111,17 @@ export function App({ hostBridge }: AppProps): JSX.Element {
     }
   }, [conversation]);
 
-  const sendWorkspaceTurn = useCallback(async (selection: ComposerSelection) => {
-    try {
-      await conversation.sendTurn(selection);
-    } catch (error) {
-      console.error("发送工作区消息失败", error);
-      window.alert(`发送工作区消息失败: ${String(error)}`);
-    }
-  }, [conversation]);
+  const sendWorkspaceTurn = useCallback(
+    async (sendOptions: Parameters<typeof conversation.sendTurn>[0]) => {
+      try {
+        await conversation.sendTurn(sendOptions);
+      } catch (error) {
+        console.error("发送工作区消息失败", error);
+        window.alert(`发送工作区消息失败: ${String(error)}`);
+      }
+    },
+    [conversation]
+  );
 
   if (screen !== "home") {
     return (
@@ -111,7 +130,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
         roots={workspace.roots}
         preferences={preferences}
         configSnapshot={controller.state.configSnapshot}
-        busy={controller.state.busy}
+        busy={controller.state.bootstrapBusy}
         onBackHome={() => setScreen("home")}
         onSelectSection={setScreen}
         onAddRoot={addRoot}
@@ -126,24 +145,26 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   return (
     <HomeView
       hostBridge={hostBridge}
-      busy={controller.state.busy}
+      busy={controller.state.bootstrapBusy}
       inputText={controller.state.inputText}
       roots={workspace.roots}
       selectedRootId={workspace.selectedRootId}
       selectedRootName={selectedRootName}
       selectedRootPath={selectedRootPath}
-      threads={controller.state.threads}
-      codexSessions={codexSessions.sessions}
+      threads={threads}
+      codexSessions={codexThreads}
       codexSessionsLoading={codexSessions.loading}
       codexSessionsError={codexSessions.error}
       selectedThreadId={conversation.selectedThreadId}
-      messages={messages}
+      activities={activities}
+      queuedFollowUps={queuedFollowUps}
       models={composerPicker.models}
       defaultModel={composerPicker.defaultModel}
       defaultEffort={composerPicker.defaultEffort}
       workspaceOpener={preferences.workspaceOpener}
       embeddedTerminalShell={preferences.embeddedTerminalShell}
-      pendingServerRequests={controller.state.pendingServerRequests}
+      followUpQueueMode={preferences.followUpQueueMode}
+      composerEnterBehavior={preferences.composerEnterBehavior}
       connectionStatus={controller.state.connectionStatus}
       fatalError={controller.state.fatalError}
       authStatus={controller.state.authStatus}
@@ -163,8 +184,9 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       onRemoveRoot={workspace.removeRoot}
       onRetryConnection={controller.retryConnection}
       onLogin={controller.login}
-      onApproveRequest={controller.approveRequest}
-      onRejectRequest={controller.rejectRequest}
+      onResolveServerRequest={controller.resolveServerRequest}
+      onRemoveQueuedFollowUp={conversation.removeQueuedFollowUp}
+      onClearQueuedFollowUps={conversation.clearQueuedFollowUps}
     />
   );
 }

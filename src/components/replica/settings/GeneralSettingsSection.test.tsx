@@ -17,7 +17,11 @@ function renderSection(): void {
             setPreferences((current) => ({ ...current, embeddedTerminalShell })),
           setUiLanguage: (uiLanguage) => setPreferences((current) => ({ ...current, uiLanguage })),
           setThreadDetailLevel: (threadDetailLevel) =>
-            setPreferences((current) => ({ ...current, threadDetailLevel }))
+            setPreferences((current) => ({ ...current, threadDetailLevel })),
+          setFollowUpQueueMode: (followUpQueueMode) =>
+            setPreferences((current) => ({ ...current, followUpQueueMode })),
+          setComposerEnterBehavior: (composerEnterBehavior) =>
+            setPreferences((current) => ({ ...current, composerEnterBehavior }))
         }}
       />
     );
@@ -50,7 +54,7 @@ describe("GeneralSettingsSection", () => {
   it("shows the pending-effect notes for language and thread detail", () => {
     renderSection();
 
-    expect(screen.getByText("当前仅保存偏好，尚未驱动 UI 翻译。")) .toBeInTheDocument();
-    expect(screen.getByText("当前仅保存偏好，尚未驱动会话渲染。")) .toBeInTheDocument();
+    expect(screen.getByText("当前先保存偏好，未做完整 UI 国际化切换。")).toBeInTheDocument();
+    expect(screen.getByText("用于控制时间线细节展示。")).toBeInTheDocument();
   });
 });

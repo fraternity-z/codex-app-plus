@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import type { ComposerModelOption, ComposerSelection } from "../../app/composerPreferences";
+import type { SendTurnOptions } from "../../app/useWorkspaceConversation";
 import { useComposerSelection } from "../../app/useComposerSelection";
+import type { ComposerEnterBehavior, FollowUpMode, QueuedFollowUp } from "../../domain/timeline";
 import { ComposerAttachmentMenu } from "./ComposerAttachmentMenu";
 import { ComposerFooter } from "./ComposerFooter";
 import { ComposerModelControls } from "./ComposerModelControls";
@@ -15,99 +17,13 @@ export interface HomeComposerProps {
   readonly defaultModel: string | null;
   readonly defaultEffort: ComposerSelection["effort"];
   readonly selectedRootPath: string | null;
+  readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
+  readonly followUpQueueMode: FollowUpMode;
+  readonly composerEnterBehavior: ComposerEnterBehavior;
   readonly onInputChange: (text: string) => void;
-  readonly onSendTurn: (selection: ComposerSelection) => Promise<void>;
-}
-
-export function HomeComposer(props: HomeComposerProps): JSX.Element {
-  return (
-    <footer className="composer-area">
-      <ComposerCard {...props} />
-      <ComposerFooter />
-    </footer>
-  );
-}
-
-function ComposerCard(props: HomeComposerProps): JSX.Element {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [planModeEnabled, setPlanModeEnabled] = useState(false);
-  const composerSelection = useComposerSelection(props.models, props.defaultModel, props.defaultEffort);
-  const canSend = !props.busy && props.selectedRootPath !== null && props.inputText.trim().length >= MIN_TRIMMED_MESSAGE_LENGTH;
-  const placeholder = getComposerPlaceholder(props.selectedRootPath);
-  const handleCloseMenu = () => setMenuOpen(false);
-  const handleToggleMenu = () => setMenuOpen((value) => !value);
-  const handleTogglePlanMode = () => setPlanModeEnabled((value) => !value);
-  const handleSend = () => void props.onSendTurn(createSelection(composerSelection.selectedModel, composerSelection.selectedEffort));
-
-  return (
-    <div className="composer-card">
-      {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label="关闭添加菜单" onClick={handleCloseMenu} /> : null}
-      <textarea
-        className="composer-input"
-        placeholder={placeholder}
-        value={props.inputText}
-        onChange={(event) => props.onInputChange(event.currentTarget.value)}
-      />
-      <div className="composer-bar">
-        <div className="composer-left">
-          <AddMenuButton
-            menuOpen={menuOpen}
-            planModeEnabled={planModeEnabled}
-            onCloseMenu={handleCloseMenu}
-            onToggleMenu={handleToggleMenu}
-            onTogglePlanMode={handleTogglePlanMode}
-          />
-          <ComposerModelControls
-            models={props.models}
-            selectedModel={composerSelection.selectedModel}
-            selectedEffort={composerSelection.selectedEffort}
-            supportedEfforts={composerSelection.selectedModelOption?.supportedEfforts ?? []}
-            onSelectModel={composerSelection.selectModel}
-            onSelectEffort={composerSelection.selectEffort}
-          />
-        </div>
-        <SendButton canSend={canSend} onClick={handleSend} />
-      </div>
-    </div>
-  );
-}
-
-function AddMenuButton(props: {
-  readonly menuOpen: boolean;
-  readonly planModeEnabled: boolean;
-  readonly onCloseMenu: () => void;
-  readonly onToggleMenu: () => void;
-  readonly onTogglePlanMode: () => void;
-}): JSX.Element {
-  return (
-    <div className="composer-plus-anchor">
-      {props.menuOpen ? (
-        <ComposerAttachmentMenu
-          planModeEnabled={props.planModeEnabled}
-          onTogglePlanMode={props.onTogglePlanMode}
-          onClose={props.onCloseMenu}
-        />
-      ) : null}
-      <button
-        type="button"
-        className={props.menuOpen ? "composer-mini-btn composer-mini-btn-active" : "composer-mini-btn"}
-        aria-label="添加"
-        aria-haspopup="menu"
-        aria-expanded={props.menuOpen}
-        onClick={props.onToggleMenu}
-      >
-        <OfficialPlusIcon className="composer-plus-icon" />
-      </button>
-    </div>
-  );
-}
-
-function SendButton(props: { readonly canSend: boolean; readonly onClick: () => void }): JSX.Element {
-  return (
-    <button type="button" className="send-btn" aria-label="发送消息" disabled={!props.canSend} onClick={props.onClick}>
-      <SendArrowIcon className="send-icon" />
-    </button>
-  );
+  readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
+  readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
+  readonly onClearQueuedFollowUps: () => void;
 }
 
 function createSelection(model: string | null, effort: ComposerSelection["effort"]): ComposerSelection {
@@ -115,7 +31,145 @@ function createSelection(model: string | null, effort: ComposerSelection["effort
 }
 
 function getComposerPlaceholder(selectedRootPath: string | null): string {
-  return selectedRootPath === null ? "向 Codex 提问，或先添加文件、调用命令" : "输入问题，后续对话会固定在当前工作区";
+  return selectedRootPath === null ? "向 Codex 提问或描述任务" : "输入问题、任务或 follow-up";
+}
+
+function getOppositeMode(mode: FollowUpMode): FollowUpMode {
+  if (mode === "queue") {
+    return "steer";
+  }
+  return "queue";
+}
+
+function shouldSendOnEnter(inputText: string, behavior: ComposerEnterBehavior, metaPressed: boolean): boolean {
+  if (metaPressed) {
+    return true;
+  }
+  if (behavior === "enter") {
+    return true;
+  }
+  return !inputText.includes("\n");
+}
+
+function QueuedFollowUpsPanel(props: {
+  readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
+  readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
+  readonly onClearQueuedFollowUps: () => void;
+}): JSX.Element | null {
+  if (props.queuedFollowUps.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="composer-queue-panel">
+      <header className="composer-queue-header">
+        <strong>Queued follow-ups</strong>
+        <button type="button" className="composer-queue-clear" onClick={props.onClearQueuedFollowUps}>
+          清空
+        </button>
+      </header>
+      <ul className="composer-queue-list">
+        {props.queuedFollowUps.map((followUp) => (
+          <li key={followUp.id} className="composer-queue-item">
+            <div>
+              <strong>{followUp.mode}</strong>
+              <p>{followUp.text}</p>
+            </div>
+            <button type="button" className="composer-queue-remove" onClick={() => props.onRemoveQueuedFollowUp(followUp.id)}>
+              移除
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function HomeComposer(props: HomeComposerProps): JSX.Element {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [planModeEnabled, setPlanModeEnabled] = useState(false);
+  const composerSelection = useComposerSelection(props.models, props.defaultModel, props.defaultEffort);
+  const canSend = !props.busy && props.inputText.trim().length >= MIN_TRIMMED_MESSAGE_LENGTH;
+  const placeholder = getComposerPlaceholder(props.selectedRootPath);
+
+  const submit = (followUpOverride?: FollowUpMode) => {
+    if (!canSend) {
+      return;
+    }
+    void props.onSendTurn({
+      selection: createSelection(composerSelection.selectedModel, composerSelection.selectedEffort),
+      planModeEnabled,
+      followUpOverride
+    });
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+    if (event.shiftKey && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      submit(getOppositeMode(props.followUpQueueMode));
+      return;
+    }
+    if (event.shiftKey) {
+      return;
+    }
+    if (!shouldSendOnEnter(props.inputText, props.composerEnterBehavior, event.metaKey || event.ctrlKey)) {
+      return;
+    }
+    event.preventDefault();
+    submit();
+  };
+
+  return (
+    <footer className="composer-area">
+      <QueuedFollowUpsPanel
+        queuedFollowUps={props.queuedFollowUps}
+        onRemoveQueuedFollowUp={props.onRemoveQueuedFollowUp}
+        onClearQueuedFollowUps={props.onClearQueuedFollowUps}
+      />
+      <div className="composer-card">
+        {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label="关闭添加菜单" onClick={() => setMenuOpen(false)} /> : null}
+        <textarea
+          className="composer-input"
+          placeholder={placeholder}
+          value={props.inputText}
+          onKeyDown={handleKeyDown}
+          onChange={(event) => props.onInputChange(event.currentTarget.value)}
+        />
+        <div className="composer-bar">
+          <div className="composer-left">
+            <div className="composer-plus-anchor">
+              {menuOpen ? <ComposerAttachmentMenu planModeEnabled={planModeEnabled} onTogglePlanMode={() => setPlanModeEnabled((value) => !value)} onClose={() => setMenuOpen(false)} /> : null}
+              <button
+                type="button"
+                className={menuOpen ? "composer-mini-btn composer-mini-btn-active" : "composer-mini-btn"}
+                aria-label="添加"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((value) => !value)}
+              >
+                <OfficialPlusIcon className="composer-plus-icon" />
+              </button>
+            </div>
+            <ComposerModelControls
+              models={props.models}
+              selectedModel={composerSelection.selectedModel}
+              selectedEffort={composerSelection.selectedEffort}
+              supportedEfforts={composerSelection.selectedModelOption?.supportedEfforts ?? []}
+              onSelectModel={composerSelection.selectModel}
+              onSelectEffort={composerSelection.selectEffort}
+            />
+          </div>
+          <button type="button" className="send-btn" aria-label="发送消息" disabled={!canSend} onClick={() => submit()}>
+            <SendArrowIcon className="send-icon" />
+          </button>
+        </div>
+      </div>
+      <ComposerFooter />
+    </footer>
+  );
 }
 
 function SendArrowIcon(props: { readonly className?: string }): JSX.Element {

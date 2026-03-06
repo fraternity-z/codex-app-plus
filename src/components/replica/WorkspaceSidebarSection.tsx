@@ -98,10 +98,14 @@ const WorkspaceThreadItem = memo(function WorkspaceThreadItem(props: {
   readonly onSelect: (threadId: string | null) => void;
 }): JSX.Element {
   const className = props.selected ? "workspace-thread-button workspace-thread-button-active" : "workspace-thread-button";
+  const statusLabel = props.thread.status === "active" ? "运行中" : props.thread.queuedCount > 0 ? `队列 ${props.thread.queuedCount}` : null;
   return (
     <li>
       <button type="button" className={className} onClick={() => props.onSelect(props.thread.id)}>
-        <span className="workspace-thread-title">{getThreadLabel(props.thread)}</span>
+        <span className="workspace-thread-title-row">
+          <span className="workspace-thread-title">{getThreadLabel(props.thread)}</span>
+          {statusLabel !== null ? <span className="workspace-thread-badge">{statusLabel}</span> : null}
+        </span>
         <span className="workspace-thread-meta">{formatThreadUpdatedAt(props.thread.updatedAt)}</span>
       </button>
     </li>
