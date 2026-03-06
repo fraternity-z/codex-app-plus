@@ -94,6 +94,16 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
 }
 
 describe("HomeView", () => {
+  it("toggles terminal button label through icon button", () => {
+    renderHomeView();
+
+    const toggleButton = screen.getByRole("button", { name: "隐藏终端" });
+
+    expect(screen.queryByText("隐藏终端")).not.toBeInTheDocument();
+    fireEvent.click(toggleButton);
+    expect(screen.getByRole("button", { name: "显示终端" })).toHaveAttribute("aria-pressed", "false");
+  });
+
   it("calls remove handler when delete button is clicked", () => {
     const onRemoveRoot = vi.fn();
     const root = { id: "root-1", name: "FPGA", path: "E:/code/FPGA" };
