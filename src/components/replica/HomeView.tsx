@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ComposerModelOption, ComposerSelection } from "../../app/composerPreferences";
 import type { SendTurnOptions } from "../../app/useWorkspaceConversation";
 import type { WorkspaceRoot } from "../../app/useWorkspaceRoots";
@@ -30,12 +30,12 @@ interface HomeViewProps {
   readonly selectedRootName: string;
   readonly selectedRootPath: string | null;
   readonly threads: ReadonlyArray<ThreadSummary>;
-  readonly codexSessions: ReadonlyArray<ThreadSummary>;
-  readonly codexSessionsLoading: boolean;
-  readonly codexSessionsError: string | null;
+  readonly selectedThread: ThreadSummary | null;
   readonly selectedThreadId: string | null;
   readonly activities: ReadonlyArray<TimelineEntry>;
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
+  readonly draftActive: boolean;
+  readonly selectedConversationLoading: boolean;
   readonly models: ReadonlyArray<ComposerModelOption>;
   readonly defaultModel: string | null;
   readonly defaultEffort: ComposerSelection["effort"];
@@ -81,6 +81,8 @@ interface MainContentProps {
   readonly selectedRootName: string;
   readonly selectedRootPath: string | null;
   readonly selectedThread: ThreadSummary | null;
+  readonly draftActive: boolean;
+  readonly selectedConversationLoading: boolean;
   readonly terminalOpen: boolean;
   readonly diffOpen: boolean;
   readonly followUpQueueMode: FollowUpMode;
@@ -96,7 +98,14 @@ interface MainContentProps {
 }
 
 function MainContent(props: MainContentProps): JSX.Element {
-  const conversationActive = props.selectedThread !== null || props.activities.length > 0;
+  const conversationActive = props.draftActive || props.selectedConversationLoading || props.selectedThread !== null || props.activities.length > 0;
+  const placeholder = props.draftActive
+    ? { title: "准备开始新会话", body: "发送第一条消息后，这里会切换为完整的时间线视图。" }
+    : props.selectedConversationLoading
+      ? { title: "正在加载会话", body: "历史 turn 与 item 正在恢复，请稍候。" }
+      : props.selectedThread !== null
+        ? { title: "会话已打开", body: "当前会话暂无可显示内容，新的计划、命令、审批和文件变更会显示在这里。" }
+        : null;
 
   return (
     <div className="replica-main">
@@ -115,7 +124,7 @@ function MainContent(props: MainContentProps): JSX.Element {
         onToggleTerminal={props.onToggleTerminal}
       />
       {conversationActive ? (
-        <HomeConversationCanvas activities={props.activities} selectedThread={props.selectedThread} onResolveServerRequest={props.onResolveServerRequest} />
+        <HomeConversationCanvas activities={props.activities} selectedThread={props.selectedThread} placeholder={placeholder} onResolveServerRequest={props.onResolveServerRequest} />
       ) : (
         <EmptyCanvas selectedRootName={props.selectedRootName} selectedRootPath={props.selectedRootPath} />
       )}
@@ -165,7 +174,6 @@ export function HomeView(props: HomeViewProps): JSX.Element {
   const [diffSidebarOpen, setDiffSidebarOpen] = useState(false);
   const gitController = useWorkspaceGit({ hostBridge: props.hostBridge, selectedRootPath: props.selectedRootPath });
   const canShowDiffSidebar = diffSidebarOpen && props.selectedRootPath !== null;
-  const selectedThread = useMemo(() => props.threads.find((thread) => thread.id === props.selectedThreadId) ?? null, [props.selectedThreadId, props.threads]);
 
   useEffect(() => {
     if (props.selectedRootPath === null) {
@@ -180,9 +188,9 @@ export function HomeView(props: HomeViewProps): JSX.Element {
     <div className={createReplicaAppClassName(canShowDiffSidebar)}>
       <HomeSidebar
         roots={props.roots}
-        codexSessions={props.codexSessions}
-        codexSessionsLoading={props.codexSessionsLoading}
-        codexSessionsError={props.codexSessionsError}
+        codexSessions={props.threads}
+        codexSessionsLoading={props.busy && props.threads.length === 0}
+        codexSessionsError={null}
         selectedRootId={props.selectedRootId}
         selectedThreadId={props.selectedThreadId}
         settingsMenuOpen={props.settingsMenuOpen}
@@ -209,7 +217,9 @@ export function HomeView(props: HomeViewProps): JSX.Element {
         workspaceOpener={props.workspaceOpener}
         selectedRootName={props.selectedRootName}
         selectedRootPath={props.selectedRootPath}
-        selectedThread={selectedThread}
+        selectedThread={props.selectedThread}
+        draftActive={props.draftActive}
+        selectedConversationLoading={props.selectedConversationLoading}
         terminalOpen={terminalOpen}
         diffOpen={canShowDiffSidebar}
         followUpQueueMode={props.followUpQueueMode}

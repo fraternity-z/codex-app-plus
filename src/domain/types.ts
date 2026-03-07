@@ -1,17 +1,15 @@
 import type { ConfigReadResponse } from "../protocol/generated/v2/ConfigReadResponse";
+import type { ResponseItem } from "../protocol/generated/ResponseItem";
+import type { Thread } from "../protocol/generated/v2/Thread";
+import type { ThreadItem } from "../protocol/generated/v2/ThreadItem";
+import type { Turn } from "../protocol/generated/v2/Turn";
 import type { TurnPlanStep } from "../protocol/generated/v2/TurnPlanStep";
-import type { ConversationOutputDelta, ConversationState, ConversationTextDelta, DraftConversationState } from "./conversation";
-import type {
-  CollaborationModePreset,
-  QueuedFollowUp,
-  ReceivedServerRequest,
-  ServerRequestResolution,
-  ThreadSummary,
-  TimelineEntry,
-} from "./timeline";
+import type { ConversationOutputDelta, ConversationState, ConversationTextDelta, ConversationTurnParams, DraftConversationState } from "./conversation";
+import type { CollaborationModePreset, QueuedFollowUp, ReceivedServerRequest } from "./timeline";
 
 export type {
   CollaborationModePreset,
+  ConversationMessage,
   FollowUpMode,
   QueuedFollowUp,
   ReceivedServerRequest,
@@ -20,6 +18,7 @@ export type {
   TimelineEntry,
 } from "./timeline";
 export type { ConversationState, DraftConversationState } from "./conversation";
+export type TimelineItem = import("./timeline").ConversationMessage;
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 export type AuthStatus = "unknown" | "authenticated" | "needs_login";
@@ -63,18 +62,18 @@ export type AppAction =
   | { type: "conversation/draftCleared" }
   | { type: "conversation/hiddenChanged"; conversationId: string; hidden: boolean }
   | { type: "conversation/resumeStateChanged"; conversationId: string; resumeState: ConversationState["resumeState"] }
-  | { type: "conversation/loaded"; conversationId: string; thread: Parameters<(typeof import("../app/conversationState"))["createConversationFromThread"]>[0] }
+  | { type: "conversation/loaded"; conversationId: string; thread: Thread }
   | { type: "conversation/touched"; conversationId: string; updatedAt: string }
   | { type: "conversation/statusChanged"; conversationId: string; status: ConversationState["status"]; activeFlags: ConversationState["activeFlags"] }
-  | { type: "conversation/turnPlaceholderAdded"; conversationId: string; params: import("./conversation").ConversationTurnParams }
-  | { type: "conversation/turnStarted"; conversationId: string; turn: import("../protocol/generated/v2/Turn").Turn }
-  | { type: "conversation/turnCompleted"; conversationId: string; turn: import("../protocol/generated/v2/Turn").Turn }
-  | { type: "conversation/itemStarted"; conversationId: string; turnId: string; item: import("../protocol/generated/v2/ThreadItem").ThreadItem }
-  | { type: "conversation/itemCompleted"; conversationId: string; turnId: string; item: import("../protocol/generated/v2/ThreadItem").ThreadItem }
+  | { type: "conversation/turnPlaceholderAdded"; conversationId: string; params: ConversationTurnParams }
+  | { type: "conversation/turnStarted"; conversationId: string; turn: Turn }
+  | { type: "conversation/turnCompleted"; conversationId: string; turn: Turn }
+  | { type: "conversation/itemStarted"; conversationId: string; turnId: string; item: ThreadItem }
+  | { type: "conversation/itemCompleted"; conversationId: string; turnId: string; item: ThreadItem }
   | { type: "conversation/textDeltasFlushed"; entries: ReadonlyArray<ConversationTextDelta> }
   | { type: "conversation/outputDeltasFlushed"; entries: ReadonlyArray<ConversationOutputDelta> }
   | { type: "conversation/terminalInteraction"; conversationId: string; turnId: string; itemId: string; stdin: string }
-  | { type: "conversation/rawResponseAttached"; conversationId: string; turnId: string; itemId: string; rawResponse: import("../protocol/generated/ResponseItem").ResponseItem }
+  | { type: "conversation/rawResponseAttached"; conversationId: string; turnId: string; itemId: string; rawResponse: ResponseItem }
   | { type: "conversation/planUpdated"; conversationId: string; turnId: string; explanation: string | null; plan: ReadonlyArray<TurnPlanStep> }
   | { type: "conversation/diffUpdated"; conversationId: string; turnId: string; diff: string }
   | { type: "serverRequest/received"; request: ReceivedServerRequest }

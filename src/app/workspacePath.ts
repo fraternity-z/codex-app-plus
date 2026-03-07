@@ -1,4 +1,5 @@
 const WINDOWS_SEPARATOR = /\\/g;
+const WINDOWS_DEVICE_PREFIX = /^((\/\/\?\/)|(\\\\\?\\))/;
 const TRAILING_SEPARATOR = /\/+$/;
 
 export function trimWorkspaceText(value: string): string {
@@ -9,12 +10,16 @@ function normalizePathSeparators(path: string): string {
   return path.replace(WINDOWS_SEPARATOR, "/");
 }
 
+function stripWindowsDevicePrefix(path: string): string {
+  return path.replace(WINDOWS_DEVICE_PREFIX, "");
+}
+
 export function normalizeWorkspacePath(path: string): string {
   const trimmedPath = trimWorkspaceText(path);
   if (trimmedPath.length === 0) {
     return "";
   }
-  return normalizePathSeparators(trimmedPath).replace(TRAILING_SEPARATOR, "").toLowerCase();
+  return stripWindowsDevicePrefix(normalizePathSeparators(trimmedPath)).replace(TRAILING_SEPARATOR, "").toLowerCase();
 }
 
 export function inferWorkspaceNameFromPath(path: string): string {

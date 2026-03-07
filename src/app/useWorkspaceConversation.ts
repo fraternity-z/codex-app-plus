@@ -2,21 +2,21 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { CollaborationMode } from "../protocol/generated/CollaborationMode";
 import type { ComposerSelection } from "./composerPreferences";
 import type { HostBridge } from "../bridge/types";
-import type { CollaborationModePreset, FollowUpMode, QueuedFollowUp, ThreadSummary } from "../domain/timeline";
-import { createUserMessageEntry, mapCodexSessionToActivities, mapThreadHistoryToActivities } from "./threadActivities";
-import type { ThreadReadParams } from "../protocol/generated/v2/ThreadReadParams";
-import type { ThreadReadResponse } from "../protocol/generated/v2/ThreadReadResponse";
-import type { ThreadResumeParams } from "../protocol/generated/v2/ThreadResumeParams";
+import type { DraftConversationState } from "../domain/conversation";
+import type { CollaborationModePreset, FollowUpMode, QueuedFollowUp, ThreadSummary, TimelineEntry } from "../domain/timeline";
+import type { ThreadResumeResponse } from "../protocol/generated/v2/ThreadResumeResponse";
 import type { ThreadStartParams } from "../protocol/generated/v2/ThreadStartParams";
 import type { ThreadStartResponse } from "../protocol/generated/v2/ThreadStartResponse";
-import type { TurnInterruptParams } from "../protocol/generated/v2/TurnInterruptParams";
 import type { TurnStartParams } from "../protocol/generated/v2/TurnStartParams";
 import type { TurnStartResponse } from "../protocol/generated/v2/TurnStartResponse";
 import type { TurnSteerParams } from "../protocol/generated/v2/TurnSteerParams";
+import type { TurnInterruptParams } from "../protocol/generated/v2/TurnInterruptParams";
 import type { UserInput } from "../protocol/generated/v2/UserInput";
-import { mapThreadToSummary } from "../protocol/mappers";
+import { createConversationFromThread } from "./conversationState";
+import { mapConversationToThreadSummary, getActiveTurnId, isConversationStreaming } from "./conversationSelectors";
+import { mapConversationToTimelineEntries } from "./conversationTimeline";
+import { consumePrewarmedThread, hasPrewarmedThread, registerPrewarmedThreadPromise } from "./prewarmedThreadManager";
 import { useAppStore } from "../state/store";
-import { mergeThreadCatalogs } from "./threadCatalog";
 import { listThreadsForWorkspace } from "./workspaceThread";
 
 export interface SendTurnOptions {
@@ -27,8 +27,13 @@ export interface SendTurnOptions {
 
 interface WorkspaceConversationController {
   readonly selectedThreadId: string | null;
+  readonly selectedThread: ThreadSummary | null;
   readonly workspaceThreads: ReadonlyArray<ThreadSummary>;
-  createThread: (model?: string | null) => Promise<string>;
+  readonly activities: ReadonlyArray<TimelineEntry>;
+  readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
+  readonly draftActive: boolean;
+  readonly selectedConversationLoading: boolean;
+  createThread: (model?: string | null) => Promise<void>;
   selectThread: (threadId: string | null) => void;
   sendTurn: (options: SendTurnOptions) => Promise<void>;
   removeQueuedFollowUp: (followUpId: string) => void;
@@ -37,16 +42,9 @@ interface WorkspaceConversationController {
 
 interface UseWorkspaceConversationOptions {
   readonly hostBridge: HostBridge;
-  readonly threads: ReadonlyArray<ThreadSummary>;
-  readonly codexSessions: ReadonlyArray<ThreadSummary>;
   readonly selectedRootPath: string | null;
   readonly collaborationModes: ReadonlyArray<CollaborationModePreset>;
   readonly followUpQueueMode: FollowUpMode;
-  readonly reloadCodexSessions: () => Promise<void>;
-}
-
-function createLocalId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function createInput(text: string): Array<UserInput> {
@@ -54,240 +52,176 @@ function createInput(text: string): Array<UserInput> {
 }
 
 function createQueuedFollowUp(text: string, options: SendTurnOptions): QueuedFollowUp {
-  return {
-    id: createLocalId("follow-up"),
-    text,
-    model: options.selection.model,
-    effort: options.selection.effort,
-    planModeEnabled: options.planModeEnabled,
-    mode: options.followUpOverride ?? "queue",
-    createdAt: new Date().toISOString()
-  };
+  return { id: `follow-up-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`, text, model: options.selection.model, effort: options.selection.effort, planModeEnabled: options.planModeEnabled, mode: options.followUpOverride ?? "queue", createdAt: new Date().toISOString() };
 }
 
-function resolvePlanPreset(modes: ReadonlyArray<CollaborationModePreset>): CollaborationModePreset | null {
-  return modes.find((mode) => mode.mode === "plan") ?? null;
-}
-
-function createPlanMode(preset: CollaborationModePreset, selection: ComposerSelection): CollaborationMode {
-  const model = preset.model ?? selection.model;
-  if (model === null) {
-    throw new Error("计划模式缺少可用模型，无法发送请求。");
+function resolvePlanMode(modes: ReadonlyArray<CollaborationModePreset>, selection: ComposerSelection): CollaborationMode | undefined {
+  const preset = modes.find((mode) => mode.mode === "plan") ?? null;
+  if (preset === null) {
+    throw new Error("当前 app-server 未暴露计划模式 preset。");
   }
-  return {
-    mode: "plan",
-    settings: {
-      model,
-      reasoning_effort: preset.reasoningEffort ?? selection.effort,
-      developer_instructions: null
-    }
-  };
+  return { mode: "plan", settings: { model: preset.model ?? selection.model ?? "", reasoning_effort: preset.reasoningEffort ?? selection.effort ?? null, developer_instructions: null } };
+}
+
+function createDraftConversation(workspacePath: string | null): DraftConversationState {
+  return { workspacePath, createdAt: new Date().toISOString() };
 }
 
 export function useWorkspaceConversation(options: UseWorkspaceConversationOptions): WorkspaceConversationController {
-  const { dispatch, state } = useAppStore();
-  const loadedThreadKeys = useRef(new Set<string>());
-  const resumedThreadIds = useRef(new Set<string>());
-  const drainingThreads = useRef(new Set<string>());
-  const workspaceThreads = useMemo(() => listThreadsForWorkspace(options.codexSessions, options.selectedRootPath), [options.codexSessions, options.selectedRootPath]);
-  const knownThreads = useMemo(() => mergeThreadCatalogs(options.threads, options.codexSessions), [options.codexSessions, options.threads]);
-  const selectableThreads = useMemo(
-    () => (options.selectedRootPath === null ? knownThreads : listThreadsForWorkspace(knownThreads, options.selectedRootPath)),
-    [knownThreads, options.selectedRootPath]
-  );
-  const selectedThreadId = useMemo(() => state.selectedThreadId !== null && selectableThreads.some((thread) => thread.id === state.selectedThreadId) ? state.selectedThreadId : null, [selectableThreads, state.selectedThreadId]);
-  const planPreset = useMemo(() => resolvePlanPreset(options.collaborationModes), [options.collaborationModes]);
+  const { state, dispatch } = useAppStore();
+  const resumingConversationIds = useRef(new Set<string>());
+  const drainingConversationIds = useRef(new Set<string>());
+  const visibleConversations = useMemo(() => state.orderedConversationIds.map((conversationId) => state.conversationsById[conversationId]).filter((conversation): conversation is NonNullable<typeof conversation> => conversation !== undefined && conversation.hidden === false), [state.conversationsById, state.orderedConversationIds]);
+  const allThreadSummaries = useMemo(() => visibleConversations.map(mapConversationToThreadSummary), [visibleConversations]);
+  const workspaceThreads = useMemo(() => listThreadsForWorkspace(allThreadSummaries, options.selectedRootPath), [allThreadSummaries, options.selectedRootPath]);
+  const selectedConversation = state.selectedConversationId === null ? null : state.conversationsById[state.selectedConversationId] ?? null;
+  const selectedThread = useMemo(() => selectedConversation === null ? null : mapConversationToThreadSummary(selectedConversation), [selectedConversation]);
+  const selectedRequests = selectedConversation === null ? [] : state.pendingRequestsByConversationId[selectedConversation.id] ?? [];
+  const activities = useMemo(() => mapConversationToTimelineEntries(selectedConversation, selectedRequests), [selectedConversation, selectedRequests]);
+  const queuedFollowUps = selectedConversation?.queuedFollowUps ?? [];
 
-  useEffect(() => {
-    if (state.selectedThreadId !== selectedThreadId) {
-      dispatch({ type: "thread/selected", threadId: selectedThreadId });
-    }
-  }, [dispatch, selectedThreadId, state.selectedThreadId]);
-
-  const loadThreadHistory = useCallback(async (thread: ThreadSummary) => {
-    const threadKey = `${thread.source ?? "rpc"}:${thread.id}`;
-    if (loadedThreadKeys.current.has(threadKey)) {
+  const ensureConversationResumed = useCallback(async (conversationId: string) => {
+    const conversation = state.conversationsById[conversationId] ?? null;
+    if (conversation === null || conversation.resumeState === "resumed" || resumingConversationIds.current.has(conversationId)) {
       return;
     }
-    if (thread.source === "codexData") {
-      const response = await options.hostBridge.app.readCodexSession({ threadId: thread.id });
-      dispatch({ type: "thread/activitiesLoaded", threadId: thread.id, activities: mapCodexSessionToActivities(thread.id, response) });
-      loadedThreadKeys.current.add(threadKey);
-      return;
-    }
-    const params: ThreadReadParams = { threadId: thread.id, includeTurns: true };
-    const response = (await options.hostBridge.rpc.request({ method: "thread/read", params })).result as ThreadReadResponse;
-    dispatch({ type: "thread/upserted", thread: mapThreadToSummary(response.thread) });
-    dispatch({ type: "thread/activitiesLoaded", threadId: thread.id, activities: mapThreadHistoryToActivities(response.thread) });
-    loadedThreadKeys.current.add(threadKey);
-  }, [dispatch, options.hostBridge.app, options.hostBridge.rpc]);
-
-  useEffect(() => {
-    const selectedThread = knownThreads.find((thread) => thread.id === selectedThreadId) ?? null;
-    if (selectedThread === null) {
-      return;
-    }
-    void loadThreadHistory(selectedThread).catch((error) => {
-      dispatch({ type: "fatal/error", message: String(error) });
-    });
-  }, [dispatch, knownThreads, loadThreadHistory, selectedThreadId]);
-
-  useEffect(() => {
-    const lastNotification = state.notifications[state.notifications.length - 1] ?? null;
-    if (lastNotification?.method === "turn/completed") {
-      void options.reloadCodexSessions();
-    }
-  }, [options.reloadCodexSessions, state.notifications]);
-
-  const ensureThreadResumed = useCallback(async (threadId: string) => {
-    if (resumedThreadIds.current.has(threadId)) {
-      return;
-    }
-    const params: ThreadResumeParams = { threadId, persistExtendedHistory: true };
-    await options.hostBridge.rpc.request({ method: "thread/resume", params });
-    resumedThreadIds.current.add(threadId);
-  }, [options.hostBridge.rpc]);
-
-  const startTurn = useCallback(async (threadId: string, text: string, sendOptions: SendTurnOptions, selectAfterStart: boolean) => {
-    await ensureThreadResumed(threadId);
-    const collaborationMode = sendOptions.planModeEnabled
-      ? createPlanMode(
-          planPreset ?? (() => {
-            throw new Error("当前 app-server 未暴露计划模式 preset。");
-          })(),
-          sendOptions.selection
-        )
-      : undefined;
-    const params: TurnStartParams = {
-      threadId,
-      model: sendOptions.selection.model ?? undefined,
-      effort: sendOptions.selection.effort ?? undefined,
-      cwd: options.selectedRootPath ?? undefined,
-      input: createInput(text),
-      collaborationMode
-    };
-    const response = (await options.hostBridge.rpc.request({ method: "turn/start", params })).result as TurnStartResponse;
-    dispatch({ type: "thread/touched", threadId, updatedAt: new Date().toISOString() });
-    dispatch({ type: "message/added", message: createUserMessageEntry(threadId, response.turn.id, createLocalId("user"), text) });
-    if (selectAfterStart) {
-      dispatch({ type: "thread/selected", threadId });
-    }
-    return response.turn.id;
-  }, [dispatch, ensureThreadResumed, options.hostBridge.rpc, options.selectedRootPath, planPreset]);
-
-  const steerTurn = useCallback(async (threadId: string, activeTurnId: string, text: string) => {
-    const params: TurnSteerParams = { threadId, input: createInput(text), expectedTurnId: activeTurnId };
-    await options.hostBridge.rpc.request({ method: "turn/steer", params });
-    dispatch({ type: "message/added", message: createUserMessageEntry(threadId, activeTurnId, createLocalId("steer"), text) });
-  }, [dispatch, options.hostBridge.rpc]);
-
-  const interruptTurn = useCallback(async (threadId: string, activeTurnId: string) => {
-    const params: TurnInterruptParams = { threadId, turnId: activeTurnId };
-    await options.hostBridge.rpc.request({ method: "turn/interrupt", params });
-    dispatch({ type: "turn/interruptRequested", threadId, turnId: activeTurnId });
-  }, [dispatch, options.hostBridge.rpc]);
-
-  const createThread = useCallback(async (model: string | null = null) => {
-    const params: ThreadStartParams = { model: model ?? undefined, cwd: options.selectedRootPath ?? undefined, experimentalRawEvents: false, persistExtendedHistory: true };
-    const response = (await options.hostBridge.rpc.request({ method: "thread/start", params })).result as ThreadStartResponse;
-    const summary = mapThreadToSummary(response.thread);
-    dispatch({ type: "thread/upserted", thread: summary });
-    dispatch({ type: "thread/selected", threadId: response.thread.id });
-    dispatch({ type: "thread/activitiesLoaded", threadId: response.thread.id, activities: [] });
-    loadedThreadKeys.current.add(`rpc:${response.thread.id}`);
-    resumedThreadIds.current.add(response.thread.id);
-    await options.reloadCodexSessions();
-    return response.thread.id;
-  }, [dispatch, options.hostBridge.rpc, options.reloadCodexSessions, options.selectedRootPath]);
-
-  const processQueuedFollowUp = useCallback(async (threadId: string) => {
-    if (drainingThreads.current.has(threadId)) {
-      return;
-    }
-    const runtime = state.threadRuntime[threadId];
-    const queued = runtime?.queuedFollowUps[0];
-    if (queued === undefined || runtime.activeTurnId !== null || runtime.status === "active") {
-      return;
-    }
-    drainingThreads.current.add(threadId);
+    resumingConversationIds.current.add(conversationId);
+    dispatch({ type: "conversation/resumeStateChanged", conversationId, resumeState: "resuming" });
     try {
-      await startTurn(
-        threadId,
-        queued.text,
-        { selection: { model: queued.model, effort: queued.effort }, planModeEnabled: queued.planModeEnabled, followUpOverride: queued.mode },
-        false
-      );
-      dispatch({ type: "followUp/dequeued", threadId, followUpId: queued.id });
-      await options.reloadCodexSessions();
-    } catch (error) {
-      dispatch({ type: "followUp/removed", threadId, followUpId: queued.id });
-      dispatch({ type: "fatal/error", message: String(error) });
+      const response = (await options.hostBridge.rpc.request({ method: "thread/resume", params: { threadId: conversationId, persistExtendedHistory: true } })).result as ThreadResumeResponse;
+      dispatch({ type: "conversation/loaded", conversationId, thread: response.thread });
     } finally {
-      drainingThreads.current.delete(threadId);
+      resumingConversationIds.current.delete(conversationId);
     }
-  }, [dispatch, options.reloadCodexSessions, startTurn, state.threadRuntime]);
+  }, [dispatch, options.hostBridge.rpc, state.conversationsById]);
 
   useEffect(() => {
-    const nextThreadId = Object.values(state.threadRuntime).find((runtime) => runtime.queuedFollowUps.length > 0 && runtime.activeTurnId === null && runtime.status !== "active")?.threadId;
-    if (nextThreadId !== undefined) {
-      void processQueuedFollowUp(nextThreadId);
+    if (selectedConversation !== null && selectedConversation.resumeState === "needs_resume") {
+      void ensureConversationResumed(selectedConversation.id);
     }
-  }, [processQueuedFollowUp, state.threadRuntime]);
+  }, [ensureConversationResumed, selectedConversation]);
+
+  const createThread = useCallback(async () => {
+    dispatch({ type: "conversation/draftOpened", draft: createDraftConversation(options.selectedRootPath) });
+    if (options.selectedRootPath === null || hasPrewarmedThread(options.selectedRootPath)) {
+      return;
+    }
+    const promise = (async () => {
+      const params: ThreadStartParams = { cwd: options.selectedRootPath ?? undefined, experimentalRawEvents: false, persistExtendedHistory: true };
+      const response = (await options.hostBridge.rpc.request({ method: "thread/start", params })).result as ThreadStartResponse;
+      dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(response.thread, { hidden: true, resumeState: "resumed" }) });
+      return response;
+    })();
+    registerPrewarmedThreadPromise(options.selectedRootPath, promise);
+  }, [dispatch, options.hostBridge.rpc, options.selectedRootPath]);
+
+  const startTurn = useCallback(async (conversationId: string, text: string, sendOptions: SendTurnOptions, cwdOverride: string | null) => {
+    const collaborationMode = sendOptions.planModeEnabled ? resolvePlanMode(options.collaborationModes, sendOptions.selection) : undefined;
+    dispatch({ type: "conversation/turnPlaceholderAdded", conversationId, params: { input: createInput(text), cwd: cwdOverride, model: sendOptions.selection.model, effort: sendOptions.selection.effort, collaborationMode: collaborationMode ?? null } });
+    const params: TurnStartParams = { threadId: conversationId, model: sendOptions.selection.model ?? undefined, effort: sendOptions.selection.effort ?? undefined, cwd: cwdOverride ?? undefined, input: createInput(text), collaborationMode };
+    const response = (await options.hostBridge.rpc.request({ method: "turn/start", params })).result as TurnStartResponse;
+    dispatch({ type: "conversation/turnStarted", conversationId, turn: response.turn });
+    dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });
+  }, [dispatch, options.collaborationModes, options.hostBridge.rpc]);
+
+  const startNewConversation = useCallback(async (text: string, sendOptions: SendTurnOptions) => {
+    const workspacePath = state.draftConversation?.workspacePath ?? options.selectedRootPath;
+    if (workspacePath === null) {
+      throw new Error("请先选择工作区。");
+    }
+    const prewarmedResponse = await consumePrewarmedThread(workspacePath);
+    const response = prewarmedResponse ?? (await options.hostBridge.rpc.request({ method: "thread/start", params: { model: sendOptions.selection.model ?? undefined, cwd: workspacePath, experimentalRawEvents: false, persistExtendedHistory: true } })).result as ThreadStartResponse;
+    const conversation = createConversationFromThread(response.thread, { hidden: false, resumeState: "resumed" });
+    dispatch({ type: "conversation/upserted", conversation });
+    dispatch({ type: "conversation/selected", conversationId: conversation.id });
+    dispatch({ type: "conversation/draftCleared" });
+    await startTurn(conversation.id, text, sendOptions, response.thread.cwd || response.cwd || workspacePath);
+  }, [dispatch, options.hostBridge.rpc, options.selectedRootPath, startTurn, state.draftConversation]);
+
+  const steerTurn = useCallback(async (conversationId: string, turnId: string, text: string) => {
+    const params: TurnSteerParams = { threadId: conversationId, input: createInput(text), expectedTurnId: turnId };
+    await options.hostBridge.rpc.request({ method: "turn/steer", params });
+    dispatch({ type: "conversation/itemCompleted", conversationId, turnId, item: { type: "userMessage", id: `steer-${Date.now()}`, content: createInput(text) } });
+  }, [dispatch, options.hostBridge.rpc]);
+
+  const interruptTurn = useCallback(async (conversationId: string, turnId: string) => {
+    const params: TurnInterruptParams = { threadId: conversationId, turnId };
+    await options.hostBridge.rpc.request({ method: "turn/interrupt", params });
+    dispatch({ type: "turn/interruptRequested", conversationId, turnId });
+  }, [dispatch, options.hostBridge.rpc]);
+
+  const processQueuedFollowUp = useCallback(async (conversationId: string) => {
+    if (drainingConversationIds.current.has(conversationId)) {
+      return;
+    }
+    const conversation = state.conversationsById[conversationId] ?? null;
+    const queued = conversation?.queuedFollowUps[0] ?? null;
+    if (conversation === null || queued === null || isConversationStreaming(conversation)) {
+      return;
+    }
+    drainingConversationIds.current.add(conversationId);
+    try {
+      await ensureConversationResumed(conversationId);
+      await startTurn(conversationId, queued.text, { selection: { model: queued.model, effort: queued.effort }, planModeEnabled: queued.planModeEnabled, followUpOverride: queued.mode }, conversation.cwd ?? options.selectedRootPath);
+      dispatch({ type: "followUp/dequeued", conversationId, followUpId: queued.id });
+    } finally {
+      drainingConversationIds.current.delete(conversationId);
+    }
+  }, [dispatch, ensureConversationResumed, options.selectedRootPath, startTurn, state.conversationsById]);
+
+  useEffect(() => {
+    const nextConversation = visibleConversations.find((conversation) => conversation.queuedFollowUps.length > 0 && isConversationStreaming(conversation) === false) ?? null;
+    if (nextConversation !== null) {
+      void processQueuedFollowUp(nextConversation.id);
+    }
+  }, [processQueuedFollowUp, visibleConversations]);
 
   const sendTurn = useCallback(async (sendOptions: SendTurnOptions) => {
     const text = state.inputText.trim();
     if (text.length === 0) {
       return;
     }
-    const threadId = selectedThreadId ?? (await createThread(sendOptions.selection.model));
-    const runtime = state.threadRuntime[threadId];
-    const activeTurnId = runtime?.activeTurnId ?? null;
-    if (activeTurnId === null || runtime?.status !== "active") {
-      await startTurn(threadId, text, sendOptions, true);
+    if (selectedConversation === null) {
+      await startNewConversation(text, sendOptions);
       dispatch({ type: "input/changed", value: "" });
-      await options.reloadCodexSessions();
       return;
     }
-
+    await ensureConversationResumed(selectedConversation.id);
+    const activeTurnId = getActiveTurnId(state.conversationsById[selectedConversation.id] ?? selectedConversation);
+    if (activeTurnId === null) {
+      await startTurn(selectedConversation.id, text, sendOptions, selectedConversation.cwd ?? options.selectedRootPath);
+      dispatch({ type: "input/changed", value: "" });
+      return;
+    }
     const mode = sendOptions.followUpOverride ?? options.followUpQueueMode;
     if (mode === "steer") {
-      await steerTurn(threadId, activeTurnId, text);
+      await steerTurn(selectedConversation.id, activeTurnId, text);
       dispatch({ type: "input/changed", value: "" });
       return;
     }
-
     const followUp = createQueuedFollowUp(text, { ...sendOptions, followUpOverride: mode });
-    dispatch({ type: "followUp/enqueued", threadId, followUp });
+    dispatch({ type: "followUp/enqueued", conversationId: selectedConversation.id, followUp });
     dispatch({ type: "input/changed", value: "" });
-    if (mode === "interrupt" && runtime.interruptRequestedTurnId !== activeTurnId) {
-      await interruptTurn(threadId, activeTurnId);
+    if (mode === "interrupt" && selectedConversation.interruptRequestedTurnId !== activeTurnId) {
+      await interruptTurn(selectedConversation.id, activeTurnId);
     }
-  }, [createThread, dispatch, interruptTurn, options.followUpQueueMode, options.reloadCodexSessions, selectedThreadId, startTurn, state.inputText, state.threadRuntime, steerTurn]);
+  }, [dispatch, ensureConversationResumed, interruptTurn, options.followUpQueueMode, options.selectedRootPath, selectedConversation, startNewConversation, startTurn, state.conversationsById, state.inputText, steerTurn]);
 
   const selectThread = useCallback((threadId: string | null) => {
-    if (threadId === null) {
-      dispatch({ type: "thread/selected", threadId: null });
-      return;
-    }
-    const localThread = options.codexSessions.find((thread) => thread.id === threadId);
-    const nextThread = localThread ?? knownThreads.find((thread) => thread.id === threadId);
-    if (nextThread !== undefined) {
-      dispatch({ type: "thread/upserted", thread: nextThread });
-    }
-    dispatch({ type: "thread/selected", threadId });
-  }, [dispatch, knownThreads, options.codexSessions]);
+    dispatch({ type: "conversation/selected", conversationId: threadId });
+  }, [dispatch]);
 
   const removeQueuedFollowUp = useCallback((followUpId: string) => {
-    if (selectedThreadId !== null) {
-      dispatch({ type: "followUp/removed", threadId: selectedThreadId, followUpId });
+    if (selectedConversation !== null) {
+      dispatch({ type: "followUp/removed", conversationId: selectedConversation.id, followUpId });
     }
-  }, [dispatch, selectedThreadId]);
+  }, [dispatch, selectedConversation]);
 
   const clearQueuedFollowUps = useCallback(() => {
-    if (selectedThreadId !== null) {
-      dispatch({ type: "followUp/cleared", threadId: selectedThreadId });
+    if (selectedConversation !== null) {
+      dispatch({ type: "followUp/cleared", conversationId: selectedConversation.id });
     }
-  }, [dispatch, selectedThreadId]);
+  }, [dispatch, selectedConversation]);
 
-  return { selectedThreadId, workspaceThreads, createThread, selectThread, sendTurn, removeQueuedFollowUp, clearQueuedFollowUps };
+  return { selectedThreadId: selectedConversation?.id ?? null, selectedThread, workspaceThreads, activities, queuedFollowUps, draftActive: state.draftConversation !== null, selectedConversationLoading: selectedConversation?.resumeState === "resuming", createThread, selectThread, sendTurn, removeQueuedFollowUp, clearQueuedFollowUps };
 }

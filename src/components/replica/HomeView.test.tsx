@@ -89,12 +89,12 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       selectedRootName={root.name}
       selectedRootPath={root.path}
       threads={[thread]}
-      codexSessions={[thread]}
-      codexSessionsLoading={false}
-      codexSessionsError={null}
+      selectedThread={thread}
       selectedThreadId={thread.id}
       activities={[]}
       queuedFollowUps={[]}
+      draftActive={false}
+      selectedConversationLoading={false}
       models={MODELS}
       defaultModel="gpt-5.2"
       defaultEffort="xhigh"

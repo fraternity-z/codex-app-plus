@@ -6,15 +6,16 @@ import { splitActivitiesIntoRenderGroups } from "./localConversationGroups";
 interface HomeConversationCanvasProps {
   readonly activities: ReadonlyArray<TimelineEntry>;
   readonly selectedThread: ThreadSummary | null;
+  readonly placeholder: { readonly title: string; readonly body: string } | null;
   readonly onResolveServerRequest: (resolution: ServerRequestResolution) => Promise<void>;
 }
 
-function ConversationPlaceholder(props: { readonly selectedThread: ThreadSummary | null }): JSX.Element {
-  if (props.selectedThread === null) {
+function ConversationPlaceholder(props: { readonly selectedThread: ThreadSummary | null; readonly placeholder: HomeConversationCanvasProps["placeholder"] }): JSX.Element {
+  if (props.placeholder !== null) {
     return (
       <div className="home-chat-placeholder">
-        <p className="home-chat-placeholder-title">选择工作区后即可开始会话</p>
-        <p className="home-chat-placeholder-body">发送第一条消息后，这里会切换为完整的时间线视图。</p>
+        <p className="home-chat-placeholder-title">{props.placeholder.title}</p>
+        <p className="home-chat-placeholder-body">{props.placeholder.body}</p>
       </div>
     );
   }
@@ -65,7 +66,7 @@ export function HomeConversationCanvas(props: HomeConversationCanvasProps): JSX.
     <main className="home-conversation" aria-label="会话内容">
       <div ref={scrollRef} className="home-conversation-scroll">
         <div className="home-conversation-thread">
-          {visibleActivities.length === 0 ? <ConversationPlaceholder selectedThread={props.selectedThread} /> : null}
+          {visibleActivities.length === 0 ? <ConversationPlaceholder selectedThread={props.selectedThread} placeholder={props.placeholder} /> : null}
           {renderGroups.map((group) => (
             <section key={group.key} className="home-turn-group">
               {group.userItems.map((entry) => (

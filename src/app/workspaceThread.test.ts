@@ -72,4 +72,24 @@ describe("workspaceThread", () => {
       ).map((thread) => thread.id)
     ).toEqual(["thread-4", "thread-2", "thread-1"]);
   });
+
+  it("matches Windows device-prefix paths returned by app-server", () => {
+    expect(
+      listThreadsForWorkspace(
+        [
+          {
+            id: "thread-5",
+            title: "device-prefix",
+            cwd: "\\\\?\\E:\\code\\codex-app-plus",
+            archived: false,
+            updatedAt: "2026-03-06T12:00:00.000Z",
+            status: "idle",
+            activeFlags: [],
+            queuedCount: 0,
+          },
+        ],
+        "E:/code/codex-app-plus"
+      ).map((thread) => thread.id)
+    ).toEqual(["thread-5"]);
+  });
 });

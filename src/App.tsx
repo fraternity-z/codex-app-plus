@@ -1,14 +1,12 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useAppController } from "./app/useAppController";
 import { useAppPreferences } from "./app/useAppPreferences";
-import { useCodexSessionCatalog } from "./app/useCodexSessionCatalog";
 import { useComposerPicker } from "./app/useComposerPicker";
 import { useWorkspaceConversation } from "./app/useWorkspaceConversation";
 import { useWorkspaceRoots } from "./app/useWorkspaceRoots";
 import { inferWorkspaceNameFromPath } from "./app/workspacePath";
 import type { HostBridge } from "./bridge/types";
-import type { ThreadSummary } from "./domain/types";
 import { HomeView } from "./components/replica/HomeView";
 import { SettingsView, type SettingsSection } from "./components/replica/SettingsView";
 
@@ -31,7 +29,6 @@ async function requestWorkspaceFolder(): Promise<{ readonly name: string; readon
 export function App({ hostBridge }: AppProps): JSX.Element {
   const controller = useAppController(hostBridge);
   const preferences = useAppPreferences();
-  const codexSessions = useCodexSessionCatalog(hostBridge);
   const composerPicker = useComposerPicker(hostBridge, controller.state.configSnapshot, controller.state.initialized);
   const workspace = useWorkspaceRoots();
   const [screen, setScreen] = useState<"home" | SettingsSection>("home");
@@ -41,40 +38,12 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const selectedRootName = selectedRoot?.name ?? "选择工作区";
   const selectedRootPath = selectedRoot?.path ?? null;
 
-  const decorateThreads = useCallback(
-    (threads: ReadonlyArray<ThreadSummary>) =>
-      threads.map((thread) => {
-        const runtime = controller.state.threadRuntime[thread.id];
-        if (runtime === undefined) {
-          return thread;
-        }
-        return { ...thread, status: runtime.status, activeFlags: runtime.activeFlags, queuedCount: runtime.queuedFollowUps.length };
-      }),
-    [controller.state.threadRuntime]
-  );
-
-  const threads = useMemo(() => decorateThreads(controller.state.threads), [controller.state.threads, decorateThreads]);
-  const codexThreads = useMemo(() => decorateThreads(codexSessions.sessions), [codexSessions.sessions, decorateThreads]);
-
   const conversation = useWorkspaceConversation({
     hostBridge,
-    threads,
-    codexSessions: codexThreads,
     selectedRootPath,
     collaborationModes: controller.state.collaborationModes,
     followUpQueueMode: preferences.followUpQueueMode,
-    reloadCodexSessions: codexSessions.reload
   });
-
-  const activities = useMemo(
-    () => (conversation.selectedThreadId === null ? [] : controller.state.threadActivities[conversation.selectedThreadId] ?? []),
-    [controller.state.threadActivities, conversation.selectedThreadId]
-  );
-
-  const queuedFollowUps = useMemo(
-    () => (conversation.selectedThreadId === null ? [] : controller.state.threadRuntime[conversation.selectedThreadId]?.queuedFollowUps ?? []),
-    [controller.state.threadRuntime, conversation.selectedThreadId]
-  );
 
   const openConfigToml = useCallback(async () => {
     try {
@@ -164,13 +133,13 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       selectedRootId={workspace.selectedRootId}
       selectedRootName={selectedRootName}
       selectedRootPath={selectedRootPath}
-      threads={threads}
-      codexSessions={codexThreads}
-      codexSessionsLoading={codexSessions.loading}
-      codexSessionsError={codexSessions.error}
+      threads={conversation.workspaceThreads}
+      selectedThread={conversation.selectedThread}
       selectedThreadId={conversation.selectedThreadId}
-      activities={activities}
-      queuedFollowUps={queuedFollowUps}
+      activities={conversation.activities}
+      queuedFollowUps={conversation.queuedFollowUps}
+      draftActive={conversation.draftActive}
+      selectedConversationLoading={conversation.selectedConversationLoading}
       models={composerPicker.models}
       defaultModel={composerPicker.defaultModel}
       defaultEffort={composerPicker.defaultEffort}
