@@ -1,12 +1,17 @@
 import { useState } from "react";
 import type { ConfigMutationResult, McpRefreshResult } from "../../app/configOperations";
 import type { AppPreferencesController } from "../../app/useAppPreferences";
+import type {
+  GlobalAgentInstructionsOutput,
+  UpdateGlobalAgentInstructionsInput
+} from "../../bridge/types";
 import type { WorkspaceRoot } from "../../app/useWorkspaceRoots";
 import type { ConfigBatchWriteParams } from "../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigValueWriteParams } from "../../protocol/generated/v2/ConfigValueWriteParams";
 import { OpenSourceLicensesDialog } from "./OpenSourceLicensesDialog";
 import { McpSettingsPanel } from "./mcp/McpSettingsPanel";
 import { GeneralSettingsSection } from "./settings/GeneralSettingsSection";
+import { PersonalizationSettingsSection } from "./settings/PersonalizationSettingsSection";
 
 export type SettingsSection = "general" | "config" | "personalization" | "mcp" | "git" | "environment" | "worktree" | "archived";
 
@@ -20,6 +25,10 @@ interface SettingsViewProps {
   onSelectSection: (section: SettingsSection) => void;
   onAddRoot: () => void;
   onOpenConfigToml: () => Promise<void>;
+  readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
+  writeGlobalAgentInstructions: (
+    input: UpdateGlobalAgentInstructionsInput
+  ) => Promise<GlobalAgentInstructionsOutput>;
   refreshMcpData: () => Promise<McpRefreshResult>;
   writeConfigValue: (params: ConfigValueWriteParams) => Promise<ConfigMutationResult>;
   batchWriteConfig: (params: ConfigBatchWriteParams) => Promise<ConfigMutationResult>;
@@ -85,16 +94,6 @@ function ConfigContent(props: { readonly onOpenConfigToml: () => Promise<void> }
   );
 }
 
-function PersonalizationContent(): JSX.Element {
-  return (
-    <div className="settings-panel-group">
-      <SectionHeader title="个性化" />
-      <section className="settings-card"><div className="settings-row"><div><strong>回答风格</strong><p>当前默认风格为务实、直接。</p></div><span className="settings-chip">务实</span></div></section>
-      <section className="settings-card"><div className="settings-section-head"><strong>自定义指令</strong><button type="button" className="settings-head-action">保存</button></div><textarea className="settings-textarea" readOnly value="# Global Agent Rules\n\n## Language\n\nDefault to Chinese in user-facing replies unless the user explicitly requests another language." /></section>
-    </div>
-  );
-}
-
 function GitContent(): JSX.Element {
   return <div className="settings-panel-group"><SectionHeader title="Git" /><section className="settings-card"><div className="settings-row"><div><strong>分支前缀</strong><p>在 Codex 中创建新分支时使用的前缀。</p></div><span className="settings-chip">codex/</span></div><div className="settings-row"><div><strong>推送时强制 lease</strong><p>推送时附带 `--force-with-lease`。</p></div><ToggleControl /></div></section></div>;
 }
@@ -125,7 +124,16 @@ function PlaceholderContent(props: { readonly section: SettingsSection }): JSX.E
 function SettingsContent(props: SettingsViewProps): JSX.Element {
   if (props.section === "general") return <GeneralSettingsSection preferences={props.preferences} />;
   if (props.section === "config") return <ConfigContent onOpenConfigToml={props.onOpenConfigToml} />;
-  if (props.section === "personalization") return <PersonalizationContent />;
+  if (props.section === "personalization") {
+    return (
+      <PersonalizationSettingsSection
+        busy={props.busy}
+        configSnapshot={props.configSnapshot}
+        readGlobalAgentInstructions={props.readGlobalAgentInstructions}
+        writeGlobalAgentInstructions={props.writeGlobalAgentInstructions}
+      />
+    );
+  }
   if (props.section === "mcp") return <McpSettingsPanel busy={props.busy} configSnapshot={props.configSnapshot} refreshMcpData={props.refreshMcpData} writeConfigValue={props.writeConfigValue} batchWriteConfig={props.batchWriteConfig} />;
   if (props.section === "git") return <GitContent />;
   if (props.section === "environment") return <EnvironmentContent roots={props.roots} onAddRoot={props.onAddRoot} />;

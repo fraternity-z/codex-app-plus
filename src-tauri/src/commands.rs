@@ -7,10 +7,11 @@ use crate::error::{AppError, AppResult};
 use crate::events::{EVENT_CONTEXT_MENU_REQUESTED, EVENT_NOTIFICATION_REQUESTED};
 use crate::models::{
     AppServerStartInput, CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSummary,
-    ImportOfficialDataInput, OpenWorkspaceInput, RpcCancelInput, RpcNotifyInput, RpcRequestInput,
-    RpcRequestOutput, ServerRequestResolveInput, ShowContextMenuInput, ShowNotificationInput,
-    TerminalCloseInput, TerminalCreateInput, TerminalCreateOutput, TerminalResizeInput,
-    TerminalWriteInput, WorkspaceOpener,
+    GlobalAgentInstructionsOutput, ImportOfficialDataInput, OpenWorkspaceInput, RpcCancelInput,
+    RpcNotifyInput, RpcRequestInput, RpcRequestOutput, ServerRequestResolveInput,
+    ShowContextMenuInput, ShowNotificationInput, TerminalCloseInput, TerminalCreateInput,
+    TerminalCreateOutput, TerminalResizeInput, TerminalWriteInput,
+    UpdateGlobalAgentInstructionsInput, WorkspaceOpener,
 };
 use crate::process_manager::ProcessManager;
 use crate::terminal_manager::TerminalManager;
@@ -101,6 +102,18 @@ pub fn app_open_codex_config_toml() -> Result<(), String> {
 }
 
 #[tauri::command]
+pub fn app_read_global_agent_instructions() -> Result<GlobalAgentInstructionsOutput, String> {
+    to_result(read_global_agent_instructions())
+}
+
+#[tauri::command]
+pub fn app_write_global_agent_instructions(
+    input: UpdateGlobalAgentInstructionsInput,
+) -> Result<GlobalAgentInstructionsOutput, String> {
+    to_result(write_global_agent_instructions(input))
+}
+
+#[tauri::command]
 pub fn app_show_notification(app: AppHandle, input: ShowNotificationInput) -> Result<(), String> {
     if input.title.trim().is_empty() {
         return Err("notification.title 不能为空".to_string());
@@ -182,6 +195,31 @@ fn import_official_data(input: ImportOfficialDataInput) -> AppResult<()> {
         .ok_or_else(|| AppError::InvalidInput("无法解析 LOCALAPPDATA".to_string()))?;
     let destination = local_data.join("CodexAppPlus").join("imported-official");
     copy_directory(&source, &destination)
+}
+
+fn global_agents_path() -> AppResult<PathBuf> {
+    let home = dirs::home_dir().ok_or_else(|| AppError::InvalidInput("无法解析用户目录".to_string()))?;
+    Ok(home.join(".codex").join("AGENTS.md"))
+}
+
+fn read_global_agent_instructions() -> AppResult<GlobalAgentInstructionsOutput> {
+    let path = global_agents_path()?;
+    let content = std::fs::read_to_string(&path)?;
+    Ok(GlobalAgentInstructionsOutput {
+        path: path.display().to_string(),
+        content,
+    })
+}
+
+fn write_global_agent_instructions(
+    input: UpdateGlobalAgentInstructionsInput,
+) -> AppResult<GlobalAgentInstructionsOutput> {
+    let path = global_agents_path()?;
+    std::fs::write(&path, &input.content)?;
+    Ok(GlobalAgentInstructionsOutput {
+        path: path.display().to_string(),
+        content: input.content,
+    })
 }
 
 fn open_workspace(input: OpenWorkspaceInput) -> AppResult<()> {

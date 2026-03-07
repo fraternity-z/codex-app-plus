@@ -11,10 +11,12 @@ import type {
   GitDiscardInput,
   GitPathsInput,
   GitRepoInput,
+  GlobalAgentInstructionsOutput,
   GitStatusOutput,
   HostBridge,
   OpenWorkspaceInput,
   ImportOfficialDataInput,
+  UpdateGlobalAgentInstructionsInput,
   CodexSessionReadInput,
   CodexSessionReadOutput,
   CodexSessionSummaryOutput,
@@ -83,6 +85,12 @@ export function createTauriHostBridge(): HostBridge {
         }),
       openCodexConfigToml: () =>
         invoke("app_open_codex_config_toml"),
+      readGlobalAgentInstructions: () =>
+        invoke<GlobalAgentInstructionsOutput>("app_read_global_agent_instructions"),
+      writeGlobalAgentInstructions: (input: UpdateGlobalAgentInstructionsInput) =>
+        invoke<GlobalAgentInstructionsOutput>("app_write_global_agent_instructions", {
+          input
+        }),
       showNotification: (input: ShowNotificationInput) =>
         invoke("app_show_notification", {
           input

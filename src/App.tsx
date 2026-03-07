@@ -85,6 +85,17 @@ export function App({ hostBridge }: AppProps): JSX.Element {
     }
   }, [hostBridge.app]);
 
+  const readGlobalAgentInstructions = useCallback(
+    () => hostBridge.app.readGlobalAgentInstructions(),
+    [hostBridge.app]
+  );
+
+  const writeGlobalAgentInstructions = useCallback(
+    (input: Parameters<typeof hostBridge.app.writeGlobalAgentInstructions>[0]) =>
+      hostBridge.app.writeGlobalAgentInstructions(input),
+    [hostBridge.app]
+  );
+
   const openSettings = useCallback(() => {
     setScreen("general");
     setSettingsMenuOpen(false);
@@ -135,6 +146,8 @@ export function App({ hostBridge }: AppProps): JSX.Element {
         onSelectSection={setScreen}
         onAddRoot={addRoot}
         onOpenConfigToml={openConfigToml}
+        readGlobalAgentInstructions={readGlobalAgentInstructions}
+        writeGlobalAgentInstructions={writeGlobalAgentInstructions}
         refreshMcpData={controller.refreshMcpData}
         writeConfigValue={controller.writeConfigValue}
         batchWriteConfig={controller.batchWriteConfig}

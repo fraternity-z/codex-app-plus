@@ -77,6 +77,19 @@ pub struct ImportOfficialDataInput {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct GlobalAgentInstructionsOutput {
+    pub path: String,
+    pub content: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateGlobalAgentInstructionsInput {
+    pub content: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CodexSessionSummary {
     pub id: String,
     pub title: String,

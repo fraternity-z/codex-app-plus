@@ -114,6 +114,15 @@ export interface ImportOfficialDataInput {
   readonly sourcePath: string;
 }
 
+export interface GlobalAgentInstructionsOutput {
+  readonly path: string;
+  readonly content: string;
+}
+
+export interface UpdateGlobalAgentInstructionsInput {
+  readonly content: string;
+}
+
 export interface CodexSessionSummaryOutput {
   readonly id: string;
   readonly title: string;
@@ -246,6 +255,10 @@ export interface HostBridge {
     openExternal(url: string): Promise<void>;
     openWorkspace(input: OpenWorkspaceInput): Promise<void>;
     openCodexConfigToml(): Promise<void>;
+    readGlobalAgentInstructions(): Promise<GlobalAgentInstructionsOutput>;
+    writeGlobalAgentInstructions(
+      input: UpdateGlobalAgentInstructionsInput
+    ): Promise<GlobalAgentInstructionsOutput>;
     showNotification(input: ShowNotificationInput): Promise<void>;
     showContextMenu(input: ShowContextMenuInput): Promise<void>;
     importOfficialData(input: ImportOfficialDataInput): Promise<void>;

@@ -48,6 +48,12 @@
   padding-bottom: 14px;
 }
 
+.settings-note code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 13px;
+  color: #475569;
+}
+
 .settings-row-copy {
   flex: 1 1 auto;
   min-width: 0;
@@ -63,6 +69,21 @@
   color: #9a6b0f;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.settings-status-note {
+  margin: 0;
+  padding: 0 18px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.settings-status-note-success {
+  color: #166534;
+}
+
+.settings-status-note-error {
+  color: #b91c1c;
 }
 
 .settings-select-trigger {
