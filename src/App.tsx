@@ -103,6 +103,10 @@ export function App({ hostBridge }: AppProps): JSX.Element {
     [conversation]
   );
 
+  const rateLimitSummary = controller.state.rateLimits === null
+    ? null
+    : `Rate limit: ${controller.state.rateLimits.limitName ?? controller.state.rateLimits.limitId ?? "default"}`;
+
   if (screen !== "home") {
     return (
       <SettingsView
@@ -137,6 +141,10 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       selectedThread={conversation.selectedThread}
       selectedThreadId={conversation.selectedThreadId}
       activities={conversation.activities}
+      mcpShortcuts={controller.state.mcpShortcuts}
+      banners={controller.state.banners}
+      account={controller.state.account}
+      rateLimitSummary={rateLimitSummary}
       queuedFollowUps={conversation.queuedFollowUps}
       draftActive={conversation.draftActive}
       selectedConversationLoading={conversation.selectedConversationLoading}

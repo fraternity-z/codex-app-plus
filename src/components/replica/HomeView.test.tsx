@@ -93,6 +93,10 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       selectedThread={thread}
       selectedThreadId={thread.id}
       activities={[]}
+      mcpShortcuts={[]}
+      banners={[]}
+      account={null}
+      rateLimitSummary={null}
       queuedFollowUps={[]}
       draftActive={false}
       selectedConversationLoading={false}
@@ -135,9 +139,9 @@ describe("HomeView", () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
     renderHomeView({ onSendTurn });
 
-    fireEvent.click(screen.getByRole("button", { name: "添加" }));
-    fireEvent.click(screen.getByRole("switch", { name: "切换计划模式" }));
-    fireEvent.click(screen.getByRole("button", { name: "发送消息" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Toggle plan mode" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
     expect(onSendTurn).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -231,8 +235,8 @@ describe("HomeView", () => {
 
     renderHomeView({ activities });
 
-    expect(screen.getByText("命令执行")).toBeInTheDocument();
-    expect(screen.getByText("需要补充信息")).toBeInTheDocument();
+    expect(screen.getByText("Command execution")).toBeInTheDocument();
+    expect(screen.getByText("Additional input required")).toBeInTheDocument();
     expect(screen.getByText("请选择处理方式")).toBeInTheDocument();
   });
 

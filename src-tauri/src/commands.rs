@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 
+use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 
 use crate::codex_data::{list_codex_sessions, read_codex_session};
@@ -7,11 +8,12 @@ use crate::error::{AppError, AppResult};
 use crate::events::{EVENT_CONTEXT_MENU_REQUESTED, EVENT_NOTIFICATION_REQUESTED};
 use crate::models::{
     AppServerStartInput, CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSummary,
-    GlobalAgentInstructionsOutput, ImportOfficialDataInput, OpenWorkspaceInput, RpcCancelInput,
-    RpcNotifyInput, RpcRequestInput, RpcRequestOutput, ServerRequestResolveInput,
-    ShowContextMenuInput, ShowNotificationInput, TerminalCloseInput, TerminalCreateInput,
-    TerminalCreateOutput, TerminalResizeInput, TerminalWriteInput,
-    UpdateGlobalAgentInstructionsInput, WorkspaceOpener,
+    ChatgptAuthTokensOutput, GlobalAgentInstructionsOutput, ImportOfficialDataInput,
+    OpenWorkspaceInput, RpcCancelInput, RpcNotifyInput, RpcRequestInput, RpcRequestOutput,
+    ServerRequestResolveInput, ShowContextMenuInput, ShowNotificationInput,
+    TerminalCloseInput, TerminalCreateInput, TerminalCreateOutput, TerminalResizeInput,
+    TerminalWriteInput, UpdateChatgptAuthTokensInput, UpdateGlobalAgentInstructionsInput,
+    WorkspaceOpener,
 };
 use crate::process_manager::ProcessManager;
 use crate::terminal_manager::TerminalManager;
@@ -114,6 +116,18 @@ pub fn app_write_global_agent_instructions(
 }
 
 #[tauri::command]
+pub fn app_read_chatgpt_auth_tokens() -> Result<ChatgptAuthTokensOutput, String> {
+    to_result(read_chatgpt_auth_tokens())
+}
+
+#[tauri::command]
+pub fn app_write_chatgpt_auth_tokens(
+    input: UpdateChatgptAuthTokensInput,
+) -> Result<ChatgptAuthTokensOutput, String> {
+    to_result(write_chatgpt_auth_tokens(input))
+}
+
+#[tauri::command]
 pub fn app_show_notification(app: AppHandle, input: ShowNotificationInput) -> Result<(), String> {
     if input.title.trim().is_empty() {
         return Err("notification.title 不能为空".to_string());
@@ -195,6 +209,147 @@ fn import_official_data(input: ImportOfficialDataInput) -> AppResult<()> {
         .ok_or_else(|| AppError::InvalidInput("无法解析 LOCALAPPDATA".to_string()))?;
     let destination = local_data.join("CodexAppPlus").join("imported-official");
     copy_directory(&source, &destination)
+}
+
+fn app_data_root() -> AppResult<PathBuf> {
+    let local_data = dirs::data_local_dir()
+        .ok_or_else(|| AppError::InvalidInput("无法解析 LOCALAPPDATA".to_string()))?;
+    Ok(local_data.join("CodexAppPlus"))
+}
+
+fn imported_official_path() -> AppResult<PathBuf> {
+    Ok(app_data_root()?.join("imported-official"))
+}
+
+fn chatgpt_auth_cache_path() -> AppResult<PathBuf> {
+    Ok(app_data_root()?.join("auth").join("chatgpt-auth.json"))
+}
+
+fn read_chatgpt_auth_tokens() -> AppResult<ChatgptAuthTokensOutput> {
+    read_chatgpt_auth_tokens_from_cache().or_else(|_| read_chatgpt_auth_tokens_from_imported())
+}
+
+fn read_chatgpt_auth_tokens_from_cache() -> AppResult<ChatgptAuthTokensOutput> {
+    let path = chatgpt_auth_cache_path()?;
+    let text = std::fs::read_to_string(&path)?;
+    let value: Value = serde_json::from_str(&text)
+        .map_err(|error| AppError::InvalidInput(format!("failed to parse cached auth tokens: {error}")))?;
+    extract_tokens_from_value(&value, "cache")
+        .ok_or_else(|| AppError::InvalidInput("cached auth tokens are incomplete".to_string()))
+}
+
+fn read_chatgpt_auth_tokens_from_imported() -> AppResult<ChatgptAuthTokensOutput> {
+    let root = imported_official_path()?;
+    if !root.exists() {
+        return Err(AppError::InvalidInput(
+            "imported official data does not exist".to_string(),
+        ));
+    }
+    let mut files = Vec::new();
+    collect_candidate_files(&root, &mut files)?;
+    for file in files {
+        let Ok(text) = std::fs::read_to_string(&file) else {
+            continue;
+        };
+        let Ok(value) = serde_json::from_str::<Value>(&text) else {
+            continue;
+        };
+        if let Some(tokens) = extract_tokens_from_value(&value, "imported") {
+            return Ok(tokens);
+        }
+    }
+    Err(AppError::InvalidInput(
+        "unable to find ChatGPT auth tokens in imported official data".to_string(),
+    ))
+}
+
+fn write_chatgpt_auth_tokens(
+    input: UpdateChatgptAuthTokensInput,
+) -> AppResult<ChatgptAuthTokensOutput> {
+    if input.access_token.trim().is_empty() {
+        return Err(AppError::InvalidInput("accessToken 不能为空".to_string()));
+    }
+    if input.chatgpt_account_id.trim().is_empty() {
+        return Err(AppError::InvalidInput("chatgptAccountId 不能为空".to_string()));
+    }
+    let path = chatgpt_auth_cache_path()?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let output = ChatgptAuthTokensOutput {
+        access_token: input.access_token,
+        chatgpt_account_id: input.chatgpt_account_id,
+        chatgpt_plan_type: input.chatgpt_plan_type,
+        source: "cache".to_string(),
+    };
+    std::fs::write(&path, serde_json::to_vec_pretty(&output)?)?;
+    Ok(output)
+}
+
+fn collect_candidate_files(root: &Path, files: &mut Vec<PathBuf>) -> AppResult<()> {
+    for entry in std::fs::read_dir(root)? {
+        let entry = entry?;
+        let path = entry.path();
+        if entry.file_type()?.is_dir() {
+            collect_candidate_files(&path, files)?;
+            continue;
+        }
+        if entry.file_type()?.is_file() {
+            let metadata = entry.metadata()?;
+            if metadata.len() <= 5 * 1024 * 1024 {
+                files.push(path);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn extract_tokens_from_value(value: &Value, source: &str) -> Option<ChatgptAuthTokensOutput> {
+    let mut access_token = None;
+    let mut account_id = None;
+    let mut plan_type = None;
+    find_tokens(value, &mut access_token, &mut account_id, &mut plan_type);
+    match (access_token, account_id) {
+        (Some(access_token), Some(chatgpt_account_id)) => Some(ChatgptAuthTokensOutput {
+            access_token,
+            chatgpt_account_id,
+            chatgpt_plan_type: plan_type,
+            source: source.to_string(),
+        }),
+        _ => None,
+    }
+}
+
+fn find_tokens(
+    value: &Value,
+    access_token: &mut Option<String>,
+    account_id: &mut Option<String>,
+    plan_type: &mut Option<String>,
+) {
+    match value {
+        Value::Object(map) => {
+            for (key, item) in map {
+                match key.as_str() {
+                    "accessToken" if access_token.is_none() => {
+                        *access_token = item.as_str().map(ToString::to_string)
+                    }
+                    "chatgptAccountId" if account_id.is_none() => {
+                        *account_id = item.as_str().map(ToString::to_string)
+                    }
+                    "chatgptPlanType" if plan_type.is_none() => {
+                        *plan_type = item.as_str().map(ToString::to_string)
+                    }
+                    _ => find_tokens(item, access_token, account_id, plan_type),
+                }
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                find_tokens(item, access_token, account_id, plan_type);
+            }
+        }
+        _ => {}
+    }
 }
 
 fn global_agents_path() -> AppResult<PathBuf> {

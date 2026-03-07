@@ -119,15 +119,15 @@ describe("HomeConversationCanvas", () => {
   it("renders a thinking block immediately after user input on an active thread", () => {
     const { container } = renderCanvas([USER_MESSAGE], "active");
 
-    expect(screen.getByText("正在思考")).toBeInTheDocument();
+    expect(screen.getByText("Thinking")).toBeInTheDocument();
     expect(container.querySelector(".home-thinking-block")).not.toBeNull();
   });
 
   it("renders trace cards and inline request blocks in the conversation flow", () => {
     const { container } = renderCanvas([USER_MESSAGE, COMMAND_ENTRY, REQUEST_ENTRY], "active");
 
-    expect(screen.getByText("命令执行")).toBeInTheDocument();
-    expect(screen.getByText("需要补充信息")).toBeInTheDocument();
+    expect(screen.getByText("Command execution")).toBeInTheDocument();
+    expect(screen.getByText("Additional input required")).toBeInTheDocument();
     expect(screen.getByText("请选择处理范围")).toBeInTheDocument();
     expect(container.querySelector(".home-request-card")).not.toBeNull();
   });

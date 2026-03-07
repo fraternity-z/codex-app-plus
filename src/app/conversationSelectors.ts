@@ -6,7 +6,7 @@ export function mapConversationToThreadSummary(conversation: ConversationState):
     id: conversation.id,
     title: conversation.title ?? conversation.id,
     cwd: conversation.cwd,
-    archived: false,
+    archived: conversation.hidden,
     updatedAt: conversation.updatedAt,
     source: "rpc",
     status: conversation.status,

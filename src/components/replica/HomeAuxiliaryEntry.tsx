@@ -1,44 +1,49 @@
-import type { ConversationMessage, PlanEntry, TurnDiffSnapshotEntry } from "../../domain/timeline";
+import type {
+  AuxiliaryBlock,
+} from "./localConversationGroups";
+import type { ConversationMessage, PlanEntry } from "../../domain/timeline";
 import { ConversationMessageContent } from "./ConversationMessageContent";
 import { HomeEntryCard } from "./HomeEntryCard";
 
 interface HomeAuxiliaryEntryProps {
-  readonly entry: PlanEntry | TurnDiffSnapshotEntry;
+  readonly entry: AuxiliaryBlock;
 }
 
 export function HomeAuxiliaryEntry(props: HomeAuxiliaryEntryProps): JSX.Element {
-  return props.entry.kind === "plan" ? <PlanBlock entry={props.entry} /> : <DiffBlock entry={props.entry} />;
+  if (props.entry.kind === "plan") return <PlanBlock entry={props.entry} />;
+  if (props.entry.kind === "turnPlanSnapshot") return <TurnPlanBlock entry={props.entry} />;
+  if (props.entry.kind === "turnDiffSnapshot") return <DiffBlock entry={props.entry} />;
+  if (props.entry.kind === "reviewMode") return <NoticeCard title={props.entry.state === "entered" ? "Entered review mode" : "Exited review mode"} detail={props.entry.review} />;
+  if (props.entry.kind === "contextCompaction") return <NoticeCard title="Context compacted" detail="Older context was compacted by the app-server." />;
+  if (props.entry.kind === "rawResponse") return <NoticeCard title={props.entry.title} detail={props.entry.detail} />;
+  if (props.entry.kind === "systemNotice") return <NoticeCard title={props.entry.title} detail={props.entry.detail} status={props.entry.level} />;
+  if (props.entry.kind === "tokenUsage") return <NoticeCard title="Token usage updated" detail={`input ${props.entry.usage.last.inputTokens}, output ${props.entry.usage.last.outputTokens}, total ${props.entry.usage.total.totalTokens}`} />;
+  if (props.entry.kind === "realtimeSession") return <NoticeCard title={`Realtime session ${props.entry.status}`} detail={props.entry.message ?? props.entry.sessionId} />;
+  if (props.entry.kind === "realtimeAudio") return <NoticeCard title={`Realtime audio chunk #${props.entry.chunkIndex + 1}`} detail={`${props.entry.audio.sampleRate} Hz · ${props.entry.audio.numChannels} channel(s)`} />;
+  return <FuzzySearchBlock entry={props.entry} />;
 }
 
 function PlanBlock(props: { readonly entry: PlanEntry }): JSX.Element {
-  return (
-    <HomeEntryCard className="home-auxiliary-card" title="计划草案" status={formatPlanStatus(props.entry.status)}>
-      <ConversationMessageContent className="home-chat-markdown home-chat-markdown-assistant" message={createPlanMessage(props.entry)} />
-    </HomeEntryCard>
-  );
+  return <HomeEntryCard className="home-auxiliary-card" title="Plan draft" status={props.entry.status === "streaming" ? "streaming" : "done"}><ConversationMessageContent className="home-chat-markdown home-chat-markdown-assistant" message={createPlanMessage(props.entry)} /></HomeEntryCard>;
 }
 
-function DiffBlock(props: { readonly entry: TurnDiffSnapshotEntry }): JSX.Element {
-  return (
-    <HomeEntryCard className="home-auxiliary-card" title="聚合 Diff">
-      <pre className="home-trace-preview">{props.entry.diff}</pre>
-    </HomeEntryCard>
-  );
+function TurnPlanBlock(props: { readonly entry: Extract<AuxiliaryBlock, { kind: "turnPlanSnapshot" }> }): JSX.Element {
+  const text = [props.entry.explanation, ...props.entry.plan.map((step, index) => `${index + 1}. ${step.step} [${step.status}]`)].filter(Boolean).join("\n");
+  return <NoticeCard title="Turn plan" detail={text} />;
+}
+
+function DiffBlock(props: { readonly entry: Extract<AuxiliaryBlock, { kind: "turnDiffSnapshot" }> }): JSX.Element {
+  return <HomeEntryCard className="home-auxiliary-card" title="Unified diff"><pre className="home-trace-preview">{props.entry.diff}</pre></HomeEntryCard>;
+}
+
+function FuzzySearchBlock(props: { readonly entry: Extract<AuxiliaryBlock, { kind: "fuzzySearch" }> }): JSX.Element {
+  return <HomeEntryCard className="home-auxiliary-card" title={`Fuzzy search · ${props.entry.query}`} status={props.entry.status}><ul className="home-trace-list">{props.entry.files.slice(0, 8).map((file) => <li key={`${file.root}:${file.path}`}>{file.path}</li>)}</ul></HomeEntryCard>;
+}
+
+function NoticeCard(props: { readonly title: string; readonly detail: string | null; readonly status?: string }): JSX.Element {
+  return <HomeEntryCard className="home-auxiliary-card" title={props.title} status={props.status}>{props.detail ? <pre className="home-trace-preview">{props.detail}</pre> : null}</HomeEntryCard>;
 }
 
 function createPlanMessage(entry: PlanEntry): ConversationMessage {
-  return {
-    id: entry.id,
-    kind: "agentMessage",
-    role: "assistant",
-    threadId: entry.threadId,
-    turnId: entry.turnId,
-    itemId: entry.itemId,
-    text: entry.text,
-    status: entry.status,
-  };
-}
-
-function formatPlanStatus(status: PlanEntry["status"]): string {
-  return status === "streaming" ? "生成中" : "已完成";
+  return { id: entry.id, kind: "agentMessage", role: "assistant", threadId: entry.threadId, turnId: entry.turnId, itemId: entry.itemId, text: entry.text, status: entry.status };
 }

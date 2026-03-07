@@ -11,11 +11,13 @@ import type {
   GitDiscardInput,
   GitPathsInput,
   GitRepoInput,
+  ChatgptAuthTokensOutput,
   GlobalAgentInstructionsOutput,
   GitStatusOutput,
   HostBridge,
   OpenWorkspaceInput,
   ImportOfficialDataInput,
+  UpdateChatgptAuthTokensInput,
   UpdateGlobalAgentInstructionsInput,
   CodexSessionReadInput,
   CodexSessionReadOutput,
@@ -89,6 +91,12 @@ export function createTauriHostBridge(): HostBridge {
         invoke<GlobalAgentInstructionsOutput>("app_read_global_agent_instructions"),
       writeGlobalAgentInstructions: (input: UpdateGlobalAgentInstructionsInput) =>
         invoke<GlobalAgentInstructionsOutput>("app_write_global_agent_instructions", {
+          input
+        }),
+      readChatgptAuthTokens: () =>
+        invoke<ChatgptAuthTokensOutput>("app_read_chatgpt_auth_tokens"),
+      writeChatgptAuthTokens: (input: UpdateChatgptAuthTokensInput) =>
+        invoke<ChatgptAuthTokensOutput>("app_write_chatgpt_auth_tokens", {
           input
         }),
       showNotification: (input: ShowNotificationInput) =>

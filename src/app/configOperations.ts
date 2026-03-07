@@ -55,6 +55,7 @@ export async function refreshMcpData(client: ProtocolClient, dispatch: Dispatch)
     readConfigSnapshot(client, dispatch),
     listAllMcpServerStatuses(client)
   ]);
+  dispatch({ type: "mcp/statusesLoaded", statuses });
   return { config, statuses, reload };
 }
 

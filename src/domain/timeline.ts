@@ -1,24 +1,40 @@
 import type { ReasoningEffort } from "../protocol/generated/ReasoningEffort";
+import type { Tool } from "../protocol/generated/Tool";
 import type { ModeKind } from "../protocol/generated/ModeKind";
+import type { MessagePhase } from "../protocol/generated/MessagePhase";
+import type { FuzzyFileSearchResult } from "../protocol/generated/FuzzyFileSearchResult";
+import type { ThreadRealtimeAudioChunk } from "../protocol/generated/v2/ThreadRealtimeAudioChunk";
+import type { CollabAgentState } from "../protocol/generated/v2/CollabAgentState";
+import type { CollabAgentTool } from "../protocol/generated/v2/CollabAgentTool";
+import type { CollabAgentToolCallStatus } from "../protocol/generated/v2/CollabAgentToolCallStatus";
 import type { CommandAction } from "../protocol/generated/v2/CommandAction";
-import type { CommandExecutionApprovalDecision } from "../protocol/generated/v2/CommandExecutionApprovalDecision";
-import type { CommandExecutionRequestApprovalParams } from "../protocol/generated/v2/CommandExecutionRequestApprovalParams";
 import type { CommandExecutionStatus } from "../protocol/generated/v2/CommandExecutionStatus";
-import type { FileChangeRequestApprovalParams } from "../protocol/generated/v2/FileChangeRequestApprovalParams";
+import type { DynamicToolCallOutputContentItem } from "../protocol/generated/v2/DynamicToolCallOutputContentItem";
+import type { DynamicToolCallStatus } from "../protocol/generated/v2/DynamicToolCallStatus";
 import type { FileUpdateChange } from "../protocol/generated/v2/FileUpdateChange";
 import type { McpToolCallError } from "../protocol/generated/v2/McpToolCallError";
 import type { McpToolCallResult } from "../protocol/generated/v2/McpToolCallResult";
 import type { McpToolCallStatus } from "../protocol/generated/v2/McpToolCallStatus";
 import type { PatchApplyStatus } from "../protocol/generated/v2/PatchApplyStatus";
-import type { ToolRequestUserInputParams } from "../protocol/generated/v2/ToolRequestUserInputParams";
-import type { ToolRequestUserInputQuestion } from "../protocol/generated/v2/ToolRequestUserInputQuestion";
+import type { ThreadTokenUsage } from "../protocol/generated/v2/ThreadTokenUsage";
 import type { TurnPlanStep } from "../protocol/generated/v2/TurnPlanStep";
+import type { WebSearchAction } from "../protocol/generated/v2/WebSearchAction";
+import type {
+  CommandApprovalRequest,
+  FileChangeApprovalRequest,
+  LegacyExecCommandApprovalRequest,
+  LegacyPatchApprovalRequest,
+  TokenRefreshRequest,
+  ToolCallRequest,
+  ToolRequestUserInputRequest,
+} from "./serverRequests";
 
 export type MessageStatus = "streaming" | "done";
 export type ThreadRuntimeStatus = "notLoaded" | "idle" | "systemError" | "active";
 export type ThreadActiveFlag = "waitingOnApproval" | "waitingOnUserInput";
 export type FollowUpMode = "queue" | "steer" | "interrupt";
 export type ComposerEnterBehavior = "enter" | "cmdIfMultiline";
+export type NoticeLevel = "info" | "warning" | "error";
 
 export interface ThreadSummary {
   readonly id: string;
@@ -96,6 +112,38 @@ export interface McpToolCallEntry extends TimelineBase {
   readonly result: McpToolCallResult | null;
   readonly error: McpToolCallError | null;
   readonly durationMs: number | null;
+  readonly progress: ReadonlyArray<string>;
+}
+
+export interface DynamicToolCallEntry extends TimelineBase {
+  readonly kind: "dynamicToolCall";
+  readonly tool: string;
+  readonly arguments: unknown;
+  readonly status: DynamicToolCallStatus;
+  readonly contentItems: ReadonlyArray<DynamicToolCallOutputContentItem>;
+  readonly success: boolean | null;
+  readonly durationMs: number | null;
+}
+
+export interface CollabAgentToolCallEntry extends TimelineBase {
+  readonly kind: "collabAgentToolCall";
+  readonly tool: CollabAgentTool;
+  readonly status: CollabAgentToolCallStatus;
+  readonly senderThreadId: string;
+  readonly receiverThreadIds: ReadonlyArray<string>;
+  readonly prompt: string | null;
+  readonly agentsStates: Readonly<Record<string, CollabAgentState>>;
+}
+
+export interface WebSearchEntry extends TimelineBase {
+  readonly kind: "webSearch";
+  readonly query: string;
+  readonly action: WebSearchAction | null;
+}
+
+export interface ImageViewEntry extends TimelineBase {
+  readonly kind: "imageView";
+  readonly path: string;
 }
 
 export interface TurnPlanSnapshotEntry extends TimelineBase {
@@ -107,6 +155,59 @@ export interface TurnPlanSnapshotEntry extends TimelineBase {
 export interface TurnDiffSnapshotEntry extends TimelineBase {
   readonly kind: "turnDiffSnapshot";
   readonly diff: string;
+}
+
+export interface ReviewModeEntry extends TimelineBase {
+  readonly kind: "reviewMode";
+  readonly state: "entered" | "exited";
+  readonly review: string;
+}
+
+export interface ContextCompactionEntry extends TimelineBase {
+  readonly kind: "contextCompaction";
+}
+
+export interface RawResponseEntry extends TimelineBase {
+  readonly kind: "rawResponse";
+  readonly responseType: string;
+  readonly title: string;
+  readonly detail: string | null;
+  readonly phase: MessagePhase | null;
+  readonly payload: unknown;
+}
+
+export interface SystemNoticeEntry extends TimelineBase {
+  readonly kind: "systemNotice";
+  readonly level: NoticeLevel;
+  readonly title: string;
+  readonly detail: string | null;
+  readonly source: string;
+}
+
+export interface TokenUsageEntry extends TimelineBase {
+  readonly kind: "tokenUsage";
+  readonly usage: ThreadTokenUsage;
+}
+
+export interface RealtimeSessionEntry extends TimelineBase {
+  readonly kind: "realtimeSession";
+  readonly sessionId: string | null;
+  readonly status: "started" | "error" | "closed";
+  readonly message: string | null;
+}
+
+export interface RealtimeAudioEntry extends TimelineBase {
+  readonly kind: "realtimeAudio";
+  readonly chunkIndex: number;
+  readonly audio: ThreadRealtimeAudioChunk;
+}
+
+export interface FuzzySearchEntry extends TimelineBase {
+  readonly kind: "fuzzySearch";
+  readonly sessionId: string;
+  readonly query: string;
+  readonly status: "updating" | "completed";
+  readonly files: ReadonlyArray<FuzzyFileSearchResult>;
 }
 
 export interface DebugEntry extends TimelineBase {
@@ -130,74 +231,32 @@ export interface QueuedFollowUpEntry extends TimelineBase {
   readonly followUp: QueuedFollowUp;
 }
 
-export interface CommandApprovalRequest {
-  readonly kind: "commandApproval";
-  readonly id: string;
-  readonly method: "item/commandExecution/requestApproval";
-  readonly threadId: string;
-  readonly turnId: string;
-  readonly itemId: string;
-  readonly params: CommandExecutionRequestApprovalParams;
-}
-
-export interface FileChangeApprovalRequest {
-  readonly kind: "fileApproval";
-  readonly id: string;
-  readonly method: "item/fileChange/requestApproval";
-  readonly threadId: string;
-  readonly turnId: string;
-  readonly itemId: string;
-  readonly params: FileChangeRequestApprovalParams;
-}
-
-export interface ToolRequestUserInputRequest {
-  readonly kind: "userInput";
-  readonly id: string;
-  readonly method: "item/tool/requestUserInput";
-  readonly threadId: string;
-  readonly turnId: string;
-  readonly itemId: string;
-  readonly params: ToolRequestUserInputParams;
-  readonly questions: ReadonlyArray<ToolRequestUserInputQuestion>;
-}
-
-export interface ToolCallRequest {
-  readonly kind: "toolCall";
-  readonly id: string;
-  readonly method: "item/tool/call";
-  readonly threadId: string | null;
-  readonly turnId: string | null;
-  readonly itemId: string | null;
-  readonly params: unknown;
-}
-
-export interface UnknownServerRequest {
-  readonly kind: "unknown";
-  readonly id: string;
-  readonly method: string;
-  readonly threadId: string | null;
-  readonly turnId: string | null;
-  readonly itemId: string | null;
-  readonly params: unknown;
-}
-
-export type ReceivedServerRequest =
-  | CommandApprovalRequest
-  | FileChangeApprovalRequest
-  | ToolRequestUserInputRequest
-  | ToolCallRequest
-  | UnknownServerRequest;
-
 export interface PendingApprovalEntry extends TimelineBase {
   readonly kind: "pendingApproval";
   readonly requestId: string;
-  readonly request: CommandApprovalRequest | FileChangeApprovalRequest;
+  readonly request:
+    | CommandApprovalRequest
+    | FileChangeApprovalRequest
+    | LegacyPatchApprovalRequest
+    | LegacyExecCommandApprovalRequest;
 }
 
 export interface PendingUserInputEntry extends TimelineBase {
   readonly kind: "pendingUserInput";
   readonly requestId: string;
   readonly request: ToolRequestUserInputRequest;
+}
+
+export interface PendingToolCallEntry extends TimelineBase {
+  readonly kind: "pendingToolCall";
+  readonly requestId: string;
+  readonly request: ToolCallRequest;
+}
+
+export interface PendingTokenRefreshEntry extends TimelineBase {
+  readonly kind: "pendingTokenRefresh";
+  readonly requestId: string;
+  readonly request: TokenRefreshRequest;
 }
 
 export type TimelineEntry =
@@ -207,10 +266,24 @@ export type TimelineEntry =
   | CommandExecutionEntry
   | FileChangeEntry
   | McpToolCallEntry
+  | DynamicToolCallEntry
+  | CollabAgentToolCallEntry
+  | WebSearchEntry
+  | ImageViewEntry
   | TurnPlanSnapshotEntry
   | TurnDiffSnapshotEntry
+  | ReviewModeEntry
+  | ContextCompactionEntry
+  | RawResponseEntry
+  | SystemNoticeEntry
+  | TokenUsageEntry
+  | RealtimeSessionEntry
+  | RealtimeAudioEntry
+  | FuzzySearchEntry
   | PendingApprovalEntry
   | PendingUserInputEntry
+  | PendingToolCallEntry
+  | PendingTokenRefreshEntry
   | QueuedFollowUpEntry
   | DebugEntry;
 
@@ -232,25 +305,8 @@ export interface CollaborationModePreset {
   readonly reasoningEffort: ReasoningEffort | null;
 }
 
-export interface ServerRequestApprovalResolution {
-  readonly kind: "commandApproval";
-  readonly requestId: string;
-  readonly decision: CommandExecutionApprovalDecision;
+export interface McpShortcut {
+  readonly id: string;
+  readonly server: string;
+  readonly tool: Tool;
 }
-
-export interface ServerRequestFileResolution {
-  readonly kind: "fileApproval";
-  readonly requestId: string;
-  readonly decision: "accept" | "decline";
-}
-
-export interface ServerRequestUserInputResolution {
-  readonly kind: "userInput";
-  readonly requestId: string;
-  readonly answers: Readonly<Record<string, ReadonlyArray<string>>>;
-}
-
-export type ServerRequestResolution =
-  | ServerRequestApprovalResolution
-  | ServerRequestFileResolution
-  | ServerRequestUserInputResolution;

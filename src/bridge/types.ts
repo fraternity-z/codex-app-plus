@@ -123,6 +123,19 @@ export interface UpdateGlobalAgentInstructionsInput {
   readonly content: string;
 }
 
+export interface ChatgptAuthTokensOutput {
+  readonly accessToken: string;
+  readonly chatgptAccountId: string;
+  readonly chatgptPlanType: string | null;
+  readonly source: "cache" | "imported";
+}
+
+export interface UpdateChatgptAuthTokensInput {
+  readonly accessToken: string;
+  readonly chatgptAccountId: string;
+  readonly chatgptPlanType: string | null;
+}
+
 export interface CodexSessionSummaryOutput {
   readonly id: string;
   readonly title: string;
@@ -259,6 +272,8 @@ export interface HostBridge {
     writeGlobalAgentInstructions(
       input: UpdateGlobalAgentInstructionsInput
     ): Promise<GlobalAgentInstructionsOutput>;
+    readChatgptAuthTokens(): Promise<ChatgptAuthTokensOutput>;
+    writeChatgptAuthTokens(input: UpdateChatgptAuthTokensInput): Promise<ChatgptAuthTokensOutput>;
     showNotification(input: ShowNotificationInput): Promise<void>;
     showContextMenu(input: ShowContextMenuInput): Promise<void>;
     importOfficialData(input: ImportOfficialDataInput): Promise<void>;

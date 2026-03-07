@@ -79,7 +79,19 @@ function createTraceScrollKey(node: Extract<RenderGroup["nodes"][number], { kind
   if (node.item.kind === "fileChange") {
     return `${node.key}:${node.item.status}:${node.item.output.length}:${node.item.changes.length}`;
   }
-  return `${node.key}:${node.item.status}:${JSON.stringify(node.item.result)?.length ?? 0}`;
+  if (node.item.kind === "mcpToolCall") {
+    return `${node.key}:${node.item.status}:${JSON.stringify(node.item.result)?.length ?? 0}:${node.item.progress.length}`;
+  }
+  if (node.item.kind === "dynamicToolCall") {
+    return `${node.key}:${node.item.status}:${node.item.contentItems.length}`;
+  }
+  if (node.item.kind === "collabAgentToolCall") {
+    return `${node.key}:${node.item.status}:${Object.keys(node.item.agentsStates).length}`;
+  }
+  if (node.item.kind === "webSearch") {
+    return `${node.key}:${node.item.query}:${node.item.action?.type ?? "none"}`;
+  }
+  return `${node.key}:${node.item.path}`;
 }
 
 function ConversationPlaceholder(props: { readonly placeholder: HomeConversationCanvasProps["placeholder"] }): JSX.Element {
@@ -94,8 +106,8 @@ function ConversationPlaceholder(props: { readonly placeholder: HomeConversation
 
   return (
     <div className="home-chat-placeholder">
-      <p className="home-chat-placeholder-title">会话已创建</p>
-      <p className="home-chat-placeholder-body">发送第一条消息后，思考、工具调用、审批和文件变更都会出现在这里。</p>
+      <p className="home-chat-placeholder-title">Thread ready</p>
+      <p className="home-chat-placeholder-body">Your turns, tools, approvals, plans, realtime events, and file changes appear here.</p>
     </div>
   );
 }

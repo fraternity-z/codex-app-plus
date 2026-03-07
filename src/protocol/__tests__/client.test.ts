@@ -29,6 +29,18 @@ function createHostBridge(): HostBridge {
         path: "C:/Users/Administrator/.codex/AGENTS.md",
         content: ""
       }),
+      readChatgptAuthTokens: vi.fn().mockResolvedValue({
+        accessToken: "token",
+        chatgptAccountId: "account",
+        chatgptPlanType: "plus",
+        source: "cache"
+      }),
+      writeChatgptAuthTokens: vi.fn().mockResolvedValue({
+        accessToken: "token",
+        chatgptAccountId: "account",
+        chatgptPlanType: "plus",
+        source: "cache"
+      }),
       showNotification: vi.fn().mockResolvedValue(undefined),
       showContextMenu: vi.fn().mockResolvedValue(undefined),
       importOfficialData: vi.fn().mockResolvedValue(undefined),

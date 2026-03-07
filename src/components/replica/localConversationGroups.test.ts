@@ -76,6 +76,7 @@ function createToolCall(): TimelineEntry {
     result: { content: [{ type: "text", text: "done" }], structuredContent: null },
     error: null,
     durationMs: 34,
+    progress: [],
   };
 }
 

@@ -1,20 +1,28 @@
+import type { Tool } from "../protocol/generated/Tool";
+import type { McpServerStatus } from "../protocol/generated/v2/McpServerStatus";
 import type { ConversationState } from "../domain/conversation";
-import type { AppAction, AppState } from "../domain/types";
+import type { AppAction, AppState, RealtimeState, UiBanner } from "../domain/types";
 import { INITIAL_STATE } from "../domain/types";
 import {
+  addConversationMcpProgress,
+  addConversationSystemNotice,
   addPlaceholderTurn,
+  appendConversationContextCompaction,
+  appendConversationRawResponse,
+  appendConversationReviewState,
+  appendConversationTerminalInteraction,
   applyConversationOutputDelta,
   applyConversationTextDelta,
-  appendConversationTerminalInteraction,
   attachApprovalRequestToConversation,
   attachConversationRawResponse,
-  createConversationFromThread,
   hydrateConversationFromThread,
   setConversationDiff,
   setConversationHidden,
   setConversationPlan,
   setConversationResumeState,
   setConversationStatus,
+  setConversationTitle,
+  setConversationTokenUsage,
   syncCompletedTurn,
   syncStartedTurn,
   touchConversation,
@@ -22,9 +30,14 @@ import {
 } from "../app/conversationState";
 
 const MAX_NOTIFICATION_LOG = 500;
+const MAX_BANNERS = 20;
 
 function upsertOrder(order: ReadonlyArray<string>, conversationId: string): ReadonlyArray<string> {
   return [conversationId, ...order.filter((id) => id !== conversationId)];
+}
+
+function createMcpShortcuts(statuses: ReadonlyArray<McpServerStatus>) {
+  return statuses.flatMap((status) => Object.values(status.tools).filter(Boolean).map((tool) => ({ id: `${status.name}:${(tool as Tool).name}`, server: status.name, tool: tool as Tool })));
 }
 
 function mergeConversation(existing: ConversationState | undefined, nextConversation: ConversationState): ConversationState {
@@ -42,11 +55,7 @@ function mergeConversation(existing: ConversationState | undefined, nextConversa
 
 function upsertConversationState(state: AppState, conversation: ConversationState): AppState {
   const nextConversation = mergeConversation(state.conversationsById[conversation.id], conversation);
-  return {
-    ...state,
-    conversationsById: { ...state.conversationsById, [conversation.id]: nextConversation },
-    orderedConversationIds: upsertOrder(state.orderedConversationIds, conversation.id),
-  };
+  return { ...state, conversationsById: { ...state.conversationsById, [conversation.id]: nextConversation }, orderedConversationIds: upsertOrder(state.orderedConversationIds, conversation.id) };
 }
 
 function updateConversation(state: AppState, conversationId: string, updater: (conversation: ConversationState) => ConversationState): AppState {
@@ -54,10 +63,7 @@ function updateConversation(state: AppState, conversationId: string, updater: (c
   if (current === undefined) {
     return state;
   }
-  return {
-    ...state,
-    conversationsById: { ...state.conversationsById, [conversationId]: updater(current) },
-  };
+  return { ...state, conversationsById: { ...state.conversationsById, [conversationId]: updater(current) } };
 }
 
 function rebuildPendingRequestsByConversationId(requestsById: Record<string, AppState["pendingRequestsById"][string]>): AppState["pendingRequestsByConversationId"] {
@@ -78,6 +84,16 @@ function pushNotification(state: AppState, action: Extract<AppAction, { type: "n
 
 function updateQueuedFollowUps(state: AppState, conversationId: string, nextQueuedFollowUps: ConversationState["queuedFollowUps"]): AppState {
   return updateConversation(state, conversationId, (conversation) => ({ ...conversation, queuedFollowUps: nextQueuedFollowUps }));
+}
+
+function pushBanner(state: AppState, banner: UiBanner): AppState {
+  const banners = [banner, ...state.banners.filter((item) => item.id !== banner.id)].slice(0, MAX_BANNERS);
+  return { ...state, banners };
+}
+
+function updateRealtimeState(state: AppState, threadId: string, updater: (current: RealtimeState) => RealtimeState): AppState {
+  const current = state.realtimeByThreadId[threadId] ?? { threadId, sessionId: null, items: [], audioChunks: [], error: null, closed: false };
+  return { ...state, realtimeByThreadId: { ...state.realtimeByThreadId, [threadId]: updater(current) } };
 }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -105,16 +121,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, draftConversation: null };
     case "conversation/hiddenChanged":
       return updateConversation(state, action.conversationId, (conversation) => setConversationHidden(conversation, action.hidden));
+    case "conversation/titleChanged":
+      return updateConversation(state, action.conversationId, (conversation) => setConversationTitle(conversation, action.title));
     case "conversation/resumeStateChanged":
       return updateConversation(state, action.conversationId, (conversation) => setConversationResumeState(conversation, action.resumeState));
-    case "conversation/loaded": {
-      const existing = state.conversationsById[action.conversationId] ?? createConversationFromThread(action.thread, { resumeState: "resumed" });
-      return upsertConversationState(state, hydrateConversationFromThread(existing, action.thread));
-    }
-    case "conversation/touched": {
-      const nextState = updateConversation(state, action.conversationId, (conversation) => touchConversation(conversation, action.updatedAt));
-      return { ...nextState, orderedConversationIds: upsertOrder(nextState.orderedConversationIds, action.conversationId) };
-    }
+    case "conversation/loaded":
+      return updateConversation(state, action.conversationId, (conversation) => hydrateConversationFromThread(conversation, action.thread));
+    case "conversation/touched":
+      return updateConversation(state, action.conversationId, (conversation) => touchConversation(conversation, action.updatedAt));
     case "conversation/statusChanged":
       return updateConversation(state, action.conversationId, (conversation) => setConversationStatus(conversation, action.status, action.activeFlags));
     case "conversation/turnPlaceholderAdded":
@@ -144,16 +158,31 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return updateConversation(state, action.conversationId, (conversation) => appendConversationTerminalInteraction(conversation, action.turnId, action.itemId, action.stdin));
     case "conversation/rawResponseAttached":
       return updateConversation(state, action.conversationId, (conversation) => attachConversationRawResponse(conversation, action.turnId, action.itemId, action.rawResponse));
+    case "conversation/rawResponseAppended":
+      return updateConversation(state, action.conversationId, (conversation) => appendConversationRawResponse(conversation, action.turnId, action.rawResponse));
     case "conversation/planUpdated":
       return updateConversation(state, action.conversationId, (conversation) => setConversationPlan(conversation, action.turnId, action.explanation, action.plan));
     case "conversation/diffUpdated":
       return updateConversation(state, action.conversationId, (conversation) => setConversationDiff(conversation, action.turnId, action.diff));
+    case "conversation/mcpProgressAdded":
+      return updateConversation(state, action.conversationId, (conversation) => addConversationMcpProgress(conversation, action.turnId, action.itemId, action.message));
+    case "conversation/systemNoticeAdded":
+      return updateConversation(state, action.conversationId, (conversation) => addConversationSystemNotice(conversation, action.turnId, action.title, action.detail, action.level, action.source));
+    case "conversation/tokenUsageUpdated":
+      return updateConversation(state, action.conversationId, (conversation) => setConversationTokenUsage(conversation, action.turnId, action.usage));
+    case "conversation/reviewModeChanged":
+      return updateConversation(state, action.conversationId, (conversation) => appendConversationReviewState(conversation, action.turnId, action.itemId, action.state, action.review));
+    case "conversation/contextCompacted":
+      return updateConversation(state, action.conversationId, (conversation) => appendConversationContextCompaction(conversation, action.turnId));
     case "serverRequest/received": {
       const pendingRequestsById = { ...state.pendingRequestsById, [action.request.id]: action.request };
       let nextState = { ...state, pendingRequestsById, pendingRequestsByConversationId: rebuildPendingRequestsByConversationId(pendingRequestsById) };
       if ((action.request.kind === "commandApproval" || action.request.kind === "fileApproval") && action.request.threadId !== null && action.request.turnId !== null && action.request.itemId !== null) {
         const { threadId, turnId, itemId, id } = action.request;
         nextState = updateConversation(nextState, threadId, (conversation) => attachApprovalRequestToConversation(conversation, turnId, itemId, id));
+      }
+      if (action.request.kind === "tokenRefresh") {
+        nextState = { ...nextState, tokenRefresh: { requestId: action.request.id, previousAccountId: action.request.params.previousAccountId ?? null, pending: true, error: null } };
       }
       return nextState;
     }
@@ -163,7 +192,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       }
       const pendingRequestsById = { ...state.pendingRequestsById };
       delete pendingRequestsById[action.requestId];
-      return { ...state, pendingRequestsById, pendingRequestsByConversationId: rebuildPendingRequestsByConversationId(pendingRequestsById) };
+      const nextState = { ...state, pendingRequestsById, pendingRequestsByConversationId: rebuildPendingRequestsByConversationId(pendingRequestsById) };
+      return state.tokenRefresh.requestId === action.requestId ? { ...nextState, tokenRefresh: { requestId: null, previousAccountId: null, pending: false, error: null } } : nextState;
     }
     case "followUp/enqueued": {
       const current = state.conversationsById[action.conversationId];
@@ -186,8 +216,45 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, collaborationModes: [...action.modes] };
     case "config/loaded":
       return { ...state, configSnapshot: action.config };
+    case "mcp/statusesLoaded":
+      return { ...state, mcpServerStatuses: [...action.statuses], mcpShortcuts: createMcpShortcuts(action.statuses) };
+    case "mcp/shortcutsLoaded":
+      return { ...state, mcpShortcuts: [...action.shortcuts] };
     case "auth/changed":
       return { ...state, authStatus: action.status, authMode: action.mode };
+    case "account/updated":
+      return { ...state, account: action.account };
+    case "rateLimits/updated":
+      return { ...state, rateLimits: action.rateLimits };
+    case "authLogin/started":
+      return { ...state, authLogin: { loginId: action.loginId, authUrl: action.authUrl, pending: true, error: null } };
+    case "authLogin/completed":
+      return { ...state, authLogin: { ...state.authLogin, pending: false, error: action.success ? null : action.error } };
+    case "tokenRefresh/started":
+      return { ...state, tokenRefresh: { requestId: action.requestId, previousAccountId: action.previousAccountId, pending: true, error: null } };
+    case "tokenRefresh/completed":
+      return state.tokenRefresh.requestId !== action.requestId ? state : { ...state, tokenRefresh: { requestId: null, previousAccountId: null, pending: false, error: action.error } };
+    case "realtime/started":
+      return updateRealtimeState(state, action.threadId, (current) => ({ ...current, sessionId: action.sessionId, closed: false, error: null }));
+    case "realtime/itemAdded":
+      return updateRealtimeState(state, action.threadId, (current) => ({ ...current, items: [...current.items, action.item] }));
+    case "realtime/audioAdded":
+      return updateRealtimeState(state, action.threadId, (current) => ({ ...current, audioChunks: [...current.audioChunks, action.audio] }));
+    case "realtime/error":
+      return updateRealtimeState(state, action.threadId, (current) => ({ ...current, error: action.message }));
+    case "realtime/closed":
+      return updateRealtimeState(state, action.threadId, (current) => ({ ...current, closed: true }));
+    case "fuzzySearch/updated":
+      return { ...state, fuzzySearchSessionsById: { ...state.fuzzySearchSessionsById, [action.sessionId]: { sessionId: action.sessionId, query: action.query, files: [...action.files], completed: false } } };
+    case "fuzzySearch/completed": {
+      const current = state.fuzzySearchSessionsById[action.sessionId];
+      if (current === undefined) {
+        return state;
+      }
+      return { ...state, fuzzySearchSessionsById: { ...state.fuzzySearchSessionsById, [action.sessionId]: { ...current, completed: true } } };
+    }
+    case "banner/pushed":
+      return pushBanner(state, action.banner);
     case "initialized/changed":
       return { ...state, initialized: action.ready };
     case "retry/scheduled":

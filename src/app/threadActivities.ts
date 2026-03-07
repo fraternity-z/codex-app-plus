@@ -10,11 +10,11 @@ import type {
   QueuedFollowUp,
   QueuedFollowUpEntry,
   ReasoningEntry,
-  ReceivedServerRequest,
   TimelineEntry,
   TurnDiffSnapshotEntry,
   TurnPlanSnapshotEntry,
 } from "../domain/timeline";
+import type { ReceivedServerRequest } from "../domain/serverRequests";
 import type { Thread } from "../protocol/generated/v2/Thread";
 import type { ThreadItem } from "../protocol/generated/v2/ThreadItem";
 import type { TurnPlanStep } from "../protocol/generated/v2/TurnPlanStep";
@@ -113,7 +113,8 @@ function mapThreadItem(threadId: string, turnId: string, item: ThreadItem): Time
       arguments: item.arguments,
       result: item.result,
       error: item.error,
-      durationMs: item.durationMs
+      durationMs: item.durationMs,
+      progress: []
     };
   }
 

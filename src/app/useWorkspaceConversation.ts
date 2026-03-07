@@ -77,7 +77,9 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
   const selectedConversation = state.selectedConversationId === null ? null : state.conversationsById[state.selectedConversationId] ?? null;
   const selectedThread = useMemo(() => selectedConversation === null ? null : mapConversationToThreadSummary(selectedConversation), [selectedConversation]);
   const selectedRequests = selectedConversation === null ? [] : state.pendingRequestsByConversationId[selectedConversation.id] ?? [];
-  const activities = useMemo(() => mapConversationToTimelineEntries(selectedConversation, selectedRequests), [selectedConversation, selectedRequests]);
+  const selectedRealtime = selectedConversation === null ? null : state.realtimeByThreadId[selectedConversation.id] ?? null;
+  const fuzzySessions = useMemo(() => Object.values(state.fuzzySearchSessionsById), [state.fuzzySearchSessionsById]);
+  const activities = useMemo(() => mapConversationToTimelineEntries(selectedConversation, selectedRequests, { realtime: selectedRealtime, fuzzySessions }), [fuzzySessions, selectedConversation, selectedRealtime, selectedRequests]);
   const queuedFollowUps = selectedConversation?.queuedFollowUps ?? [];
 
   const ensureConversationResumed = useCallback(async (conversationId: string) => {

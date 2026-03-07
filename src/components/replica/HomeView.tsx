@@ -4,8 +4,11 @@ import type { SendTurnOptions } from "../../app/useWorkspaceConversation";
 import type { WorkspaceRoot } from "../../app/useWorkspaceRoots";
 import type { EmbeddedTerminalShell, HostBridge, WorkspaceOpener } from "../../bridge/types";
 import type {
+  AccountSummary,
   AuthStatus,
   ConnectionStatus,
+  McpShortcut,
+  UiBanner,
   ServerRequestResolution,
   ThreadSummary,
   TimelineEntry
@@ -33,6 +36,10 @@ interface HomeViewProps {
   readonly selectedThread: ThreadSummary | null;
   readonly selectedThreadId: string | null;
   readonly activities: ReadonlyArray<TimelineEntry>;
+  readonly mcpShortcuts: ReadonlyArray<McpShortcut>;
+  readonly banners: ReadonlyArray<UiBanner>;
+  readonly account: AccountSummary | null;
+  readonly rateLimitSummary: string | null;
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
   readonly draftActive: boolean;
   readonly selectedConversationLoading: boolean;
@@ -73,6 +80,10 @@ interface MainContentProps {
   readonly gitController: WorkspaceGitController;
   readonly inputText: string;
   readonly activities: ReadonlyArray<TimelineEntry>;
+  readonly mcpShortcuts: ReadonlyArray<McpShortcut>;
+  readonly banners: ReadonlyArray<UiBanner>;
+  readonly account: AccountSummary | null;
+  readonly rateLimitSummary: string | null;
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
   readonly models: ReadonlyArray<ComposerModelOption>;
   readonly defaultModel: string | null;
@@ -100,15 +111,16 @@ interface MainContentProps {
 function MainContent(props: MainContentProps): JSX.Element {
   const conversationActive = props.draftActive || props.selectedConversationLoading || props.selectedThread !== null || props.activities.length > 0;
   const placeholder = props.draftActive
-    ? { title: "准备开始新会话", body: "发送第一条消息后，这里会切换为完整的时间线视图。" }
+    ? { title: "Ready to start a new thread", body: "Send the first message to switch into the full official timeline." }
     : props.selectedConversationLoading
-      ? { title: "正在加载会话", body: "历史 turn 与 item 正在恢复，请稍候。" }
+      ? { title: "Loading thread", body: "Historical turns and items are being restored." }
       : props.selectedThread !== null
-        ? { title: "会话已打开", body: "当前会话暂无可显示内容，新的计划、命令、审批和文件变更会显示在这里。" }
+        ? { title: "Thread opened", body: "New plans, tools, approvals, realtime updates, and file changes appear here." }
         : null;
 
   return (
     <div className="replica-main">
+      <NoticeStrip banners={props.banners} account={props.account} rateLimitSummary={props.rateLimitSummary} />
       <HomeMainToolbar
         hostBridge={props.hostBridge}
         gitController={props.gitController}
@@ -135,6 +147,7 @@ function MainContent(props: MainContentProps): JSX.Element {
         defaultModel={props.defaultModel}
         defaultEffort={props.defaultEffort}
         selectedRootPath={props.selectedRootPath}
+        mcpShortcuts={props.mcpShortcuts}
         queuedFollowUps={props.queuedFollowUps}
         followUpQueueMode={props.followUpQueueMode}
         composerEnterBehavior={props.composerEnterBehavior}
@@ -149,11 +162,12 @@ function MainContent(props: MainContentProps): JSX.Element {
 
 function EmptyCanvas(props: { readonly selectedRootName: string; readonly selectedRootPath: string | null }): JSX.Element {
   const selectorClassName = props.selectedRootPath === null ? "workspace-selector workspace-selector-placeholder" : "workspace-selector";
-  const title = props.selectedRootPath === null ? "开始构建" : "当前工作区";
+  const title = props.selectedRootPath === null ? "Get started" : "Current workspace";
 
   return (
     <main className="main-canvas">
       <div className="empty-state" aria-label="欢迎界面">
+        
         <h2 className="empty-title">{title}</h2>
         <button type="button" className={selectorClassName}>
           <span className="workspace-selector-label">{props.selectedRootName}</span>
@@ -214,6 +228,10 @@ export function HomeView(props: HomeViewProps): JSX.Element {
         gitController={gitController}
         inputText={props.inputText}
         activities={props.activities}
+        mcpShortcuts={props.mcpShortcuts}
+        banners={props.banners}
+        account={props.account}
+        rateLimitSummary={props.rateLimitSummary}
         queuedFollowUps={props.queuedFollowUps}
         models={props.models}
         defaultModel={props.defaultModel}
@@ -247,6 +265,19 @@ export function HomeView(props: HomeViewProps): JSX.Element {
       <TerminalPanel hostBridge={props.hostBridge} open={terminalOpen} cwd={props.selectedRootPath} cwdLabel={props.selectedRootName} shell={props.embeddedTerminalShell} onClose={() => setTerminalOpen(false)} />
       <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((value) => !value)} />
     </div>
+  );
+}
+
+function NoticeStrip(props: { readonly banners: ReadonlyArray<UiBanner>; readonly account: AccountSummary | null; readonly rateLimitSummary: string | null }): JSX.Element | null {
+  if (props.banners.length === 0 && props.account === null && props.rateLimitSummary === null) {
+    return null;
+  }
+  return (
+    <section className="home-notice-strip" aria-label="System notices">
+      {props.account ? <div className="home-notice-pill">{`Auth: ${props.account.authMode ?? "unknown"} · Plan: ${props.account.planType ?? "unknown"}`}</div> : null}
+      {props.rateLimitSummary ? <div className="home-notice-pill">{props.rateLimitSummary}</div> : null}
+      {props.banners.map((banner) => <div key={banner.id} className={`home-notice-pill home-notice-pill-${banner.level}`} title={banner.detail ?? undefined}>{banner.title}</div>)}
+    </section>
   );
 }
 

@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from "react";
 import type { ComposerModelOption, ComposerSelection } from "../../app/composerPreferences";
 import type { SendTurnOptions } from "../../app/useWorkspaceConversation";
 import { useComposerSelection } from "../../app/useComposerSelection";
+import type { McpShortcut } from "../../domain/types";
 import type { ComposerEnterBehavior, FollowUpMode, QueuedFollowUp } from "../../domain/timeline";
 import { ComposerAttachmentMenu } from "./ComposerAttachmentMenu";
 import { ComposerFooter } from "./ComposerFooter";
@@ -17,6 +18,7 @@ export interface HomeComposerProps {
   readonly defaultModel: string | null;
   readonly defaultEffort: ComposerSelection["effort"];
   readonly selectedRootPath: string | null;
+  readonly mcpShortcuts: ReadonlyArray<McpShortcut>;
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
   readonly followUpQueueMode: FollowUpMode;
   readonly composerEnterBehavior: ComposerEnterBehavior;
@@ -31,7 +33,7 @@ function createSelection(model: string | null, effort: ComposerSelection["effort
 }
 
 function getComposerPlaceholder(selectedRootPath: string | null): string {
-  return selectedRootPath === null ? "向 Codex 提问或描述任务" : "输入问题、任务或 follow-up";
+  return selectedRootPath === null ? "Ask Codex anything" : "Describe the task, ask a question, or queue a follow-up";
 }
 
 function getOppositeMode(mode: FollowUpMode): FollowUpMode {
@@ -122,6 +124,12 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     submit();
   };
 
+  const handleInsertMcpShortcut = (shortcut: McpShortcut) => {
+    const prefix = props.inputText.trim().length === 0 ? "" : `${props.inputText.trim()}\n\n`;
+    props.onInputChange(`${prefix}Use MCP tool ${shortcut.server}/${shortcut.tool.name} for this task.`);
+    setMenuOpen(false);
+  };
+
   return (
     <footer className="composer-area">
       <QueuedFollowUpsPanel
@@ -130,7 +138,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
         onClearQueuedFollowUps={props.onClearQueuedFollowUps}
       />
       <div className="composer-card">
-        {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label="关闭添加菜单" onClick={() => setMenuOpen(false)} /> : null}
+        {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label="Close attachment menu" onClick={() => setMenuOpen(false)} /> : null}
         <textarea
           className="composer-input"
           placeholder={placeholder}
@@ -141,11 +149,11 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
         <div className="composer-bar">
           <div className="composer-left">
             <div className="composer-plus-anchor">
-              {menuOpen ? <ComposerAttachmentMenu planModeEnabled={planModeEnabled} onTogglePlanMode={() => setPlanModeEnabled((value) => !value)} onClose={() => setMenuOpen(false)} /> : null}
+              {menuOpen ? <ComposerAttachmentMenu planModeEnabled={planModeEnabled} mcpShortcuts={props.mcpShortcuts} onTogglePlanMode={() => setPlanModeEnabled((value) => !value)} onInsertMcpShortcut={handleInsertMcpShortcut} onClose={() => setMenuOpen(false)} /> : null}
               <button
                 type="button"
                 className={menuOpen ? "composer-mini-btn composer-mini-btn-active" : "composer-mini-btn"}
-                aria-label="添加"
+                aria-label="Open attachment menu"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
                 onClick={() => setMenuOpen((value) => !value)}
@@ -162,7 +170,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
               onSelectEffort={composerSelection.selectEffort}
             />
           </div>
-          <button type="button" className="send-btn" aria-label="发送消息" disabled={!canSend} onClick={() => submit()}>
+          <button type="button" className="send-btn" aria-label="Send message" disabled={!canSend} onClick={() => submit()}>
             <SendArrowIcon className="send-icon" />
           </button>
         </div>

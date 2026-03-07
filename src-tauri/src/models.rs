@@ -90,6 +90,23 @@ pub struct UpdateGlobalAgentInstructionsInput {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ChatgptAuthTokensOutput {
+    pub access_token: String,
+    pub chatgpt_account_id: String,
+    pub chatgpt_plan_type: Option<String>,
+    pub source: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateChatgptAuthTokensInput {
+    pub access_token: String,
+    pub chatgpt_account_id: String,
+    pub chatgpt_plan_type: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CodexSessionSummary {
     pub id: String,
     pub title: String,
