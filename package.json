@@ -27,6 +27,7 @@
     "react-markdown": "^10.1.0",
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
+    "smol-toml": "^1.6.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {

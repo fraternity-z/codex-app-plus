@@ -809,6 +809,81 @@
   line-height: 1.6;
 }
 
+.codex-provider-card {
+  display: grid;
+  gap: 14px;
+}
+
+.codex-provider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.codex-provider-main {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.codex-provider-title-row,
+.codex-provider-meta-row,
+.codex-provider-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.codex-provider-title-row strong {
+  font-size: 15px;
+  color: #0f172a;
+}
+
+.codex-provider-meta-row {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.codex-provider-current {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.codex-provider-dialog {
+  width: min(840px, 100%);
+}
+
+.codex-provider-form {
+  display: grid;
+  gap: 14px;
+}
+
+.codex-provider-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.codex-provider-form-full {
+  grid-column: 1 / -1;
+}
+
+.codex-provider-textarea {
+  min-height: 144px;
+}
+
+.codex-provider-textarea-lg {
+  min-height: 240px;
+}
+
 @media (max-width: 900px) {
   .mcp-form-grid {
     grid-template-columns: 1fr;
@@ -817,6 +892,15 @@
   .mcp-server-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .codex-provider-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .codex-provider-form-grid {
+    grid-template-columns: 1fr;
   }
 }
 

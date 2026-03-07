@@ -36,7 +36,7 @@ const USER_MESSAGE: TimelineEntry = {
   threadId: "thread-1",
   turnId: "turn-1",
   itemId: "item-user",
-  text: "请继续。",
+  text: "请继续",
   status: "done",
 };
 
@@ -76,7 +76,7 @@ const REASONING_ENTRY: TimelineEntry = {
   threadId: "thread-1",
   turnId: "turn-1",
   itemId: "item-reasoning",
-  summary: ["先同步主链路结构。"],
+  summary: ["先确认主链路结构。"],
   content: ["详细推理"],
 };
 
@@ -89,6 +89,14 @@ const ASSISTANT_MESSAGE: TimelineEntry = {
   itemId: "item-assistant",
   text: "已经完成。",
   status: "done",
+};
+
+const STREAMING_ASSISTANT_MESSAGE: TimelineEntry = {
+  ...ASSISTANT_MESSAGE,
+  id: "assistant-streaming-1",
+  itemId: "item-assistant-streaming",
+  text: "正在输出正文",
+  status: "streaming",
 };
 
 const REQUEST_ENTRY: TimelineEntry = {
@@ -116,11 +124,12 @@ const REQUEST_ENTRY: TimelineEntry = {
 };
 
 describe("HomeConversationCanvas", () => {
-  it("renders a thinking block immediately after user input on an active thread", () => {
+  it("renders an assistant placeholder with the thinking indicator immediately after user input", () => {
     const { container } = renderCanvas([USER_MESSAGE], "active");
 
-    expect(screen.getByText("Thinking")).toBeInTheDocument();
-    expect(container.querySelector(".home-thinking-block")).not.toBeNull();
+    expect(screen.getByText("正在思考")).toBeInTheDocument();
+    expect(container.querySelector(".home-chat-message-assistant .home-chat-thinking-footer")).not.toBeNull();
+    expect(container.querySelector(".home-thinking-block")).toBeNull();
   });
 
   it("renders trace cards and inline request blocks in the conversation flow", () => {
@@ -130,9 +139,10 @@ describe("HomeConversationCanvas", () => {
     expect(screen.getByText("Additional input required")).toBeInTheDocument();
     expect(screen.getByText("请选择处理范围")).toBeInTheDocument();
     expect(container.querySelector(".home-request-card")).not.toBeNull();
+    expect(screen.queryByText("正在思考")).toBeNull();
   });
 
-  it("keeps thinking, trace, and assistant reply in visual order", () => {
+  it("keeps reasoning, trace, and assistant reply in visual order", () => {
     const { container } = renderCanvas([USER_MESSAGE, REASONING_ENTRY, COMMAND_ENTRY, ASSISTANT_MESSAGE]);
     const group = container.querySelector(".home-turn-group");
     const classNames = Array.from(group?.children ?? []).map((element) => (element as HTMLElement).className);
@@ -141,6 +151,18 @@ describe("HomeConversationCanvas", () => {
     expect(classNames[1]).toContain("home-thinking-block");
     expect(classNames[2]).toContain("home-trace-card");
     expect(classNames[3]).toContain("home-chat-message-assistant");
+    expect(screen.queryByText("正在思考")).toBeNull();
+  });
+
+  it("keeps the thinking indicator below streaming assistant content", () => {
+    const { container } = renderCanvas([USER_MESSAGE, COMMAND_ENTRY, STREAMING_ASSISTANT_MESSAGE], "active");
+    const assistantMessage = container.querySelector(".home-chat-message-assistant");
+    const assistantChildren = Array.from(assistantMessage?.children ?? []).map((element) => (element as HTMLElement).className);
+
+    expect(screen.getByText("正在输出正文")).toBeInTheDocument();
+    expect(screen.getByText("正在思考")).toBeInTheDocument();
+    expect(assistantChildren[0]).toContain("home-chat-message-body");
+    expect(assistantChildren[1]).toContain("home-chat-thinking-footer");
   });
 
   it("renders user image previews without dumping base64 into the bubble", () => {

@@ -3,6 +3,7 @@
 mod app_server_io;
 mod codex_cli;
 mod codex_data;
+mod codex_provider;
 mod codex_session_text;
 mod commands;
 mod error;
@@ -14,10 +15,13 @@ mod rpc_transport;
 mod terminal_manager;
 
 use commands::{
+    app_apply_codex_provider,
+    app_delete_codex_provider,
     app_import_official_data, app_list_codex_sessions, app_open_codex_config_toml,
-    app_open_external, app_open_workspace, app_read_codex_session,
+    app_list_codex_providers, app_open_external, app_open_workspace, app_read_codex_session,
     app_read_chatgpt_auth_tokens, app_read_global_agent_instructions, app_server_restart,
     app_server_start, app_server_stop, app_show_context_menu, app_show_notification,
+    app_upsert_codex_provider,
     app_write_chatgpt_auth_tokens, app_write_global_agent_instructions, rpc_cancel,
     rpc_notify, rpc_request, server_request_resolve, terminal_close_session,
     terminal_create_session, terminal_resize, terminal_write,
@@ -47,6 +51,10 @@ fn main() {
             app_open_codex_config_toml,
             app_read_global_agent_instructions,
             app_write_global_agent_instructions,
+            app_list_codex_providers,
+            app_upsert_codex_provider,
+            app_delete_codex_provider,
+            app_apply_codex_provider,
             app_read_chatgpt_auth_tokens,
             app_write_chatgpt_auth_tokens,
             app_show_notification,

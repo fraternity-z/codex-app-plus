@@ -60,11 +60,14 @@ function createScrollKey(groups: ReadonlyArray<RenderGroup>): string {
   if (!lastNode) {
     return "empty";
   }
-  if (lastNode.kind === "userBubble" || lastNode.kind === "assistantMessage") {
+  if (lastNode.kind === "userBubble") {
     return `${lastNode.key}:${lastNode.message.status}:${lastNode.message.text.length}`;
   }
-  if (lastNode.kind === "thinkingBlock") {
-    return `${lastNode.key}:${lastNode.block.kind}:${lastNode.block.summary ?? ""}`;
+  if (lastNode.kind === "assistantMessage") {
+    return `${lastNode.key}:${lastNode.message.status}:${lastNode.message.text.length}:${lastNode.showThinkingIndicator ? "thinking" : "idle"}`;
+  }
+  if (lastNode.kind === "reasoningBlock") {
+    return `${lastNode.key}:${lastNode.block.summary ?? ""}`;
   }
   if (lastNode.kind === "traceItem") {
     return createTraceScrollKey(lastNode);

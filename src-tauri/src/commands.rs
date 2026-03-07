@@ -4,16 +4,21 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 
 use crate::codex_data::{list_codex_sessions, read_codex_session};
+use crate::codex_provider::{
+    apply_codex_provider, delete_codex_provider, list_codex_providers, upsert_codex_provider,
+};
 use crate::error::{AppError, AppResult};
 use crate::events::{EVENT_CONTEXT_MENU_REQUESTED, EVENT_NOTIFICATION_REQUESTED};
 use crate::models::{
-    AppServerStartInput, CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSummary,
-    ChatgptAuthTokensOutput, GlobalAgentInstructionsOutput, ImportOfficialDataInput,
-    OpenWorkspaceInput, RpcCancelInput, RpcNotifyInput, RpcRequestInput, RpcRequestOutput,
+    AppServerStartInput, ApplyCodexProviderInput, ChatgptAuthTokensOutput,
+    CodexProviderApplyResult, CodexProviderRecord, CodexProviderStore, CodexSessionReadInput,
+    CodexSessionReadOutput, CodexSessionSummary, DeleteCodexProviderInput,
+    GlobalAgentInstructionsOutput, ImportOfficialDataInput, OpenWorkspaceInput,
+    RpcCancelInput, RpcNotifyInput, RpcRequestInput, RpcRequestOutput,
     ServerRequestResolveInput, ShowContextMenuInput, ShowNotificationInput,
     TerminalCloseInput, TerminalCreateInput, TerminalCreateOutput, TerminalResizeInput,
     TerminalWriteInput, UpdateChatgptAuthTokensInput, UpdateGlobalAgentInstructionsInput,
-    WorkspaceOpener,
+    UpsertCodexProviderInput, WorkspaceOpener,
 };
 use crate::process_manager::ProcessManager;
 use crate::terminal_manager::TerminalManager;
@@ -113,6 +118,26 @@ pub fn app_write_global_agent_instructions(
     input: UpdateGlobalAgentInstructionsInput,
 ) -> Result<GlobalAgentInstructionsOutput, String> {
     to_result(write_global_agent_instructions(input))
+}
+
+#[tauri::command]
+pub fn app_list_codex_providers() -> Result<CodexProviderStore, String> {
+    to_result(list_codex_providers())
+}
+
+#[tauri::command]
+pub fn app_upsert_codex_provider(input: UpsertCodexProviderInput) -> Result<CodexProviderRecord, String> {
+    to_result(upsert_codex_provider(input))
+}
+
+#[tauri::command]
+pub fn app_delete_codex_provider(input: DeleteCodexProviderInput) -> Result<CodexProviderStore, String> {
+    to_result(delete_codex_provider(input))
+}
+
+#[tauri::command]
+pub fn app_apply_codex_provider(input: ApplyCodexProviderInput) -> Result<CodexProviderApplyResult, String> {
+    to_result(apply_codex_provider(input))
 }
 
 #[tauri::command]

@@ -105,6 +105,62 @@ pub struct UpdateChatgptAuthTokensInput {
     pub chatgpt_plan_type: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexProviderRecord {
+    pub id: String,
+    pub name: String,
+    pub provider_key: String,
+    pub api_key: String,
+    pub base_url: String,
+    pub model: String,
+    pub auth_json_text: String,
+    pub config_toml_text: String,
+    pub created_at: i64,
+    pub updated_at: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexProviderStore {
+    pub version: u32,
+    pub providers: Vec<CodexProviderRecord>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpsertCodexProviderInput {
+    pub id: Option<String>,
+    pub name: String,
+    pub provider_key: String,
+    pub api_key: String,
+    pub base_url: String,
+    pub model: String,
+    pub auth_json_text: String,
+    pub config_toml_text: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteCodexProviderInput {
+    pub id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApplyCodexProviderInput {
+    pub id: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexProviderApplyResult {
+    pub provider_id: String,
+    pub provider_key: String,
+    pub auth_path: String,
+    pub config_path: String,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexSessionSummary {

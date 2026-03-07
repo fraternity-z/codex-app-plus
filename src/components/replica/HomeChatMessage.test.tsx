@@ -17,12 +17,60 @@ describe("HomeChatMessage", () => {
           itemId: "item-1",
           text: "请看附件",
           status: "done",
-          attachments: [{ kind: "image", source: "dataUrl", value: dataUrl }]
+          attachments: [{ kind: "image", source: "dataUrl", value: dataUrl }],
         }}
-      />
+      />,
     );
 
     expect(screen.getByText("请看附件")).toBeInTheDocument();
     expect(container.querySelector(".home-chat-attachments img")?.getAttribute("src")).toBe(dataUrl);
+  });
+
+  it("renders the thinking indicator below streaming assistant content", () => {
+    const { container } = render(
+      <HomeChatMessage
+        message={{
+          id: "assistant-1",
+          kind: "agentMessage",
+          role: "assistant",
+          threadId: "thread-1",
+          turnId: "turn-1",
+          itemId: "item-1",
+          text: "正在输出正文",
+          status: "streaming",
+        }}
+        showThinkingIndicator
+      />,
+    );
+
+    const assistantChildren = Array.from(container.querySelector(".home-chat-message-assistant")?.children ?? []).map(
+      (element) => (element as HTMLElement).className,
+    );
+
+    expect(screen.getByText("正在输出正文")).toBeInTheDocument();
+    expect(screen.getByText("正在思考")).toBeInTheDocument();
+    expect(assistantChildren).toEqual(["home-chat-message-body", "home-chat-thinking-footer"]);
+  });
+
+  it("renders the thinking indicator without assistant body text", () => {
+    const { container } = render(
+      <HomeChatMessage
+        message={{
+          id: "assistant-placeholder-1",
+          kind: "agentMessage",
+          role: "assistant",
+          threadId: "thread-1",
+          turnId: "turn-1",
+          itemId: null,
+          text: "",
+          status: "streaming",
+        }}
+        showThinkingIndicator
+      />,
+    );
+
+    expect(screen.getByText("正在思考")).toBeInTheDocument();
+    expect(container.querySelector(".home-chat-message-body")).toBeNull();
+    expect(container.querySelector(".home-chat-thinking-footer")).not.toBeNull();
   });
 });

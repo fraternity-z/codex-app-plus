@@ -2,8 +2,11 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import type { ConversationImageAttachment, ConversationMessage } from "../../domain/timeline";
 import { ConversationMessageContent } from "./ConversationMessageContent";
 
+const THINKING_LABEL = "正在思考";
+
 interface HomeChatMessageProps {
   readonly message: ConversationMessage;
+  readonly showThinkingIndicator?: boolean;
 }
 
 export function HomeChatMessage(props: HomeChatMessageProps): JSX.Element {
@@ -13,6 +16,7 @@ export function HomeChatMessage(props: HomeChatMessageProps): JSX.Element {
   const markdownClassName = assistant ? "home-chat-markdown home-chat-markdown-assistant" : "home-chat-markdown home-chat-markdown-user";
   const attachments = props.message.attachments ?? [];
   const hasText = props.message.text.trim().length > 0;
+  const showThinkingIndicator = assistant && props.showThinkingIndicator === true;
 
   return (
     <article className={className} data-status={props.message.status}>
@@ -22,7 +26,17 @@ export function HomeChatMessage(props: HomeChatMessageProps): JSX.Element {
           <ConversationMessageContent className={markdownClassName} message={props.message} />
         </div>
       ) : null}
+      {showThinkingIndicator ? <AssistantThinkingIndicator /> : null}
     </article>
+  );
+}
+
+function AssistantThinkingIndicator(): JSX.Element {
+  return (
+    <div className="home-chat-thinking-footer" aria-label={THINKING_LABEL}>
+      <span className="home-chat-thinking-label">{THINKING_LABEL}</span>
+      <span className="home-chat-thinking-shimmer" aria-hidden="true" />
+    </div>
   );
 }
 

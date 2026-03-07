@@ -12,10 +12,13 @@ interface HomeTimelineEntryProps {
 }
 
 export function HomeTimelineEntry(props: HomeTimelineEntryProps): JSX.Element {
-  if (props.node.kind === "userBubble" || props.node.kind === "assistantMessage") {
+  if (props.node.kind === "userBubble") {
     return <HomeChatMessage message={props.node.message} />;
   }
-  if (props.node.kind === "thinkingBlock") {
+  if (props.node.kind === "assistantMessage") {
+    return <HomeChatMessage message={props.node.message} showThinkingIndicator={props.node.showThinkingIndicator} />;
+  }
+  if (props.node.kind === "reasoningBlock") {
     return <HomeThinkingBlock block={props.node.block} />;
   }
   if (props.node.kind === "traceItem") {

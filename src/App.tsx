@@ -59,6 +59,29 @@ export function App({ hostBridge }: AppProps): JSX.Element {
     [hostBridge.app]
   );
 
+  const listCodexProviders = useCallback(
+    () => hostBridge.app.listCodexProviders(),
+    [hostBridge.app]
+  );
+
+  const upsertCodexProvider = useCallback(
+    (input: Parameters<typeof hostBridge.app.upsertCodexProvider>[0]) =>
+      hostBridge.app.upsertCodexProvider(input),
+    [hostBridge.app]
+  );
+
+  const deleteCodexProvider = useCallback(
+    (input: Parameters<typeof hostBridge.app.deleteCodexProvider>[0]) =>
+      hostBridge.app.deleteCodexProvider(input),
+    [hostBridge.app]
+  );
+
+  const applyCodexProvider = useCallback(
+    (input: Parameters<typeof hostBridge.app.applyCodexProvider>[0]) =>
+      hostBridge.app.applyCodexProvider(input),
+    [hostBridge.app]
+  );
+
   const writeGlobalAgentInstructions = useCallback(
     (input: Parameters<typeof hostBridge.app.writeGlobalAgentInstructions>[0]) =>
       hostBridge.app.writeGlobalAgentInstructions(input),
@@ -119,8 +142,13 @@ export function App({ hostBridge }: AppProps): JSX.Element {
         onSelectSection={setScreen}
         onAddRoot={addRoot}
         onOpenConfigToml={openConfigToml}
+        refreshConfigSnapshot={controller.refreshConfigSnapshot}
         readGlobalAgentInstructions={readGlobalAgentInstructions}
         writeGlobalAgentInstructions={writeGlobalAgentInstructions}
+        listCodexProviders={listCodexProviders}
+        upsertCodexProvider={upsertCodexProvider}
+        deleteCodexProvider={deleteCodexProvider}
+        applyCodexProvider={applyCodexProvider}
         refreshMcpData={controller.refreshMcpData}
         writeConfigValue={controller.writeConfigValue}
         batchWriteConfig={controller.batchWriteConfig}

@@ -2,8 +2,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type {
   AppServerStartInput,
+  ApplyCodexProviderInput,
   BridgeEventName,
   BridgeEventPayloadMap,
+  CodexProviderApplyResult,
+  CodexProviderDraft,
+  CodexProviderRecord,
+  CodexProviderStore,
+  DeleteCodexProviderInput,
   GitCheckoutInput,
   GitCommitInput,
   GitDiffInput,
@@ -91,6 +97,20 @@ export function createTauriHostBridge(): HostBridge {
         invoke<GlobalAgentInstructionsOutput>("app_read_global_agent_instructions"),
       writeGlobalAgentInstructions: (input: UpdateGlobalAgentInstructionsInput) =>
         invoke<GlobalAgentInstructionsOutput>("app_write_global_agent_instructions", {
+          input
+        }),
+      listCodexProviders: () =>
+        invoke<CodexProviderStore>("app_list_codex_providers"),
+      upsertCodexProvider: (input: CodexProviderDraft) =>
+        invoke<CodexProviderRecord>("app_upsert_codex_provider", {
+          input
+        }),
+      deleteCodexProvider: (input: DeleteCodexProviderInput) =>
+        invoke<CodexProviderStore>("app_delete_codex_provider", {
+          input
+        }),
+      applyCodexProvider: (input: ApplyCodexProviderInput) =>
+        invoke<CodexProviderApplyResult>("app_apply_codex_provider", {
           input
         }),
       readChatgptAuthTokens: () =>

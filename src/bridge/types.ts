@@ -136,6 +136,50 @@ export interface UpdateChatgptAuthTokensInput {
   readonly chatgptPlanType: string | null;
 }
 
+export interface CodexProviderDraft {
+  readonly id?: string | null;
+  readonly name: string;
+  readonly providerKey: string;
+  readonly apiKey: string;
+  readonly baseUrl: string;
+  readonly model: string;
+  readonly authJsonText: string;
+  readonly configTomlText: string;
+}
+
+export interface CodexProviderRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly providerKey: string;
+  readonly apiKey: string;
+  readonly baseUrl: string;
+  readonly model: string;
+  readonly authJsonText: string;
+  readonly configTomlText: string;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+}
+
+export interface CodexProviderStore {
+  readonly version: number;
+  readonly providers: ReadonlyArray<CodexProviderRecord>;
+}
+
+export interface DeleteCodexProviderInput {
+  readonly id: string;
+}
+
+export interface ApplyCodexProviderInput {
+  readonly id: string;
+}
+
+export interface CodexProviderApplyResult {
+  readonly providerId: string;
+  readonly providerKey: string;
+  readonly authPath: string;
+  readonly configPath: string;
+}
+
 export interface CodexSessionSummaryOutput {
   readonly id: string;
   readonly title: string;
@@ -272,6 +316,10 @@ export interface HostBridge {
     writeGlobalAgentInstructions(
       input: UpdateGlobalAgentInstructionsInput
     ): Promise<GlobalAgentInstructionsOutput>;
+    listCodexProviders(): Promise<CodexProviderStore>;
+    upsertCodexProvider(input: CodexProviderDraft): Promise<CodexProviderRecord>;
+    deleteCodexProvider(input: DeleteCodexProviderInput): Promise<CodexProviderStore>;
+    applyCodexProvider(input: ApplyCodexProviderInput): Promise<CodexProviderApplyResult>;
     readChatgptAuthTokens(): Promise<ChatgptAuthTokensOutput>;
     writeChatgptAuthTokens(input: UpdateChatgptAuthTokensInput): Promise<ChatgptAuthTokensOutput>;
     showNotification(input: ShowNotificationInput): Promise<void>;

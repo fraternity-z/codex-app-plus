@@ -29,6 +29,26 @@ function createHostBridge(): HostBridge {
         path: "C:/Users/Administrator/.codex/AGENTS.md",
         content: ""
       }),
+      listCodexProviders: vi.fn().mockResolvedValue({ version: 1, providers: [] }),
+      upsertCodexProvider: vi.fn().mockResolvedValue({
+        id: "provider-1",
+        name: "Right Code",
+        providerKey: "right_code",
+        apiKey: "secret-1",
+        baseUrl: "https://right.codes/codex/v1",
+        model: "gpt-5.4",
+        authJsonText: "{}",
+        configTomlText: "",
+        createdAt: 1,
+        updatedAt: 1
+      }),
+      deleteCodexProvider: vi.fn().mockResolvedValue({ version: 1, providers: [] }),
+      applyCodexProvider: vi.fn().mockResolvedValue({
+        providerId: "provider-1",
+        providerKey: "right_code",
+        authPath: "C:/Users/Administrator/.codex/auth.json",
+        configPath: "C:/Users/Administrator/.codex/config.toml"
+      }),
       readChatgptAuthTokens: vi.fn().mockResolvedValue({
         accessToken: "token",
         chatgptAccountId: "account",

@@ -134,29 +134,34 @@ function createUserInputRequest(): TimelineEntry {
 }
 
 describe("localConversationGroups", () => {
-  it("adds a synthetic thinking block for an active turn with only user input", () => {
+  it("adds a synthetic assistant placeholder for an active turn with only user input", () => {
     const [group] = splitActivitiesIntoRenderGroups([createUserMessage()], createThread("active"));
 
-    expect(group.thinkingBlock?.kind).toBe("placeholder");
-    expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble", "thinkingBlock"]);
+    expect(group.reasoningBlock).toBeNull();
+    expect(group.assistantMessage?.showThinkingIndicator).toBe(true);
+    expect(group.assistantMessage?.message.text).toBe("");
+    expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble", "assistantMessage"]);
   });
 
-  it("replaces placeholder thinking with processing when tool work starts", () => {
+  it("keeps the assistant thinking indicator active while tool work starts", () => {
     const [group] = splitActivitiesIntoRenderGroups([createUserMessage(), createCommand()], createThread("active"));
 
-    expect(group.thinkingBlock?.kind).toBe("processing");
-    expect(group.thinkingBlock?.summary).toContain("pnpm test");
+    expect(group.reasoningBlock).toBeNull();
+    expect(group.assistantMessage?.showThinkingIndicator).toBe(true);
+    expect(group.traceItems.map((item) => item.kind)).toEqual(["commandExecution"]);
+    expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble", "traceItem", "assistantMessage"]);
   });
 
   it("keeps reasoning, trace items, and final assistant reply in mainline order", () => {
     const entries = [createUserMessage(), createReasoning(), createCommand(), createToolCall(), createFileChange(), createAssistantMessage()];
     const [group] = splitActivitiesIntoRenderGroups(entries, createThread("idle"));
 
-    expect(group.thinkingBlock?.kind).toBe("reasoning");
+    expect(group.reasoningBlock?.label).toBe("Reasoning");
     expect(group.traceItems.map((item) => item.kind)).toEqual(["commandExecution", "mcpToolCall", "fileChange"]);
+    expect(group.assistantMessage?.showThinkingIndicator).toBe(false);
     expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual([
       "userBubble",
-      "thinkingBlock",
+      "reasoningBlock",
       "traceItem",
       "traceItem",
       "traceItem",
@@ -164,11 +169,20 @@ describe("localConversationGroups", () => {
     ]);
   });
 
-  it("shows request blocks without a generic thinking placeholder", () => {
+  it("keeps reasoning block and assistant thinking indicator at the same time on an active turn", () => {
+    const [group] = splitActivitiesIntoRenderGroups([createUserMessage(), createReasoning(), createCommand()], createThread("active"));
+
+    expect(group.reasoningBlock?.label).toBe("Reasoning");
+    expect(group.assistantMessage?.showThinkingIndicator).toBe(true);
+    expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble", "reasoningBlock", "traceItem", "assistantMessage"]);
+  });
+
+  it("shows request blocks without the assistant thinking indicator", () => {
     const [group] = splitActivitiesIntoRenderGroups([createUserMessage(), createUserInputRequest()], createThread("active"));
 
-    expect(group.thinkingBlock).toBeNull();
+    expect(group.reasoningBlock).toBeNull();
     expect(group.requestBlock?.kind).toBe("pendingUserInput");
+    expect(group.assistantMessage).toBeNull();
     expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble", "requestBlock"]);
   });
 });
