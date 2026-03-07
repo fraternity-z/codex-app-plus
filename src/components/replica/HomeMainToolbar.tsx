@@ -4,6 +4,16 @@ import { WorkspaceOpenButton } from "./WorkspaceOpenButton";
 import { GitDiffIcon } from "./git/gitIcons";
 import type { WorkspaceGitController } from "./git/types";
 
+const DEFAULT_CONVERSATION_TITLE = "会话";
+const DEFAULT_WORKSPACE_TITLE = "工作区会话";
+const HIDE_TERMINAL_LABEL = "隐藏终端";
+const SHOW_TERMINAL_LABEL = "显示终端";
+const HIDE_DIFF_LABEL = "隐藏差异侧栏";
+const SHOW_DIFF_LABEL = "显示差异侧栏";
+const TOOLBAR_ACTIONS_LABEL = "快捷操作";
+const MAX_TOOLBAR_TITLE_LENGTH = 72;
+const TOOLBAR_TITLE_TAIL_LENGTH = 28;
+
 interface HomeMainToolbarProps {
   readonly hostBridge: HostBridge;
   readonly conversationActive: boolean;
@@ -27,7 +37,14 @@ function ToolbarIconButton(props: {
   readonly children: JSX.Element;
 }): JSX.Element {
   return (
-    <button type="button" className="toolbar-icon-btn" aria-label={props.label} aria-pressed={props.active} disabled={props.disabled} onClick={props.onClick}>
+    <button
+      type="button"
+      className="toolbar-icon-btn"
+      aria-label={props.label}
+      aria-pressed={props.active}
+      disabled={props.disabled}
+      onClick={props.onClick}
+    >
       {props.children}
     </button>
   );
@@ -45,30 +62,53 @@ function TerminalIcon(props: { readonly className?: string }): JSX.Element {
 
 function resolveTitle(props: HomeMainToolbarProps): string {
   if (props.conversationActive) {
-    return props.selectedThreadTitle?.trim() || "会话";
+    return props.selectedThreadTitle?.trim() || DEFAULT_CONVERSATION_TITLE;
   }
-  return props.selectedRootPath === null ? "工作区会话" : props.selectedRootName;
+  return props.selectedRootPath === null ? DEFAULT_WORKSPACE_TITLE : props.selectedRootName;
+}
+
+function truncateToolbarTitle(value: string): string {
+  if (value.length <= MAX_TOOLBAR_TITLE_LENGTH) {
+    return value;
+  }
+  const headLength = MAX_TOOLBAR_TITLE_LENGTH - TOOLBAR_TITLE_TAIL_LENGTH - 1;
+  return `${value.slice(0, headLength)}…${value.slice(-TOOLBAR_TITLE_TAIL_LENGTH)}`;
 }
 
 export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
   const title = resolveTitle(props);
+  const displayTitle = truncateToolbarTitle(title);
   const subtitle = props.conversationActive && props.selectedRootPath !== null ? props.selectedRootName : null;
-  const terminalLabel = props.terminalOpen ? "隐藏终端" : "显示终端";
-  const diffLabel = props.diffOpen ? "隐藏差异侧栏" : "显示差异侧栏";
+  const terminalLabel = props.terminalOpen ? HIDE_TERMINAL_LABEL : SHOW_TERMINAL_LABEL;
+  const diffLabel = props.diffOpen ? HIDE_DIFF_LABEL : SHOW_DIFF_LABEL;
   const toolbarClassName = props.conversationActive ? "main-toolbar main-toolbar-conversation" : "main-toolbar";
   const titleClassName = props.conversationActive ? "toolbar-title toolbar-title-compact" : "toolbar-title";
 
   return (
     <header className={toolbarClassName}>
       <div className="toolbar-heading">
-        <h1 className={titleClassName}>{title}</h1>
+        <h1 className={titleClassName} title={title}>{displayTitle}</h1>
         {subtitle === null ? null : <p className="toolbar-subtitle">{subtitle}</p>}
       </div>
       <div className="toolbar-actions">
-        <WorkspaceOpenButton hostBridge={props.hostBridge} selectedRootPath={props.selectedRootPath} selectedOpener={props.workspaceOpener} onSelectOpener={props.onSelectWorkspaceOpener} />
-        <WorkspaceGitButton controller={props.gitController} selectedRootName={props.selectedRootName} selectedRootPath={props.selectedRootPath} />
-        <div className="toolbar-icon-row" aria-label="快捷操作">
-          <ToolbarIconButton active={props.diffOpen} disabled={props.selectedRootPath === null} label={diffLabel} onClick={props.onToggleDiff}>
+        <WorkspaceOpenButton
+          hostBridge={props.hostBridge}
+          selectedRootPath={props.selectedRootPath}
+          selectedOpener={props.workspaceOpener}
+          onSelectOpener={props.onSelectWorkspaceOpener}
+        />
+        <WorkspaceGitButton
+          controller={props.gitController}
+          selectedRootName={props.selectedRootName}
+          selectedRootPath={props.selectedRootPath}
+        />
+        <div className="toolbar-icon-row" aria-label={TOOLBAR_ACTIONS_LABEL}>
+          <ToolbarIconButton
+            active={props.diffOpen}
+            disabled={props.selectedRootPath === null}
+            label={diffLabel}
+            onClick={props.onToggleDiff}
+          >
             <GitDiffIcon className="toolbar-terminal-icon" />
           </ToolbarIconButton>
           <ToolbarIconButton active={props.terminalOpen} label={terminalLabel} onClick={props.onToggleTerminal}>

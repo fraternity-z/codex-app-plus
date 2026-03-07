@@ -39,11 +39,18 @@ interface TimelineBase {
   readonly itemId: string | null;
 }
 
+export interface ConversationImageAttachment {
+  readonly kind: "image";
+  readonly source: "url" | "localPath" | "dataUrl";
+  readonly value: string;
+}
+
 export interface ConversationMessage extends TimelineBase {
   readonly kind: "userMessage" | "agentMessage";
   readonly role: "user" | "assistant";
   readonly text: string;
   readonly status: MessageStatus;
+  readonly attachments?: ReadonlyArray<ConversationImageAttachment>;
 }
 
 export interface PlanEntry extends TimelineBase {

@@ -18,29 +18,11 @@ import type {
 import type { Thread } from "../protocol/generated/v2/Thread";
 import type { ThreadItem } from "../protocol/generated/v2/ThreadItem";
 import type { TurnPlanStep } from "../protocol/generated/v2/TurnPlanStep";
-import type { UserInput } from "../protocol/generated/v2/UserInput";
+import { extractImageAttachmentsFromText, summarizeUserInputs } from "./conversationUserInput";
 import { normalizeConversationMessageText } from "./conversationMessages";
 
 function createTimelineId(threadId: string, turnId: string | null, itemId: string | null, suffix: string): string {
   return [threadId, turnId ?? "thread", itemId ?? suffix, suffix].join(":");
-}
-
-function toUserInputText(content: Array<UserInput>): string {
-  return content
-    .map((input) => {
-      if (input.type === "text") {
-        return input.text;
-      }
-      if (input.type === "image") {
-        return `[image] ${input.url}`;
-      }
-      if (input.type === "localImage") {
-        return `[image] ${input.path}`;
-      }
-      return "";
-    })
-    .filter((part) => part.length > 0)
-    .join("\n");
 }
 
 function createDebugEntry(threadId: string, turnId: string, itemId: string, title: string, payload: unknown): DebugEntry {
@@ -49,6 +31,7 @@ function createDebugEntry(threadId: string, turnId: string, itemId: string, titl
 
 function mapThreadItem(threadId: string, turnId: string, item: ThreadItem): TimelineEntry {
   if (item.type === "userMessage") {
+    const summary = summarizeUserInputs(item.content);
     return {
       id: createTimelineId(threadId, turnId, item.id, "user"),
       kind: "userMessage",
@@ -56,8 +39,9 @@ function mapThreadItem(threadId: string, turnId: string, item: ThreadItem): Time
       threadId,
       turnId,
       itemId: item.id,
-      text: normalizeConversationMessageText("user", toUserInputText(item.content)),
-      status: "done"
+      text: normalizeConversationMessageText("user", summary.text),
+      status: "done",
+      attachments: summary.attachments
     } satisfies ConversationMessage;
   }
 
@@ -166,20 +150,12 @@ export function mapThreadHistoryToActivities(thread: Thread): Array<TimelineEntr
 export function mapCodexSessionToActivities(threadId: string, response: CodexSessionReadOutput): Array<TimelineEntry> {
   return response.messages
     .filter((message) => message.role === "user" || message.role === "assistant")
-    .map((message) => ({
-      id: createTimelineId(threadId, null, message.id, message.role),
-      kind: message.role === "user" ? "userMessage" : "agentMessage",
-      role: message.role as "user" | "assistant",
-      threadId,
-      turnId: null,
-      itemId: message.id,
-      text: normalizeConversationMessageText(message.role as "user" | "assistant", message.text),
-      status: "done"
-    }) as ConversationMessage)
-    .filter((entry) => entry.text.trim().length > 0);
+    .map((message) => createSessionMessageEntry(threadId, message.id, message.role as "user" | "assistant", message.text))
+    .filter((entry): entry is ConversationMessage => entry !== null);
 }
 
 export function createUserMessageEntry(threadId: string, turnId: string, itemId: string, text: string): ConversationMessage {
+  const summary = extractImageAttachmentsFromText(normalizeConversationMessageText("user", text));
   return {
     id: createTimelineId(threadId, turnId, itemId, "user"),
     kind: "userMessage",
@@ -187,8 +163,38 @@ export function createUserMessageEntry(threadId: string, turnId: string, itemId:
     threadId,
     turnId,
     itemId,
-    text: normalizeConversationMessageText("user", text),
-    status: "done"
+    text: summary.text,
+    status: "done",
+    attachments: summary.attachments
+  };
+}
+
+function createSessionMessageEntry(
+  threadId: string,
+  itemId: string,
+  role: "user" | "assistant",
+  text: string,
+): ConversationMessage | null {
+  const normalizedText = normalizeConversationMessageText(role, text);
+  if (role === "assistant") {
+    return normalizedText.trim().length === 0
+      ? null
+      : { id: createTimelineId(threadId, null, itemId, role), kind: "agentMessage", role, threadId, turnId: null, itemId, text: normalizedText, status: "done" };
+  }
+  const summary = extractImageAttachmentsFromText(normalizedText);
+  if (summary.text.trim().length === 0 && summary.attachments.length === 0) {
+    return null;
+  }
+  return {
+    id: createTimelineId(threadId, null, itemId, role),
+    kind: "userMessage",
+    role,
+    threadId,
+    turnId: null,
+    itemId,
+    text: summary.text,
+    status: "done",
+    attachments: summary.attachments,
   };
 }
 

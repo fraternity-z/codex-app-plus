@@ -1,0 +1,262 @@
+.home-thinking-block,
+.home-entry-card,
+.home-trace-card,
+.home-request-card,
+.home-auxiliary-card {
+  width: min(900px, 100%);
+  align-self: flex-start;
+}
+
+.home-thinking-block,
+.home-entry-card,
+.home-trace-card,
+.home-request-card,
+.home-auxiliary-card {
+  border: 1px solid #e4e8f0;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.home-thinking-block {
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.home-thinking-header,
+.home-entry-card-header,
+.home-entry-card-heading {
+  display: flex;
+  align-items: center;
+}
+
+.home-thinking-header,
+.home-entry-card-header {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-entry-card,
+.home-trace-card,
+.home-request-card,
+.home-auxiliary-card {
+  padding: 12px 14px;
+}
+
+.home-entry-card-heading {
+  gap: 8px;
+  min-width: 0;
+}
+
+.home-entry-card-header {
+  margin-bottom: 10px;
+}
+
+.home-entry-card-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3652b3;
+  font-size: 12px;
+}
+
+.home-entry-card-meta,
+.home-trace-caption,
+.home-request-copy {
+  color: #5f6b7d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.home-entry-card-body,
+.home-request-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.home-thinking-label {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.home-thinking-summary {
+  margin: 0;
+  color: #5f6b7d;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.home-thinking-indicator {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.home-thinking-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #8ea0bd;
+}
+
+.home-thinking-indicator-animated span {
+  animation: conversation-pulse 1.2s infinite ease-in-out;
+}
+
+.home-thinking-indicator-animated span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.home-thinking-indicator-animated span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.home-thinking-placeholder {
+  height: 12px;
+  width: min(240px, 60%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, #edf2fb 20%, #dfe8f7 50%, #edf2fb 80%);
+  background-size: 200% 100%;
+  animation: thinking-shimmer 1.3s infinite linear;
+}
+
+.home-trace-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+}
+
+.home-trace-code,
+.home-trace-preview,
+.home-request-code {
+  margin: 0;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid #e4e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: Consolas, "Cascadia Code", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.home-trace-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #1f2937;
+}
+
+.home-trace-list li + li {
+  margin-top: 6px;
+}
+
+.home-trace-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.home-trace-summary-item {
+  padding: 10px 12px;
+  border: 1px solid #e4e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.home-trace-summary-item span {
+  display: block;
+  color: #7a8699;
+  font-size: 12px;
+}
+
+.home-trace-summary-item p {
+  margin: 6px 0 0;
+  color: #1f2937;
+  font-size: 13px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.home-request-question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.home-request-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  align-items: start;
+  color: #1f2937;
+}
+
+.home-request-option small {
+  grid-column: 2;
+  color: #7a8699;
+}
+
+.home-request-input {
+  min-height: 38px;
+  border: 1px solid #d7dce7;
+  border-radius: 12px;
+  padding: 0 12px;
+  font-size: 14px;
+}
+
+.home-request-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.home-request-button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #d7dce7;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111827;
+  cursor: pointer;
+}
+
+.home-request-button-primary {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-thinking-indicator-animated span,
+  .home-thinking-placeholder {
+    animation: none;
+  }
+}
+
+@keyframes conversation-pulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.4;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes thinking-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}

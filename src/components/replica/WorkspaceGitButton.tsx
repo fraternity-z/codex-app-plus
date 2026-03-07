@@ -121,7 +121,7 @@ export function WorkspaceGitButton(props: WorkspaceGitButtonProps): JSX.Element 
       <div className={menuOpen ? "toolbar-split toolbar-split-open" : "toolbar-split"} ref={containerRef}>
         <button type="button" className="toolbar-split-main" disabled={pushDisabled} aria-label={`${PUSH_LABEL}${CURRENT_WORKSPACE_LABEL}`} onClick={() => void props.controller.push()}>
           <GitPushIcon className="toolbar-action-icon" />
-          <span>{PUSH_LABEL}</span>
+          <span className="toolbar-split-main-text">{PUSH_LABEL}</span>
         </button>
         <button type="button" className="toolbar-split-trigger" disabled={triggerDisabled} aria-haspopup="menu" aria-expanded={menuOpen} aria-label={GIT_TRIGGER_LABEL} onClick={() => setMenuOpen((value) => !value)}>
           <OfficialChevronRightIcon className="toolbar-caret-icon" />

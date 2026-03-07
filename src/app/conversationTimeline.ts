@@ -1,47 +1,50 @@
 import type { ConversationState, ConversationTurnState } from "../domain/conversation";
 import type {
+  ConversationMessage,
   PendingApprovalEntry,
   PendingUserInputEntry,
   ReceivedServerRequest,
   TimelineEntry,
 } from "../domain/timeline";
+import { summarizeUserInputs } from "./conversationUserInput";
 import { normalizeConversationMessageText } from "./conversationMessages";
 
 function createEntryId(conversationId: string, turnId: string | null, itemId: string | null, suffix: string): string {
   return `${conversationId}:${turnId ?? "turn"}:${itemId ?? suffix}:${suffix}`;
 }
 
-function toUserInputText(turn: ConversationTurnState): string | null {
-  const inputs = turn.params?.input ?? [];
-  const parts = inputs.map((input) => {
-    if (input.type === "text") {
-      return input.text;
-    }
-    if (input.type === "image") {
-      return `[image] ${input.url}`;
-    }
-    if (input.type === "localImage") {
-      return `[image] ${input.path}`;
-    }
-    return "";
-  }).filter((part) => part.length > 0);
-  if (parts.length === 0) {
+function createUserInputMessage(
+  conversationId: string,
+  turn: ConversationTurnState,
+): ConversationMessage | null {
+  const summary = summarizeUserInputs(turn.params?.input ?? []);
+  if (summary.text.length === 0 && summary.attachments.length === 0) {
     return null;
   }
-  return normalizeConversationMessageText("user", parts.join("\n"));
+  return {
+    id: createEntryId(conversationId, turn.turnId, "user", "user"),
+    kind: "userMessage",
+    role: "user",
+    threadId: conversationId,
+    turnId: turn.turnId,
+    itemId: "user",
+    text: normalizeConversationMessageText("user", summary.text),
+    status: "done",
+    attachments: summary.attachments,
+  };
 }
 
 function mapTurnItems(conversation: ConversationState, turn: ConversationTurnState): Array<TimelineEntry> {
-  const entries = Array<TimelineEntry>();
-  const text = toUserInputText(turn);
-  if (text !== null && text.length > 0) {
-    entries.push({ id: createEntryId(conversation.id, turn.turnId, "user", "user"), kind: "userMessage", role: "user", threadId: conversation.id, turnId: turn.turnId, itemId: "user", text, status: "done" });
+  const entries: Array<TimelineEntry> = [];
+  const initialUserMessage = createUserInputMessage(conversation.id, turn);
+  if (initialUserMessage !== null) {
+    entries.push(initialUserMessage);
   }
   for (const itemState of turn.items) {
     const { item } = itemState;
     if (item.type === "userMessage") {
-      const userText = item.content.map((input) => input.type === "text" ? input.text : input.type === "image" ? `[image] ${input.url}` : input.type === "localImage" ? `[image] ${input.path}` : "").filter((part) => part.length > 0).join("\n");
-      entries.push({ id: createEntryId(conversation.id, turn.turnId, item.id, "user"), kind: "userMessage", role: "user", threadId: conversation.id, turnId: turn.turnId, itemId: item.id, text: normalizeConversationMessageText("user", userText), status: "done" });
+      const summary = summarizeUserInputs(item.content);
+      entries.push({ id: createEntryId(conversation.id, turn.turnId, item.id, "user"), kind: "userMessage", role: "user", threadId: conversation.id, turnId: turn.turnId, itemId: item.id, text: normalizeConversationMessageText("user", summary.text), status: "done", attachments: summary.attachments });
       continue;
     }
     if (item.type === "agentMessage") {

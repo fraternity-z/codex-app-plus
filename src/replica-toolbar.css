@@ -7,8 +7,8 @@
 }
 
 .toolbar-action-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: block;
   flex-shrink: 0;
 }
@@ -17,6 +17,7 @@
   position: relative;
   display: inline-flex;
   align-items: stretch;
+  flex-shrink: 0;
   border: 1px solid #dfdfdf;
   border-radius: 12px;
   background: #f6f6f6;
@@ -38,14 +39,18 @@
 .toolbar-split-main {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   height: 32px;
-  padding: 0 12px;
+  padding: 0 10px;
   border-radius: 11px 0 0 11px;
+  white-space: nowrap;
 }
 
 .toolbar-split-main-text {
+  display: inline-block;
+  font-size: 13px;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .toolbar-split-trigger {

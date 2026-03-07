@@ -235,6 +235,31 @@ describe("HomeView", () => {
     expect(screen.getByText("请选择处理方式")).toBeInTheDocument();
   });
 
+  it("truncates long toolbar titles while preserving the full title in tooltip", () => {
+    const longTitle = "现在能不能改造渲染ui，包括用户发送消息之后的ai正在思考以及正常工具调用链路块等渲染方式和官方插件一致？ E:/code/openai.chatgpt-26.304.20706-win32-x64";
+
+    renderHomeView({
+      selectedThread: createThread({ title: longTitle }),
+      selectedThreadId: "thread-1",
+      activities: [
+        {
+          id: "agent-1",
+          kind: "agentMessage",
+          role: "assistant",
+          threadId: "thread-1",
+          turnId: "turn-1",
+          itemId: "item-1",
+          text: "ok",
+          status: "done"
+        }
+      ]
+    });
+
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.textContent).toContain("…");
+    expect(heading).toHaveAttribute("title", longTitle);
+  });
+
   it("shows queued follow-ups and forwards remove/clear actions", () => {
     const onRemoveQueuedFollowUp = vi.fn();
     const onClearQueuedFollowUps = vi.fn();
