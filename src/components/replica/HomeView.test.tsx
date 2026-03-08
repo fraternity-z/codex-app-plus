@@ -168,8 +168,8 @@ describe("HomeView", () => {
 
     const { container } = renderHomeView({ activities });
 
-    expect(container.querySelector(".home-chat-proposed-plan")).not.toBeNull();
-    expect(container.querySelector(".home-chat-proposed-plan h2")?.textContent).toBe("计划书");
+    expect(container.querySelector(".home-chat-proposed-plan")).toBeNull();
+    expect(screen.getByRole("heading", { name: "计划书" })).toBeInTheDocument();
   });
 
   it("renders command cards and inline request cards", () => {
@@ -236,7 +236,7 @@ describe("HomeView", () => {
 
     renderHomeView({ activities });
 
-    expect(screen.getByText("Command execution")).toBeInTheDocument();
+    expect(screen.getByText(/pnpm test/)).toBeInTheDocument();
     expect(screen.getByText("Additional input required")).toBeInTheDocument();
     expect(screen.getByText("请选择处理方式")).toBeInTheDocument();
   });

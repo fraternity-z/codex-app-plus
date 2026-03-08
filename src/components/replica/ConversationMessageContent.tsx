@@ -13,16 +13,18 @@ const MARKDOWN_COMPONENTS = {
 const MARKDOWN_PLUGINS = [remarkGfm, remarkBreaks];
 
 type MessageSegment = { readonly type: "markdown" | "proposed-plan"; readonly text: string };
+type ConversationMessageContentVariant = "user-bubble" | "assistant-inline";
 
 interface ConversationMessageContentProps {
   readonly className: string;
   readonly message: ConversationMessage;
+  readonly variant?: ConversationMessageContentVariant;
 }
 
 export function ConversationMessageContent(props: ConversationMessageContentProps): JSX.Element {
   return (
     <div className={props.className}>
-      {splitMessageSegments(props.message.text).map((segment, index) => renderSegment(segment, index))}
+      {splitMessageSegments(props.message.text).map((segment, index) => renderSegment(segment, index, props.variant ?? "user-bubble"))}
     </div>
   );
 }
@@ -61,8 +63,8 @@ function pushSegment(segments: Array<MessageSegment>, type: MessageSegment["type
   segments.push({ type, text: normalizedText });
 }
 
-function renderSegment(segment: MessageSegment, index: number): JSX.Element {
-  if (segment.type === "proposed-plan") {
+function renderSegment(segment: MessageSegment, index: number, variant: ConversationMessageContentVariant): JSX.Element {
+  if (segment.type === "proposed-plan" && variant === "user-bubble") {
     return (
       <div key={`segment-${index}`} className="home-chat-proposed-plan">
         <ReactMarkdown components={MARKDOWN_COMPONENTS} remarkPlugins={MARKDOWN_PLUGINS}>
