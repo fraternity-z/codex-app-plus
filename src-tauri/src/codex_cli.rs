@@ -1,7 +1,6 @@
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
-use std::sync::{Mutex, OnceLock};
 
 use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command};
 
@@ -172,6 +171,7 @@ fn parse_version_output(stdout: &[u8]) -> AppResult<String> {
 mod tests {
     use super::*;
     use std::fs;
+    use std::sync::{Mutex, OnceLock};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn env_lock() -> std::sync::MutexGuard<'static, ()> {

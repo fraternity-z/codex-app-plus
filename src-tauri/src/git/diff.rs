@@ -1,7 +1,6 @@
 use std::ffi::OsString;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::error::{AppError, AppResult};
 
@@ -121,6 +120,8 @@ fn run_git(repo_root: &Path, args: &[OsString], allowed_exit_codes: &[i32]) -> A
 mod tests {
     use super::*;
     use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     struct TestRepo {
         path: PathBuf,
