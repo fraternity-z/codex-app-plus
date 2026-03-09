@@ -98,7 +98,6 @@ function createCommandTraceModel(key: string, entry: Extract<TraceEntry, { kind:
     detailPanel: createDetailPanel({
       label: "Shell",
       body: createShellBody(entry.command, entry.output),
-      topMeta: entry.cwd,
       footerMeta: joinMetaParts([
         `退出码：${entry.exitCode === null ? "-" : String(entry.exitCode)}`,
         `耗时：${formatDuration(entry.durationMs)}`,

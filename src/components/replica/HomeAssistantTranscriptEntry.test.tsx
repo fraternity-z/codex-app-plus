@@ -149,7 +149,6 @@ describe("HomeAssistantTranscriptEntry", () => {
     const details = container.querySelector("details");
     const summaryText = container.querySelector(".home-assistant-transcript-summary-text");
     const detailPanel = container.querySelector('.home-assistant-transcript-detail-panel[data-variant="shell"]');
-    const topMeta = container.querySelector(".home-assistant-transcript-detail-top-meta");
     const footerMeta = container.querySelector(".home-assistant-transcript-detail-footer-meta");
     const footerStatus = container.querySelector(".home-assistant-transcript-detail-footer-status");
     const body = container.querySelector(".home-assistant-transcript-detail-body");
@@ -160,7 +159,7 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(details?.open).toBe(false);
     expect(detailPanel).not.toBeNull();
     expect(screen.getByText("Shell")).toBeInTheDocument();
-    expect(topMeta?.textContent).toBe("E:/code/codex-app-plus");
+    expect(container.querySelector(".home-assistant-transcript-detail-top-meta")).toBeNull();
     expect(footerMeta?.textContent).toContain("退出码：0");
     expect(footerMeta?.textContent).toContain("耗时：1.2 s");
     expect(footerStatus?.textContent).toBe("成功");

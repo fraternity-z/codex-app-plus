@@ -76,8 +76,8 @@
 }
 
 .home-assistant-transcript-detail-panel {
-  --assistant-transcript-detail-height: 180px;
-  --assistant-transcript-detail-mask-height: 22px;
+  --assistant-transcript-detail-height: 170px;
+  --assistant-transcript-detail-mask-height: 38px;
   margin: 8px 0 0 16px;
   padding: 12px;
   border: 1px solid #e4e8f0;
@@ -141,12 +141,24 @@
 
 .home-assistant-transcript-detail-scroll-shell::before {
   top: 0;
-  background: linear-gradient(180deg, rgba(239, 239, 239, 0.92) 0%, rgba(239, 239, 239, 0) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(239, 239, 239, 0.94) 0%,
+    rgba(239, 239, 239, 0.82) 28%,
+    rgba(239, 239, 239, 0.42) 72%,
+    rgba(239, 239, 239, 0) 100%
+  );
 }
 
 .home-assistant-transcript-detail-scroll-shell::after {
   bottom: 0;
-  background: linear-gradient(0deg, rgba(239, 239, 239, 0.92) 0%, rgba(239, 239, 239, 0) 100%);
+  background: linear-gradient(
+    0deg,
+    rgba(239, 239, 239, 0.94) 0%,
+    rgba(239, 239, 239, 0.82) 28%,
+    rgba(239, 239, 239, 0.42) 72%,
+    rgba(239, 239, 239, 0) 100%
+  );
 }
 
 .home-assistant-transcript-detail-scroll {
