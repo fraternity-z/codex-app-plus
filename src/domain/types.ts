@@ -19,7 +19,6 @@ import type {
 } from "./conversation";
 import type {
   CollaborationModePreset,
-  McpShortcut,
   NoticeLevel,
   QueuedFollowUp,
 } from "./timeline";
@@ -30,7 +29,6 @@ export type {
   ComposerEnterBehavior,
   ConversationMessage,
   FollowUpMode,
-  McpShortcut,
   QueuedFollowUp,
   ThreadSummary,
   TimelineEntry,
@@ -114,7 +112,6 @@ export interface AppState {
   readonly collaborationModes: ReadonlyArray<CollaborationModePreset>;
   readonly configSnapshot: ConfigReadResponse | null;
   readonly mcpServerStatuses: ReadonlyArray<McpServerStatus>;
-  readonly mcpShortcuts: ReadonlyArray<McpShortcut>;
   readonly authStatus: AuthStatus;
   readonly authMode: string | null;
   readonly account: AccountSummary | null;
@@ -174,7 +171,6 @@ export type AppAction =
   | { type: "collaborationModes/loaded"; modes: ReadonlyArray<CollaborationModePreset> }
   | { type: "config/loaded"; config: ConfigReadResponse }
   | { type: "mcp/statusesLoaded"; statuses: ReadonlyArray<McpServerStatus> }
-  | { type: "mcp/shortcutsLoaded"; shortcuts: ReadonlyArray<McpShortcut> }
   | { type: "auth/changed"; status: AuthStatus; mode: string | null }
   | { type: "account/updated"; account: AccountSummary | null }
   | { type: "rateLimits/updated"; rateLimits: RateLimitSnapshot | null }
@@ -210,7 +206,6 @@ export const INITIAL_STATE: AppState = {
   collaborationModes: [],
   configSnapshot: null,
   mcpServerStatuses: [],
-  mcpShortcuts: [],
   authStatus: "unknown",
   authMode: null,
   account: null,

@@ -1,5 +1,3 @@
-import type { Tool } from "../protocol/generated/Tool";
-import type { McpServerStatus } from "../protocol/generated/v2/McpServerStatus";
 import type { ConversationState } from "../domain/conversation";
 import type { AppAction, AppState, RealtimeState, UiBanner } from "../domain/types";
 import { INITIAL_STATE } from "../domain/types";
@@ -34,10 +32,6 @@ const MAX_BANNERS = 20;
 
 function upsertOrder(order: ReadonlyArray<string>, conversationId: string): ReadonlyArray<string> {
   return [conversationId, ...order.filter((id) => id !== conversationId)];
-}
-
-function createMcpShortcuts(statuses: ReadonlyArray<McpServerStatus>) {
-  return statuses.flatMap((status) => Object.values(status.tools).filter(Boolean).map((tool) => ({ id: `${status.name}:${(tool as Tool).name}`, server: status.name, tool: tool as Tool })));
 }
 
 function mergeConversation(existing: ConversationState | undefined, nextConversation: ConversationState): ConversationState {
@@ -217,9 +211,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "config/loaded":
       return { ...state, configSnapshot: action.config };
     case "mcp/statusesLoaded":
-      return { ...state, mcpServerStatuses: [...action.statuses], mcpShortcuts: createMcpShortcuts(action.statuses) };
-    case "mcp/shortcutsLoaded":
-      return { ...state, mcpShortcuts: [...action.shortcuts] };
+      return { ...state, mcpServerStatuses: [...action.statuses] };
     case "auth/changed":
       return { ...state, authStatus: action.status, authMode: action.mode };
     case "account/updated":

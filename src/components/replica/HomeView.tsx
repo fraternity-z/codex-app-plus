@@ -8,7 +8,6 @@ import type {
   AccountSummary,
   AuthStatus,
   ConnectionStatus,
-  McpShortcut,
   UiBanner,
   ServerRequestResolution,
   ThreadSummary,
@@ -40,7 +39,6 @@ interface HomeViewProps {
   readonly isResponding: boolean;
   readonly interruptPending: boolean;
   readonly activities: ReadonlyArray<TimelineEntry>;
-  readonly mcpShortcuts: ReadonlyArray<McpShortcut>;
   readonly banners: ReadonlyArray<UiBanner>;
   readonly account: AccountSummary | null;
   readonly rateLimitSummary: string | null;
@@ -87,7 +85,6 @@ interface MainContentProps {
   readonly gitController: WorkspaceGitController;
   readonly inputText: string;
   readonly activities: ReadonlyArray<TimelineEntry>;
-  readonly mcpShortcuts: ReadonlyArray<McpShortcut>;
   readonly banners: ReadonlyArray<UiBanner>;
   readonly account: AccountSummary | null;
   readonly rateLimitSummary: string | null;
@@ -159,7 +156,6 @@ function MainContent(props: MainContentProps): JSX.Element {
         defaultModel={props.defaultModel}
         defaultEffort={props.defaultEffort}
         selectedRootPath={props.selectedRootPath}
-        mcpShortcuts={props.mcpShortcuts}
         queuedFollowUps={props.queuedFollowUps}
         followUpQueueMode={props.followUpQueueMode}
         composerEnterBehavior={props.composerEnterBehavior}
@@ -245,7 +241,6 @@ export function HomeView(props: HomeViewProps): JSX.Element {
         gitController={gitController}
         inputText={props.inputText}
         activities={props.activities}
-        mcpShortcuts={props.mcpShortcuts}
         banners={props.banners}
         account={props.account}
         rateLimitSummary={props.rateLimitSummary}

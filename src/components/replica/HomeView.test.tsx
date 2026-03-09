@@ -90,7 +90,6 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       isResponding={false}
       interruptPending={false}
       activities={[]}
-      mcpShortcuts={[]}
       banners={[]}
       account={null}
       rateLimitSummary={null}
@@ -146,6 +145,15 @@ describe("HomeView", () => {
         selection: expect.objectContaining({ model: "gpt-5.2", effort: "xhigh" })
       })
     );
+  });
+
+  it("does not render MCP shortcuts in the attachment menu", () => {
+    renderHomeView();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
+
+    expect(screen.queryByText("MCP shortcuts")).toBeNull();
+    expect(screen.queryByText("No MCP tools are currently available.")).toBeNull();
   });
 
   it("renders proposed_plan content inside the conversation timeline", () => {

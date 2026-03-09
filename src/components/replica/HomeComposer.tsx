@@ -3,7 +3,6 @@ import type { ComposerPermissionLevel } from "../../app/composerPermission";
 import type { ComposerModelOption, ComposerSelection } from "../../app/composerPreferences";
 import type { SendTurnOptions } from "../../app/useWorkspaceConversation";
 import { useComposerSelection } from "../../app/useComposerSelection";
-import type { McpShortcut } from "../../domain/types";
 import type { ComposerEnterBehavior, FollowUpMode, QueuedFollowUp } from "../../domain/timeline";
 import { ComposerAttachmentMenu } from "./ComposerAttachmentMenu";
 import { ComposerFooter } from "./ComposerFooter";
@@ -19,7 +18,6 @@ export interface HomeComposerProps {
   readonly defaultModel: string | null;
   readonly defaultEffort: ComposerSelection["effort"];
   readonly selectedRootPath: string | null;
-  readonly mcpShortcuts: ReadonlyArray<McpShortcut>;
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
   readonly followUpQueueMode: FollowUpMode;
   readonly composerEnterBehavior: ComposerEnterBehavior;
@@ -57,11 +55,6 @@ function shouldSendOnEnter(inputText: string, behavior: ComposerEnterBehavior, m
     return true;
   }
   return !inputText.includes("\n");
-}
-
-function insertMcpShortcut(inputText: string, shortcut: McpShortcut): string {
-  const prefix = inputText.trim().length === 0 ? "" : `${inputText.trim()}\n\n`;
-  return `${prefix}Use MCP tool ${shortcut.server}/${shortcut.tool.name} for this task.`;
 }
 
 function handleComposerEnterKey(
@@ -154,11 +147,6 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     });
   };
 
-  const handleInsertMcpShortcut = (shortcut: McpShortcut) => {
-    props.onInputChange(insertMcpShortcut(props.inputText, shortcut));
-    setMenuOpen(false);
-  };
-
   return (
     <footer className="composer-area">
       <QueuedFollowUpsPanel
@@ -185,7 +173,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
         <div className="composer-bar">
           <div className="composer-left">
             <div className="composer-plus-anchor">
-              {menuOpen ? <ComposerAttachmentMenu planModeEnabled={planModeEnabled} mcpShortcuts={props.mcpShortcuts} onTogglePlanMode={() => setPlanModeEnabled((value) => !value)} onInsertMcpShortcut={handleInsertMcpShortcut} onClose={() => setMenuOpen(false)} /> : null}
+              {menuOpen ? <ComposerAttachmentMenu planModeEnabled={planModeEnabled} onTogglePlanMode={() => setPlanModeEnabled((value) => !value)} onClose={() => setMenuOpen(false)} /> : null}
               <button
                 type="button"
                 className={menuOpen ? "composer-mini-btn composer-mini-btn-active" : "composer-mini-btn"}

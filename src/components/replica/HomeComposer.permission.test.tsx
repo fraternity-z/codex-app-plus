@@ -27,7 +27,6 @@ function ComposerHarness(props: {
       defaultModel="gpt-5.2"
       defaultEffort="xhigh"
       selectedRootPath="E:/code/FPGA"
-      mcpShortcuts={[]}
       queuedFollowUps={[]}
       followUpQueueMode="queue"
       composerEnterBehavior="enter"

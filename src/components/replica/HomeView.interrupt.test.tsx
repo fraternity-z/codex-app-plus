@@ -95,7 +95,6 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       isResponding={true}
       interruptPending={false}
       activities={[]}
-      mcpShortcuts={[]}
       banners={[]}
       account={null}
       rateLimitSummary={null}

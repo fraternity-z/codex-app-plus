@@ -172,7 +172,6 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       isResponding={conversation.isResponding}
       interruptPending={conversation.interruptPending}
       activities={conversation.activities}
-      mcpShortcuts={controller.state.mcpShortcuts}
       banners={controller.state.banners}
       account={controller.state.account}
       rateLimitSummary={rateLimitSummary}
