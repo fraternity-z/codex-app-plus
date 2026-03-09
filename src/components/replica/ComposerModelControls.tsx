@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+﻿import { useMemo, useRef, useState } from "react";
 import {
   DEFAULT_COMPOSER_MODEL_LABEL,
   getComposerModelLabel,
@@ -6,38 +6,14 @@ import {
 } from "../../app/composerPreferences";
 import type { ReasoningEffort } from "../../protocol/generated/ReasoningEffort";
 import { OfficialChevronRightIcon } from "./officialIcons";
+import {
+  getReasoningEffortLabel,
+  isReasoningEffortSelected,
+  listSelectableReasoningEfforts
+} from "./reasoningEffortOptions";
 import { useToolbarMenuDismissal } from "./useToolbarMenuDismissal";
 
 type ComposerMenu = "model" | "effort" | null;
-
-const REASONING_EFFORT_ITEMS: ReadonlyArray<{ readonly value: ReasoningEffort; readonly label: string }> = [
-  { value: "minimal", label: "极低" },
-  { value: "low", label: "低" },
-  { value: "medium", label: "中" },
-  { value: "high", label: "高" },
-  { value: "xhigh", label: "超高" }
-];
-
-function reasoningEffortLabel(effort: ReasoningEffort | null): string {
-  if (effort === "none") {
-    return "极低";
-  }
-  return REASONING_EFFORT_ITEMS.find((item) => item.value === effort)?.label ?? "超高";
-}
-
-function supportsEffortOption(supportedEfforts: ReadonlyArray<ReasoningEffort>, value: ReasoningEffort): boolean {
-  if (value === "minimal") {
-    return supportedEfforts.includes("minimal") || supportedEfforts.includes("none");
-  }
-  return supportedEfforts.includes(value);
-}
-
-function isSelectedEffort(selectedEffort: ReasoningEffort | null, value: ReasoningEffort): boolean {
-  if (value === "minimal") {
-    return selectedEffort === "minimal" || selectedEffort === "none";
-  }
-  return selectedEffort === value;
-}
 
 function BrainIcon(props: { readonly className?: string }): JSX.Element {
   return (
@@ -95,18 +71,16 @@ function EffortMenu(props: {
   readonly supportedEfforts: ReadonlyArray<ReasoningEffort>;
   readonly onSelectEffort: (effort: ReasoningEffort) => void;
 }): JSX.Element {
-  const visibleEfforts = useMemo(() => {
-    if (props.supportedEfforts.length === 0) {
-      return REASONING_EFFORT_ITEMS;
-    }
-    return REASONING_EFFORT_ITEMS.filter((item) => supportsEffortOption(props.supportedEfforts, item.value));
-  }, [props.supportedEfforts]);
+  const visibleEfforts = useMemo(
+    () => listSelectableReasoningEfforts(props.supportedEfforts, props.selectedEffort),
+    [props.selectedEffort, props.supportedEfforts]
+  );
 
   return (
-    <div className="composer-select-menu composer-select-menu-effort" role="menu" aria-label="选择推理功能">
-      <div className="composer-select-menu-title">选择推理功能</div>
+    <div className="composer-select-menu composer-select-menu-effort" role="menu" aria-label="选择推理强度">
+      <div className="composer-select-menu-title">选择推理强度</div>
       {visibleEfforts.map((effort) => {
-        const selected = isSelectedEffort(props.selectedEffort, effort.value);
+        const selected = isReasoningEffortSelected(props.selectedEffort, effort.value);
         const itemClassName = selected ? "composer-select-menu-item composer-select-menu-item-selected" : "composer-select-menu-item";
         return (
           <button
@@ -140,13 +114,14 @@ export function ComposerModelControls(props: {
   const containerRef = useRef<HTMLDivElement>(null);
   const [openMenu, setOpenMenu] = useState<ComposerMenu>(null);
   const modelLabel = getComposerModelLabel(props.models, props.selectedModel);
-  const effortLabel = reasoningEffortLabel(props.selectedEffort);
+  const effortLabel = getReasoningEffortLabel(props.selectedEffort);
   useToolbarMenuDismissal(openMenu !== null, containerRef, () => setOpenMenu(null));
 
   const onSelectModel = (model: string) => {
     props.onSelectModel(model);
     setOpenMenu(null);
   };
+
   const onSelectEffort = (effort: ReasoningEffort) => {
     props.onSelectEffort(effort);
     setOpenMenu(null);
