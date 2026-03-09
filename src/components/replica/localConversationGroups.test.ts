@@ -40,6 +40,18 @@ function createReasoning(): TimelineEntry {
   };
 }
 
+function createEmptyReasoning(): TimelineEntry {
+  return {
+    id: "reasoning-empty-1",
+    kind: "reasoning",
+    threadId: "thread-1",
+    turnId: "turn-1",
+    itemId: "item-reasoning-empty",
+    summary: ["  ", ""],
+    content: ["详细推理"],
+  };
+}
+
 function createCommand(): TimelineEntry {
   return {
     id: "command-1",
@@ -101,11 +113,12 @@ function createUserInputRequest(): TimelineEntry {
 }
 
 describe("localConversationGroups", () => {
-  it("adds an assistant placeholder for an active turn with only user input", () => {
+  it("marks an active turn with only user input as thinking without adding a placeholder", () => {
     const [group] = splitActivitiesIntoRenderGroups([createUserMessage()], "turn-1");
 
-    expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble", "assistantMessage"]);
-    expect(group.assistantFlow[0]).toMatchObject({ kind: "assistantMessage", showThinkingIndicator: true });
+    expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble"]);
+    expect(group.assistantFlow).toEqual([]);
+    expect(group.showThinkingIndicator).toBe(true);
   });
 
   it("keeps assistant text, trace, and final reply in flow order", () => {
@@ -127,24 +140,31 @@ describe("localConversationGroups", () => {
     ]);
   });
 
-  it("keeps reasoning, trace, and assistant thinking in the same active turn", () => {
+  it("keeps reasoning and trace in the same active turn while exposing group thinking", () => {
     const [group] = splitActivitiesIntoRenderGroups([createUserMessage(), createReasoning(), createCommand()], "turn-1");
 
-    expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble", "reasoningBlock", "traceItem", "assistantMessage"]);
-    expect(group.assistantFlow[group.assistantFlow.length - 1]).toMatchObject({ kind: "assistantMessage", showThinkingIndicator: true });
+    expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble", "reasoningBlock", "traceItem"]);
+    expect(group.showThinkingIndicator).toBe(true);
   });
 
-  it("shows the thinking indicator under the last assistant message while streaming", () => {
+  it("keeps group thinking visible while assistant text is streaming", () => {
     const [group] = splitActivitiesIntoRenderGroups([createUserMessage(), createCommand(), createAssistantMessage("assistant-streaming", "正在输出正文", "streaming")], "turn-1");
 
     expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble", "traceItem", "assistantMessage"]);
-    expect(group.assistantFlow[group.assistantFlow.length - 1]).toMatchObject({ kind: "assistantMessage", showThinkingIndicator: true });
+    expect(group.showThinkingIndicator).toBe(true);
+  });
+
+  it("drops empty reasoning summaries instead of rendering a fake thinking line", () => {
+    const [group] = splitActivitiesIntoRenderGroups([createUserMessage(), createEmptyReasoning(), createCommand()], "turn-1");
+
+    expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble", "traceItem"]);
+    expect(group.showThinkingIndicator).toBe(true);
   });
 
   it("hides the thinking indicator when a request block is waiting", () => {
     const [group] = splitActivitiesIntoRenderGroups([createUserMessage(), createUserInputRequest()], "turn-1");
 
     expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble", "requestBlock"]);
-    expect(group.assistantFlow.some((node) => node.kind === "assistantMessage")).toBe(false);
+    expect(group.showThinkingIndicator).toBe(false);
   });
 });

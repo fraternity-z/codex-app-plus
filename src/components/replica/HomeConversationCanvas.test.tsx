@@ -149,6 +149,13 @@ const REASONING_ENTRY: TimelineEntry = {
   content: ["详细推理"],
 };
 
+const EMPTY_REASONING_ENTRY: TimelineEntry = {
+  ...REASONING_ENTRY,
+  id: "reasoning-empty-1",
+  itemId: "item-reasoning-empty",
+  summary: [" ", ""],
+};
+
 const ASSISTANT_MESSAGE: TimelineEntry = {
   id: "assistant-1",
   kind: "agentMessage",
@@ -193,11 +200,12 @@ const REQUEST_ENTRY: TimelineEntry = {
 };
 
 describe("HomeConversationCanvas", () => {
-  it("renders an assistant placeholder with the thinking indicator immediately after user input", () => {
+  it("renders a single bottom thinking indicator immediately after user input", () => {
     const { container } = renderCanvas([USER_MESSAGE], { activeTurnId: "turn-1" });
 
     expect(screen.getByText(/正在思考/)).toBeInTheDocument();
-    expect(container.querySelector(".home-assistant-transcript-thinking")).not.toBeNull();
+    expect(container.querySelector(".home-turn-thinking-indicator")).not.toBeNull();
+    expect(container.querySelector(".home-assistant-transcript-thinking")).toBeNull();
     expect(container.querySelector(".home-thinking-block")).toBeNull();
   });
 
@@ -226,13 +234,38 @@ describe("HomeConversationCanvas", () => {
 
   it("keeps the thinking indicator below streaming assistant content", () => {
     const { container } = renderCanvas([USER_MESSAGE, COMMAND_ENTRY, STREAMING_ASSISTANT_MESSAGE], { activeTurnId: "turn-1" });
+    const group = container.querySelector(".home-turn-group");
     const assistantMessage = container.querySelector(".home-assistant-transcript-message");
     const assistantChildren = Array.from(assistantMessage?.children ?? []).map((element) => (element as HTMLElement).className);
+    const classNames = Array.from(group?.children ?? []).map((element) => (element as HTMLElement).className);
 
     expect(screen.getByText("正在输出正文")).toBeInTheDocument();
     expect(screen.getByText(/正在思考/)).toBeInTheDocument();
     expect(assistantChildren[0]).toContain("home-chat-markdown-inline");
-    expect(assistantChildren[1]).toContain("home-assistant-transcript-thinking");
+    expect(assistantChildren).toHaveLength(1);
+    expect(classNames[classNames.length - 1]).toContain("home-turn-thinking-indicator");
+  });
+
+  it("keeps the thinking indicator below tool output when no assistant text exists yet", () => {
+    const { container } = renderCanvas([USER_MESSAGE, COMMAND_ENTRY], { activeTurnId: "turn-1" });
+    const group = container.querySelector(".home-turn-group");
+    const classNames = Array.from(group?.children ?? []).map((element) => (element as HTMLElement).className);
+
+    expect(classNames[0]).toContain("home-chat-message-user");
+    expect(classNames[1]).toContain("home-assistant-transcript-details");
+    expect(classNames[2]).toContain("home-turn-thinking-indicator");
+  });
+
+  it("does not render an inline fake thinking line for empty reasoning summaries", () => {
+    const { container } = renderCanvas([USER_MESSAGE, EMPTY_REASONING_ENTRY, COMMAND_ENTRY], { activeTurnId: "turn-1" });
+    const group = container.querySelector(".home-turn-group");
+    const classNames = Array.from(group?.children ?? []).map((element) => (element as HTMLElement).className);
+
+    expect(classNames[0]).toContain("home-chat-message-user");
+    expect(classNames[1]).toContain("home-assistant-transcript-details");
+    expect(classNames[2]).toContain("home-turn-thinking-indicator");
+    expect(screen.queryByText("正在思考...")).toBeNull();
+    expect(screen.queryByText("正在思考…")).toBeNull();
   });
 
   it("renders user image previews without dumping base64 into the bubble", () => {

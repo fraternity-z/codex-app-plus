@@ -26,7 +26,7 @@ function createAssistantMessage(text: string): Extract<AssistantNode, { kind: "a
     status: "done",
   };
 
-  return { key: message.id, kind: "assistantMessage", message, showThinkingIndicator: false };
+  return { key: message.id, kind: "assistantMessage", message };
 }
 
 function createTraceNode(entry: Extract<AssistantNode, { kind: "traceItem" }>['item']): Extract<AssistantNode, { kind: "traceItem" }> {
@@ -141,6 +141,12 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(container.querySelector(".home-chat-proposed-plan")).toBeNull();
     expect(screen.getByRole("heading", { name: "Plan" })).toBeInTheDocument();
     expect(screen.getByText("after")).toBeInTheDocument();
+  });
+
+  it("omits empty assistant message placeholders", () => {
+    const { container } = render(<HomeAssistantTranscriptEntry node={createAssistantMessage("")} />);
+
+    expect(container.firstChild).toBeNull();
   });
 
   it("marks command summaries for collapsed truncation without shortening text content", () => {

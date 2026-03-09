@@ -18,7 +18,6 @@ interface MessageEntryModel {
   readonly summary: null;
   readonly detailPanel: null;
   readonly message: ConversationMessage;
-  readonly showThinkingIndicator?: boolean;
 }
 interface LineEntryModel {
   readonly key: string;
@@ -59,12 +58,11 @@ export function createAssistantTranscriptEntryModel(node: AssistantNode): Assist
       summary: null,
       detailPanel: null,
       message: node.message,
-      showThinkingIndicator: node.showThinkingIndicator,
     };
   }
 
   if (node.kind === "reasoningBlock") {
-    return createLineModel(node.key, node.block.summary ?? "正在思考...");
+    return createLineModel(node.key, node.block.summary);
   }
 
   if (node.kind === "traceItem") {

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { ServerRequestResolution, ThreadSummary, TimelineEntry } from "../../domain/types";
 import { HomeTimelineEntry } from "./HomeTimelineEntry";
+import { HomeTurnThinkingIndicator } from "./HomeTurnThinkingIndicator";
 import { flattenConversationRenderGroup, splitActivitiesIntoRenderGroups } from "./localConversationGroups";
 
 interface HomeConversationCanvasProps {
@@ -14,6 +15,7 @@ interface HomeConversationCanvasProps {
 interface RenderGroup {
   readonly key: string;
   readonly nodes: ReturnType<typeof flattenConversationRenderGroup>;
+  readonly showThinkingIndicator: boolean;
 }
 
 export function HomeConversationCanvas(props: HomeConversationCanvasProps): JSX.Element {
@@ -38,6 +40,7 @@ export function HomeConversationCanvas(props: HomeConversationCanvasProps): JSX.
               {group.nodes.map((node) => (
                 <HomeTimelineEntry key={node.key} node={node} onResolveServerRequest={props.onResolveServerRequest} />
               ))}
+              {group.showThinkingIndicator ? <HomeTurnThinkingIndicator /> : null}
             </section>
           ))}
         </div>
@@ -51,24 +54,37 @@ function createRenderGroups(
   activeTurnId: string | null,
 ): Array<RenderGroup> {
   return splitActivitiesIntoRenderGroups(activities, activeTurnId)
-    .map((group) => ({ key: group.key, nodes: flattenConversationRenderGroup(group) }))
-    .filter((group) => group.nodes.length > 0);
+    .map((group) => ({
+      key: group.key,
+      nodes: flattenConversationRenderGroup(group),
+      showThinkingIndicator: group.showThinkingIndicator,
+    }))
+    .filter((group) => group.nodes.length > 0 || group.showThinkingIndicator);
 }
 
 function createScrollKey(groups: ReadonlyArray<RenderGroup>): string {
   const lastGroup = groups[groups.length - 1];
-  const lastNode = lastGroup?.nodes[lastGroup.nodes.length - 1];
+  if (!lastGroup) {
+    return "empty";
+  }
+
+  return `${createLastNodeScrollKey(lastGroup.nodes)}:${lastGroup.showThinkingIndicator ? "thinking" : "idle"}`;
+}
+
+function createLastNodeScrollKey(nodes: ReadonlyArray<RenderGroup["nodes"][number]>): string {
+  const lastNode = nodes[nodes.length - 1];
   if (!lastNode) {
     return "empty";
   }
+
   if (lastNode.kind === "userBubble") {
     return `${lastNode.key}:${lastNode.message.status}:${lastNode.message.text.length}`;
   }
   if (lastNode.kind === "assistantMessage") {
-    return `${lastNode.key}:${lastNode.message.status}:${lastNode.message.text.length}:${lastNode.showThinkingIndicator ? "thinking" : "idle"}`;
+    return `${lastNode.key}:${lastNode.message.status}:${lastNode.message.text.length}`;
   }
   if (lastNode.kind === "reasoningBlock") {
-    return `${lastNode.key}:${lastNode.block.summary ?? ""}`;
+    return `${lastNode.key}:${lastNode.block.summary}`;
   }
   if (lastNode.kind === "traceItem") {
     return createTraceScrollKey(lastNode);

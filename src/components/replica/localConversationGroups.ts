@@ -26,7 +26,6 @@ import type {
 } from "../../domain/timeline";
 
 const REASONING_LABEL = "Reasoning";
-const STREAMING_STATUS = "streaming";
 
 export type TraceEntry =
   | CommandExecutionEntry
@@ -58,16 +57,11 @@ export type AuxiliaryBlock =
 export interface ReasoningBlock {
   readonly id: string;
   readonly label: string;
-  readonly summary: string | null;
-}
-
-export interface AssistantRenderMessage {
-  readonly message: ConversationMessage;
-  readonly showThinkingIndicator: boolean;
+  readonly summary: string;
 }
 
 type AssistantFlowNode =
-  | { readonly key: string; readonly kind: "assistantMessage"; readonly message: ConversationMessage; readonly showThinkingIndicator: boolean }
+  | { readonly key: string; readonly kind: "assistantMessage"; readonly message: ConversationMessage }
   | { readonly key: string; readonly kind: "reasoningBlock"; readonly block: ReasoningBlock }
   | { readonly key: string; readonly kind: "traceItem"; readonly item: TraceEntry }
   | { readonly key: string; readonly kind: "requestBlock"; readonly entry: RequestBlock }
@@ -78,6 +72,7 @@ export interface ConversationRenderGroup {
   readonly turnId: string | null;
   readonly userBubble: ConversationMessage | null;
   readonly assistantFlow: ReadonlyArray<AssistantFlowNode>;
+  readonly showThinkingIndicator: boolean;
 }
 
 export type ConversationRenderNode =
@@ -127,27 +122,18 @@ function groupActivitiesByTurn(entries: ReadonlyArray<TimelineEntry>): Array<Arr
 function buildConversationRenderGroup(items: ReadonlyArray<TimelineEntry>, activeTurn: boolean): ConversationRenderGroup {
   const turnId = items[0]?.turnId ?? null;
   const userBubble = items.find(isUserMessage) ?? null;
+  const assistantFlow = createAssistantFlow(items);
   return {
     key: turnId ?? `group-${items[0]?.id ?? "empty"}`,
     turnId,
     userBubble,
-    assistantFlow: createAssistantFlow(items, activeTurn, userBubble),
+    assistantFlow,
+    showThinkingIndicator: shouldShowThinkingIndicator(activeTurn, userBubble, assistantFlow),
   };
 }
 
-function createAssistantFlow(
-  items: ReadonlyArray<TimelineEntry>,
-  activeTurn: boolean,
-  userBubble: ConversationMessage | null,
-): Array<AssistantFlowNode> {
-  const nodes = items.flatMap((entry) => mapAssistantFlowNode(entry));
-  if (!shouldShowThinkingIndicator(activeTurn, userBubble, nodes)) {
-    return nodes;
-  }
-  const lastAssistantIndex = findLastAssistantIndex(nodes);
-  return lastAssistantIndex >= 0
-    ? nodes.map((node, index) => (index === lastAssistantIndex && node.kind === "assistantMessage" ? { ...node, showThinkingIndicator: true } : node))
-    : [...nodes, createAssistantPlaceholder(items[0]?.threadId ?? "thread", items[0]?.turnId ?? null)];
+function createAssistantFlow(items: ReadonlyArray<TimelineEntry>): Array<AssistantFlowNode> {
+  return items.flatMap((entry) => mapAssistantFlowNode(entry));
 }
 
 function mapAssistantFlowNode(entry: TimelineEntry): Array<AssistantFlowNode> {
@@ -155,10 +141,11 @@ function mapAssistantFlowNode(entry: TimelineEntry): Array<AssistantFlowNode> {
     return [];
   }
   if (isAssistantMessage(entry)) {
-    return [{ key: entry.id, kind: "assistantMessage", message: entry, showThinkingIndicator: false }];
+    return [{ key: entry.id, kind: "assistantMessage", message: entry }];
   }
   if (isReasoningEntry(entry)) {
-    return [{ key: entry.id, kind: "reasoningBlock", block: createReasoningBlock(entry) }];
+    const reasoningBlock = createReasoningBlock(entry);
+    return reasoningBlock === null ? [] : [{ key: entry.id, kind: "reasoningBlock", block: reasoningBlock }];
   }
   if (isTraceEntry(entry)) {
     return [{ key: entry.id, kind: "traceItem", item: entry }];
@@ -172,11 +159,16 @@ function mapAssistantFlowNode(entry: TimelineEntry): Array<AssistantFlowNode> {
   return [];
 }
 
-function createReasoningBlock(entry: ReasoningEntry): ReasoningBlock {
+function createReasoningBlock(entry: ReasoningEntry): ReasoningBlock | null {
+  const summary = entry.summary.map((item) => item.trim()).filter(Boolean).join("\n");
+  if (summary.length === 0) {
+    return null;
+  }
+
   return {
     id: entry.id,
     label: REASONING_LABEL,
-    summary: entry.summary.map((item) => item.trim()).filter(Boolean).join("\n") || null,
+    summary,
   };
 }
 
@@ -186,33 +178,6 @@ function shouldShowThinkingIndicator(
   nodes: ReadonlyArray<AssistantFlowNode>,
 ): boolean {
   return activeTurn && userBubble !== null && nodes.every((node) => node.kind !== "requestBlock");
-}
-
-function findLastAssistantIndex(nodes: ReadonlyArray<AssistantFlowNode>): number {
-  for (let index = nodes.length - 1; index >= 0; index -= 1) {
-    if (nodes[index]?.kind === "assistantMessage") {
-      return index;
-    }
-  }
-  return -1;
-}
-
-function createAssistantPlaceholder(threadId: string, turnId: string | null): AssistantFlowNode {
-  return {
-    key: `${turnId ?? "turn"}:assistant:placeholder`,
-    kind: "assistantMessage",
-    showThinkingIndicator: true,
-    message: {
-      id: `${turnId ?? "turn"}:assistant:placeholder`,
-      kind: "agentMessage",
-      role: "assistant",
-      threadId,
-      turnId,
-      itemId: null,
-      text: "",
-      status: STREAMING_STATUS,
-    },
-  };
 }
 
 function isUserMessage(entry: TimelineEntry): entry is ConversationMessage & { kind: "userMessage"; role: "user" } {

@@ -14,16 +14,17 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
   const truncateSummaryWhenCollapsed = model.kind === "details" && model.truncateSummaryWhenCollapsed === true;
 
   if (model.kind === "message" && model.message) {
+    if (model.message.text.trim().length === 0) {
+      return <></>;
+    }
+
     return (
       <article className="home-assistant-transcript-entry home-assistant-transcript-message" data-status={model.message.status}>
-        {model.message.text.trim().length > 0 ? (
-          <ConversationMessageContent
-            className="home-chat-markdown home-chat-markdown-assistant home-chat-markdown-inline"
-            message={model.message}
-            variant="assistant-inline"
-          />
-        ) : null}
-        {model.showThinkingIndicator ? <p className="home-assistant-transcript-line home-assistant-transcript-thinking">正在思考…</p> : null}
+        <ConversationMessageContent
+          className="home-chat-markdown home-chat-markdown-assistant home-chat-markdown-inline"
+          message={model.message}
+          variant="assistant-inline"
+        />
       </article>
     );
   }

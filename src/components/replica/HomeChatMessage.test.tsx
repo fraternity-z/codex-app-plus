@@ -26,7 +26,7 @@ describe("HomeChatMessage", () => {
     expect(container.querySelector(".home-chat-attachments img")?.getAttribute("src")).toBe(dataUrl);
   });
 
-  it("renders the thinking indicator below streaming assistant content", () => {
+  it("renders assistant content without an inline thinking footer", () => {
     const { container } = render(
       <HomeChatMessage
         message={{
@@ -39,7 +39,6 @@ describe("HomeChatMessage", () => {
           text: "正在输出正文",
           status: "streaming",
         }}
-        showThinkingIndicator
       />,
     );
 
@@ -48,11 +47,11 @@ describe("HomeChatMessage", () => {
     );
 
     expect(screen.getByText("正在输出正文")).toBeInTheDocument();
-    expect(screen.getByText("正在思考")).toBeInTheDocument();
-    expect(assistantChildren).toEqual(["home-chat-message-body", "home-chat-thinking-footer"]);
+    expect(screen.queryByText("正在思考")).toBeNull();
+    expect(assistantChildren).toEqual(["home-chat-message-body"]);
   });
 
-  it("renders the thinking indicator without assistant body text", () => {
+  it("does not render an empty assistant body", () => {
     const { container } = render(
       <HomeChatMessage
         message={{
@@ -65,12 +64,10 @@ describe("HomeChatMessage", () => {
           text: "",
           status: "streaming",
         }}
-        showThinkingIndicator
       />,
     );
 
-    expect(screen.getByText("正在思考")).toBeInTheDocument();
     expect(container.querySelector(".home-chat-message-body")).toBeNull();
-    expect(container.querySelector(".home-chat-thinking-footer")).not.toBeNull();
+    expect(container.querySelector(".home-chat-thinking-footer")).toBeNull();
   });
 });

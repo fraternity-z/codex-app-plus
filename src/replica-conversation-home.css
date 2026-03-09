@@ -102,6 +102,10 @@
   margin-top: 6px;
 }
 
+.home-turn-thinking-indicator {
+  align-self: flex-start;
+}
+
 .home-chat-thinking-label {
   color: #94a3b8;
   font-size: 13px;
