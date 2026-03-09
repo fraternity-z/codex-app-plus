@@ -198,7 +198,8 @@
   padding: 8px;
 }
 .composer-select-menu-model {
-  width: 212px;
+  width: 240px;
+  overflow: visible;
 }
 .composer-select-menu-effort {
   width: 170px;
@@ -239,6 +240,90 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.composer-select-menu-separator {
+  height: 1px;
+  margin: 6px 4px;
+  background: #ececec;
+}
+.composer-select-folder {
+  position: relative;
+}
+.composer-select-folder::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 100%;
+  width: 14px;
+  height: calc(100% + 16px);
+}
+.composer-select-folder-trigger {
+  width: 100%;
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  color: #2f2f2f;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.composer-select-folder-trigger:hover,
+.composer-select-folder-trigger-active {
+  background: #f1f1f1;
+}
+.composer-select-folder-icon {
+  width: 16px;
+  height: 16px;
+  color: #6d6d6d;
+  flex-shrink: 0;
+}
+.composer-select-folder-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.composer-select-folder-count {
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #f3f3f3;
+  color: #6f6f6f;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.composer-select-folder-caret {
+  width: 14px;
+  height: 14px;
+  color: #8f8f8f;
+}
+.composer-select-submenu {
+  position: absolute;
+  left: calc(100% + 2px);
+  bottom: -8px;
+  width: 240px;
+  border: 1px solid #dedede;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 6px 10px 22px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.composer-select-submenu-open {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
 }
 .composer-select-brain {
   width: 16px;

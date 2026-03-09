@@ -4,10 +4,11 @@ import type { Model } from "../protocol/generated/v2/Model";
 import type { ModelListResponse } from "../protocol/generated/v2/ModelListResponse";
 
 const MODEL_PAGE_SIZE = 100;
+const PRIMARY_COMPOSER_MODEL_COUNT = 5;
 const REASONING_EFFORT_VALUES = ["none", "minimal", "low", "medium", "high", "xhigh"] as const satisfies ReadonlyArray<ReasoningEffort>;
 const REASONING_EFFORT_SET = new Set<ReasoningEffort>(REASONING_EFFORT_VALUES);
 
-export const DEFAULT_COMPOSER_MODEL_LABEL = "GPT-5.2";
+export const DEFAULT_COMPOSER_MODEL_LABEL = "gpt-5.4";
 
 export interface ComposerSelection {
   readonly model: string | null;
@@ -22,6 +23,22 @@ export interface ComposerModelOption {
   readonly supportedEfforts: ReadonlyArray<ReasoningEffort>;
   readonly isDefault: boolean;
 }
+
+interface ComposerModelGroups {
+  readonly primaryModels: ReadonlyArray<ComposerModelOption>;
+  readonly extraModels: ReadonlyArray<ComposerModelOption>;
+}
+
+const PINNED_COMPOSER_MODELS = Object.freeze<ReadonlyArray<ComposerModelOption>>([
+  {
+    id: "builtin-gpt-5.4",
+    value: "gpt-5.4",
+    label: "gpt-5.4",
+    defaultEffort: "high",
+    supportedEfforts: ["low", "medium", "high", "xhigh"],
+    isDefault: false
+  }
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -46,6 +63,43 @@ function toComposerModelOption(model: Model): ComposerModelOption {
     defaultEffort: model.defaultReasoningEffort,
     supportedEfforts: collectSupportedEfforts(model),
     isDefault: model.isDefault
+  };
+}
+
+function dedupeComposerModels(models: ReadonlyArray<ComposerModelOption>): ReadonlyArray<ComposerModelOption> {
+  const seen = new Set<string>();
+  const unique: Array<ComposerModelOption> = [];
+
+  for (const model of models) {
+    if (seen.has(model.value)) {
+      continue;
+    }
+    seen.add(model.value);
+    unique.push(model);
+  }
+
+  return unique;
+}
+
+export function prioritizeComposerModels(
+  models: ReadonlyArray<ComposerModelOption>
+): ReadonlyArray<ComposerModelOption> {
+  const remaining = [...dedupeComposerModels(models)];
+  const prioritized = PINNED_COMPOSER_MODELS.map((pinned) => {
+    const index = remaining.findIndex((model) => model.value === pinned.value);
+    return index === -1 ? pinned : remaining.splice(index, 1)[0];
+  });
+
+  return [...prioritized, ...remaining];
+}
+
+export function partitionComposerModels(
+  models: ReadonlyArray<ComposerModelOption>
+): ComposerModelGroups {
+  const prioritized = prioritizeComposerModels(models);
+  return {
+    primaryModels: prioritized.slice(0, PRIMARY_COMPOSER_MODEL_COUNT),
+    extraModels: prioritized.slice(PRIMARY_COMPOSER_MODEL_COUNT)
   };
 }
 
@@ -106,5 +160,5 @@ export async function listComposerModels(hostBridge: HostBridge): Promise<Readon
     cursor = response.nextCursor;
   } while (cursor !== null);
 
-  return models;
+  return prioritizeComposerModels(models);
 }

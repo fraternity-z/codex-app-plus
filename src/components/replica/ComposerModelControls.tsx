@@ -1,7 +1,8 @@
-﻿import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_COMPOSER_MODEL_LABEL,
   getComposerModelLabel,
+  partitionComposerModels,
   type ComposerModelOption
 } from "../../app/composerPreferences";
 import type { ReasoningEffort } from "../../protocol/generated/ReasoningEffort";
@@ -14,6 +15,7 @@ import {
 import { useToolbarMenuDismissal } from "./useToolbarMenuDismissal";
 
 type ComposerMenu = "model" | "effort" | null;
+const EXTRA_MODELS_CLOSE_DELAY_MS = 160;
 
 function BrainIcon(props: { readonly className?: string }): JSX.Element {
   return (
@@ -29,6 +31,19 @@ function BrainIcon(props: { readonly className?: string }): JSX.Element {
   );
 }
 
+function FolderIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M2.333 4.5A1.167 1.167 0 0 1 3.5 3.333h2.167l1.167 1.334h5.666A1.167 1.167 0 0 1 13.667 5.833v5.667a1.167 1.167 0 0 1-1.167 1.167H3.5A1.167 1.167 0 0 1 2.333 11.5V4.5Z"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function MenuCheck(): JSX.Element {
   return (
     <span className="composer-select-check" aria-hidden="true">
@@ -37,31 +52,141 @@ function MenuCheck(): JSX.Element {
   );
 }
 
+function ModelMenuItem(props: {
+  readonly model: ComposerModelOption;
+  readonly selected: boolean;
+  readonly onSelectModel: (model: string) => void;
+}): JSX.Element {
+  const itemClassName = props.selected
+    ? "composer-select-menu-item composer-select-menu-item-selected"
+    : "composer-select-menu-item";
+
+  return (
+    <button
+      type="button"
+      className={itemClassName}
+      role="menuitemradio"
+      aria-checked={props.selected}
+      onClick={() => props.onSelectModel(props.model.value)}
+    >
+      <span className="composer-select-menu-item-label">{props.model.label}</span>
+      {props.selected ? <MenuCheck /> : null}
+    </button>
+  );
+}
+
+function useDelayedSubmenuState(): {
+  readonly open: boolean;
+  readonly openMenu: () => void;
+  readonly closeMenu: () => void;
+  readonly toggleMenu: () => void;
+} {
+  const [open, setOpen] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => clearCloseTimer, []);
+
+  return {
+    open,
+    openMenu: () => {
+      clearCloseTimer();
+      setOpen(true);
+    },
+    closeMenu: () => {
+      clearCloseTimer();
+      closeTimerRef.current = window.setTimeout(() => {
+        setOpen(false);
+        closeTimerRef.current = null;
+      }, EXTRA_MODELS_CLOSE_DELAY_MS);
+    },
+    toggleMenu: () => {
+      clearCloseTimer();
+      setOpen((value) => !value);
+    }
+  };
+}
+
+function ExtraModelsFolder(props: {
+  readonly models: ReadonlyArray<ComposerModelOption>;
+  readonly selectedModel: string | null;
+  readonly onSelectModel: (model: string) => void;
+}): JSX.Element {
+  const submenu = useDelayedSubmenuState();
+  const open = submenu.open;
+  const triggerClassName = open
+    ? "composer-select-folder-trigger composer-select-folder-trigger-active"
+    : "composer-select-folder-trigger";
+  const submenuClassName = open
+    ? "composer-select-submenu composer-select-submenu-open"
+    : "composer-select-submenu";
+
+  return (
+    <div className="composer-select-folder" onMouseEnter={submenu.openMenu} onMouseLeave={submenu.closeMenu}>
+      <button
+        type="button"
+        className={triggerClassName}
+        role="menuitem"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={submenu.toggleMenu}
+      >
+        <span className="composer-select-menu-item-left">
+          <FolderIcon className="composer-select-folder-icon" />
+          <span className="composer-select-menu-item-label">Extra models</span>
+        </span>
+        <span className="composer-select-folder-meta">
+          <span className="composer-select-folder-count">{props.models.length}</span>
+          <OfficialChevronRightIcon className="composer-select-folder-caret" />
+        </span>
+      </button>
+      <div className={submenuClassName} role="menu" aria-label="Extra models" aria-hidden={!open}>
+        <div className="composer-select-menu-title">Extra models</div>
+        {props.models.map((model) => (
+          <ModelMenuItem
+            key={model.id}
+            model={model}
+            selected={model.value === props.selectedModel}
+            onSelectModel={props.onSelectModel}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ModelMenu(props: {
   readonly models: ReadonlyArray<ComposerModelOption>;
   readonly selectedModel: string | null;
   readonly onSelectModel: (model: string) => void;
 }): JSX.Element {
+  const { primaryModels, extraModels } = useMemo(() => partitionComposerModels(props.models), [props.models]);
+
   return (
     <div className="composer-select-menu composer-select-menu-model" role="menu" aria-label="选择模型">
       <div className="composer-select-menu-title">选择模型</div>
-      {props.models.map((model) => {
-        const selected = model.value === props.selectedModel;
-        const itemClassName = selected ? "composer-select-menu-item composer-select-menu-item-selected" : "composer-select-menu-item";
-        return (
-          <button
-            key={model.id}
-            type="button"
-            className={itemClassName}
-            role="menuitemradio"
-            aria-checked={selected}
-            onClick={() => props.onSelectModel(model.value)}
-          >
-            <span className="composer-select-menu-item-label">{model.label}</span>
-            {selected ? <MenuCheck /> : null}
-          </button>
-        );
-      })}
+      {primaryModels.map((model) => (
+        <ModelMenuItem
+          key={model.id}
+          model={model}
+          selected={model.value === props.selectedModel}
+          onSelectModel={props.onSelectModel}
+        />
+      ))}
+      {extraModels.length > 0 ? <div className="composer-select-menu-separator" aria-hidden="true" /> : null}
+      {extraModels.length > 0 ? (
+        <ExtraModelsFolder
+          models={extraModels}
+          selectedModel={props.selectedModel}
+          onSelectModel={props.onSelectModel}
+        />
+      ) : null}
     </div>
   );
 }
@@ -115,6 +240,7 @@ export function ComposerModelControls(props: {
   const [openMenu, setOpenMenu] = useState<ComposerMenu>(null);
   const modelLabel = getComposerModelLabel(props.models, props.selectedModel);
   const effortLabel = getReasoningEffortLabel(props.selectedEffort);
+
   useToolbarMenuDismissal(openMenu !== null, containerRef, () => setOpenMenu(null));
 
   const onSelectModel = (model: string) => {
@@ -130,7 +256,9 @@ export function ComposerModelControls(props: {
   return (
     <div className="composer-select-group" ref={containerRef}>
       <div className="composer-select-anchor">
-        {openMenu === "model" ? <ModelMenu models={props.models} selectedModel={props.selectedModel} onSelectModel={onSelectModel} /> : null}
+        {openMenu === "model" ? (
+          <ModelMenu models={props.models} selectedModel={props.selectedModel} onSelectModel={onSelectModel} />
+        ) : null}
         <button
           type="button"
           className={openMenu === "model" ? "composer-select-trigger composer-select-trigger-active" : "composer-select-trigger"}

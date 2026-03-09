@@ -17,9 +17,8 @@ describe("reasoningEffortOptions", () => {
   });
 
   it("uses none for the lowest visible effort when the model only exposes none", () => {
-    expect(listSelectableReasoningEfforts(["none", "low", "medium", "high", "xhigh"], "high")).toEqual([
+    expect(listSelectableReasoningEfforts(["none", "medium", "high", "xhigh"], "high")).toEqual([
       { value: "none", label: "极低" },
-      { value: "low", label: "低" },
       { value: "medium", label: "中" },
       { value: "high", label: "高" },
       { value: "xhigh", label: "超高" }
