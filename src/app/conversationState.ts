@@ -168,12 +168,12 @@ function updateTurn(conversation: ConversationState, turnId: string | null, upda
 
 export function createConversationFromThread(thread: Thread, options?: { hidden?: boolean; resumeState?: ConversationState["resumeState"] }): ConversationState {
   const activeFlags = thread.status.type === "active" ? thread.status.activeFlags : [];
-  return { id: thread.id, title: thread.name ?? thread.preview, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, status: thread.status.type, activeFlags, resumeState: options?.resumeState ?? "needs_resume", turns: thread.turns.map((turn) => createTurnState(turn, null)), queuedFollowUps: [], interruptRequestedTurnId: null, hidden: options?.hidden ?? false };
+  return { id: thread.id, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, status: thread.status.type, activeFlags, resumeState: options?.resumeState ?? "needs_resume", turns: thread.turns.map((turn) => createTurnState(turn, null)), queuedFollowUps: [], interruptRequestedTurnId: null, hidden: options?.hidden ?? false };
 }
 
 export function hydrateConversationFromThread(conversation: ConversationState, thread: Thread): ConversationState {
   const activeFlags = thread.status.type === "active" ? thread.status.activeFlags : [];
-  return { ...conversation, title: thread.name ?? thread.preview, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, status: thread.status.type, activeFlags, resumeState: "resumed", turns: thread.turns.map((turn) => createTurnState(turn, conversation.turns.find((item) => item.turnId === turn.id)?.params ?? null)) };
+  return { ...conversation, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, status: thread.status.type, activeFlags, resumeState: "resumed", turns: thread.turns.map((turn) => createTurnState(turn, conversation.turns.find((item) => item.turnId === turn.id)?.params ?? null)) };
 }
 
 export function setConversationHidden(conversation: ConversationState, hidden: boolean): ConversationState {

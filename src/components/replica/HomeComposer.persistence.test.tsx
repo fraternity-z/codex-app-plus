@@ -4,24 +4,53 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComposerModelOption } from "../../app/composerPreferences";
 import { HomeComposer } from "./HomeComposer";
 
-const MODELS: ReadonlyArray<ComposerModelOption> = [
-  {
-    id: "model-1",
-    value: "gpt-5.2",
-    label: "GPT-5.2",
-    defaultEffort: "medium",
-    supportedEfforts: ["low", "medium"],
-    isDefault: true
-  },
-  {
-    id: "model-2",
-    value: "gpt-5.4",
-    label: "GPT-5.4",
-    defaultEffort: "high",
-    supportedEfforts: ["low", "medium", "high", "xhigh"],
-    isDefault: false
-  }
-];
+const MODELS: ReadonlyArray<ComposerModelOption> = [{
+  id: "model-1",
+  value: "gpt-5.2",
+  label: "GPT-5.2",
+  defaultEffort: "xhigh",
+  supportedEfforts: ["minimal", "low", "medium", "high", "xhigh"],
+  isDefault: true
+}];
+
+function createGitController(): import("./git/types").WorkspaceGitController {
+  return {
+    loading: false,
+    pendingAction: null,
+    status: null,
+    statusLoaded: false,
+    hasRepository: false,
+    error: null,
+    notice: null,
+    commitMessage: "",
+    selectedBranch: "",
+    newBranchName: "",
+    diff: null,
+    diffCache: {},
+    diffTarget: null,
+    loadingDiffKeys: [],
+    staleDiffKeys: [],
+    refresh: vi.fn().mockResolvedValue(undefined),
+    initRepository: vi.fn().mockResolvedValue(undefined),
+    fetch: vi.fn().mockResolvedValue(undefined),
+    pull: vi.fn().mockResolvedValue(undefined),
+    push: vi.fn().mockResolvedValue(undefined),
+    stagePaths: vi.fn().mockResolvedValue(undefined),
+    unstagePaths: vi.fn().mockResolvedValue(undefined),
+    discardPaths: vi.fn().mockResolvedValue(undefined),
+    commit: vi.fn().mockResolvedValue(undefined),
+    checkoutBranch: vi.fn().mockResolvedValue(true),
+    createBranchFromName: vi.fn().mockResolvedValue(true),
+    checkoutSelectedBranch: vi.fn().mockResolvedValue(true),
+    createBranch: vi.fn().mockResolvedValue(true),
+    ensureDiff: vi.fn().mockResolvedValue(undefined),
+    selectDiff: vi.fn().mockResolvedValue(undefined),
+    clearDiff: vi.fn(),
+    setCommitMessage: vi.fn(),
+    setSelectedBranch: vi.fn(),
+    setNewBranchName: vi.fn()
+  };
+}
 
 function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>) {
   const onSendTurn = vi.fn().mockResolvedValue(undefined);
@@ -30,7 +59,7 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
   render(
     <HomeComposer
       busy={false}
-      inputText="检查持久化"
+      inputText="妫€鏌ユ寔涔呭寲"
       models={MODELS}
       defaultModel="custom-model"
       defaultEffort="high"
@@ -39,12 +68,16 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
       followUpQueueMode="queue"
       composerEnterBehavior="enter"
       permissionLevel="default"
+      gitController={createGitController()}
+      selectedThreadId={"thread-1"}
+      selectedThreadBranch={null}
       isResponding={false}
       interruptPending={false}
       onInputChange={vi.fn()}
       onSendTurn={onSendTurn}
       onPersistComposerSelection={onPersistComposerSelection}
       onSelectPermissionLevel={vi.fn()}
+      onUpdateThreadBranch={vi.fn().mockResolvedValue(undefined)}
       onInterruptTurn={vi.fn().mockResolvedValue(undefined)}
       onRemoveQueuedFollowUp={vi.fn()}
       onClearQueuedFollowUps={vi.fn()}

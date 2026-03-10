@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { WorkspaceRoot } from "../../app/useWorkspaceRoots";
@@ -14,6 +14,7 @@ function createThread(root: WorkspaceRoot, index: number): ThreadSummary {
   return {
     id: `thread-${root.id}-${index}`,
     title: `${root.name} Thread ${index}`,
+    branch: null,
     cwd: root.path,
     archived: false,
     updatedAt: `2026-03-${String(index).padStart(2, "0")}T10:00:00.000Z`,

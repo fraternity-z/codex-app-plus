@@ -71,6 +71,7 @@ export type ConversationResumeState = "needs_resume" | "resuming" | "resumed";
 export interface ConversationState {
   id: string;
   title: string | null;
+  branch: string | null;
   cwd: string | null;
   updatedAt: string;
   source: unknown;

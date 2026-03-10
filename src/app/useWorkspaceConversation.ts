@@ -5,6 +5,7 @@ import type { HostBridge } from "../bridge/types";
 import type { CollaborationModePreset, FollowUpMode, QueuedFollowUp, ThreadSummary, TimelineEntry } from "../domain/timeline";
 import type { ThreadResumeResponse } from "../protocol/generated/v2/ThreadResumeResponse";
 import type { ThreadStartResponse } from "../protocol/generated/v2/ThreadStartResponse";
+import type { ThreadMetadataUpdateResponse } from "../protocol/generated/v2/ThreadMetadataUpdateResponse";
 import type { TurnStartParams } from "../protocol/generated/v2/TurnStartParams";
 import type { TurnStartResponse } from "../protocol/generated/v2/TurnStartResponse";
 import type { TurnSteerParams } from "../protocol/generated/v2/TurnSteerParams";
@@ -22,19 +23,16 @@ import {
   type ComposerPermissionLevel,
 } from "./composerPermission";
 import { listThreadsForWorkspace } from "./workspaceThread";
-
 export interface SendTurnOptions {
   readonly selection: ComposerSelection;
   readonly permissionLevel: ComposerPermissionLevel;
   readonly planModeEnabled: boolean;
   readonly followUpOverride?: FollowUpMode | null;
 }
-
 interface CreateThreadOptions {
   readonly model?: string | null;
   readonly permissionLevel?: ComposerPermissionLevel;
 }
-
 interface WorkspaceConversationController {
   readonly selectedThreadId: string | null;
   readonly selectedThread: ThreadSummary | null;
@@ -50,33 +48,29 @@ interface WorkspaceConversationController {
   selectThread: (threadId: string | null) => void;
   sendTurn: (options: SendTurnOptions) => Promise<void>;
   interruptActiveTurn: () => Promise<void>;
+  updateThreadBranch: (branch: string) => Promise<void>;
   removeQueuedFollowUp: (followUpId: string) => void;
   clearQueuedFollowUps: () => void;
 }
-
 interface UseWorkspaceConversationOptions {
   readonly hostBridge: HostBridge;
   readonly selectedRootPath: string | null;
   readonly collaborationModes: ReadonlyArray<CollaborationModePreset>;
   readonly followUpQueueMode: FollowUpMode;
 }
-
 function createInput(text: string): Array<UserInput> {
   return [{ type: "text", text, text_elements: [] }];
 }
-
 function createQueuedFollowUp(text: string, options: SendTurnOptions): QueuedFollowUp {
   return { id: `follow-up-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`, text, model: options.selection.model, effort: options.selection.effort, permissionLevel: options.permissionLevel, planModeEnabled: options.planModeEnabled, mode: options.followUpOverride ?? "queue", createdAt: new Date().toISOString() };
 }
-
 function resolvePlanMode(modes: ReadonlyArray<CollaborationModePreset>, selection: ComposerSelection): CollaborationMode | undefined {
   const preset = modes.find((mode) => mode.mode === "plan") ?? null;
   if (preset === null) {
-    throw new Error("当前 app-server 未暴露计划模式 preset。");
+    throw new Error("当前 app-server 未暴露 plan 模式 preset。");
   }
   return { mode: "plan", settings: { model: preset.model ?? selection.model ?? "", reasoning_effort: preset.reasoningEffort ?? selection.effort ?? null, developer_instructions: null } };
 }
-
 export function useWorkspaceConversation(options: UseWorkspaceConversationOptions): WorkspaceConversationController {
   const { state, dispatch } = useAppStore();
   const resumingConversationIds = useRef(new Set<string>());
@@ -95,7 +89,6 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
   const queuedFollowUps = selectedConversation?.queuedFollowUps ?? [];
   const isResponding = activeTurnId !== null;
   const interruptPending = activeTurnId !== null && selectedConversation?.interruptRequestedTurnId === activeTurnId;
-
   useEffect(() => {
     const activeKey = selectedConversation === null || activeTurnId === null ? null : `${selectedConversation.id}:${activeTurnId}`;
     if (interruptPending) {
@@ -112,7 +105,6 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
       }
     }
   }, [activeTurnId, interruptPending, selectedConversation]);
-
   const ensureConversationResumed = useCallback(async (conversationId: string) => {
     const conversation = state.conversationsById[conversationId] ?? null;
     if (conversation === null || conversation.resumeState === "resumed" || resumingConversationIds.current.has(conversationId)) {
@@ -127,13 +119,11 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
       resumingConversationIds.current.delete(conversationId);
     }
   }, [dispatch, options.hostBridge.rpc, state.conversationsById]);
-
   useEffect(() => {
     if (selectedConversation !== null && selectedConversation.resumeState === "needs_resume") {
       void ensureConversationResumed(selectedConversation.id);
     }
   }, [ensureConversationResumed, selectedConversation]);
-
   const createThread = useCallback(async (createOptions?: CreateThreadOptions) => {
     if (options.selectedRootPath === null) {
       throw new Error("请先选择工作区。");
@@ -150,7 +140,6 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     dispatch({ type: "conversation/selected", conversationId: conversation.id });
     dispatch({ type: "conversation/draftCleared" });
   }, [dispatch, options.hostBridge.rpc, options.selectedRootPath]);
-
   const startTurn = useCallback(async (conversationId: string, text: string, sendOptions: SendTurnOptions, cwdOverride: string | null) => {
     const collaborationMode = sendOptions.planModeEnabled ? resolvePlanMode(options.collaborationModes, sendOptions.selection) : undefined;
     dispatch({ type: "conversation/turnPlaceholderAdded", conversationId, params: { input: createInput(text), cwd: cwdOverride, model: sendOptions.selection.model, effort: sendOptions.selection.effort, collaborationMode: collaborationMode ?? null } });
@@ -159,7 +148,6 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     dispatch({ type: "conversation/turnStarted", conversationId, turn: response.turn });
     dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });
   }, [dispatch, options.collaborationModes, options.hostBridge.rpc]);
-
   const startNewConversation = useCallback(async (text: string, sendOptions: SendTurnOptions) => {
     const workspacePath = state.draftConversation?.workspacePath ?? options.selectedRootPath;
     if (workspacePath === null) {
@@ -173,13 +161,11 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     dispatch({ type: "conversation/draftCleared" });
     await startTurn(conversation.id, text, sendOptions, response.thread.cwd || response.cwd || workspacePath);
   }, [dispatch, options.hostBridge.rpc, options.selectedRootPath, startTurn, state.draftConversation]);
-
   const steerTurn = useCallback(async (conversationId: string, turnId: string, text: string) => {
     const params: TurnSteerParams = { threadId: conversationId, input: createInput(text), expectedTurnId: turnId };
     await options.hostBridge.rpc.request({ method: "turn/steer", params });
     dispatch({ type: "conversation/itemCompleted", conversationId, turnId, item: { type: "userMessage", id: `steer-${Date.now()}`, content: createInput(text) } });
   }, [dispatch, options.hostBridge.rpc]);
-
   const interruptTurn = useCallback(async (conversationId: string, turnId: string) => {
     const requestKey = `${conversationId}:${turnId}`;
     if (interruptRequestKeys.current.has(requestKey)) {
@@ -195,7 +181,6 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
       throw error;
     }
   }, [dispatch, options.hostBridge.rpc]);
-
   const processQueuedFollowUp = useCallback(async (conversationId: string) => {
     if (drainingConversationIds.current.has(conversationId)) {
       return;
@@ -214,14 +199,12 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
       drainingConversationIds.current.delete(conversationId);
     }
   }, [dispatch, ensureConversationResumed, options.selectedRootPath, startTurn, state.conversationsById]);
-
   useEffect(() => {
     const nextConversation = visibleConversations.find((conversation) => conversation.queuedFollowUps.length > 0 && isConversationStreaming(conversation) === false) ?? null;
     if (nextConversation !== null) {
       void processQueuedFollowUp(nextConversation.id);
     }
   }, [processQueuedFollowUp, visibleConversations]);
-
   const sendTurn = useCallback(async (sendOptions: SendTurnOptions) => {
     const text = state.inputText.trim();
     if (text.length === 0) {
@@ -252,30 +235,32 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
       await interruptTurn(selectedConversation.id, activeTurnId);
     }
   }, [dispatch, ensureConversationResumed, interruptTurn, options.followUpQueueMode, options.selectedRootPath, selectedConversation, startNewConversation, startTurn, state.conversationsById, state.inputText, steerTurn]);
-
   const interruptActiveTurn = useCallback(async () => {
     if (selectedConversation === null || activeTurnId === null || selectedConversation.interruptRequestedTurnId === activeTurnId) {
       return;
     }
     await interruptTurn(selectedConversation.id, activeTurnId);
   }, [activeTurnId, interruptTurn, selectedConversation]);
-
   const selectThread = useCallback((threadId: string | null) => {
     dispatch({ type: "conversation/selected", conversationId: threadId });
   }, [dispatch]);
-
+  const updateThreadBranch = useCallback(async (branch: string) => {
+    if (selectedConversation === null) {
+      return;
+    }
+    const response = (await options.hostBridge.rpc.request({ method: "thread/metadata/update", params: { threadId: selectedConversation.id, gitInfo: { branch } } })).result as ThreadMetadataUpdateResponse;
+    dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(response.thread, { hidden: selectedConversation.hidden, resumeState: selectedConversation.resumeState }) });
+  }, [dispatch, options.hostBridge.rpc, selectedConversation]);
   const removeQueuedFollowUp = useCallback((followUpId: string) => {
     if (selectedConversation !== null) {
       dispatch({ type: "followUp/removed", conversationId: selectedConversation.id, followUpId });
     }
   }, [dispatch, selectedConversation]);
-
   const clearQueuedFollowUps = useCallback(() => {
     if (selectedConversation !== null) {
       dispatch({ type: "followUp/cleared", conversationId: selectedConversation.id });
     }
   }, [dispatch, selectedConversation]);
-
   return {
     selectedThreadId: selectedConversation?.id ?? null,
     selectedThread,
@@ -291,6 +276,7 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     selectThread,
     sendTurn,
     interruptActiveTurn,
+    updateThreadBranch,
     removeQueuedFollowUp,
     clearQueuedFollowUps
   };

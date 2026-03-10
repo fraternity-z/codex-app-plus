@@ -121,8 +121,8 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       try {
         await conversation.sendTurn(sendOptions);
       } catch (error) {
-        console.error("发送工作区消息失败", error);
-        window.alert(`发送工作区消息失败: ${String(error)}`);
+        console.error("鍙戦€佸伐浣滃尯娑堟伅澶辫触", error);
+        window.alert(`鍙戦€佸伐浣滃尯娑堟伅澶辫触: ${String(error)}`);
       }
     },
     [conversation]
@@ -131,7 +131,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const persistComposerSelection = useCallback(
     async (selection: ComposerSelection) => {
       if (selection.model === null || selection.effort === null) {
-        throw new Error("Composer 模型和思考强度不能为空");
+        throw new Error("Composer 模型和思考强度不能为空。");
       }
 
       const writeTarget = readUserConfigWriteTarget(controller.state.configSnapshot);
@@ -224,6 +224,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       onCreateThread={createWorkspaceThread}
       onSendTurn={sendWorkspaceTurn}
       onPersistComposerSelection={persistComposerSelection}
+      onUpdateThreadBranch={conversation.updateThreadBranch}
       onInterruptTurn={conversation.interruptActiveTurn}
       onAddRoot={addRoot}
       onRemoveRoot={workspace.removeRoot}

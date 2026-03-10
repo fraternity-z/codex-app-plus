@@ -30,8 +30,10 @@ export interface WorkspaceGitController {
   readonly unstagePaths: (paths: ReadonlyArray<string>) => Promise<void>;
   readonly discardPaths: (paths: ReadonlyArray<string>, deleteUntracked: boolean) => Promise<void>;
   readonly commit: () => Promise<void>;
-  readonly checkoutSelectedBranch: () => Promise<void>;
-  readonly createBranch: () => Promise<void>;
+  readonly checkoutBranch: (branchName: string) => Promise<boolean>;
+  readonly createBranchFromName: (branchName: string) => Promise<boolean>;
+  readonly checkoutSelectedBranch: () => Promise<boolean>;
+  readonly createBranch: () => Promise<boolean>;
   readonly ensureDiff: (path: string, staged: boolean) => Promise<void>;
   readonly selectDiff: (path: string, staged: boolean) => Promise<void>;
   readonly clearDiff: () => void;

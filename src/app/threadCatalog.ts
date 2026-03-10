@@ -1,4 +1,4 @@
-﻿import type { ThreadSummary } from "../domain/types";
+import type { ThreadSummary } from "../domain/types";
 import type { CodexSessionSummaryOutput } from "../bridge/types";
 import { mapThreadListResponse } from "../protocol/mappers";
 import type { ThreadListParams } from "../protocol/generated/v2/ThreadListParams";
@@ -19,6 +19,7 @@ function mergeThreadSummary(primary: ThreadSummary, secondary: ThreadSummary): T
   return {
     ...primary,
     title: hasThreadText(primary.title) ? primary.title : secondary.title,
+    branch: hasThreadText(primary.branch) ? primary.branch : secondary.branch,
     cwd: hasThreadText(primary.cwd) ? primary.cwd : secondary.cwd,
     updatedAt:
       toUpdatedAtTimestamp(primary.updatedAt) >= toUpdatedAtTimestamp(secondary.updatedAt)
@@ -57,6 +58,7 @@ export function mapCodexSessionsToThreads(sessions: ReadonlyArray<CodexSessionSu
   return sessions.map((session) => ({
     id: session.id,
     title: session.title,
+    branch: null,
     cwd: session.cwd,
     archived: false,
     updatedAt: session.updatedAt,

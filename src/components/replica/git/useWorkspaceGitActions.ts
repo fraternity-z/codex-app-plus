@@ -45,7 +45,6 @@ function useRunAction(options: UseWorkspaceGitActionsOptions) {
 
 export function useWorkspaceGitActions(options: UseWorkspaceGitActionsOptions) {
   const runAction = useRunAction(options);
-
   const stagePaths = useCallback(async (paths: ReadonlyArray<string>) => {
     const normalized = normalizePaths(paths);
     if (normalized.length === 0) {
@@ -53,7 +52,6 @@ export function useWorkspaceGitActions(options: UseWorkspaceGitActionsOptions) {
     }
     await runAction("暂存更改", (repoPath) => options.hostBridge.git.stagePaths({ repoPath, paths: normalized }), "已更新暂存区。");
   }, [options.hostBridge.git, runAction]);
-
   const unstagePaths = useCallback(async (paths: ReadonlyArray<string>) => {
     const normalized = normalizePaths(paths);
     if (normalized.length === 0) {
@@ -61,7 +59,6 @@ export function useWorkspaceGitActions(options: UseWorkspaceGitActionsOptions) {
     }
     await runAction("取消暂存", (repoPath) => options.hostBridge.git.unstagePaths({ repoPath, paths: normalized }), "已更新暂存区。");
   }, [options.hostBridge.git, runAction]);
-
   const discardPaths = useCallback(async (paths: ReadonlyArray<string>, deleteUntracked: boolean) => {
     const normalized = normalizePaths(paths);
     if (normalized.length === 0) {
@@ -69,13 +66,8 @@ export function useWorkspaceGitActions(options: UseWorkspaceGitActionsOptions) {
     }
     const actionName = deleteUntracked ? "删除未跟踪文件" : "还原工作区";
     const successText = deleteUntracked ? "未跟踪文件已删除。" : "工作区更改已还原。";
-    await runAction(
-      actionName,
-      (repoPath) => options.hostBridge.git.discardPaths({ repoPath, paths: normalized, deleteUntracked }),
-      successText
-    );
+    await runAction(actionName, (repoPath) => options.hostBridge.git.discardPaths({ repoPath, paths: normalized, deleteUntracked }), successText);
   }, [options.hostBridge.git, runAction]);
-
   const commit = useCallback(async () => {
     const message = options.commitMessage.trim();
     if (message.length === 0) {
@@ -86,46 +78,38 @@ export function useWorkspaceGitActions(options: UseWorkspaceGitActionsOptions) {
       options.setCommitMessage("");
     }
   }, [options.commitMessage, options.hostBridge.git, options.setCommitMessage, runAction]);
-
-  const checkoutSelectedBranch = useCallback(async () => {
-    const branchName = options.selectedBranch.trim();
-    if (branchName.length === 0) {
-      return;
+  const checkoutBranch = useCallback(async (branchName: string) => {
+    const normalizedBranchName = branchName.trim();
+    if (normalizedBranchName.length === 0) {
+      return false;
     }
-    await runAction("切换分支", (repoPath) => options.hostBridge.git.checkout({ repoPath, branchName, create: false }), `已切换到分支 ${branchName}。`);
-  }, [options.hostBridge.git, options.selectedBranch, runAction]);
-
-  const createBranch = useCallback(async () => {
-    const branchName = options.newBranchName.trim();
-    if (branchName.length === 0) {
-      return;
+    return runAction("切换分支", (repoPath) => options.hostBridge.git.checkout({ repoPath, branchName: normalizedBranchName, create: false }), `已切换到分支 ${normalizedBranchName}。`);
+  }, [options.hostBridge.git, runAction]);
+  const checkoutSelectedBranch = useCallback(() => checkoutBranch(options.selectedBranch), [checkoutBranch, options.selectedBranch]);
+  const createBranchFromName = useCallback(async (branchName: string) => {
+    const normalizedBranchName = branchName.trim();
+    if (normalizedBranchName.length === 0) {
+      return false;
     }
-    const succeeded = await runAction(
-      "新建分支",
-      (repoPath) => options.hostBridge.git.checkout({ repoPath, branchName, create: true }),
-      `已创建并切换到分支 ${branchName}。`
-    );
+    const succeeded = await runAction("新建分支", (repoPath) => options.hostBridge.git.checkout({ repoPath, branchName: normalizedBranchName, create: true }), `已创建并切换到分支 ${normalizedBranchName}。`);
     if (succeeded) {
       options.setNewBranchName("");
     }
-  }, [options.hostBridge.git, options.newBranchName, options.setNewBranchName, runAction]);
-
+    return succeeded;
+  }, [options.hostBridge.git, options.setNewBranchName, runAction]);
+  const createBranch = useCallback(() => createBranchFromName(options.newBranchName), [createBranchFromName, options.newBranchName]);
   const initRepository = useCallback(async () => {
     await runAction("初始化 Git 仓库", (repoPath) => options.hostBridge.git.initRepository({ repoPath }), "Git 仓库已初始化。");
   }, [options.hostBridge.git, runAction]);
-
   const fetch = useCallback(async () => {
     await runAction("抓取远端更新", (repoPath) => options.hostBridge.git.fetch({ repoPath }), "远端更新已抓取。");
   }, [options.hostBridge.git, runAction]);
-
   const pull = useCallback(async () => {
     await runAction("拉取远端更新", (repoPath) => options.hostBridge.git.pull({ repoPath }), "远端更新已拉取。");
   }, [options.hostBridge.git, runAction]);
-
   const push = useCallback(async () => {
     await runAction("推送分支", (repoPath) => options.hostBridge.git.push({ repoPath }), "本地提交已推送。");
   }, [options.hostBridge.git, runAction]);
-
   return {
     initRepository,
     fetch,
@@ -135,6 +119,8 @@ export function useWorkspaceGitActions(options: UseWorkspaceGitActionsOptions) {
     unstagePaths,
     discardPaths,
     commit,
+    checkoutBranch,
+    createBranchFromName,
     checkoutSelectedBranch,
     createBranch
   };

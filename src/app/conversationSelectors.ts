@@ -5,6 +5,7 @@ export function mapConversationToThreadSummary(conversation: ConversationState):
   return {
     id: conversation.id,
     title: conversation.title ?? conversation.id,
+    branch: conversation.branch,
     cwd: conversation.cwd,
     archived: conversation.hidden,
     updatedAt: conversation.updatedAt,

@@ -48,8 +48,10 @@ function createController(): WorkspaceGitController {
     unstagePaths: vi.fn().mockResolvedValue(undefined),
     discardPaths: vi.fn().mockResolvedValue(undefined),
     commit: vi.fn().mockResolvedValue(undefined),
-    checkoutSelectedBranch: vi.fn().mockResolvedValue(undefined),
-    createBranch: vi.fn().mockResolvedValue(undefined),
+    checkoutBranch: vi.fn().mockResolvedValue(true),
+    createBranchFromName: vi.fn().mockResolvedValue(true),
+    checkoutSelectedBranch: vi.fn().mockResolvedValue(true),
+    createBranch: vi.fn().mockResolvedValue(true),
     ensureDiff: vi.fn().mockResolvedValue(undefined),
     selectDiff: vi.fn().mockResolvedValue(undefined),
     clearDiff: vi.fn(),
@@ -63,6 +65,7 @@ function createThread(overrides?: Partial<ThreadSummary>): ThreadSummary {
   return {
     id: "thread-1",
     title: "Active thread",
+    branch: null,
     cwd: "E:/code/FPGA",
     archived: false,
     updatedAt: "2026-03-06T09:00:00.000Z",
@@ -120,6 +123,7 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       onOpenSettings={vi.fn()}
       onSelectWorkspaceOpener={vi.fn()}
       onSelectComposerPermissionLevel={vi.fn()}
+      onUpdateThreadBranch={vi.fn().mockResolvedValue(undefined)}
       onSelectRoot={vi.fn()}
       onSelectThread={vi.fn()}
       onInputChange={vi.fn()}

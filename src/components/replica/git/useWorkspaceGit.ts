@@ -277,6 +277,8 @@ export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitCo
     unstagePaths,
     discardPaths,
     commit,
+    checkoutBranch,
+    createBranchFromName,
     checkoutSelectedBranch,
     createBranch
   } = useWorkspaceGitActions({
@@ -320,6 +322,8 @@ export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitCo
       unstagePaths,
       discardPaths,
       commit,
+      checkoutBranch,
+      createBranchFromName,
       checkoutSelectedBranch,
       createBranch,
       ensureDiff,
@@ -333,10 +337,12 @@ export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitCo
       setNewBranchName
     }),
     [
+      checkoutBranch,
       checkoutSelectedBranch,
       commit,
       commitMessage,
       createBranch,
+      createBranchFromName,
       diff,
       diffCache,
       diffTarget,

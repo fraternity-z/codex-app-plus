@@ -1,4 +1,4 @@
-﻿import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { listAllThreads, mapCodexSessionsToThreads, mergeThreadCatalogs } from "./threadCatalog";
 
 describe("listAllThreads", () => {
@@ -21,7 +21,7 @@ describe("listAllThreads", () => {
             source: "appServer",
             agentNickname: null,
             agentRole: null,
-            gitInfo: null,
+            gitInfo: { branch: "feature/rpc-branch" },
             name: "First thread",
             turns: []
           }
@@ -71,6 +71,7 @@ describe("listAllThreads", () => {
       {
         id: "thread-1",
         title: "First thread",
+        branch: "feature/rpc-branch",
         cwd: "E:/code/project-a",
         archived: false,
         updatedAt: new Date(2_000).toISOString(),
@@ -82,6 +83,7 @@ describe("listAllThreads", () => {
       {
         id: "thread-2",
         title: "Second thread",
+        branch: null,
         cwd: "E:/code/project-b",
         archived: false,
         updatedAt: new Date(4_000).toISOString(),
@@ -107,6 +109,7 @@ describe("listAllThreads", () => {
       {
         id: "local-1",
         title: "修复登录问题",
+        branch: null,
         cwd: "E:/code/project-a",
         archived: false,
         updatedAt: "2026-03-06T10:00:00.000Z",
@@ -121,18 +124,18 @@ describe("listAllThreads", () => {
   it("deduplicates thread catalogs by id", () => {
     expect(
       mergeThreadCatalogs(
-        [{ id: "same", title: "rpc", cwd: "E:/code/project-a", archived: false, updatedAt: "2026-03-06T10:00:00.000Z", source: "rpc", status: "idle", activeFlags: [], queuedCount: 0 }],
-        [{ id: "same", title: "local", cwd: "E:/code/project-a", archived: false, updatedAt: "2026-03-06T09:00:00.000Z", source: "codexData", status: "notLoaded", activeFlags: [], queuedCount: 0 }]
+        [{ id: "same", title: "rpc", branch: null, cwd: "E:/code/project-a", archived: false, updatedAt: "2026-03-06T10:00:00.000Z", source: "rpc", status: "idle", activeFlags: [], queuedCount: 0 }],
+        [{ id: "same", title: "local", branch: null, cwd: "E:/code/project-a", archived: false, updatedAt: "2026-03-06T09:00:00.000Z", source: "codexData", status: "notLoaded", activeFlags: [], queuedCount: 0 }]
       )
-    ).toEqual([{ id: "same", title: "rpc", cwd: "E:/code/project-a", archived: false, updatedAt: "2026-03-06T10:00:00.000Z", source: "rpc", status: "idle", activeFlags: [], queuedCount: 0 }]);
+    ).toEqual([{ id: "same", title: "rpc", branch: null, cwd: "E:/code/project-a", archived: false, updatedAt: "2026-03-06T10:00:00.000Z", source: "rpc", status: "idle", activeFlags: [], queuedCount: 0 }]);
   });
 
   it("keeps local cwd when rpc entry is missing it", () => {
     expect(
       mergeThreadCatalogs(
-        [{ id: "same", title: "rpc", cwd: null, archived: false, updatedAt: "2026-03-06T09:00:00.000Z", source: "rpc", status: "idle", activeFlags: [], queuedCount: 0 }],
-        [{ id: "same", title: "local", cwd: "E:/code/project-a", archived: false, updatedAt: "2026-03-06T10:00:00.000Z", source: "codexData", status: "notLoaded", activeFlags: [], queuedCount: 0 }]
+        [{ id: "same", title: "rpc", branch: null, cwd: null, archived: false, updatedAt: "2026-03-06T09:00:00.000Z", source: "rpc", status: "idle", activeFlags: [], queuedCount: 0 }],
+        [{ id: "same", title: "local", branch: null, cwd: "E:/code/project-a", archived: false, updatedAt: "2026-03-06T10:00:00.000Z", source: "codexData", status: "notLoaded", activeFlags: [], queuedCount: 0 }]
       )
-    ).toEqual([{ id: "same", title: "rpc", cwd: "E:/code/project-a", archived: false, updatedAt: "2026-03-06T10:00:00.000Z", source: "rpc", status: "idle", activeFlags: [], queuedCount: 0 }]);
+    ).toEqual([{ id: "same", title: "rpc", branch: null, cwd: "E:/code/project-a", archived: false, updatedAt: "2026-03-06T10:00:00.000Z", source: "rpc", status: "idle", activeFlags: [], queuedCount: 0 }]);
   });
 });
