@@ -1,3 +1,4 @@
+import { confirm } from "@tauri-apps/plugin-dialog";
 import type { GitStatusEntry } from "../../../bridge/types";
 
 const STATUS_LABELS = {
@@ -91,8 +92,8 @@ export function GitChangeSection(props: GitChangeSectionProps): JSX.Element {
     return props.onStage(paths);
   };
 
-  const handleSecondaryAction = (path: string) => {
-    const confirmed = window.confirm(`确定要处理文件 ${path} 吗？该操作不可撤销。`);
+  const handleSecondaryAction = async (path: string) => {
+    const confirmed = await confirm(`确定要处理文件 ${path} 吗？该操作不可撤销。`);
     if (confirmed) {
       void props.onDiscard([path], props.mode === "untracked");
     }
@@ -129,7 +130,7 @@ export function GitChangeSection(props: GitChangeSectionProps): JSX.Element {
                   {primaryLabel}
                 </button>
                 {secondaryLabel !== null ? (
-                  <button type="button" className="git-inline-btn git-inline-btn-danger" disabled={props.busy} onClick={() => handleSecondaryAction(entry.path)}>
+                  <button type="button" className="git-inline-btn git-inline-btn-danger" disabled={props.busy} onClick={() => void handleSecondaryAction(entry.path)}>
                     {secondaryLabel}
                   </button>
                 ) : null}

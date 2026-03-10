@@ -5,6 +5,12 @@ import type { WorkspaceRoot } from "../../app/useWorkspaceRoots";
 import type { ThreadSummary } from "../../domain/types";
 import { WorkspaceSidebarSection } from "./WorkspaceSidebarSection";
 
+const confirmMock = vi.fn();
+
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  confirm: (...args: Array<unknown>) => confirmMock(...args),
+}));
+
 const ROOTS: ReadonlyArray<WorkspaceRoot> = [
   { id: "root-1", name: "FPGA", path: "E:/code/FPGA" },
   { id: "root-2", name: "Codex", path: "E:/code/codex" }
@@ -135,7 +141,7 @@ describe("WorkspaceSidebarSection", () => {
   it("shows a delete action on right click and forwards the delete request", async () => {
     const thread = createThread(ROOTS[0]!, 1);
     const onDeleteThread = vi.fn().mockResolvedValue(undefined);
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    confirmMock.mockResolvedValue(true);
 
     renderSection([thread], { onDeleteThread });
     fireEvent.click(screen.getByText("FPGA"));
@@ -143,8 +149,7 @@ describe("WorkspaceSidebarSection", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "删除会话" }));
 
     await waitFor(() => expect(onDeleteThread).toHaveBeenCalledWith(thread));
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
-    confirmSpy.mockRestore();
+    expect(confirmMock).toHaveBeenCalledTimes(1);
   });
 
   it("shows empty state after expanding a workspace without sessions", () => {

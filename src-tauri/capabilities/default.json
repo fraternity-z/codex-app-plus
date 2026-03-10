@@ -3,7 +3,7 @@
   "identifier": "default",
   "description": "Default capability for Codex App Plus",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"],
+  "permissions": ["core:default", "dialog:allow-open", "dialog:allow-confirm"],
   "commands": {
     "allow": [
       "app_server_start",

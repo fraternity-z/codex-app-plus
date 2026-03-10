@@ -1,3 +1,4 @@
+import { confirm } from "@tauri-apps/plugin-dialog";
 import { useMemo } from "react";
 import type { GitChangeEntryMode } from "./GitChangeBrowser";
 import { GitDiffCodeView } from "./GitDiffCodeView";
@@ -35,8 +36,8 @@ function applyPrimaryAction(controller: WorkspaceGitController, mode: GitChangeE
   void controller.stagePaths([path]);
 }
 
-function handleSecondaryAction(controller: WorkspaceGitController, mode: GitChangeEntryMode, path: string): void {
-  const confirmed = window.confirm(`确定要处理文件 ${path} 吗？此操作不可撤销。`);
+async function handleSecondaryAction(controller: WorkspaceGitController, mode: GitChangeEntryMode, path: string): Promise<void> {
+  const confirmed = await confirm(`确定要处理文件 ${path} 吗？此操作不可撤销。`);
   if (confirmed) {
     void controller.discardPaths([path], mode === "untracked");
   }
@@ -54,7 +55,7 @@ function PreviewActions(props: { readonly controller: WorkspaceGitController; re
           className="workspace-diff-preview-action"
           aria-label={`${secondaryLabel} ${props.selectedFile.path}`}
           disabled={busy}
-          onClick={() => handleSecondaryAction(props.controller, props.selectedFile.mode, props.selectedFile.path)}
+          onClick={() => void handleSecondaryAction(props.controller, props.selectedFile.mode, props.selectedFile.path)}
         >
           <GitRestoreIcon className="workspace-diff-file-action-icon" />
         </button>
