@@ -19,6 +19,7 @@ function createThread(status: ThreadSummary["status"]): ThreadSummary {
   return {
     id: "thread-1",
     title: "Thread",
+    branch: null,
     cwd: "E:/code/codex-app-plus",
     archived: false,
     updatedAt: "2026-03-07T04:00:00.000Z",
@@ -73,6 +74,7 @@ function createConversationState(turn: ConversationTurnState): ConversationState
   const conversation: ConversationState = {
     id: "thread-1",
     title: "Thread",
+    branch: null,
     cwd: "E:/code/codex-app-plus",
     updatedAt: "2026-03-07T04:00:00.000Z",
     source: "rpc",

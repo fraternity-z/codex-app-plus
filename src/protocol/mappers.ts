@@ -16,6 +16,7 @@ export function mapThreadToSummary(thread: Thread): ThreadSummary {
   return {
     id: thread.id,
     title: thread.name ?? thread.preview,
+    branch: thread.gitInfo?.branch ?? null,
     cwd: thread.cwd,
     archived: false,
     updatedAt: toIsoFromUnixSeconds(thread.updatedAt),

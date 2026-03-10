@@ -28,17 +28,16 @@ import type {
   ToolCallRequest,
   ToolRequestUserInputRequest,
 } from "./serverRequests";
-
 export type MessageStatus = "streaming" | "done";
 export type ThreadRuntimeStatus = "notLoaded" | "idle" | "systemError" | "active";
 export type ThreadActiveFlag = "waitingOnApproval" | "waitingOnUserInput";
 export type FollowUpMode = "queue" | "steer" | "interrupt";
 export type ComposerEnterBehavior = "enter" | "cmdIfMultiline";
 export type NoticeLevel = "info" | "warning" | "error";
-
 export interface ThreadSummary {
   readonly id: string;
   readonly title: string;
+  readonly branch: string | null;
   readonly cwd: string | null;
   readonly archived: boolean;
   readonly updatedAt: string;
@@ -47,20 +46,17 @@ export interface ThreadSummary {
   readonly activeFlags: Array<ThreadActiveFlag>;
   readonly queuedCount: number;
 }
-
 interface TimelineBase {
   readonly id: string;
   readonly threadId: string;
   readonly turnId: string | null;
   readonly itemId: string | null;
 }
-
 export interface ConversationImageAttachment {
   readonly kind: "image";
   readonly source: "url" | "localPath" | "dataUrl";
   readonly value: string;
 }
-
 export interface ConversationMessage extends TimelineBase {
   readonly kind: "userMessage" | "agentMessage";
   readonly role: "user" | "assistant";
@@ -68,19 +64,16 @@ export interface ConversationMessage extends TimelineBase {
   readonly status: MessageStatus;
   readonly attachments?: ReadonlyArray<ConversationImageAttachment>;
 }
-
 export interface PlanEntry extends TimelineBase {
   readonly kind: "plan";
   readonly text: string;
   readonly status: MessageStatus;
 }
-
 export interface ReasoningEntry extends TimelineBase {
   readonly kind: "reasoning";
   readonly summary: ReadonlyArray<string>;
   readonly content: ReadonlyArray<string>;
 }
-
 export interface CommandExecutionEntry extends TimelineBase {
   readonly kind: "commandExecution";
   readonly command: string;
@@ -94,7 +87,6 @@ export interface CommandExecutionEntry extends TimelineBase {
   readonly terminalInteractions: ReadonlyArray<string>;
   readonly approvalRequestId: string | null;
 }
-
 export interface FileChangeEntry extends TimelineBase {
   readonly kind: "fileChange";
   readonly changes: ReadonlyArray<FileUpdateChange>;
@@ -102,7 +94,6 @@ export interface FileChangeEntry extends TimelineBase {
   readonly output: string;
   readonly approvalRequestId: string | null;
 }
-
 export interface McpToolCallEntry extends TimelineBase {
   readonly kind: "mcpToolCall";
   readonly server: string;
@@ -114,7 +105,6 @@ export interface McpToolCallEntry extends TimelineBase {
   readonly durationMs: number | null;
   readonly progress: ReadonlyArray<string>;
 }
-
 export interface DynamicToolCallEntry extends TimelineBase {
   readonly kind: "dynamicToolCall";
   readonly tool: string;
@@ -124,7 +114,6 @@ export interface DynamicToolCallEntry extends TimelineBase {
   readonly success: boolean | null;
   readonly durationMs: number | null;
 }
-
 export interface CollabAgentToolCallEntry extends TimelineBase {
   readonly kind: "collabAgentToolCall";
   readonly tool: CollabAgentTool;
@@ -134,39 +123,32 @@ export interface CollabAgentToolCallEntry extends TimelineBase {
   readonly prompt: string | null;
   readonly agentsStates: Readonly<Record<string, CollabAgentState>>;
 }
-
 export interface WebSearchEntry extends TimelineBase {
   readonly kind: "webSearch";
   readonly query: string;
   readonly action: WebSearchAction | null;
 }
-
 export interface ImageViewEntry extends TimelineBase {
   readonly kind: "imageView";
   readonly path: string;
 }
-
 export interface TurnPlanSnapshotEntry extends TimelineBase {
   readonly kind: "turnPlanSnapshot";
   readonly explanation: string | null;
   readonly plan: ReadonlyArray<TurnPlanStep>;
 }
-
 export interface TurnDiffSnapshotEntry extends TimelineBase {
   readonly kind: "turnDiffSnapshot";
   readonly diff: string;
 }
-
 export interface ReviewModeEntry extends TimelineBase {
   readonly kind: "reviewMode";
   readonly state: "entered" | "exited";
   readonly review: string;
 }
-
 export interface ContextCompactionEntry extends TimelineBase {
   readonly kind: "contextCompaction";
 }
-
 export interface RawResponseEntry extends TimelineBase {
   readonly kind: "rawResponse";
   readonly responseType: string;
@@ -175,7 +157,6 @@ export interface RawResponseEntry extends TimelineBase {
   readonly phase: MessagePhase | null;
   readonly payload: unknown;
 }
-
 export interface SystemNoticeEntry extends TimelineBase {
   readonly kind: "systemNotice";
   readonly level: NoticeLevel;
@@ -183,20 +164,17 @@ export interface SystemNoticeEntry extends TimelineBase {
   readonly detail: string | null;
   readonly source: string;
 }
-
 export interface RealtimeSessionEntry extends TimelineBase {
   readonly kind: "realtimeSession";
   readonly sessionId: string | null;
   readonly status: "started" | "error" | "closed";
   readonly message: string | null;
 }
-
 export interface RealtimeAudioEntry extends TimelineBase {
   readonly kind: "realtimeAudio";
   readonly chunkIndex: number;
   readonly audio: ThreadRealtimeAudioChunk;
 }
-
 export interface FuzzySearchEntry extends TimelineBase {
   readonly kind: "fuzzySearch";
   readonly sessionId: string;
@@ -204,13 +182,11 @@ export interface FuzzySearchEntry extends TimelineBase {
   readonly status: "updating" | "completed";
   readonly files: ReadonlyArray<FuzzyFileSearchResult>;
 }
-
 export interface DebugEntry extends TimelineBase {
   readonly kind: "debug";
   readonly title: string;
   readonly payload: unknown;
 }
-
 export interface QueuedFollowUp {
   readonly id: string;
   readonly text: string;
@@ -221,12 +197,10 @@ export interface QueuedFollowUp {
   readonly mode: FollowUpMode;
   readonly createdAt: string;
 }
-
 export interface QueuedFollowUpEntry extends TimelineBase {
   readonly kind: "queuedFollowUp";
   readonly followUp: QueuedFollowUp;
 }
-
 export interface PendingApprovalEntry extends TimelineBase {
   readonly kind: "pendingApproval";
   readonly requestId: string;
@@ -236,25 +210,21 @@ export interface PendingApprovalEntry extends TimelineBase {
     | LegacyPatchApprovalRequest
     | LegacyExecCommandApprovalRequest;
 }
-
 export interface PendingUserInputEntry extends TimelineBase {
   readonly kind: "pendingUserInput";
   readonly requestId: string;
   readonly request: ToolRequestUserInputRequest;
 }
-
 export interface PendingToolCallEntry extends TimelineBase {
   readonly kind: "pendingToolCall";
   readonly requestId: string;
   readonly request: ToolCallRequest;
 }
-
 export interface PendingTokenRefreshEntry extends TimelineBase {
   readonly kind: "pendingTokenRefresh";
   readonly requestId: string;
   readonly request: TokenRefreshRequest;
 }
-
 export type TimelineEntry =
   | ConversationMessage
   | PlanEntry
@@ -281,7 +251,6 @@ export type TimelineEntry =
   | PendingTokenRefreshEntry
   | QueuedFollowUpEntry
   | DebugEntry;
-
 export interface ThreadRuntime {
   threadId: string;
   status: ThreadRuntimeStatus;
@@ -292,14 +261,12 @@ export interface ThreadRuntime {
   turnPlan: TurnPlanSnapshotEntry | null;
   turnDiff: TurnDiffSnapshotEntry | null;
 }
-
 export interface CollaborationModePreset {
   readonly name: string;
   readonly mode: ModeKind | null;
   readonly model: string | null;
   readonly reasoningEffort: ReasoningEffort | null;
 }
-
 export interface McpShortcut {
   readonly id: string;
   readonly server: string;

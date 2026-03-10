@@ -46,8 +46,10 @@ function createController(): WorkspaceGitController {
     unstagePaths: vi.fn().mockResolvedValue(undefined),
     discardPaths: vi.fn().mockResolvedValue(undefined),
     commit: vi.fn().mockResolvedValue(undefined),
-    checkoutSelectedBranch: vi.fn().mockResolvedValue(undefined),
-    createBranch: vi.fn().mockResolvedValue(undefined),
+    checkoutBranch: vi.fn().mockResolvedValue(true),
+    createBranchFromName: vi.fn().mockResolvedValue(true),
+    checkoutSelectedBranch: vi.fn().mockResolvedValue(true),
+    createBranch: vi.fn().mockResolvedValue(true),
     ensureDiff: vi.fn().mockResolvedValue(undefined),
     selectDiff: vi.fn().mockResolvedValue(undefined),
     clearDiff: vi.fn(),
@@ -60,6 +62,7 @@ function createThread(overrides?: Partial<ThreadSummary>): ThreadSummary {
   return {
     id: "thread-1",
     title: "First thread",
+    branch: null,
     cwd: "E:/code/FPGA",
     archived: false,
     updatedAt: "2026-03-06T09:00:00.000Z",
@@ -78,7 +81,7 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
     <AppStoreProvider><HomeView
       hostBridge={{} as HostBridge}
       busy={false}
-      inputText="检查工作区"
+      inputText="妫€鏌ュ伐浣滃尯"
       roots={[root]}
       selectedRootId={root.id}
       selectedRootName={root.name}
@@ -121,6 +124,7 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       onCreateThread={vi.fn().mockResolvedValue(undefined)}
       onSendTurn={vi.fn().mockResolvedValue(undefined)}
       onPersistComposerSelection={vi.fn().mockResolvedValue(undefined)}
+      onUpdateThreadBranch={vi.fn().mockResolvedValue(undefined)}
       onInterruptTurn={vi.fn().mockResolvedValue(undefined)}
       onAddRoot={vi.fn()}
       onRemoveRoot={vi.fn()}
@@ -166,7 +170,7 @@ describe("HomeView", () => {
         threadId: "thread-1",
         turnId: "turn-1",
         itemId: "item-1",
-        text: "先给结论。\n\n<proposed_plan>\n## 计划书\n\n- 第一步\n- 第二步\n</proposed_plan>",
+        text: "先给结论。\n\n## 计划书\n- 第一步\n- 第二步",
         status: "done"
       }
     ];
@@ -211,11 +215,11 @@ describe("HomeView", () => {
           questions: [
             {
               id: "answer",
-              header: "模式",
-              question: "请选择处理方式",
+              header: "妯″紡",
+              question: "璇烽€夋嫨澶勭悊鏂瑰紡",
               isOther: false,
               isSecret: false,
-              options: [{ label: "Queue", description: "加入队列" }]
+              options: [{ label: "Queue", description: "鍔犲叆闃熷垪" }]
             }
           ],
           params: {
@@ -225,11 +229,11 @@ describe("HomeView", () => {
             questions: [
               {
                 id: "answer",
-                header: "模式",
-                question: "请选择处理方式",
+                header: "妯″紡",
+                question: "璇烽€夋嫨澶勭悊鏂瑰紡",
                 isOther: false,
                 isSecret: false,
-                options: [{ label: "Queue", description: "加入队列" }]
+                options: [{ label: "Queue", description: "鍔犲叆闃熷垪" }]
               }
             ]
           }
@@ -239,9 +243,9 @@ describe("HomeView", () => {
 
     renderHomeView({ activities });
 
-    expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
+    expect(screen.getByText("姝ｅ湪鎵ц鍛戒护锛歱npm test")).toBeInTheDocument();
     expect(screen.getByText("Additional input required")).toBeInTheDocument();
-    expect(screen.getByText("请选择处理方式")).toBeInTheDocument();
+    expect(screen.getByText("璇烽€夋嫨澶勭悊鏂瑰紡")).toBeInTheDocument();
   });
 
   it("hides Auth/Plan pills and info banners above the conversation", () => {
@@ -257,7 +261,7 @@ describe("HomeView", () => {
   });
 
   it("truncates long toolbar titles while preserving the full title in tooltip", () => {
-    const longTitle = "现在能不能改造渲染ui，包括用户发送消息之后的ai正在思考以及正常工具调用链路块等渲染方式和官方插件一致？ E:/code/openai.chatgpt-26.304.20706-win32-x64";
+    const longTitle = "鐜板湪鑳戒笉鑳芥敼閫犳覆鏌搖i锛屽寘鎷敤鎴峰彂閫佹秷鎭箣鍚庣殑ai姝ｅ湪鎬濊€冧互鍙婃甯稿伐鍏疯皟鐢ㄩ摼璺潡绛夋覆鏌撴柟寮忓拰瀹樻柟鎻掍欢涓€鑷达紵 E:/code/openai.chatgpt-26.304.20706-win32-x64";
 
     renderHomeView({
       selectedThread: createThread({ title: longTitle }),
@@ -289,7 +293,7 @@ describe("HomeView", () => {
       queuedFollowUps: [
         {
           id: "follow-1",
-          text: "继续修测试",
+          text: "继续修测验",
           model: "gpt-5.2",
           effort: "medium",
           permissionLevel: "default",
@@ -303,8 +307,8 @@ describe("HomeView", () => {
     });
 
     expect(screen.getByText("Queued follow-ups")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "移除" }));
-    fireEvent.click(screen.getByRole("button", { name: "清空" }));
+    fireEvent.click(screen.getByRole("button", { name: "绉婚櫎" }));
+    fireEvent.click(screen.getByRole("button", { name: "娓呯┖" }));
 
     expect(onRemoveQueuedFollowUp).toHaveBeenCalledWith("follow-1");
     expect(onClearQueuedFollowUps).toHaveBeenCalledTimes(1);

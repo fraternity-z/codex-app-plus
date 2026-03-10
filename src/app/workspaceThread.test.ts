@@ -6,6 +6,7 @@ const THREADS: Array<ThreadSummary> = [
   {
     id: "thread-1",
     title: "older",
+    branch: null,
     cwd: "E:/code/codex-app-plus",
     archived: false,
     updatedAt: "2026-03-06T08:00:00.000Z",
@@ -16,6 +17,7 @@ const THREADS: Array<ThreadSummary> = [
   {
     id: "thread-2",
     title: "latest",
+    branch: null,
     cwd: "E:\\code\\codex-app-plus\\",
     archived: false,
     updatedAt: "2026-03-06T09:00:00.000Z",
@@ -26,6 +28,7 @@ const THREADS: Array<ThreadSummary> = [
   {
     id: "thread-3",
     title: "other",
+    branch: null,
     cwd: "E:/code/another-workspace",
     archived: false,
     updatedAt: "2026-03-06T10:00:00.000Z",
@@ -59,6 +62,7 @@ describe("workspaceThread", () => {
           {
             id: "thread-4",
             title: "frontend",
+            branch: null,
             cwd: "E:/code/codex-app-plus/frontend",
             archived: false,
             updatedAt: "2026-03-06T11:00:00.000Z",
@@ -80,6 +84,7 @@ describe("workspaceThread", () => {
           {
             id: "thread-5",
             title: "device-prefix",
+            branch: null,
             cwd: "\\\\?\\E:\\code\\codex-app-plus",
             archived: false,
             updatedAt: "2026-03-06T12:00:00.000Z",

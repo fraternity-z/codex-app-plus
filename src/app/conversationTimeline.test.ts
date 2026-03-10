@@ -35,6 +35,7 @@ function createConversation(turns: ReadonlyArray<ConversationTurnState>): Conver
   return {
     id: "thread-1",
     title: "Thread",
+    branch: null,
     cwd: "E:/code/codex-app-plus",
     updatedAt: "2026-03-07T04:00:00.000Z",
     source: "rpc",

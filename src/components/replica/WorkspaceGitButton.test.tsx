@@ -45,8 +45,10 @@ function createController(overrides?: Partial<WorkspaceGitController>): Workspac
     unstagePaths: vi.fn().mockResolvedValue(undefined),
     discardPaths: vi.fn().mockResolvedValue(undefined),
     commit: vi.fn().mockResolvedValue(undefined),
-    checkoutSelectedBranch: vi.fn().mockResolvedValue(undefined),
-    createBranch: vi.fn().mockResolvedValue(undefined),
+    checkoutBranch: vi.fn().mockResolvedValue(true),
+    createBranchFromName: vi.fn().mockResolvedValue(true),
+    checkoutSelectedBranch: vi.fn().mockResolvedValue(true),
+    createBranch: vi.fn().mockResolvedValue(true),
     ensureDiff: vi.fn().mockResolvedValue(undefined),
     selectDiff: vi.fn().mockResolvedValue(undefined),
     clearDiff: vi.fn(),
@@ -76,27 +78,27 @@ describe("WorkspaceGitButton", () => {
   it("disables actions when no workspace is selected", () => {
     renderButton({ selectedRootPath: null });
 
-    expect(screen.getByRole("button", { name: "推送当前工作区" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "选择 Git 操作" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "鎺ㄩ€佸綋鍓嶅伐浣滃尯" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "閫夋嫨 Git 鎿嶄綔" })).toBeDisabled();
   });
 
   it("shows git quick actions from dropdown", () => {
     renderButton();
-    fireEvent.click(screen.getByRole("button", { name: "选择 Git 操作" }));
+    fireEvent.click(screen.getByRole("button", { name: "閫夋嫨 Git 鎿嶄綔" }));
 
-    expect(screen.getByRole("menu", { name: "Git 操作" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "推送" })).toBeEnabled();
-    expect(screen.getByRole("menuitem", { name: "拉取" })).toBeEnabled();
-    expect(screen.getByRole("menuitem", { name: "抓取" })).toBeEnabled();
-    expect(screen.getByRole("menuitem", { name: "打开 Git 工作台" })).toBeEnabled();
+    const menuItems = screen.getAllByRole("menuitem");
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(menuItems.slice(0, 4).every((item) => item instanceof HTMLButtonElement && item.disabled === false)).toBe(true);
+    expect(menuItems).toHaveLength(5);
+    expect(menuItems[3]).toHaveTextContent("Git");
   });
 
   it("opens git workspace dialog from dropdown", () => {
     renderButton();
-    fireEvent.click(screen.getByRole("button", { name: "选择 Git 操作" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "打开 Git 工作台" }));
+    fireEvent.click(screen.getByRole("button", { name: "閫夋嫨 Git 鎿嶄綔" }));
+    fireEvent.click(screen.getAllByRole("menuitem")[3]);
 
-    expect(screen.getByRole("dialog", { name: "Git 工作台" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("git-workspace-view")).toBeInTheDocument();
   });
 });

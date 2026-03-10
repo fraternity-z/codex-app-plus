@@ -70,6 +70,7 @@ interface HomeViewProps {
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
   readonly onPersistComposerSelection: (selection: ComposerSelection) => Promise<void>;
   readonly onSelectComposerPermissionLevel: (level: ComposerPermissionLevel) => void;
+  readonly onUpdateThreadBranch: (branch: string) => Promise<void>;
   readonly onInterruptTurn: () => Promise<void>;
   readonly onAddRoot: () => void;
   readonly onRemoveRoot: (rootId: string) => void;
@@ -112,6 +113,7 @@ interface MainContentProps {
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
   readonly onPersistComposerSelection: (selection: ComposerSelection) => Promise<void>;
   readonly onSelectComposerPermissionLevel: (level: ComposerPermissionLevel) => void;
+  readonly onUpdateThreadBranch: (branch: string) => Promise<void>;
   readonly onInterruptTurn: () => Promise<void>;
   readonly onResolveServerRequest: (resolution: ServerRequestResolution) => Promise<void>;
   readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
@@ -162,12 +164,16 @@ function MainContent(props: MainContentProps): JSX.Element {
         followUpQueueMode={props.followUpQueueMode}
         composerEnterBehavior={props.composerEnterBehavior}
         permissionLevel={props.composerPermissionLevel}
+        gitController={props.gitController}
+        selectedThreadId={props.selectedThread?.id ?? null}
+        selectedThreadBranch={props.selectedThread?.branch ?? null}
         isResponding={props.isResponding}
         interruptPending={props.interruptPending}
         onInputChange={props.onInputChange}
         onSendTurn={props.onSendTurn}
         onPersistComposerSelection={props.onPersistComposerSelection}
         onSelectPermissionLevel={props.onSelectComposerPermissionLevel}
+        onUpdateThreadBranch={props.onUpdateThreadBranch}
         onInterruptTurn={props.onInterruptTurn}
         onRemoveQueuedFollowUp={props.onRemoveQueuedFollowUp}
         onClearQueuedFollowUps={props.onClearQueuedFollowUps}
@@ -182,7 +188,7 @@ function EmptyCanvas(props: { readonly selectedRootName: string; readonly select
 
   return (
     <main className="main-canvas">
-      <div className="empty-state" aria-label="欢迎界面">
+      <div className="empty-state" aria-label="娆㈣繋鐣岄潰">
         
         <h2 className="empty-title">{title}</h2>
         <button type="button" className={selectorClassName}>
@@ -270,6 +276,7 @@ export function HomeView(props: HomeViewProps): JSX.Element {
         onSendTurn={props.onSendTurn}
         onPersistComposerSelection={props.onPersistComposerSelection}
         onSelectComposerPermissionLevel={props.onSelectComposerPermissionLevel}
+        onUpdateThreadBranch={props.onUpdateThreadBranch}
         onInterruptTurn={props.onInterruptTurn}
         onResolveServerRequest={props.onResolveServerRequest}
         onRemoveQueuedFollowUp={props.onRemoveQueuedFollowUp}

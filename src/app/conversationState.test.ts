@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ConversationState, ConversationTurnState } from "../domain/conversation";
 import type { Turn } from "../protocol/generated/v2/Turn";
 import type { ThreadTokenUsage } from "../protocol/generated/v2/ThreadTokenUsage";
-import { setConversationTokenUsage, syncCompletedTurn, syncStartedTurn } from "./conversationState";
+import { createConversationFromThread, hydrateConversationFromThread, setConversationTokenUsage, syncCompletedTurn, syncStartedTurn } from "./conversationState";
 
 const TOKEN_USAGE: ThreadTokenUsage = {
   total: { totalTokens: 14996, inputTokens: 14791, cachedInputTokens: 0, outputTokens: 205, reasoningOutputTokens: 0 },
@@ -46,6 +46,7 @@ function createConversation(turns: ReadonlyArray<ConversationTurnState> = [creat
   return {
     id: "thread-1",
     title: "Thread",
+    branch: null,
     cwd: "E:/code/codex-app-plus",
     updatedAt: "2026-03-07T04:00:00.000Z",
     source: "rpc",
@@ -70,6 +71,34 @@ function createNotificationTurn(overrides: Partial<Turn> = {}): Turn {
 }
 
 describe("conversationState", () => {
+
+  it("preserves branch when creating and hydrating from thread metadata", () => {
+    const thread = {
+      id: "thread-1",
+      preview: "thread preview",
+      ephemeral: false,
+      modelProvider: "openai",
+      createdAt: 1,
+      updatedAt: 2,
+      status: { type: "idle" as const },
+      path: null,
+      cwd: "E:/code/codex-app-plus",
+      cliVersion: "0.1.0",
+      source: "appServer" as const,
+      agentNickname: null,
+      agentRole: null,
+      gitInfo: { sha: null, branch: "feature/thread-branch", originUrl: null },
+      name: "Thread",
+      turns: [],
+    };
+
+    const conversation = createConversationFromThread(thread, { resumeState: "resumed" });
+    const hydrated = hydrateConversationFromThread(conversation, { ...thread, gitInfo: { sha: null, branch: "feature/next-branch", originUrl: null } });
+
+    expect(conversation.branch).toBe("feature/thread-branch");
+    expect(hydrated.branch).toBe("feature/next-branch");
+  });
+
   it("sets token usage without changing the existing turn content", () => {
     const conversation = createConversation();
     const [originalTurn] = conversation.turns;

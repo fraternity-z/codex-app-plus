@@ -6,6 +6,7 @@ import { useComposerSelection } from "../../app/useComposerSelection";
 import type { ComposerEnterBehavior, FollowUpMode, QueuedFollowUp } from "../../domain/timeline";
 import { ComposerAttachmentMenu } from "./ComposerAttachmentMenu";
 import { ComposerFooter } from "./ComposerFooter";
+import type { WorkspaceGitController } from "./git/types";
 import { ComposerModelControls } from "./ComposerModelControls";
 import { OfficialPlusIcon } from "./officialIcons";
 import { useComposerSelectionPersistence } from "./useComposerSelectionPersistence";
@@ -23,12 +24,16 @@ export interface HomeComposerProps {
   readonly followUpQueueMode: FollowUpMode;
   readonly composerEnterBehavior: ComposerEnterBehavior;
   readonly permissionLevel: ComposerPermissionLevel;
+  readonly gitController: WorkspaceGitController;
+  readonly selectedThreadId: string | null;
+  readonly selectedThreadBranch: string | null;
   readonly isResponding: boolean;
   readonly interruptPending: boolean;
   readonly onInputChange: (text: string) => void;
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
   readonly onPersistComposerSelection: (selection: ComposerSelection) => Promise<void>;
   readonly onSelectPermissionLevel: (level: ComposerPermissionLevel) => void;
+  readonly onUpdateThreadBranch: (branch: string) => Promise<void>;
   readonly onInterruptTurn: () => Promise<void>;
   readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
   readonly onClearQueuedFollowUps: () => void;
@@ -108,8 +113,7 @@ function QueuedFollowUpsPanel(props: {
       <header className="composer-queue-header">
         <strong>Queued follow-ups</strong>
         <button type="button" className="composer-queue-clear" onClick={props.onClearQueuedFollowUps}>
-          娓呯┖
-        </button>
+          ??        </button>
       </header>
       <ul className="composer-queue-list">
         {props.queuedFollowUps.map((followUp) => (
@@ -119,8 +123,7 @@ function QueuedFollowUpsPanel(props: {
               <p>{followUp.text}</p>
             </div>
             <button type="button" className="composer-queue-remove" onClick={() => props.onRemoveQueuedFollowUp(followUp.id)}>
-              绉婚櫎
-            </button>
+              ??            </button>
           </li>
         ))}
       </ul>
@@ -216,7 +219,14 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
           </button>
         </div>
       </div>
-      <ComposerFooter permissionLevel={props.permissionLevel} onSelectPermission={props.onSelectPermissionLevel} />
+      <ComposerFooter
+        permissionLevel={props.permissionLevel}
+        gitController={props.gitController}
+        selectedThreadId={props.selectedThreadId}
+        selectedThreadBranch={props.selectedThreadBranch}
+        onSelectPermission={props.onSelectPermissionLevel}
+        onUpdateThreadBranch={props.onUpdateThreadBranch}
+      />
     </footer>
   );
 }

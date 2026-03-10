@@ -10,7 +10,7 @@ function Wrapper(props: PropsWithChildren): JSX.Element {
   return <AppStoreProvider>{props.children}</AppStoreProvider>;
 }
 
-function createThread() {
+function createThread(overrides: Record<string, unknown> = {}) {
   return {
     id: "thread-1",
     preview: "请分析当前工作区",
@@ -28,6 +28,7 @@ function createThread() {
     gitInfo: null,
     name: null,
     turns: [],
+    ...overrides,
   };
 }
 
@@ -213,6 +214,30 @@ describe("useWorkspaceConversation", () => {
     });
 
     expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/start", params: expect.objectContaining({ approvalPolicy: "never", sandboxPolicy: { type: "dangerFullAccess" } }) }));
+  });
+
+
+  it("updates thread branch metadata and refreshes the selected thread", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/metadata/update") {
+        return { requestId: "request-1", result: { thread: createThread({ gitInfo: { sha: null, branch: "feature/agent", originUrl: null } }) } };
+      }
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread(), { resumeState: "resumed" }) });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.updateThreadBranch("feature/agent");
+    });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/metadata/update", params: { threadId: "thread-1", gitInfo: { branch: "feature/agent" } } }));
+    expect(result.current.conversation.selectedThread?.branch).toBe("feature/agent");
   });
 
   it("interrupts the active turn once and clears pending state after completion", async () => {
