@@ -1,5 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import type { ConversationImageAttachment, ConversationMessage } from "../../domain/timeline";
+import type { ConversationAttachment, ConversationImageAttachment, ConversationMessage } from "../../domain/timeline";
+import { AttachmentClip } from "./AttachmentClip";
 import { ConversationMessageContent } from "./ConversationMessageContent";
 
 interface HomeChatMessageProps {
@@ -26,17 +27,30 @@ export function HomeChatMessage(props: HomeChatMessageProps): JSX.Element {
   );
 }
 
-function MessageAttachmentStrip(props: { readonly attachments: ReadonlyArray<ConversationImageAttachment> }): JSX.Element {
+function MessageAttachmentStrip(props: { readonly attachments: ReadonlyArray<ConversationAttachment> }): JSX.Element {
   return (
     <div className="home-chat-attachments" aria-label="消息附件预览">
-      {props.attachments.map((attachment, index) => (
-        <img
-          key={`${attachment.source}-${index}`}
-          className="home-chat-attachment-image"
-          src={resolveAttachmentSource(attachment)}
-          alt="用户发送的图片"
-        />
-      ))}
+      {props.attachments.map((attachment, index) => {
+        if (attachment.kind === "image") {
+          return (
+            <img
+              key={`${attachment.source}-${index}`}
+              className="home-chat-attachment-image"
+              src={resolveAttachmentSource(attachment)}
+              alt="用户发送的图片"
+            />
+          );
+        }
+
+        return (
+          <AttachmentClip
+            key={`${attachment.source}-${attachment.value}-${index}`}
+            className="home-chat-attachment-chip"
+            label={attachment.name}
+            tone="file"
+          />
+        );
+      })}
     </div>
   );
 }

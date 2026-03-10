@@ -36,6 +36,24 @@ describe("conversationMessages", () => {
     expect(messages[0]?.attachments).toHaveLength(1);
   });
 
+  it("maps mention inputs into file attachments", () => {
+    const thread = {
+      id: "thread-1",
+      turns: [{
+        id: "turn-1",
+        items: [{
+          type: "userMessage",
+          id: "user-1",
+          content: [{ type: "mention", name: "notes.md", path: "E:/code/codex-app-plus/notes.md" }],
+        }],
+      }],
+    } as const;
+
+    const messages = mapThreadHistoryToMessages(thread as never);
+
+    expect(messages[0]?.attachments).toEqual([{ kind: "file", source: "mention", name: "notes.md", value: "E:/code/codex-app-plus/notes.md" }]);
+  });
+
   it("aggregates assistant delta into one message bubble", () => {
     const messages = appendAssistantDelta([], "thread-1", "turn-1", "item-1", "Hello");
     const merged = appendAssistantDelta(messages, "thread-1", "turn-1", "item-1", " world");

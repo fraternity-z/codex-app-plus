@@ -74,6 +74,10 @@
   background: #f4f6fb;
 }
 
+.home-chat-attachment-chip {
+  max-width: min(240px, 100%);
+}
+
 .home-chat-bubble,
 .home-chat-message-body {
   border-radius: 20px;

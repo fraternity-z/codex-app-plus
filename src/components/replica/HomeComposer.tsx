@@ -1,15 +1,18 @@
 import { useState, type KeyboardEvent } from "react";
+import { getAttachmentLabel } from "../../app/composerAttachments";
 import type { ComposerPermissionLevel } from "../../app/composerPermission";
 import type { ComposerModelOption, ComposerSelection } from "../../app/composerPreferences";
 import type { SendTurnOptions } from "../../app/useWorkspaceConversation";
 import { useComposerSelection } from "../../app/useComposerSelection";
 import type { ComposerEnterBehavior, FollowUpMode, QueuedFollowUp } from "../../domain/timeline";
+import { AttachmentClip } from "./AttachmentClip";
 import { ComposerAttachmentMenu } from "./ComposerAttachmentMenu";
 import { ComposerFooter } from "./ComposerFooter";
 import type { WorkspaceGitController } from "./git/types";
 import { ComposerModelControls } from "./ComposerModelControls";
 import { OfficialPlusIcon } from "./officialIcons";
 import { useComposerSelectionPersistence } from "./useComposerSelectionPersistence";
+import { useComposerAttachments } from "./useComposerAttachments";
 
 const MIN_TRIMMED_MESSAGE_LENGTH = 1;
 
@@ -99,6 +102,12 @@ function handleComposerEnterKey(
   options.submit();
 }
 
+function reportComposerSubmitError(error: unknown): void {
+  const detail = error instanceof Error ? error.message : String(error);
+  console.error("发送消息失败", error);
+  window.alert(`发送消息失败: ${detail}`);
+}
+
 function QueuedFollowUpsPanel(props: {
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
   readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
@@ -121,7 +130,14 @@ function QueuedFollowUpsPanel(props: {
           <li key={followUp.id} className="composer-queue-item">
             <div>
               <strong>{followUp.mode}</strong>
-              <p>{followUp.text}</p>
+              {followUp.text.trim().length === 0 ? null : <p>{followUp.text}</p>}
+              {followUp.attachments.length === 0 ? null : (
+                <div className="composer-queue-attachments">
+                  {followUp.attachments.map((attachment) => (
+                    <AttachmentClip key={attachment.id} label={getAttachmentLabel(attachment)} tone={attachment.kind} />
+                  ))}
+                </div>
+              )}
             </div>
             <button type="button" className="composer-queue-remove" onClick={() => props.onRemoveQueuedFollowUp(followUp.id)}>
               移除
@@ -136,6 +152,7 @@ function QueuedFollowUpsPanel(props: {
 export function HomeComposer(props: HomeComposerProps): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
   const [planModeEnabled, setPlanModeEnabled] = useState(false);
+  const { attachments, clearAttachments, openFilePicker, removeAttachment, handlePaste } = useComposerAttachments({ selectedThreadId: props.selectedThreadId });
   const composerSelection = useComposerSelection(props.models, props.defaultModel, props.defaultEffort);
   const { handleSelectModel, handleSelectEffort } = useComposerSelectionPersistence({
     models: props.models,
@@ -146,21 +163,39 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     replaceSelection: composerSelection.replaceSelection,
     persistSelection: props.onPersistComposerSelection
   });
-  const canSend = !props.busy && props.inputText.trim().length >= MIN_TRIMMED_MESSAGE_LENGTH;
+  const hasMessageText = props.inputText.trim().length >= MIN_TRIMMED_MESSAGE_LENGTH;
+  const canSend = !props.busy && (hasMessageText || attachments.length > 0);
   const buttonDisabled = props.isResponding ? props.interruptPending : !canSend;
   const buttonLabel = props.isResponding ? "Pause response" : "Send message";
   const placeholder = getComposerPlaceholder(props.selectedRootPath);
 
   const submit = (followUpOverride?: FollowUpMode) => {
+    void submitTurn(followUpOverride);
+  };
+
+  const submitTurn = async (followUpOverride?: FollowUpMode) => {
     if (!canSend) {
       return;
     }
-    void props.onSendTurn({
-      selection: createSelection(composerSelection.selectedModel, composerSelection.selectedEffort),
-      permissionLevel: props.permissionLevel,
-      planModeEnabled,
-      followUpOverride
-    });
+
+    try {
+      await props.onSendTurn({
+        text: props.inputText,
+        attachments,
+        selection: createSelection(composerSelection.selectedModel, composerSelection.selectedEffort),
+        permissionLevel: props.permissionLevel,
+        planModeEnabled,
+        followUpOverride,
+      });
+      clearAttachments();
+    } catch (error) {
+      reportComposerSubmitError(error);
+    }
+  };
+
+  const handleAddAttachments = async () => {
+    await openFilePicker();
+    setMenuOpen(false);
   };
 
   return (
@@ -172,10 +207,18 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
       />
       <div className="composer-card">
         {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label="Close attachment menu" onClick={() => setMenuOpen(false)} /> : null}
+        {attachments.length === 0 ? null : (
+          <div className="composer-attachment-draft" aria-label="Attached files and images">
+            {attachments.map((attachment) => (
+              <AttachmentClip key={attachment.id} label={getAttachmentLabel(attachment)} tone={attachment.kind} onRemove={() => removeAttachment(attachment.id)} />
+            ))}
+          </div>
+        )}
         <textarea
           className="composer-input"
           placeholder={placeholder}
           value={props.inputText}
+          onPaste={(event) => void handlePaste(event)}
           onKeyDown={(event) => handleComposerEnterKey(event, {
             inputText: props.inputText,
             composerEnterBehavior: props.composerEnterBehavior,
@@ -189,7 +232,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
         <div className="composer-bar">
           <div className="composer-left">
             <div className="composer-plus-anchor">
-              {menuOpen ? <ComposerAttachmentMenu planModeEnabled={planModeEnabled} onTogglePlanMode={() => setPlanModeEnabled((value) => !value)} onClose={() => setMenuOpen(false)} /> : null}
+              {menuOpen ? <ComposerAttachmentMenu planModeEnabled={planModeEnabled} onAddAttachments={handleAddAttachments} onTogglePlanMode={() => setPlanModeEnabled((value) => !value)} onClose={() => setMenuOpen(false)} /> : null}
               <button
                 type="button"
                 className={menuOpen ? "composer-mini-btn composer-mini-btn-active" : "composer-mini-btn"}

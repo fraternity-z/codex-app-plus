@@ -1,5 +1,9 @@
-import type { ConversationImageAttachment } from "../domain/timeline";
+import type { ConversationAttachment, ConversationImageAttachment } from "../domain/timeline";
 import type { UserInput } from "../protocol/generated/v2/UserInput";
+import {
+  createConversationFileAttachment,
+  createConversationImageAttachment,
+} from "./composerAttachments";
 
 const EMPTY_TEXT = "";
 const IMAGE_DATA_URL_PATTERN = /data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g;
@@ -8,11 +12,11 @@ const SPACE_BEFORE_BREAK_PATTERN = /[ \t]+\n/g;
 
 interface TextWithAttachments {
   readonly text: string;
-  readonly attachments: ReadonlyArray<ConversationImageAttachment>;
+  readonly attachments: ReadonlyArray<ConversationAttachment>;
 }
 
 export function summarizeUserInputs(content: ReadonlyArray<UserInput>): TextWithAttachments {
-  const attachments: Array<ConversationImageAttachment> = [];
+  const attachments: Array<ConversationAttachment> = [];
   const textParts: Array<string> = [];
 
   for (const input of content) {
@@ -25,11 +29,15 @@ export function summarizeUserInputs(content: ReadonlyArray<UserInput>): TextWith
       continue;
     }
     if (input.type === "image") {
-      attachments.push({ kind: "image", source: isImageDataUrl(input.url) ? "dataUrl" : "url", value: input.url });
+      attachments.push(createConversationImageAttachment(isImageDataUrl(input.url) ? "dataUrl" : "url", input.url));
       continue;
     }
     if (input.type === "localImage") {
-      attachments.push({ kind: "image", source: "localPath", value: input.path });
+      attachments.push(createConversationImageAttachment("localPath", input.path));
+      continue;
+    }
+    if (input.type === "mention") {
+      attachments.push(createConversationFileAttachment(input.name, input.path));
     }
   }
 
@@ -39,7 +47,7 @@ export function summarizeUserInputs(content: ReadonlyArray<UserInput>): TextWith
 export function extractImageAttachmentsFromText(text: string): TextWithAttachments {
   const attachments: Array<ConversationImageAttachment> = [];
   const nextText = text.replace(IMAGE_DATA_URL_PATTERN, (match) => {
-    attachments.push({ kind: "image", source: "dataUrl", value: match });
+    attachments.push(createConversationImageAttachment("dataUrl", match));
     return EMPTY_TEXT;
   });
   return { text: compactUserText(nextText), attachments };

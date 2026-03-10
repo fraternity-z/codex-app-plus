@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
@@ -10,7 +11,7 @@ const MARKDOWN_COMPONENTS = {
   a: ({ node: _node, ...props }) => <a {...props} target="_blank" rel="noreferrer" />
 } satisfies Components;
 
-const MARKDOWN_PLUGINS = [remarkGfm, remarkBreaks];
+const MARKDOWN_PLUGINS = [remarkGfm, remarkBreaks] as unknown as NonNullable<ComponentProps<typeof ReactMarkdown>["remarkPlugins"]>;
 
 type MessageSegment = { readonly type: "markdown" | "proposed-plan"; readonly text: string };
 type ConversationMessageContentVariant = "user-bubble" | "assistant-inline";

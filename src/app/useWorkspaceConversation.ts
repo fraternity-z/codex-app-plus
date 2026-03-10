@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { CollaborationMode } from "../protocol/generated/CollaborationMode";
 import type { ComposerSelection } from "./composerPreferences";
 import type { HostBridge } from "../bridge/types";
-import type { CollaborationModePreset, FollowUpMode, QueuedFollowUp, ThreadSummary, TimelineEntry } from "../domain/timeline";
+import type {
+  CollaborationModePreset,
+  ComposerAttachment,
+  FollowUpMode,
+  QueuedFollowUp,
+  ThreadSummary,
+  TimelineEntry,
+} from "../domain/timeline";
 import type { ThreadResumeResponse } from "../protocol/generated/v2/ThreadResumeResponse";
 import type { ThreadStartResponse } from "../protocol/generated/v2/ThreadStartResponse";
 import type { ThreadMetadataUpdateResponse } from "../protocol/generated/v2/ThreadMetadataUpdateResponse";
@@ -21,8 +28,11 @@ import {
   createTurnPermissionOverrides,
   type ComposerPermissionLevel,
 } from "./composerPermission";
+import { buildComposerUserInputs } from "./composerAttachments";
 import { listThreadsForWorkspace } from "./workspaceThread";
 export interface SendTurnOptions {
+  readonly text: string;
+  readonly attachments: ReadonlyArray<ComposerAttachment>;
   readonly selection: ComposerSelection;
   readonly permissionLevel: ComposerPermissionLevel;
   readonly planModeEnabled: boolean;
@@ -53,11 +63,21 @@ interface UseWorkspaceConversationOptions {
   readonly collaborationModes: ReadonlyArray<CollaborationModePreset>;
   readonly followUpQueueMode: FollowUpMode;
 }
-function createInput(text: string): Array<UserInput> {
-  return [{ type: "text", text, text_elements: [] }];
+function createInput(text: string, attachments: ReadonlyArray<ComposerAttachment>): Array<UserInput> {
+  return buildComposerUserInputs(text, attachments);
 }
-function createQueuedFollowUp(text: string, options: SendTurnOptions): QueuedFollowUp {
-  return { id: `follow-up-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`, text, model: options.selection.model, effort: options.selection.effort, permissionLevel: options.permissionLevel, planModeEnabled: options.planModeEnabled, mode: options.followUpOverride ?? "queue", createdAt: new Date().toISOString() };
+function createQueuedFollowUp(options: SendTurnOptions): QueuedFollowUp {
+  return {
+    id: `follow-up-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    text: options.text.trim(),
+    attachments: options.attachments,
+    model: options.selection.model,
+    effort: options.selection.effort,
+    permissionLevel: options.permissionLevel,
+    planModeEnabled: options.planModeEnabled,
+    mode: options.followUpOverride ?? "queue",
+    createdAt: new Date().toISOString(),
+  };
 }
 function resolvePlanMode(modes: ReadonlyArray<CollaborationModePreset>, selection: ComposerSelection): CollaborationMode | undefined {
   const preset = modes.find((mode) => mode.mode === "plan") ?? null;
@@ -125,15 +145,16 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     }
     dispatch({ type: "conversation/draftOpened", draft: { workspacePath: options.selectedRootPath, createdAt: new Date().toISOString() } });
   }, [dispatch, options.selectedRootPath]);
-  const startTurn = useCallback(async (conversationId: string, text: string, sendOptions: SendTurnOptions, cwdOverride: string | null) => {
+  const startTurn = useCallback(async (conversationId: string, sendOptions: SendTurnOptions, cwdOverride: string | null) => {
     const collaborationMode = sendOptions.planModeEnabled ? resolvePlanMode(options.collaborationModes, sendOptions.selection) : undefined;
-    dispatch({ type: "conversation/turnPlaceholderAdded", conversationId, params: { input: createInput(text), cwd: cwdOverride, model: sendOptions.selection.model, effort: sendOptions.selection.effort, collaborationMode: collaborationMode ?? null } });
-    const params: TurnStartParams = { threadId: conversationId, model: sendOptions.selection.model ?? undefined, effort: sendOptions.selection.effort ?? undefined, cwd: cwdOverride ?? undefined, input: createInput(text), collaborationMode, ...createTurnPermissionOverrides(sendOptions.permissionLevel) };
+    const input = createInput(sendOptions.text, sendOptions.attachments);
+    dispatch({ type: "conversation/turnPlaceholderAdded", conversationId, params: { input, cwd: cwdOverride, model: sendOptions.selection.model, effort: sendOptions.selection.effort, collaborationMode: collaborationMode ?? null } });
+    const params: TurnStartParams = { threadId: conversationId, model: sendOptions.selection.model ?? undefined, effort: sendOptions.selection.effort ?? undefined, cwd: cwdOverride ?? undefined, input, collaborationMode, ...createTurnPermissionOverrides(sendOptions.permissionLevel) };
     const response = (await options.hostBridge.rpc.request({ method: "turn/start", params })).result as TurnStartResponse;
     dispatch({ type: "conversation/turnStarted", conversationId, turn: response.turn });
     dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });
   }, [dispatch, options.collaborationModes, options.hostBridge.rpc]);
-  const startNewConversation = useCallback(async (text: string, sendOptions: SendTurnOptions) => {
+  const startNewConversation = useCallback(async (sendOptions: SendTurnOptions) => {
     const workspacePath = options.selectedRootPath ?? state.draftConversation?.workspacePath ?? null;
     if (workspacePath === null) {
       throw new Error("请先选择工作区。");
@@ -143,12 +164,13 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     const conversation = createConversationFromThread(response.thread, { hidden: false, resumeState: "resumed" });
     dispatch({ type: "conversation/upserted", conversation });
     dispatch({ type: "conversation/selected", conversationId: conversation.id });
-    await startTurn(conversation.id, text, sendOptions, response.thread.cwd || response.cwd || workspacePath);
+    await startTurn(conversation.id, sendOptions, response.thread.cwd || response.cwd || workspacePath);
   }, [dispatch, options.hostBridge.rpc, options.selectedRootPath, startTurn, state.draftConversation]);
-  const steerTurn = useCallback(async (conversationId: string, turnId: string, text: string) => {
-    const params: TurnSteerParams = { threadId: conversationId, input: createInput(text), expectedTurnId: turnId };
+  const steerTurn = useCallback(async (conversationId: string, turnId: string, sendOptions: SendTurnOptions) => {
+    const input = createInput(sendOptions.text, sendOptions.attachments);
+    const params: TurnSteerParams = { threadId: conversationId, input, expectedTurnId: turnId };
     await options.hostBridge.rpc.request({ method: "turn/steer", params });
-    dispatch({ type: "conversation/itemCompleted", conversationId, turnId, item: { type: "userMessage", id: `steer-${Date.now()}`, content: createInput(text) } });
+    dispatch({ type: "conversation/itemCompleted", conversationId, turnId, item: { type: "userMessage", id: `steer-${Date.now()}`, content: input } });
   }, [dispatch, options.hostBridge.rpc]);
   const interruptTurn = useCallback(async (conversationId: string, turnId: string) => {
     const requestKey = `${conversationId}:${turnId}`;
@@ -177,7 +199,7 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     drainingConversationIds.current.add(conversationId);
     try {
       await ensureConversationResumed(conversationId);
-      await startTurn(conversationId, queued.text, { selection: { model: queued.model, effort: queued.effort }, permissionLevel: queued.permissionLevel, planModeEnabled: queued.planModeEnabled, followUpOverride: queued.mode }, conversation.cwd ?? options.selectedRootPath);
+      await startTurn(conversationId, { text: queued.text, attachments: queued.attachments, selection: { model: queued.model, effort: queued.effort }, permissionLevel: queued.permissionLevel, planModeEnabled: queued.planModeEnabled, followUpOverride: queued.mode }, conversation.cwd ?? options.selectedRootPath);
       dispatch({ type: "followUp/dequeued", conversationId, followUpId: queued.id });
     } finally {
       drainingConversationIds.current.delete(conversationId);
@@ -190,35 +212,35 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     }
   }, [processQueuedFollowUp, visibleConversations]);
   const sendTurn = useCallback(async (sendOptions: SendTurnOptions) => {
-    const text = state.inputText.trim();
-    if (text.length === 0) {
+    const text = sendOptions.text.trim();
+    if (text.length === 0 && sendOptions.attachments.length === 0) {
       return;
     }
     if (selectedConversation === null) {
-      await startNewConversation(text, sendOptions);
+      await startNewConversation(sendOptions);
       dispatch({ type: "input/changed", value: "" });
       return;
     }
     await ensureConversationResumed(selectedConversation.id);
     const activeTurnId = getActiveTurnId(state.conversationsById[selectedConversation.id] ?? selectedConversation);
     if (activeTurnId === null) {
-      await startTurn(selectedConversation.id, text, sendOptions, selectedConversation.cwd ?? options.selectedRootPath);
+      await startTurn(selectedConversation.id, sendOptions, selectedConversation.cwd ?? options.selectedRootPath);
       dispatch({ type: "input/changed", value: "" });
       return;
     }
     const mode = sendOptions.followUpOverride ?? options.followUpQueueMode;
     if (mode === "steer") {
-      await steerTurn(selectedConversation.id, activeTurnId, text);
+      await steerTurn(selectedConversation.id, activeTurnId, sendOptions);
       dispatch({ type: "input/changed", value: "" });
       return;
     }
-    const followUp = createQueuedFollowUp(text, { ...sendOptions, followUpOverride: mode });
+    const followUp = createQueuedFollowUp({ ...sendOptions, followUpOverride: mode });
     dispatch({ type: "followUp/enqueued", conversationId: selectedConversation.id, followUp });
     dispatch({ type: "input/changed", value: "" });
     if (mode === "interrupt" && selectedConversation.interruptRequestedTurnId !== activeTurnId) {
       await interruptTurn(selectedConversation.id, activeTurnId);
     }
-  }, [dispatch, ensureConversationResumed, interruptTurn, options.followUpQueueMode, options.selectedRootPath, selectedConversation, startNewConversation, startTurn, state.conversationsById, state.inputText, steerTurn]);
+  }, [dispatch, ensureConversationResumed, interruptTurn, options.followUpQueueMode, options.selectedRootPath, selectedConversation, startNewConversation, startTurn, state.conversationsById, steerTurn]);
   const interruptActiveTurn = useCallback(async () => {
     if (selectedConversation === null || activeTurnId === null || selectedConversation.interruptRequestedTurnId === activeTurnId) {
       return;

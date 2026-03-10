@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+﻿import type { ComponentProps } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ComposerModelOption } from "../../app/composerPreferences";
@@ -81,7 +81,7 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
     <AppStoreProvider><HomeView
       hostBridge={{} as HostBridge}
       busy={false}
-      inputText="妫€鏌ュ伐浣滃尯"
+      inputText="濡偓閺屻儱浼愭担婊冨隘"
       roots={[root]}
       selectedRootId={root.id}
       selectedRootName={root.name}
@@ -171,7 +171,7 @@ describe("HomeView", () => {
         threadId: "thread-1",
         turnId: "turn-1",
         itemId: "item-1",
-        text: "先给结论。\n\n## 计划书\n- 第一步\n- 第二步",
+        text: "<proposed_plan>\n\n## 计划书\n- 第一步\n- 第二步\n</proposed_plan>",
         status: "done"
       }
     ];
@@ -216,11 +216,11 @@ describe("HomeView", () => {
           questions: [
             {
               id: "answer",
-              header: "妯″紡",
-              question: "璇烽€夋嫨澶勭悊鏂瑰紡",
+              header: "濡€崇础",
+              question: "请选择下一步",
               isOther: false,
               isSecret: false,
-              options: [{ label: "Queue", description: "鍔犲叆闃熷垪" }]
+              options: [{ label: "Queue", description: "閸旂姴鍙嗛梼鐔峰灙" }]
             }
           ],
           params: {
@@ -230,11 +230,11 @@ describe("HomeView", () => {
             questions: [
               {
                 id: "answer",
-                header: "妯″紡",
-                question: "璇烽€夋嫨澶勭悊鏂瑰紡",
+                header: "濡€崇础",
+                question: "请选择下一步",
                 isOther: false,
                 isSecret: false,
-                options: [{ label: "Queue", description: "鍔犲叆闃熷垪" }]
+                options: [{ label: "Queue", description: "閸旂姴鍙嗛梼鐔峰灙" }]
               }
             ]
           }
@@ -244,7 +244,7 @@ describe("HomeView", () => {
 
     renderHomeView({ activities });
 
-    expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
+    expect(screen.getByText("姝ｅ湪鎵ц鍛戒护锛歱npm test")).toBeInTheDocument();
     expect(screen.getByText("Additional input required")).toBeInTheDocument();
     expect(screen.getByText("Queue")).toBeInTheDocument();
   });
@@ -271,13 +271,13 @@ describe("HomeView", () => {
     ];
 
     const { rerender } = renderHomeView({ activities, threadDetailLevel: "compact" });
-    expect(screen.queryByText("正在执行命令：pnpm test")).toBeNull();
+    expect(screen.queryByText("姝ｅ湪鎵ц鍛戒护锛歱npm test")).toBeNull();
 
     rerender(
       <AppStoreProvider><HomeView
         hostBridge={{} as HostBridge}
         busy={false}
-        inputText="妫€鏌ュ伐浣滃尯"
+        inputText="濡偓閺屻儱浼愭担婊冨隘"
         roots={[{ id: "root-1", name: "FPGA", path: "E:/code/FPGA" }]}
         selectedRootId="root-1"
         selectedRootName="FPGA"
@@ -333,7 +333,7 @@ describe("HomeView", () => {
       /></AppStoreProvider>
     );
 
-    expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
+    expect(screen.getByText("姝ｅ湪鎵ц鍛戒护锛歱npm test")).toBeInTheDocument();
   });
 
   it("hides Auth/Plan pills and info banners above the conversation", () => {
@@ -349,7 +349,7 @@ describe("HomeView", () => {
   });
 
   it("truncates long toolbar titles while preserving the full title in tooltip", () => {
-    const longTitle = "鐜板湪鑳戒笉鑳芥敼閫犳覆鏌搖i锛屽寘鎷敤鎴峰彂閫佹秷鎭箣鍚庣殑ai姝ｅ湪鎬濊€冧互鍙婃甯稿伐鍏疯皟鐢ㄩ摼璺潡绛夋覆鏌撴柟寮忓拰瀹樻柟鎻掍欢涓€鑷达紵 E:/code/openai.chatgpt-26.304.20706-win32-x64";
+    const longTitle = "閻滄澘婀懗鎴掔瑝閼宠姤鏁奸柅鐘宠閺屾悥i閿涘苯瀵橀幏顒傛暏閹村嘲褰傞柅浣圭Х閹垯绠ｉ崥搴ｆ畱ai濮濓絽婀幀婵娾偓鍐т簰閸欏﹥顒滅敮绋夸紣閸忕柉鐨熼悽銊╂懠鐠侯垰娼＄粵澶嬭閺屾挻鏌熷蹇撴嫲鐎规ɑ鏌熼幓鎺嶆娑撯偓閼疯揪绱?E:/code/openai.chatgpt-26.304.20706-win32-x64";
 
     renderHomeView({
       selectedThread: createThread({ title: longTitle }),
@@ -381,7 +381,8 @@ describe("HomeView", () => {
       queuedFollowUps: [
         {
           id: "follow-1",
-          text: "继续修测验",
+          attachments: [],
+          text: "continue fix",
           model: "gpt-5.2",
           effort: "medium",
           permissionLevel: "default",
@@ -395,8 +396,8 @@ describe("HomeView", () => {
     });
 
     expect(screen.getByText("Queued follow-ups")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "移除" }));
-    fireEvent.click(screen.getByRole("button", { name: "清空" }));
+    fireEvent.click(screen.getByRole("button", { name: "绉婚櫎" }));
+    fireEvent.click(screen.getByRole("button", { name: "娓呯┖" }));
 
     expect(onRemoveQueuedFollowUp).toHaveBeenCalledWith("follow-1");
     expect(onClearQueuedFollowUps).toHaveBeenCalledTimes(1);

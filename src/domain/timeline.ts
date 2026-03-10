@@ -57,12 +57,30 @@ export interface ConversationImageAttachment {
   readonly source: "url" | "localPath" | "dataUrl";
   readonly value: string;
 }
+
+export interface ConversationFileAttachment {
+  readonly kind: "file";
+  readonly source: "mention";
+  readonly value: string;
+  readonly name: string;
+}
+
+export type ConversationAttachment = ConversationImageAttachment | ConversationFileAttachment;
+
+export interface ComposerAttachment {
+  readonly id: string;
+  readonly kind: "image" | "file";
+  readonly source: "localImage" | "dataUrl" | "mention";
+  readonly value: string;
+  readonly name: string;
+}
+
 export interface ConversationMessage extends TimelineBase {
   readonly kind: "userMessage" | "agentMessage";
   readonly role: "user" | "assistant";
   readonly text: string;
   readonly status: MessageStatus;
-  readonly attachments?: ReadonlyArray<ConversationImageAttachment>;
+  readonly attachments?: ReadonlyArray<ConversationAttachment>;
 }
 export interface PlanEntry extends TimelineBase {
   readonly kind: "plan";
@@ -190,6 +208,7 @@ export interface DebugEntry extends TimelineBase {
 export interface QueuedFollowUp {
   readonly id: string;
   readonly text: string;
+  readonly attachments: ReadonlyArray<ComposerAttachment>;
   readonly model: string | null;
   readonly effort: ReasoningEffort | null;
   readonly permissionLevel: ComposerPermissionLevel;

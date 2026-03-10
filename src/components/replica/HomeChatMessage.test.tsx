@@ -70,4 +70,25 @@ describe("HomeChatMessage", () => {
     expect(container.querySelector(".home-chat-message-body")).toBeNull();
     expect(container.querySelector(".home-chat-thinking-footer")).toBeNull();
   });
+
+  it("renders file attachments as read-only clips", () => {
+    render(
+      <HomeChatMessage
+        message={{
+          id: "user-file-1",
+          kind: "userMessage",
+          role: "user",
+          threadId: "thread-1",
+          turnId: "turn-1",
+          itemId: "item-2",
+          text: "",
+          status: "done",
+          attachments: [{ kind: "file", source: "mention", name: "notes.md", value: "E:/code/codex-app-plus/notes.md" }],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("notes.md")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Remove/i })).toBeNull();
+  });
 });

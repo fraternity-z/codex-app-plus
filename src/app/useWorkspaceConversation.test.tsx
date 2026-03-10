@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../bridge/types";
 import { AppStoreProvider, useAppStore } from "../state/store";
 import { applyAppServerNotification } from "./appControllerNotifications";
+import type { ComposerAttachment } from "../domain/timeline";
 import { createConversationFromThread } from "./conversationState";
 import { FrameTextDeltaQueue } from "./frameTextDeltaQueue";
 import { OutputDeltaQueue } from "./outputDeltaQueue";
@@ -37,6 +38,16 @@ function createThread(overrides: Record<string, unknown> = {}) {
 
 function createTurn(status: "inProgress" | "completed" = "inProgress") {
   return { id: "turn-1", items: [], status, error: null };
+}
+
+function createSendOptions(text: string, attachments: ReadonlyArray<ComposerAttachment> = []) {
+  return {
+    text,
+    attachments,
+    selection: { model: "gpt-5.2", effort: "medium" as const },
+    permissionLevel: "default" as const,
+    planModeEnabled: false,
+  };
 }
 
 function renderConversation(hostBridge: HostBridge) {
@@ -131,7 +142,7 @@ describe("useWorkspaceConversation", () => {
     });
 
     await act(async () => {
-      await result.current.conversation.sendTurn({ selection: { model: "gpt-5.2", effort: "medium" }, permissionLevel: "default", planModeEnabled: false });
+      await result.current.conversation.sendTurn(createSendOptions("first turn"));
     });
 
     expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({ method: "thread/start", params: expect.objectContaining({ approvalPolicy: "on-request", sandbox: "workspace-write" }) }));
@@ -182,7 +193,7 @@ describe("useWorkspaceConversation", () => {
     });
 
     await act(async () => {
-      await result.current.conversation.sendTurn({ selection: { model: "gpt-5.2", effort: "medium" }, permissionLevel: "default", planModeEnabled: false });
+      await result.current.conversation.sendTurn(createSendOptions("analyze workspace"));
     });
 
     act(() => {
@@ -215,6 +226,7 @@ describe("useWorkspaceConversation", () => {
     const request = vi.fn(async () => ({ requestId: "noop", result: {} }));
     const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
     const { result } = renderConversation(hostBridge);
+    const attachments = [{ id: "file-1", kind: "file", source: "mention", name: "notes.md", value: "E:/code/codex-app-plus/notes.md" }] as const;
 
     act(() => {
       result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread(), { resumeState: "resumed" }) });
@@ -226,11 +238,47 @@ describe("useWorkspaceConversation", () => {
     });
 
     await act(async () => {
-      await result.current.conversation.sendTurn({ selection: { model: "gpt-5.2", effort: "medium" }, permissionLevel: "default", planModeEnabled: false });
+      await result.current.conversation.sendTurn(createSendOptions("continue test", attachments));
     });
 
     expect(result.current.conversation.queuedFollowUps).toHaveLength(1);
     expect(result.current.conversation.queuedFollowUps[0]?.permissionLevel).toBe("default");
+    expect(result.current.conversation.queuedFollowUps[0]?.attachments).toEqual(attachments);
+  });
+
+  it("sends official attachment inputs on turn start", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "turn/start") {
+        return { requestId: "request-1", result: { turn: createTurn() } };
+      }
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+    const attachments = [
+      { id: "image-1", kind: "image", source: "localImage", name: "image.png", value: "E:/code/codex-app-plus/image.png" },
+      { id: "file-1", kind: "file", source: "mention", name: "notes.md", value: "E:/code/codex-app-plus/notes.md" },
+    ] as const;
+
+    act(() => {
+      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread(), { resumeState: "resumed" }) });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.sendTurn(createSendOptions("inspect attachments", attachments));
+    });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({
+      method: "turn/start",
+      params: expect.objectContaining({
+        input: [
+          { type: "text", text: "inspect attachments", text_elements: [] },
+          { type: "localImage", path: "E:/code/codex-app-plus/image.png" },
+          { type: "mention", name: "notes.md", path: "E:/code/codex-app-plus/notes.md" },
+        ],
+      }),
+    }));
   });
 
   it("steers the active turn when requested", async () => {
@@ -253,7 +301,7 @@ describe("useWorkspaceConversation", () => {
     });
 
     await act(async () => {
-      await result.current.conversation.sendTurn({ selection: { model: "gpt-5.2", effort: "medium" }, permissionLevel: "default", planModeEnabled: false, followUpOverride: "steer" });
+      await result.current.conversation.sendTurn({ ...createSendOptions("look at failure first"), followUpOverride: "steer" });
     });
 
     expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/steer" }));
@@ -276,7 +324,7 @@ describe("useWorkspaceConversation", () => {
     });
 
     await act(async () => {
-      await result.current.conversation.sendTurn({ selection: { model: "gpt-5.2", effort: "medium" }, permissionLevel: "full", planModeEnabled: false });
+      await result.current.conversation.sendTurn({ ...createSendOptions("switch to full access"), permissionLevel: "full" });
     });
 
     expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/start", params: expect.objectContaining({ approvalPolicy: "never", sandboxPolicy: { type: "dangerFullAccess" } }) }));

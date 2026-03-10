@@ -1,5 +1,6 @@
 interface ComposerAttachmentMenuProps {
   readonly planModeEnabled: boolean;
+  readonly onAddAttachments: () => Promise<void>;
   readonly onTogglePlanMode: () => void;
   readonly onClose: () => void;
 }
@@ -7,7 +8,7 @@ interface ComposerAttachmentMenuProps {
 export function ComposerAttachmentMenu(props: ComposerAttachmentMenuProps): JSX.Element {
   return (
     <div className="composer-attachment-popover" role="menu" aria-label="Add content">
-      <button type="button" className="composer-attachment-item" role="menuitem" onClick={props.onClose}>
+      <button type="button" className="composer-attachment-item" role="menuitem" onClick={() => void props.onAddAttachments()}>
         <span className="composer-attachment-item-content"><AttachmentIcon className="composer-attachment-icon" /><span>Add files and photos</span></span>
       </button>
       <div className="composer-attachment-separator" />

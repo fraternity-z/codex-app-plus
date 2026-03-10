@@ -26,7 +26,9 @@ import type { ReceivedServerRequest } from "./serverRequests";
 
 export type {
   CollaborationModePreset,
+  ComposerAttachment,
   ComposerEnterBehavior,
+  ConversationAttachment,
   ConversationMessage,
   FollowUpMode,
   QueuedFollowUp,
