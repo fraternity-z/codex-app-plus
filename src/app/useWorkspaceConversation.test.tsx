@@ -50,23 +50,8 @@ function renderConversation(hostBridge: HostBridge) {
 }
 
 describe("useWorkspaceConversation", () => {
-  it("creates and selects a real thread in the current workspace", async () => {
+  it("opens a local draft instead of creating a real thread immediately", async () => {
     const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
-      if (input.method === "thread/start") {
-        return {
-          requestId: "request-1",
-          result: {
-            thread: createThread(),
-            model: "gpt-5.2",
-            modelProvider: "openai",
-            serviceTier: null,
-            cwd: "E:/code/FPGA",
-            approvalPolicy: "on-request",
-            sandbox: { type: "workspace-write", networkAccess: false, writableRoots: [], readableRoots: null },
-            reasoningEffort: "medium",
-          },
-        };
-      }
       throw new Error(`unexpected method: ${input.method}`);
     });
     const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
@@ -76,38 +61,32 @@ describe("useWorkspaceConversation", () => {
       await result.current.conversation.createThread();
     });
 
-    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/start", params: expect.objectContaining({ cwd: "E:/code/FPGA", approvalPolicy: "on-request", sandbox: "workspace-write" }) }));
-    expect(result.current.conversation.draftActive).toBe(false);
-    expect(result.current.conversation.selectedThreadId).toBe("thread-1");
-    expect(result.current.conversation.selectedThread?.cwd).toBe("E:/code/FPGA");
-    expect(result.current.conversation.workspaceThreads.map((thread) => thread.id)).toContain("thread-1");
+    expect(request).not.toHaveBeenCalled();
+    expect(result.current.conversation.draftActive).toBe(true);
+    expect(result.current.conversation.selectedThreadId).toBeNull();
+    expect(result.current.conversation.selectedThread).toBeNull();
+    expect(result.current.conversation.workspaceThreads).toHaveLength(0);
   });
 
-  it("creates a full-access thread when requested", async () => {
-    const request = vi.fn(async () => ({
-      requestId: "request-1",
-      result: {
-        thread: createThread(),
-        model: "gpt-5.2",
-        modelProvider: "openai",
-        serviceTier: null,
-        cwd: "E:/code/FPGA",
-        approvalPolicy: "never",
-        sandbox: { type: "dangerFullAccess" },
-        reasoningEffort: "medium",
-      },
-    }));
+  it("clears draft mode after selecting an existing thread", async () => {
+    const request = vi.fn(async () => ({ requestId: "noop", result: {} }));
     const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
     const { result } = renderConversation(hostBridge);
 
     await act(async () => {
-      await result.current.conversation.createThread({ permissionLevel: "full" });
+      await result.current.conversation.createThread();
     });
 
-    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/start", params: expect.objectContaining({ approvalPolicy: "never", sandbox: "danger-full-access" }) }));
+    act(() => {
+      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread(), { resumeState: "resumed" }) });
+      result.current.conversation.selectThread("thread-1");
+    });
+
+    expect(result.current.conversation.draftActive).toBe(false);
+    expect(result.current.conversation.selectedThreadId).toBe("thread-1");
   });
 
-  it("starts official conversation on first send", async () => {
+  it("starts official conversation on first send after opening a draft", async () => {
     const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
       if (input.method === "thread/start") {
         return {
@@ -132,6 +111,10 @@ describe("useWorkspaceConversation", () => {
     const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
     const { result } = renderConversation(hostBridge);
 
+    await act(async () => {
+      await result.current.conversation.createThread();
+    });
+
     act(() => {
       result.current.store.dispatch({ type: "input/changed", value: "请分析当前工作区" });
     });
@@ -142,6 +125,7 @@ describe("useWorkspaceConversation", () => {
 
     expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({ method: "thread/start", params: expect.objectContaining({ approvalPolicy: "on-request", sandbox: "workspace-write" }) }));
     expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({ method: "turn/start", params: expect.objectContaining({ approvalPolicy: "on-request", sandboxPolicy: expect.objectContaining({ type: "workspaceWrite", networkAccess: false }) }) }));
+    expect(result.current.conversation.draftActive).toBe(false);
     expect(result.current.conversation.selectedThreadId).toBe("thread-1");
   });
 

@@ -19,7 +19,6 @@ import { useAppStore } from "../state/store";
 import {
   createThreadPermissionOverrides,
   createTurnPermissionOverrides,
-  DEFAULT_COMPOSER_PERMISSION_LEVEL,
   type ComposerPermissionLevel,
 } from "./composerPermission";
 import { listThreadsForWorkspace } from "./workspaceThread";
@@ -28,10 +27,6 @@ export interface SendTurnOptions {
   readonly permissionLevel: ComposerPermissionLevel;
   readonly planModeEnabled: boolean;
   readonly followUpOverride?: FollowUpMode | null;
-}
-interface CreateThreadOptions {
-  readonly model?: string | null;
-  readonly permissionLevel?: ComposerPermissionLevel;
 }
 interface WorkspaceConversationController {
   readonly selectedThreadId: string | null;
@@ -44,7 +39,7 @@ interface WorkspaceConversationController {
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
   readonly draftActive: boolean;
   readonly selectedConversationLoading: boolean;
-  createThread: (options?: CreateThreadOptions) => Promise<void>;
+  createThread: () => Promise<void>;
   selectThread: (threadId: string | null) => void;
   sendTurn: (options: SendTurnOptions) => Promise<void>;
   interruptActiveTurn: () => Promise<void>;
@@ -124,22 +119,12 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
       void ensureConversationResumed(selectedConversation.id);
     }
   }, [ensureConversationResumed, selectedConversation]);
-  const createThread = useCallback(async (createOptions?: CreateThreadOptions) => {
+  const createThread = useCallback(async () => {
     if (options.selectedRootPath === null) {
       throw new Error("请先选择工作区。");
     }
-    const permissionLevel = createOptions?.permissionLevel ?? DEFAULT_COMPOSER_PERMISSION_LEVEL;
-    const prewarmedResponse = await consumePrewarmedThread(options.selectedRootPath);
-    const response = prewarmedResponse
-      ?? ((await options.hostBridge.rpc.request({
-        method: "thread/start",
-        params: { model: createOptions?.model ?? undefined, cwd: options.selectedRootPath, experimentalRawEvents: false, persistExtendedHistory: true, ...createThreadPermissionOverrides(permissionLevel) },
-      })).result as ThreadStartResponse);
-    const conversation = createConversationFromThread(response.thread, { hidden: false, resumeState: "resumed" });
-    dispatch({ type: "conversation/upserted", conversation });
-    dispatch({ type: "conversation/selected", conversationId: conversation.id });
-    dispatch({ type: "conversation/draftCleared" });
-  }, [dispatch, options.hostBridge.rpc, options.selectedRootPath]);
+    dispatch({ type: "conversation/draftOpened", draft: { workspacePath: options.selectedRootPath, createdAt: new Date().toISOString() } });
+  }, [dispatch, options.selectedRootPath]);
   const startTurn = useCallback(async (conversationId: string, text: string, sendOptions: SendTurnOptions, cwdOverride: string | null) => {
     const collaborationMode = sendOptions.planModeEnabled ? resolvePlanMode(options.collaborationModes, sendOptions.selection) : undefined;
     dispatch({ type: "conversation/turnPlaceholderAdded", conversationId, params: { input: createInput(text), cwd: cwdOverride, model: sendOptions.selection.model, effort: sendOptions.selection.effort, collaborationMode: collaborationMode ?? null } });
@@ -149,7 +134,7 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });
   }, [dispatch, options.collaborationModes, options.hostBridge.rpc]);
   const startNewConversation = useCallback(async (text: string, sendOptions: SendTurnOptions) => {
-    const workspacePath = state.draftConversation?.workspacePath ?? options.selectedRootPath;
+    const workspacePath = options.selectedRootPath ?? state.draftConversation?.workspacePath ?? null;
     if (workspacePath === null) {
       throw new Error("请先选择工作区。");
     }
@@ -158,7 +143,6 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     const conversation = createConversationFromThread(response.thread, { hidden: false, resumeState: "resumed" });
     dispatch({ type: "conversation/upserted", conversation });
     dispatch({ type: "conversation/selected", conversationId: conversation.id });
-    dispatch({ type: "conversation/draftCleared" });
     await startTurn(conversation.id, text, sendOptions, response.thread.cwd || response.cwd || workspacePath);
   }, [dispatch, options.hostBridge.rpc, options.selectedRootPath, startTurn, state.draftConversation]);
   const steerTurn = useCallback(async (conversationId: string, turnId: string, text: string) => {

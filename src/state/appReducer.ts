@@ -108,7 +108,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "conversation/upserted":
       return upsertConversationState(state, action.conversation);
     case "conversation/selected":
-      return { ...state, selectedConversationId: action.conversationId };
+      return { ...state, selectedConversationId: action.conversationId, draftConversation: action.conversationId === null ? state.draftConversation : null };
     case "conversation/draftOpened":
       return { ...state, draftConversation: action.draft, selectedConversationId: null };
     case "conversation/draftCleared":

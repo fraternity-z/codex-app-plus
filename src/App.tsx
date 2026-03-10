@@ -109,20 +109,20 @@ export function App({ hostBridge }: AppProps): JSX.Element {
 
   const createWorkspaceThread = useCallback(async () => {
     try {
-      await conversation.createThread({ permissionLevel: preferences.composerPermissionLevel });
+      await conversation.createThread();
     } catch (error) {
       console.error("创建工作区会话失败", error);
       window.alert(`创建工作区会话失败: ${String(error)}`);
     }
-  }, [conversation, preferences.composerPermissionLevel]);
+  }, [conversation]);
 
   const sendWorkspaceTurn = useCallback(
     async (sendOptions: Parameters<typeof conversation.sendTurn>[0]) => {
       try {
         await conversation.sendTurn(sendOptions);
       } catch (error) {
-        console.error("鍙戦€佸伐浣滃尯娑堟伅澶辫触", error);
-        window.alert(`鍙戦€佸伐浣滃尯娑堟伅澶辫触: ${String(error)}`);
+        console.error("发送工作区消息失败", error);
+        window.alert(`发送工作区消息失败: ${String(error)}`);
       }
     },
     [conversation]
