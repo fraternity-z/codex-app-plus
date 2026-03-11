@@ -12,7 +12,7 @@ interface ExtractConnectionRetryResult {
   readonly retryInfo: ConnectionRetryInfo | null;
 }
 
-const RETRY_PATTERN = /reconnecting[\s.:]*([0-9]+)\s*\/\s*([0-9]+)/i;
+const RETRY_PATTERN = /reconnecting[-\s.:()\[\]\u2026\u3002\uFF0C\uFF1A]*([0-9]+)\s*[\/\\\uFF0F]\s*([0-9]+)/i;
 
 export function extractConnectionRetryInfo(activities: ReadonlyArray<TimelineEntry>): ExtractConnectionRetryResult {
   const filtered: TimelineEntry[] = [];

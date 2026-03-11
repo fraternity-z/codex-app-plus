@@ -63,7 +63,6 @@
 
 .home-assistant-transcript-detail-panel {
   --assistant-transcript-detail-height: 170px;
-  --assistant-transcript-detail-mask-height: 38px;
   margin: 8px 0 0 16px;
   padding: 12px;
   border: 1px solid #e4e8f0;
@@ -114,44 +113,27 @@
   position: relative;
 }
 
-.home-assistant-transcript-detail-scroll-shell::before,
-.home-assistant-transcript-detail-scroll-shell::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: var(--assistant-transcript-detail-mask-height);
-  pointer-events: none;
-  z-index: 1;
-}
-
-.home-assistant-transcript-detail-scroll-shell::before {
-  top: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(239, 239, 239, 0.94) 0%,
-    rgba(239, 239, 239, 0.82) 28%,
-    rgba(239, 239, 239, 0.42) 72%,
-    rgba(239, 239, 239, 0) 100%
-  );
-}
-
-.home-assistant-transcript-detail-scroll-shell::after {
-  bottom: 0;
-  background: linear-gradient(
-    0deg,
-    rgba(239, 239, 239, 0.94) 0%,
-    rgba(239, 239, 239, 0.82) 28%,
-    rgba(239, 239, 239, 0.42) 72%,
-    rgba(239, 239, 239, 0) 100%
-  );
-}
-
 .home-assistant-transcript-detail-scroll {
   height: var(--assistant-transcript-detail-height);
   overflow: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(110, 110, 110, 0.45) transparent;
+}
+
+.home-assistant-transcript-detail-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.home-assistant-transcript-detail-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.home-assistant-transcript-detail-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(110, 110, 110, 0.45);
+  border-radius: 999px;
+  border: 2px solid transparent;
 }
 
 .home-assistant-transcript-detail-body {

@@ -55,4 +55,17 @@ describe("extractConnectionRetryInfo", () => {
     expect(result.activities).toHaveLength(2);
     expect(result.retryInfo).toBeNull();
   });
+
+  it("detects unicode ellipsis and full width separators", () => {
+    const activities = [
+      createAgentMessage("retry-1", "Reconnecting\u2026 4\uFF0F5"),
+      createAgentMessage("assistant-1", "continue task"),
+    ];
+
+    const result = extractConnectionRetryInfo(activities);
+
+    expect(result.activities).toHaveLength(1);
+    expect(result.activities[0].id).toBe("assistant-1");
+    expect(result.retryInfo).toMatchObject({ attempt: 4, total: 5 });
+  });
 });
