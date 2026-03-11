@@ -83,13 +83,19 @@ function createSendOptions(text: string, attachments: ReadonlyArray<ComposerAtta
   };
 }
 
-function renderConversation(hostBridge: HostBridge) {
+function renderConversation(
+  hostBridge: HostBridge,
+  collaborationModes = [
+    { name: "default", mode: "default", model: "gpt-5.2", reasoningEffort: null },
+    { name: "plan", mode: "plan", model: "gpt-5.2", reasoningEffort: "medium" },
+  ] as const,
+) {
   return renderHook(() => {
     const store = useAppStore();
     const conversation = useWorkspaceConversation({
       hostBridge,
       selectedRootPath: "E:/code/FPGA",
-      collaborationModes: [{ name: "plan", mode: "plan", model: "gpt-5.2", reasoningEffort: "medium" }],
+      collaborationModes,
       followUpQueueMode: "queue",
     });
     return { store, conversation };
@@ -285,6 +291,98 @@ describe("useWorkspaceConversation", () => {
     expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({ method: "turn/start", params: expect.objectContaining({ serviceTier: "fast" }) }));
     expect(JSON.stringify(request.mock.calls[0]?.[0] ?? {})).not.toContain("priority");
     expect(JSON.stringify(request.mock.calls[1]?.[0] ?? {})).not.toContain("priority");
+  });
+
+  it("sends an explicit default collaboration mode override for plan implementation", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "turn/start") {
+        return { requestId: "request-1", result: { turn: createTurn() } };
+      }
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread(), { resumeState: "resumed" }) });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.sendTurn({
+        ...createSendOptions("Implement the plan."),
+        collaborationModeOverridePreset: "default",
+      });
+    });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({
+      method: "turn/start",
+      params: expect.objectContaining({
+        collaborationMode: {
+          mode: "default",
+          settings: {
+            model: "gpt-5.2",
+            reasoning_effort: "medium",
+            developer_instructions: null,
+          },
+        },
+      }),
+    }));
+  });
+
+  it("does not send an explicit default collaboration mode during normal default turns", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "turn/start") {
+        return { requestId: "request-1", result: { turn: createTurn() } };
+      }
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread(), { resumeState: "resumed" }) });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.sendTurn(createSendOptions("normal default turn"));
+    });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({
+      method: "turn/start",
+      params: expect.objectContaining({ collaborationMode: undefined }),
+    }));
+  });
+
+  it("keeps sending the explicit plan collaboration mode for plan turns", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "turn/start") {
+        return { requestId: "request-1", result: { turn: createTurn() } };
+      }
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread(), { resumeState: "resumed" }) });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.sendTurn({
+        ...createSendOptions("refine the plan"),
+        collaborationPreset: "plan",
+      });
+    });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({
+      method: "turn/start",
+      params: expect.objectContaining({
+        collaborationMode: expect.objectContaining({ mode: "plan" }),
+      }),
+    }));
   });
 
   it("does not resume the brand new thread after thread/started and still allows interrupt", async () => {

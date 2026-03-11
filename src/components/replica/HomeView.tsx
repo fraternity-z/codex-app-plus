@@ -32,6 +32,12 @@ import { extractConnectionRetryInfo } from "./homeConnectionRetry";
 import { selectLatestPlanModePrompt } from "./planModePrompt";
 import { WorkspaceDiffSidebarHost } from "./WorkspaceDiffSidebarHost";
 
+interface PlanPromptTurnOptions {
+  readonly text: string;
+  readonly collaborationPreset: "default" | "plan";
+  readonly collaborationModeOverridePreset?: "default" | "plan" | null;
+}
+
 interface HomeViewProps {
   readonly hostBridge: HostBridge;
   readonly busy: boolean;
@@ -183,10 +189,10 @@ function MainContent(props: MainContentProps): JSX.Element {
     && !props.isResponding
     && dismissedPlanPromptId !== latestPlanPrompt.entryId;
 
-  const sendPlanPromptTurn = useCallback(async (text: string, collaborationPreset: "default" | "plan") => {
+  const sendPlanPromptTurn = useCallback(async (options: PlanPromptTurnOptions) => {
     setDismissedPlanPromptId(latestPlanPrompt?.entryId ?? null);
     await props.onSendTurn({
-      text,
+      text: options.text,
       attachments: [],
       selection: {
         model: props.defaultModel,
@@ -194,7 +200,8 @@ function MainContent(props: MainContentProps): JSX.Element {
         serviceTier: props.defaultServiceTier ?? null,
       },
       permissionLevel: props.composerPermissionLevel,
-      collaborationPreset,
+      collaborationPreset: options.collaborationPreset,
+      collaborationModeOverridePreset: options.collaborationModeOverridePreset,
     });
   }, [latestPlanPrompt, props]);
 
@@ -245,8 +252,8 @@ function MainContent(props: MainContentProps): JSX.Element {
         <HomePlanRequestComposer
           busy={props.busy}
           onDismiss={dismissPlanPrompt}
-          onImplement={() => sendPlanPromptTurn("Implement the plan.", "default")}
-          onRefine={(notes) => sendPlanPromptTurn(notes, "plan")}
+          onImplement={() => sendPlanPromptTurn({ text: "Implement the plan.", collaborationPreset: "default", collaborationModeOverridePreset: "default" })}
+          onRefine={(notes) => sendPlanPromptTurn({ text: notes, collaborationPreset: "plan" })}
         />
       ) : (
         <HomeComposer

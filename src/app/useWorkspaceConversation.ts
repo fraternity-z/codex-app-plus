@@ -31,6 +31,7 @@ import {
   type ComposerPermissionLevel,
 } from "./composerPermission";
 import { buildComposerUserInputs } from "./composerAttachments";
+import { resolveCollaborationModePreset } from "./collaborationModeResolver";
 import { listThreadsForWorkspace } from "./workspaceThread";
 import { isComposerFuzzySessionId } from "../components/replica/composerCommandBridge";
 import { useThreadResourceCleanup } from "./threadResourceCleanup";
@@ -40,6 +41,7 @@ export interface SendTurnOptions {
   readonly selection: ComposerSelection;
   readonly permissionLevel: ComposerPermissionLevel;
   readonly collaborationPreset: CollaborationPreset;
+  readonly collaborationModeOverridePreset?: CollaborationPreset | null;
   readonly followUpOverride?: FollowUpMode | null;
 }
 interface WorkspaceConversationController {
@@ -96,6 +98,20 @@ function resolvePlanMode(modes: ReadonlyArray<CollaborationModePreset>, selectio
   }
   return { mode: "plan", settings: { model: preset.model ?? selection.model ?? "", reasoning_effort: preset.reasoningEffort ?? selection.effort ?? null, developer_instructions: null } };
 }
+function resolveRequestedCollaborationMode(
+  modes: ReadonlyArray<CollaborationModePreset>,
+  sendOptions: SendTurnOptions,
+): CollaborationMode | undefined {
+  const overridePreset = sendOptions.collaborationModeOverridePreset;
+  if (overridePreset) {
+    return resolveCollaborationModePreset(modes, overridePreset, sendOptions.selection);
+  }
+  if (sendOptions.collaborationPreset !== "plan") {
+    return undefined;
+  }
+  return resolvePlanMode(modes, sendOptions.selection);
+}
+
 export function useWorkspaceConversation(options: UseWorkspaceConversationOptions): WorkspaceConversationController {
   const { state, dispatch } = useAppStore();
   const resumingConversationIds = useRef(new Set<string>());
@@ -178,9 +194,7 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     dispatch({ type: "conversation/draftOpened", draft: { workspacePath: options.selectedRootPath, createdAt: new Date().toISOString() } });
   }, [dispatch, options.selectedRootPath]);
   const startTurn = useCallback(async (conversationId: string, sendOptions: SendTurnOptions, cwdOverride: string | null) => {
-    const collaborationMode = sendOptions.collaborationPreset === "plan"
-      ? resolvePlanMode(options.collaborationModes, sendOptions.selection)
-      : undefined;
+    const collaborationMode = resolveRequestedCollaborationMode(options.collaborationModes, sendOptions);
     const input = createInput(sendOptions.text, sendOptions.attachments);
     dispatch({ type: "conversation/turnPlaceholderAdded", conversationId, params: { input, cwd: cwdOverride, model: sendOptions.selection.model, effort: sendOptions.selection.effort, serviceTier: sendOptions.selection.serviceTier, collaborationMode: collaborationMode ?? null } });
     const params: TurnStartParams = {

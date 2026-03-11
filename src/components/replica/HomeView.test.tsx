@@ -258,6 +258,7 @@ describe("HomeView", () => {
       expect.objectContaining({
         text: "Implement the plan.",
         collaborationPreset: "default",
+        collaborationModeOverridePreset: "default",
       }),
     ));
   });
