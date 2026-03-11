@@ -49,6 +49,22 @@ function createTurn(status: "inProgress" | "completed" = "inProgress") {
   return { id: "turn-1", items: [], status, error: null };
 }
 
+function createThreadStartResponse(threadOverrides: Record<string, unknown> = {}) {
+  return {
+    requestId: "request-1",
+    result: {
+      thread: createThread(threadOverrides),
+      model: "gpt-5.2",
+      modelProvider: "openai",
+      serviceTier: null,
+      cwd: "E:/code/FPGA",
+      approvalPolicy: "on-request",
+      sandbox: { type: "workspace-write", networkAccess: false, writableRoots: [], readableRoots: null },
+      reasoningEffort: "medium",
+    },
+  };
+}
+
 function createSubAgentSource(parentThreadId = "thread-1") {
   return { subAgent: { thread_spawn: { parent_thread_id: parentThreadId, depth: 1, agent_nickname: null, agent_role: "explorer" } } };
 }
@@ -673,6 +689,55 @@ describe("useWorkspaceConversation", () => {
     expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
   });
 
+  it("does not unload a zero-turn thread when thread/started arrives before thread/start resolves", async () => {
+    const threadStartDeferred = createDeferred<ReturnType<typeof createThreadStartResponse>>();
+    const turnStartDeferred = createDeferred<{ requestId: string; result: { turn: ReturnType<typeof createTurn> } }>();
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/start") return threadStartDeferred.promise;
+      if (input.method === "turn/start") return turnStartDeferred.promise;
+      if (input.method === "thread/backgroundTerminals/clean") return { requestId: "clean-1", result: {} };
+      if (input.method === "thread/unsubscribe") return { requestId: "unsubscribe-1", result: { status: "unsubscribed" } };
+      throw new Error(`unexpected method: ${input.method}`);
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+    let sendPromise: Promise<void> | null = null;
+
+    await act(async () => {
+      await result.current.conversation.createThread();
+    });
+    await act(async () => {
+      sendPromise = result.current.conversation.sendTurn(createSendOptions("first turn"));
+      await Promise.resolve();
+    });
+    act(() => {
+      applyAppServerNotification(createNotificationContext(result.current.store.dispatch), "thread/started", { thread: createThread({ id: "thread-1" }) });
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/backgroundTerminals/clean", params: { threadId: "thread-1" } }));
+    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
+
+    await act(async () => {
+      threadStartDeferred.resolve(createThreadStartResponse({ id: "thread-1" }));
+      await Promise.resolve();
+    });
+
+    expect(result.current.conversation.selectedThreadId).toBe("thread-1");
+    expect(result.current.conversation.isResponding).toBe(true);
+
+    await act(async () => {
+      turnStartDeferred.resolve({ requestId: "request-2", result: { turn: createTurn() } });
+      await sendPromise;
+    });
+
+    expect(result.current.conversation.isResponding).toBe(true);
+    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
+  });
+
   it("unloads a non-selected idle main thread after switching selection", async () => {
     const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
       if (input.method === "thread/backgroundTerminals/clean") {
@@ -687,7 +752,7 @@ describe("useWorkspaceConversation", () => {
     const { result } = renderConversation(hostBridge);
 
     act(() => {
-      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-1" }), { resumeState: "resumed" }) });
+      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-1", turns: [createTurn("completed")] }), { resumeState: "resumed" }) });
       result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-2", preview: "thread 2" }), { resumeState: "resumed" }) });
       result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-2" });
     });
@@ -716,7 +781,7 @@ describe("useWorkspaceConversation", () => {
     act(() => {
       result.current.store.dispatch({
         type: "conversation/upserted",
-        conversation: createConversationFromThread(createThread({ id: "thread-1" }), { hidden: true, resumeState: "resumed" })
+        conversation: createConversationFromThread(createThread({ id: "thread-1", turns: [createTurn("completed")] }), { hidden: true, resumeState: "resumed" })
       });
     });
 

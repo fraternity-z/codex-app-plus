@@ -27,11 +27,16 @@ function isFinalCollabAgentStatus(status: CollabAgentStatus): boolean {
   return status === "completed" || status === "errored" || status === "shutdown";
 }
 
+function hasTurnHistory(conversation: ConversationState): boolean {
+  return conversation.turns.length > 0;
+}
+
 function isUnloadableConversation(
   conversation: ConversationState,
   selectedConversationId: string | null,
 ): boolean {
   return conversation.id !== selectedConversationId
+    && hasTurnHistory(conversation)
     && conversation.resumeState === "resumed"
     && conversation.queuedFollowUps.length === 0
     && isConversationStreaming(conversation) === false;
