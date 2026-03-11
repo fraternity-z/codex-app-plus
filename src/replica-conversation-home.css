@@ -12,14 +12,77 @@
   flex: 1;
   min-height: 0;
   display: flex;
+  position: relative;
 }
 
 .home-conversation-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 16px 24px 32px;
+  padding: 16px 24px 72px;
   scrollbar-gutter: stable;
+}
+
+.home-connection-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 32px));
+  background: rgba(15, 23, 42, 0.92);
+  color: #f8fafc;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.25);
+  backdrop-filter: blur(8px);
+  padding: 12px 16px;
+  pointer-events: auto;
+}
+
+.home-connection-toast-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-connection-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.home-connection-toast-text > strong {
+  font-weight: 600;
+}
+
+.home-connection-toast-countdown {
+  font-size: 12px;
+  color: #cbd5f5;
+}
+
+.home-connection-toast-action {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.home-connection-toast-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.home-connection-toast[data-status="error"],
+.home-connection-toast[data-status="disconnected"] {
+  border-color: rgba(248, 113, 113, 0.5);
 }
 
 .home-conversation-thread {

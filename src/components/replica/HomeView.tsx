@@ -27,6 +27,7 @@ import { WorkspaceDiffSidebar } from "./git/WorkspaceDiffSidebar";
 import type { WorkspaceGitController } from "./git/types";
 import { useWorkspaceGit } from "./git/useWorkspaceGit";
 import { OfficialChevronRightIcon, OfficialSidebarToggleIcon } from "./officialIcons";
+import { extractConnectionRetryInfo } from "./homeConnectionRetry";
 
 interface HomeViewProps {
   readonly hostBridge: HostBridge;
@@ -114,6 +115,10 @@ interface MainContentProps {
   readonly followUpQueueMode: FollowUpMode;
   readonly composerEnterBehavior: ComposerEnterBehavior;
   readonly composerPermissionLevel: ComposerPermissionLevel;
+  readonly connectionStatus: ConnectionStatus;
+  readonly connectionRetryInfo: ReturnType<typeof extractConnectionRetryInfo>["retryInfo"];
+  readonly fatalError: string | null;
+  readonly retryScheduledAt: number | null;
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
   readonly onInputChange: (text: string) => void;
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
@@ -126,6 +131,7 @@ interface MainContentProps {
   readonly onClearQueuedFollowUps: () => void;
   readonly onToggleDiff: () => void;
   readonly onToggleTerminal: () => void;
+  readonly onRetryConnection: () => Promise<void>;
 }
 
 function MainContent(props: MainContentProps): JSX.Element {
@@ -155,6 +161,7 @@ function MainContent(props: MainContentProps): JSX.Element {
     }
   }, [currentTurnPlan]);
 
+
   return (
     <div className="replica-main">
       <HomeMainToolbar
@@ -179,6 +186,12 @@ function MainContent(props: MainContentProps): JSX.Element {
           threadDetailLevel={props.threadDetailLevel}
           placeholder={placeholder}
           onResolveServerRequest={props.onResolveServerRequest}
+          connectionStatus={props.connectionStatus}
+          connectionRetryInfo={props.connectionRetryInfo}
+          fatalError={props.fatalError}
+          retryScheduledAt={props.retryScheduledAt}
+          busy={props.busy}
+          onRetryConnection={props.onRetryConnection}
         />
       ) : (
         <EmptyCanvas selectedRootName={props.selectedRootName} selectedRootPath={props.selectedRootPath} />
@@ -253,6 +266,10 @@ export function HomeView(props: HomeViewProps): JSX.Element {
     selectedRootPath: props.selectedRootPath,
     autoRefreshEnabled: canShowDiffSidebar
   });
+  const { activities: filteredActivities, retryInfo } = useMemo(
+    () => extractConnectionRetryInfo(props.activities),
+    [props.activities]
+  );
 
   useEffect(() => {
     if (props.selectedRootPath === null) {
@@ -288,7 +305,7 @@ export function HomeView(props: HomeViewProps): JSX.Element {
         hostBridge={props.hostBridge}
         gitController={gitController}
         inputText={props.inputText}
-        activities={props.activities}
+        activities={filteredActivities}
         banners={props.banners}
         account={props.account}
         rateLimitSummary={props.rateLimitSummary}
@@ -311,6 +328,10 @@ export function HomeView(props: HomeViewProps): JSX.Element {
         followUpQueueMode={props.followUpQueueMode}
         composerEnterBehavior={props.composerEnterBehavior}
         composerPermissionLevel={props.composerPermissionLevel}
+        connectionStatus={props.connectionStatus}
+        connectionRetryInfo={retryInfo}
+        fatalError={props.fatalError}
+        retryScheduledAt={props.retryScheduledAt}
         onSelectWorkspaceOpener={props.onSelectWorkspaceOpener}
         onInputChange={props.onInputChange}
         onSendTurn={props.onSendTurn}
@@ -323,6 +344,7 @@ export function HomeView(props: HomeViewProps): JSX.Element {
         onClearQueuedFollowUps={props.onClearQueuedFollowUps}
         onToggleDiff={toggleDiffSidebar}
         onToggleTerminal={toggleTerminal}
+        onRetryConnection={props.onRetryConnection}
       />
       <WorkspaceDiffSidebar
         open={canShowDiffSidebar}

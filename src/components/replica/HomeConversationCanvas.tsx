@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef } from "react";
 import type { ThreadDetailLevel } from "../../app/useAppPreferences";
-import type { ServerRequestResolution, ThreadSummary, TimelineEntry } from "../../domain/types";
+import type { ConnectionStatus, ServerRequestResolution, ThreadSummary, TimelineEntry } from "../../domain/types";
 import { HomeTimelineEntry } from "./HomeTimelineEntry";
 import { HomeTurnThinkingIndicator } from "./HomeTurnThinkingIndicator";
+import { HomeConnectionStatusToast } from "./HomeConnectionStatusToast";
+import type { ConnectionRetryInfo } from "./homeConnectionRetry";
 import { flattenConversationRenderGroup, splitActivitiesIntoRenderGroups } from "./localConversationGroups";
 
 interface HomeConversationCanvasProps {
@@ -12,6 +14,12 @@ interface HomeConversationCanvasProps {
   readonly threadDetailLevel: ThreadDetailLevel;
   readonly placeholder: { readonly title: string; readonly body: string } | null;
   readonly onResolveServerRequest: (resolution: ServerRequestResolution) => Promise<void>;
+  readonly connectionStatus: ConnectionStatus;
+  readonly connectionRetryInfo: ConnectionRetryInfo | null;
+  readonly fatalError: string | null;
+  readonly retryScheduledAt: number | null;
+  readonly busy: boolean;
+  readonly onRetryConnection: () => Promise<void>;
 }
 
 interface RenderGroup {
@@ -50,6 +58,14 @@ export function HomeConversationCanvas(props: HomeConversationCanvasProps): JSX.
           ))}
         </div>
       </div>
+      <HomeConnectionStatusToast
+        connectionStatus={props.connectionStatus}
+        retryInfo={props.connectionRetryInfo}
+        fatalError={props.fatalError}
+        retryScheduledAt={props.retryScheduledAt}
+        busy={props.busy}
+        onRetryConnection={props.onRetryConnection}
+      />
     </main>
   );
 }

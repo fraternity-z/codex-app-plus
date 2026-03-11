@@ -244,7 +244,7 @@ describe("HomeView", () => {
 
     renderHomeView({ activities });
 
-    expect(screen.getByText("姝ｅ湪鎵ц鍛戒护锛歱npm test")).toBeInTheDocument();
+    expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
     expect(screen.getByText("Additional input required")).toBeInTheDocument();
     expect(screen.getByText("Queue")).toBeInTheDocument();
   });
@@ -271,7 +271,7 @@ describe("HomeView", () => {
     ];
 
     const { rerender } = renderHomeView({ activities, threadDetailLevel: "compact" });
-    expect(screen.queryByText("姝ｅ湪鎵ц鍛戒护锛歱npm test")).toBeNull();
+    expect(screen.queryByText("正在执行命令：pnpm test")).toBeNull();
 
     rerender(
       <AppStoreProvider><HomeView
@@ -333,7 +333,7 @@ describe("HomeView", () => {
       /></AppStoreProvider>
     );
 
-    expect(screen.getByText("姝ｅ湪鎵ц鍛戒护锛歱npm test")).toBeInTheDocument();
+    expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
   });
 
   it("hides Auth/Plan pills and info banners above the conversation", () => {
@@ -396,10 +396,48 @@ describe("HomeView", () => {
     });
 
     expect(screen.getByText("Queued follow-ups")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "绉婚櫎" }));
-    fireEvent.click(screen.getByRole("button", { name: "娓呯┖" }));
+    fireEvent.click(screen.getByRole("button", { name: "移除" }));
+    fireEvent.click(screen.getByRole("button", { name: "清空" }));
 
     expect(onRemoveQueuedFollowUp).toHaveBeenCalledWith("follow-1");
     expect(onClearQueuedFollowUps).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides reconnecting timeline entries and surfaces toast controls", async () => {
+    const onRetryConnection = vi.fn().mockResolvedValue(undefined);
+    const activities: ReadonlyArray<TimelineEntry> = [
+      {
+        id: "retry-1",
+        kind: "agentMessage",
+        role: "assistant",
+        threadId: "thread-1",
+        turnId: "turn-1",
+        itemId: "retry-1",
+        text: "Reconnecting... 2/5",
+        status: "done",
+      },
+      {
+        id: "agent-2",
+        kind: "agentMessage",
+        role: "assistant",
+        threadId: "thread-1",
+        turnId: "turn-1",
+        itemId: "agent-2",
+        text: "继续任务",
+        status: "done",
+      },
+    ];
+
+    renderHomeView({
+      connectionStatus: "error",
+      retryScheduledAt: Date.now() + 5_000,
+      activities,
+      onRetryConnection,
+    });
+
+    expect(screen.queryByText(/Reconnecting/i)).toBeNull();
+    expect(screen.getByText("正在重连… 2/5")).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole("button", { name: "立即重试" }));
+    expect(onRetryConnection).toHaveBeenCalled();
   });
 });
