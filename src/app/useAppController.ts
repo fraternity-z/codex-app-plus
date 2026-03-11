@@ -11,7 +11,6 @@ import type { ConfigReadResponse } from "../protocol/generated/v2/ConfigReadResp
 import type { ConfigValueWriteParams } from "../protocol/generated/v2/ConfigValueWriteParams";
 import type { LoginAccountResponse } from "../protocol/generated/v2/LoginAccountResponse";
 import type { McpServerStatus } from "../protocol/generated/v2/McpServerStatus";
-import type { ThreadListResponse } from "../protocol/generated/v2/ThreadListResponse";
 import {
   batchWriteConfigAndReadSnapshot,
   batchWriteConfigAndRefresh,
@@ -24,17 +23,16 @@ import {
   writeConfigValueAndRefresh,
 } from "./configOperations";
 import { applyAppServerNotification } from "./appControllerNotifications";
-import { createConversationFromThread } from "./conversationState";
+import { createConversationFromThreadSummary } from "./conversationState";
 import { FrameTextDeltaQueue } from "./frameTextDeltaQueue";
 import { OutputDeltaQueue } from "./outputDeltaQueue";
 import { createServerRequestPayload, normalizeServerRequest } from "./serverRequests";
+import { loadThreadCatalog } from "./threadCatalog";
 import { ProtocolClient } from "../protocol/client";
 import { useAppStore } from "../state/store";
 
 const APP_VERSION = "0.1.0";
 const RETRY_DELAY_MS = 3_000;
-const THREAD_PAGE_SIZE = 100;
-
 interface AppController {
   readonly state: AppState;
   setInput: (text: string) => void;
@@ -77,14 +75,16 @@ async function loadAuthStatus(client: ProtocolClient, dispatch: (action: AppActi
   }
 }
 
-async function loadConversationCatalog(client: ProtocolClient, dispatch: (action: AppAction) => void): Promise<void> {
-  const conversations = [];
-  let cursor: string | null = null;
-  do {
-    const response = (await client.request("thread/list", { archived: false, cursor, limit: THREAD_PAGE_SIZE, sortKey: "updated_at" })) as ThreadListResponse;
-    conversations.push(...response.data.map((thread) => createConversationFromThread(thread)));
-    cursor = response.nextCursor;
-  } while (cursor !== null);
+async function loadConversationCatalog(
+  client: ProtocolClient,
+  hostBridge: HostBridge,
+  dispatch: (action: AppAction) => void
+): Promise<void> {
+  const threads = await loadThreadCatalog(
+    { request: (method, params) => client.request(method, params) },
+    () => hostBridge.app.listCodexSessions()
+  );
+  const conversations = threads.map(createConversationFromThreadSummary);
   dispatch({ type: "conversations/catalogLoaded", conversations });
 }
 
@@ -110,10 +110,10 @@ async function loadRateLimits(client: ProtocolClient, dispatch: (action: AppActi
   }
 }
 
-async function loadBootstrapSnapshot(client: ProtocolClient, dispatch: (action: AppAction) => void): Promise<void> {
+async function loadBootstrapSnapshot(client: ProtocolClient, hostBridge: HostBridge, dispatch: (action: AppAction) => void): Promise<void> {
   const [, , , , config, collaborationModes, statuses] = await Promise.all([
     loadAuthStatus(client, dispatch),
-    loadConversationCatalog(client, dispatch),
+    loadConversationCatalog(client, hostBridge, dispatch),
     loadAccountSnapshot(client, dispatch),
     loadRateLimits(client, dispatch),
     client.request("config/read", { includeLayers: true }),
@@ -251,7 +251,7 @@ export function useAppController(hostBridge: HostBridge): AppController {
       }
       await client.initializeConnection(createInitializeParams());
       dispatch({ type: "initialized/changed", ready: true });
-      await loadBootstrapSnapshot(client, dispatch);
+      await loadBootstrapSnapshot(client, hostBridge, dispatch);
     } catch (error) {
       dispatch({ type: "fatal/error", message: toErrorMessage(error) });
       scheduleRetry();

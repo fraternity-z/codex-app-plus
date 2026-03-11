@@ -81,6 +81,11 @@ function createQueuedFollowUp(options: SendTurnOptions): QueuedFollowUp {
     createdAt: new Date().toISOString(),
   };
 }
+
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 function resolvePlanMode(modes: ReadonlyArray<CollaborationModePreset>, selection: ComposerSelection): CollaborationMode | undefined {
   const preset = modes.find((mode) => mode.mode === "plan") ?? null;
   if (preset === null) {
@@ -124,7 +129,12 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
   }, [activeTurnId, interruptPending, selectedConversation]);
   const ensureConversationResumed = useCallback(async (conversationId: string) => {
     const conversation = state.conversationsById[conversationId] ?? null;
-    if (conversation === null || conversation.resumeState === "resumed" || resumingConversationIds.current.has(conversationId)) {
+    if (
+      conversation === null
+      || conversation.resumeState === "resumed"
+      || conversation.resumeState === "resume_failed"
+      || resumingConversationIds.current.has(conversationId)
+    ) {
       return;
     }
     resumingConversationIds.current.add(conversationId);
@@ -132,6 +142,17 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     try {
       const response = (await options.hostBridge.rpc.request({ method: "thread/resume", params: { threadId: conversationId, persistExtendedHistory: true } })).result as ThreadResumeResponse;
       dispatch({ type: "conversation/loaded", conversationId, thread: response.thread });
+    } catch (error) {
+      dispatch({ type: "conversation/resumeStateChanged", conversationId, resumeState: "resume_failed" });
+      dispatch({
+        type: "conversation/systemNoticeAdded",
+        conversationId,
+        turnId: null,
+        title: "恢复工作区会话失败",
+        detail: toErrorMessage(error),
+        level: "error",
+        source: "thread/resume",
+      });
     } finally {
       resumingConversationIds.current.delete(conversationId);
     }
@@ -254,8 +275,11 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     await interruptTurn(selectedConversation.id, activeTurnId);
   }, [activeTurnId, interruptTurn, selectedConversation]);
   const selectThread = useCallback((threadId: string | null) => {
+    if (threadId !== null && state.conversationsById[threadId]?.resumeState === "resume_failed") {
+      dispatch({ type: "conversation/resumeStateChanged", conversationId: threadId, resumeState: "needs_resume" });
+    }
     dispatch({ type: "conversation/selected", conversationId: threadId });
-  }, [dispatch]);
+  }, [dispatch, state.conversationsById]);
   const updateThreadBranch = useCallback(async (branch: string) => {
     if (selectedConversation === null) {
       return;

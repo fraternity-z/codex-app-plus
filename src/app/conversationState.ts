@@ -8,6 +8,7 @@ import type {
   ConversationTurnParams,
   ConversationTurnState,
 } from "../domain/conversation";
+import type { ThreadSummary } from "../domain/types";
 import type { NoticeLevel } from "../domain/timeline";
 import type { ResponseItem } from "../protocol/generated/ResponseItem";
 import type { Thread } from "../protocol/generated/v2/Thread";
@@ -169,6 +170,24 @@ function updateTurn(conversation: ConversationState, turnId: string | null, upda
 export function createConversationFromThread(thread: Thread, options?: { hidden?: boolean; resumeState?: ConversationState["resumeState"] }): ConversationState {
   const activeFlags = thread.status.type === "active" ? thread.status.activeFlags : [];
   return { id: thread.id, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, status: thread.status.type, activeFlags, resumeState: options?.resumeState ?? "needs_resume", turns: thread.turns.map((turn) => createTurnState(turn, null)), queuedFollowUps: [], interruptRequestedTurnId: null, hidden: options?.hidden ?? false };
+}
+
+export function createConversationFromThreadSummary(thread: ThreadSummary): ConversationState {
+  return {
+    id: thread.id,
+    title: thread.title,
+    branch: thread.branch,
+    cwd: thread.cwd,
+    updatedAt: thread.updatedAt,
+    source: thread.source ?? "rpc",
+    status: thread.status,
+    activeFlags: [...thread.activeFlags],
+    resumeState: "needs_resume",
+    turns: [],
+    queuedFollowUps: [],
+    interruptRequestedTurnId: null,
+    hidden: thread.archived,
+  };
 }
 
 export function hydrateConversationFromThread(conversation: ConversationState, thread: Thread): ConversationState {

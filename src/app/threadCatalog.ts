@@ -54,6 +54,18 @@ export async function listAllThreads(requester: ThreadCatalogRequester): Promise
   return threads;
 }
 
+export async function loadThreadCatalog(
+  requester: ThreadCatalogRequester,
+  listCodexSessions: () => Promise<ReadonlyArray<CodexSessionSummaryOutput>>
+): Promise<ReadonlyArray<ThreadSummary>> {
+  const [rpcThreads, localSessions] = await Promise.all([
+    listAllThreads(requester),
+    listCodexSessions(),
+  ]);
+
+  return mergeThreadCatalogs(rpcThreads, mapCodexSessionsToThreads(localSessions));
+}
+
 export function mapCodexSessionsToThreads(sessions: ReadonlyArray<CodexSessionSummaryOutput>): ReadonlyArray<ThreadSummary> {
   return sessions.map((session) => ({
     id: session.id,

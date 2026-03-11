@@ -1,6 +1,10 @@
 import type { ConversationState } from "../domain/conversation";
 import type { ThreadSummary } from "../domain/types";
 
+function mapConversationSource(source: ConversationState["source"]): ThreadSummary["source"] {
+  return source === "codexData" ? "codexData" : "rpc";
+}
+
 export function mapConversationToThreadSummary(conversation: ConversationState): ThreadSummary {
   return {
     id: conversation.id,
@@ -9,7 +13,7 @@ export function mapConversationToThreadSummary(conversation: ConversationState):
     cwd: conversation.cwd,
     archived: conversation.hidden,
     updatedAt: conversation.updatedAt,
-    source: "rpc",
+    source: mapConversationSource(conversation.source),
     status: conversation.status,
     activeFlags: [...conversation.activeFlags],
     queuedCount: conversation.queuedFollowUps.length,

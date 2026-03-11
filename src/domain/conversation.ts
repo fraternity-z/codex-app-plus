@@ -66,7 +66,7 @@ export interface ConversationTurnState {
   tokenUsage: ThreadTokenUsage | null;
 }
 
-export type ConversationResumeState = "needs_resume" | "resuming" | "resumed";
+export type ConversationResumeState = "needs_resume" | "resuming" | "resumed" | "resume_failed";
 
 export interface ConversationState {
   id: string;
