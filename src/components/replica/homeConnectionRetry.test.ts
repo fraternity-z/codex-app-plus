@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TimelineEntry } from "../../domain/timeline";
-import { extractConnectionRetryInfo } from "./homeConnectionRetry";
+import { extractConnectionRetryInfo, stripConnectionRetryLines } from "./homeConnectionRetry";
 
 function createAgentMessage(id: string, text: string): TimelineEntry {
   return {
@@ -67,5 +67,26 @@ describe("extractConnectionRetryInfo", () => {
     expect(result.activities).toHaveLength(1);
     expect(result.activities[0].id).toBe("assistant-1");
     expect(result.retryInfo).toMatchObject({ attempt: 4, total: 5 });
+  });
+
+  it("removes retry lines but keeps assistant content in the same message", () => {
+    const activities = [
+      createAgentMessage("assistant-1", "Reconnecting... 1/5\n\n继续生成中"),
+    ];
+
+    const result = extractConnectionRetryInfo(activities);
+
+    expect(result.activities).toHaveLength(1);
+    expect(result.activities[0]).toMatchObject({
+      id: "assistant-1",
+      text: "继续生成中",
+    });
+    expect(result.retryInfo).toMatchObject({ attempt: 1, total: 5, sourceEntryId: "assistant-1" });
+  });
+});
+
+describe("stripConnectionRetryLines", () => {
+  it("removes retry-only lines from shell output", () => {
+    expect(stripConnectionRetryLines("line 1\nReconnecting... 1/5\n\nline 2")).toBe("line 1\n\nline 2");
   });
 });

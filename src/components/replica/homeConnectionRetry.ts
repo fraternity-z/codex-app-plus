@@ -1,4 +1,4 @@
-import type { ConversationMessage, TimelineEntry } from "../../domain/timeline";
+import type { TimelineEntry } from "../../domain/timeline";
 
 export interface ConnectionRetryInfo {
   readonly attempt: number;
@@ -7,12 +7,18 @@ export interface ConnectionRetryInfo {
   readonly text: string;
 }
 
+interface RetryLineInfo {
+  readonly attempt: number;
+  readonly total: number;
+  readonly text: string;
+}
+
 interface ExtractConnectionRetryResult {
   readonly activities: ReadonlyArray<TimelineEntry>;
   readonly retryInfo: ConnectionRetryInfo | null;
 }
 
-const RETRY_PATTERN = /reconnecting[-\s.:()\[\]\u2026\u3002\uFF0C\uFF1A]*([0-9]+)\s*[\/\\\uFF0F]\s*([0-9]+)/i;
+const RETRY_LINE_PATTERN = /^\s*reconnecting[-\s.:()\[\]\u2026\u3002\uFF0C\uFF1A]*([0-9]+)\s*[\/\\\uFF0F]\s*([0-9]+)\s*$/i;
 
 export function extractConnectionRetryInfo(activities: ReadonlyArray<TimelineEntry>): ExtractConnectionRetryResult {
   const filtered: TimelineEntry[] = [];
@@ -20,9 +26,15 @@ export function extractConnectionRetryInfo(activities: ReadonlyArray<TimelineEnt
 
   for (const entry of activities) {
     if (entry.kind === "agentMessage") {
-      const info = parseRetryInfo(entry);
-      if (info !== null) {
-        latestInfo = info;
+      const retryText = extractRetryText(entry.text);
+      if (retryText.info !== null) {
+        latestInfo = { ...retryText.info, sourceEntryId: entry.id };
+      }
+      if (retryText.text.length === 0 && retryText.info !== null) {
+        continue;
+      }
+      if (retryText.text !== entry.text) {
+        filtered.push({ ...entry, text: retryText.text });
         continue;
       }
     }
@@ -32,8 +44,31 @@ export function extractConnectionRetryInfo(activities: ReadonlyArray<TimelineEnt
   return { activities: filtered, retryInfo: latestInfo };
 }
 
-function parseRetryInfo(entry: ConversationMessage): ConnectionRetryInfo | null {
-  const match = entry.text.match(RETRY_PATTERN);
+export function stripConnectionRetryLines(text: string): string {
+  return extractRetryText(text).text;
+}
+
+function extractRetryText(text: string): { readonly text: string; readonly info: RetryLineInfo | null } {
+  const keptLines: string[] = [];
+  let latestInfo: RetryLineInfo | null = null;
+
+  for (const line of text.split(/\r?\n/)) {
+    const info = parseRetryLine(line);
+    if (info === null) {
+      keptLines.push(line);
+      continue;
+    }
+    latestInfo = info;
+  }
+
+  return {
+    text: normalizeRetainedText(keptLines),
+    info: latestInfo,
+  };
+}
+
+function parseRetryLine(line: string): RetryLineInfo | null {
+  const match = line.match(RETRY_LINE_PATTERN);
   if (match === null) {
     return null;
   }
@@ -47,7 +82,10 @@ function parseRetryInfo(entry: ConversationMessage): ConnectionRetryInfo | null 
   return {
     attempt: Math.max(0, attempt),
     total,
-    sourceEntryId: entry.id,
-    text: entry.text.trim(),
+    text: line.trim(),
   };
+}
+
+function normalizeRetainedText(lines: ReadonlyArray<string>): string {
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }

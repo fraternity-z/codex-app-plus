@@ -1,3 +1,5 @@
+import { stripConnectionRetryLines } from "./homeConnectionRetry";
+
 const EMPTY_VALUE = "-";
 
 export type AssistantTranscriptDetailPanelVariant = "generic" | "shell";
@@ -32,7 +34,8 @@ export function createDetailPanel(options: DetailPanelOptions): AssistantTranscr
 }
 
 export function createShellBody(command: string, output: string): string {
-  return output.trim().length === 0 ? `$ ${command}` : `$ ${command}\n\n${output}`;
+  const visibleOutput = stripConnectionRetryLines(output);
+  return visibleOutput.trim().length === 0 ? `$ ${command}` : `$ ${command}\n\n${visibleOutput}`;
 }
 
 export function formatCommandFooterStatus(status: string): string {
