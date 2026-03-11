@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GitCommitIcon, GitPullIcon, GitPushIcon } from "./git/gitIcons";
 import { GitPushConfirmDialog } from "./git/GitPushConfirmDialog";
 import { canCommitChanges, canPullChanges, canPushChanges } from "./git/gitActionAvailability";
@@ -15,7 +15,31 @@ const PULL_LABEL = "拉取";
 
 interface WorkspaceGitButtonProps {
   readonly controller: WorkspaceGitController;
+  readonly requestedOpen?: "menu" | "push" | null;
   readonly selectedRootPath: string | null;
+}
+
+function useRequestedOpen(
+  controller: WorkspaceGitController,
+  requestedOpen: WorkspaceGitButtonProps["requestedOpen"],
+  setMenuOpen: (value: boolean) => void,
+  setPushConfirmOpen: (value: boolean) => void,
+): void {
+  const handledRequestRef = useRef<WorkspaceGitButtonProps["requestedOpen"]>(null);
+
+  useEffect(() => {
+    if (requestedOpen === null || requestedOpen === undefined || handledRequestRef.current === requestedOpen || !controller.statusLoaded) {
+      return;
+    }
+    handledRequestRef.current = requestedOpen;
+    if (requestedOpen === "menu") {
+      setMenuOpen(true);
+      return;
+    }
+    if (canPushChanges(controller)) {
+      setPushConfirmOpen(true);
+    }
+  }, [controller, requestedOpen, setMenuOpen, setPushConfirmOpen]);
 }
 
 interface GitMenuAction {
@@ -94,6 +118,7 @@ export function WorkspaceGitButton(props: WorkspaceGitButtonProps): JSX.Element 
   const menuActions = useMemo(() => createMenuActions(props.controller, requestPush), [props.controller, requestPush]);
   const branchName = props.controller.status?.branch?.head ?? null;
 
+  useRequestedOpen(props.controller, props.requestedOpen ?? null, setMenuOpen, setPushConfirmOpen);
   useToolbarMenuDismissal(menuOpen, containerRef, closeMenu);
 
   return (

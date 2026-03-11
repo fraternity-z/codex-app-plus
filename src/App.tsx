@@ -1,5 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { useCallback, useState } from "react";
+import { Suspense, lazy, useCallback, useState } from "react";
 import type { ComposerSelection } from "./app/composerPreferences";
 import { readUserConfigWriteTarget } from "./app/configWriteTarget";
 import { useAppController } from "./app/useAppController";
@@ -10,7 +10,12 @@ import { useWorkspaceRoots } from "./app/useWorkspaceRoots";
 import { inferWorkspaceNameFromPath } from "./app/workspacePath";
 import type { HostBridge } from "./bridge/types";
 import { HomeView } from "./components/replica/HomeView";
-import { SettingsView, type SettingsSection } from "./components/replica/SettingsView";
+import type { SettingsSection } from "./components/replica/SettingsView";
+
+const LazySettingsView = lazy(async () => {
+  const module = await import("./components/replica/SettingsView");
+  return { default: module.SettingsView };
+});
 
 interface AppProps {
   readonly hostBridge: HostBridge;
@@ -26,6 +31,20 @@ async function requestWorkspaceFolder(): Promise<{ readonly name: string; readon
   }
   const path = selection.trim();
   return path.length === 0 ? null : { name: inferWorkspaceNameFromPath(path), path };
+}
+
+function SettingsLoadingFallback(): JSX.Element {
+  return (
+    <div className="settings-layout">
+      <main className="settings-main">
+        <div className="settings-panel-group">
+          <section className="settings-card">
+            <div className="settings-empty">Loading settings…</div>
+          </section>
+        </div>
+      </main>
+    </div>
+  );
 }
 
 export function App({ hostBridge }: AppProps): JSX.Element {
@@ -153,27 +172,29 @@ export function App({ hostBridge }: AppProps): JSX.Element {
 
   if (screen !== "home") {
     return (
-      <SettingsView
-        section={screen}
-        roots={workspace.roots}
-        preferences={preferences}
-        configSnapshot={controller.state.configSnapshot}
-        busy={controller.state.bootstrapBusy}
-        onBackHome={() => setScreen("home")}
-        onSelectSection={setScreen}
-        onAddRoot={addRoot}
-        onOpenConfigToml={openConfigToml}
-        refreshConfigSnapshot={controller.refreshConfigSnapshot}
-        readGlobalAgentInstructions={readGlobalAgentInstructions}
-        writeGlobalAgentInstructions={writeGlobalAgentInstructions}
-        listCodexProviders={listCodexProviders}
-        upsertCodexProvider={upsertCodexProvider}
-        deleteCodexProvider={deleteCodexProvider}
-        applyCodexProvider={applyCodexProvider}
-        refreshMcpData={controller.refreshMcpData}
-        writeConfigValue={controller.writeConfigValue}
-        batchWriteConfig={controller.batchWriteConfig}
-      />
+      <Suspense fallback={<SettingsLoadingFallback />}>
+        <LazySettingsView
+          section={screen}
+          roots={workspace.roots}
+          preferences={preferences}
+          configSnapshot={controller.state.configSnapshot}
+          busy={controller.state.bootstrapBusy}
+          onBackHome={() => setScreen("home")}
+          onSelectSection={setScreen}
+          onAddRoot={addRoot}
+          onOpenConfigToml={openConfigToml}
+          refreshConfigSnapshot={controller.refreshConfigSnapshot}
+          readGlobalAgentInstructions={readGlobalAgentInstructions}
+          writeGlobalAgentInstructions={writeGlobalAgentInstructions}
+          listCodexProviders={listCodexProviders}
+          upsertCodexProvider={upsertCodexProvider}
+          deleteCodexProvider={deleteCodexProvider}
+          applyCodexProvider={applyCodexProvider}
+          refreshMcpData={controller.refreshMcpData}
+          writeConfigValue={controller.writeConfigValue}
+          batchWriteConfig={controller.batchWriteConfig}
+        />
+      </Suspense>
     );
   }
 

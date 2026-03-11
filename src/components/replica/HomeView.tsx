@@ -24,11 +24,11 @@ import { HomeMainToolbar } from "./HomeMainToolbar";
 import { HomeSidebar } from "./HomeSidebar";
 import { removeTurnPlanEntries, selectLatestTurnPlan } from "./homeTurnPlanModel";
 import { createComposerCommandBridge } from "./composerCommandBridge";
-import { WorkspaceDiffSidebar } from "./git/WorkspaceDiffSidebar";
 import type { WorkspaceGitController } from "./git/types";
 import { useWorkspaceGit } from "./git/useWorkspaceGit";
 import { OfficialChevronRightIcon, OfficialSidebarToggleIcon } from "./officialIcons";
 import { extractConnectionRetryInfo } from "./homeConnectionRetry";
+import { WorkspaceDiffSidebarHost } from "./WorkspaceDiffSidebarHost";
 
 interface HomeViewProps {
   readonly hostBridge: HostBridge;
@@ -169,7 +169,6 @@ function MainContent(props: MainContentProps): JSX.Element {
     <div className="replica-main">
       <HomeMainToolbar
         hostBridge={props.hostBridge}
-        gitController={props.gitController}
         conversationActive={conversationActive}
         workspaceOpener={props.workspaceOpener}
         selectedRootName={props.selectedRootName}
@@ -268,9 +267,10 @@ export function HomeView(props: HomeViewProps): JSX.Element {
   const [diffSidebarOpen, setDiffSidebarOpen] = useState(false);
   const canShowDiffSidebar = diffSidebarOpen && props.selectedRootPath !== null;
   const gitController = useWorkspaceGit({
+    diffStateEnabled: false,
     hostBridge: props.hostBridge,
     selectedRootPath: props.selectedRootPath,
-    autoRefreshEnabled: canShowDiffSidebar
+    autoRefreshEnabled: false,
   });
   const { activities: filteredActivities, retryInfo } = useMemo(
     () => extractConnectionRetryInfo(props.activities),
@@ -353,14 +353,24 @@ export function HomeView(props: HomeViewProps): JSX.Element {
         onToggleTerminal={toggleTerminal}
         onRetryConnection={props.onRetryConnection}
       />
-      <WorkspaceDiffSidebar
-        open={canShowDiffSidebar}
-        selectedRootName={props.selectedRootName}
-        selectedRootPath={props.selectedRootPath}
-        controller={gitController}
-        onClose={() => setDiffSidebarOpen(false)}
-      />
-      <TerminalPanel hostBridge={props.hostBridge} open={terminalOpen} cwd={props.selectedRootPath} cwdLabel={props.selectedRootName} shell={props.embeddedTerminalShell} onClose={() => setTerminalOpen(false)} />
+      {canShowDiffSidebar ? (
+        <WorkspaceDiffSidebarHost
+          hostBridge={props.hostBridge}
+          selectedRootName={props.selectedRootName}
+          selectedRootPath={props.selectedRootPath}
+          onClose={() => setDiffSidebarOpen(false)}
+        />
+      ) : null}
+      {terminalOpen ? (
+        <TerminalPanel
+          hostBridge={props.hostBridge}
+          open={terminalOpen}
+          cwd={props.selectedRootPath}
+          cwdLabel={props.selectedRootName}
+          shell={props.embeddedTerminalShell}
+          onClose={() => setTerminalOpen(false)}
+        />
+      ) : null}
       <SidebarCollapseButton collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((value) => !value)} />
     </div>
   );

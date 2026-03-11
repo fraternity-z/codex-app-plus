@@ -1,8 +1,7 @@
 import type { HostBridge, WorkspaceOpener } from "../../bridge/types";
-import { WorkspaceGitButton } from "./WorkspaceGitButton";
+import { WorkspaceGitButtonLauncher } from "./WorkspaceGitButtonLauncher";
 import { WorkspaceOpenButton } from "./WorkspaceOpenButton";
 import { GitDiffIcon } from "./git/gitIcons";
-import type { WorkspaceGitController } from "./git/types";
 
 const DEFAULT_CONVERSATION_TITLE = "会话";
 const DEFAULT_WORKSPACE_TITLE = "工作区会话";
@@ -23,7 +22,6 @@ interface HomeMainToolbarProps {
   readonly terminalOpen: boolean;
   readonly diffOpen: boolean;
   readonly workspaceOpener: WorkspaceOpener;
-  readonly gitController: WorkspaceGitController;
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
   readonly onToggleTerminal: () => void;
   readonly onToggleDiff: () => void;
@@ -97,10 +95,7 @@ export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
           selectedOpener={props.workspaceOpener}
           onSelectOpener={props.onSelectWorkspaceOpener}
         />
-        <WorkspaceGitButton
-          controller={props.gitController}
-          selectedRootPath={props.selectedRootPath}
-        />
+        <WorkspaceGitButtonLauncher hostBridge={props.hostBridge} selectedRootPath={props.selectedRootPath} />
         <div className="toolbar-icon-row" aria-label={TOOLBAR_ACTIONS_LABEL}>
           <ToolbarIconButton
             active={props.diffOpen}

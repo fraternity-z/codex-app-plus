@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import type {
   CodexProviderApplyResult,
   CodexProviderDraft,
@@ -11,8 +11,12 @@ import {
   createDraftFromRecord,
   readCurrentCodexProviderKey,
 } from "../../../app/codexProviderConfig";
-import { OpenSourceLicensesDialog } from "../OpenSourceLicensesDialog";
 import { CodexProviderDialog } from "./CodexProviderDialog";
+
+const LazyOpenSourceLicensesDialog = lazy(async () => {
+  const module = await import("../OpenSourceLicensesDialog");
+  return { default: module.OpenSourceLicensesDialog };
+});
 
 interface ConfigSettingsSectionProps {
   readonly busy: boolean;
@@ -191,7 +195,11 @@ export function ConfigSettingsSection(props: ConfigSettingsSectionProps): JSX.El
             ))
           : null}
       </section>
-      <OpenSourceLicensesDialog open={licensesOpen} onClose={() => setLicensesOpen(false)} />
+      {licensesOpen ? (
+        <Suspense fallback={null}>
+          <LazyOpenSourceLicensesDialog open={licensesOpen} onClose={() => setLicensesOpen(false)} />
+        </Suspense>
+      ) : null}
       <CodexProviderDialog
         open={editingDraft !== null}
         initialDraft={editingDraft}

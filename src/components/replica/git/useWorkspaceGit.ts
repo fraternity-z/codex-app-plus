@@ -19,6 +19,7 @@ import {
 } from "./workspaceGitHelpers";
 
 interface UseWorkspaceGitOptions {
+  readonly diffStateEnabled?: boolean;
   readonly hostBridge: HostBridge;
   readonly selectedRootPath: string | null;
   readonly autoRefreshEnabled: boolean;
@@ -38,6 +39,7 @@ function getMatchingDiff(controllerDiff: GitDiffOutput | null, target: GitDiffTa
 }
 
 export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitController {
+  const diffStateEnabled = options.diffStateEnabled ?? true;
   const [loading, setLoading] = useState(false);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [status, setStatus] = useState<GitStatusOutput | null>(null);
@@ -166,11 +168,18 @@ export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitCo
           return;
         }
 
+        setStatus(nextStatus);
+        setSelectedBranch((currentBranch) => pickBranchName(nextStatus, currentBranch));
+        if (!diffStateEnabled) {
+          writeDiffCache({});
+          writeDiffTarget(null);
+          writeLoadingDiffKeys([]);
+          writeStaleDiffKeys([]);
+          return;
+        }
         const nextCache = pruneDiffCache(diffCacheRef.current, nextStatus);
         writeDiffCache(nextCache);
         writeStaleDiffKeys(createStaleDiffKeys(nextStatus));
-        setStatus(nextStatus);
-        setSelectedBranch((currentBranch) => pickBranchName(nextStatus, currentBranch));
         await syncSelectedDiff(options.selectedRootPath, nextStatus, requestId, nextCache);
       } catch (reason) {
         if (requestId !== requestIdRef.current) {
@@ -186,7 +195,7 @@ export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitCo
         }
       }
     },
-    [clearTransientState, options.hostBridge.git, options.selectedRootPath, resetRepositoryState, syncSelectedDiff, writeDiffCache, writeStaleDiffKeys]
+    [clearTransientState, diffStateEnabled, options.hostBridge.git, options.selectedRootPath, resetRepositoryState, syncSelectedDiff, writeDiffCache, writeDiffTarget, writeLoadingDiffKeys, writeStaleDiffKeys]
   );
 
   const refresh = useCallback(async () => {
@@ -216,6 +225,9 @@ export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitCo
 
   const selectDiff = useCallback(
     async (path: string, staged: boolean) => {
+      if (!diffStateEnabled) {
+        return;
+      }
       if (options.selectedRootPath === null) {
         return;
       }
@@ -246,11 +258,14 @@ export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitCo
         setNotice({ kind: "error", text: formatActionError("加载差异", reason) });
       }
     },
-    [diff, loadDiff, options.selectedRootPath, writeDiffTarget]
+    [diff, diffStateEnabled, loadDiff, options.selectedRootPath, writeDiffTarget]
   );
 
   const ensureDiff = useCallback(
     async (path: string, staged: boolean) => {
+      if (!diffStateEnabled) {
+        return;
+      }
       if (options.selectedRootPath === null) {
         return;
       }
@@ -265,7 +280,7 @@ export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitCo
         setNotice({ kind: "error", text: formatActionError("加载差异", reason) });
       }
     },
-    [loadDiff, options.selectedRootPath]
+    [diffStateEnabled, loadDiff, options.selectedRootPath]
   );
 
   const {
