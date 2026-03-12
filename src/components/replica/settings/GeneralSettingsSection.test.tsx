@@ -12,6 +12,7 @@ function renderSection(): void {
       <GeneralSettingsSection
         preferences={{
           ...preferences,
+          setAgentEnvironment: (agentEnvironment) => setPreferences((current) => ({ ...current, agentEnvironment })),
           setWorkspaceOpener: (workspaceOpener) => setPreferences((current) => ({ ...current, workspaceOpener })),
           setEmbeddedTerminalShell: (embeddedTerminalShell) =>
             setPreferences((current) => ({ ...current, embeddedTerminalShell })),
@@ -33,6 +34,15 @@ function renderSection(): void {
 }
 
 describe("GeneralSettingsSection", () => {
+  it("updates the displayed agent environment after selecting WSL", () => {
+    renderSection();
+
+    fireEvent.click(screen.getByRole("button", { name: /Agent environment.*Windows native/ }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "WSL" }));
+
+    expect(screen.getByRole("button", { name: /Agent environment.*WSL/ })).toBeInTheDocument();
+  });
+
   it("updates the displayed opener after selecting a new option", () => {
     renderSection();
 

@@ -2,6 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type {
   AppServerStartInput,
+  AgentEnvironment,
+  OpenCodexConfigTomlInput,
   ApplyCodexProviderInput,
   BridgeEventName,
   BridgeEventPayloadMap,
@@ -92,10 +94,14 @@ export function createTauriHostBridge(): HostBridge {
         invoke("app_open_workspace", {
           input
         }),
-      openCodexConfigToml: () =>
-        invoke("app_open_codex_config_toml"),
-      readGlobalAgentInstructions: () =>
-        invoke<GlobalAgentInstructionsOutput>("app_read_global_agent_instructions"),
+      openCodexConfigToml: (input: OpenCodexConfigTomlInput) =>
+        invoke("app_open_codex_config_toml", {
+          input
+        }),
+      readGlobalAgentInstructions: (input: { readonly agentEnvironment: AgentEnvironment }) =>
+        invoke<GlobalAgentInstructionsOutput>("app_read_global_agent_instructions", {
+          input
+        }),
       writeGlobalAgentInstructions: (input: UpdateGlobalAgentInstructionsInput) =>
         invoke<GlobalAgentInstructionsOutput>("app_write_global_agent_instructions", {
           input

@@ -4,6 +4,7 @@ use std::path::Path;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use toml::Table;
 
+use crate::agent_environment::{resolve_agent_environment, resolve_codex_home_relative_path};
 use crate::error::{AppError, AppResult};
 use crate::models::{
     ApplyCodexProviderInput, CodexProviderApplyResult, CodexProviderRecord, CodexProviderStore,
@@ -15,13 +16,12 @@ mod support;
 
 use config_patch::{build_provider_patch_from_text, merge_config_table, parse_config_table};
 use support::{
-    codex_auth_path, codex_config_path, generate_provider_id, now_unix_ms, require_text,
-    store_path, write_live_files, ValidatedProvider,
+    generate_provider_id, now_unix_ms, require_text, store_path, write_live_files,
+    ValidatedProvider,
 };
 
 const APP_DIRECTORY: &str = "CodexAppPlus";
 const AUTH_FILE_NAME: &str = "auth.json";
-const CODEX_DIRECTORY: &str = ".codex";
 const CONFIG_FILE_NAME: &str = "config.toml";
 const OPENAI_API_KEY: &str = "OPENAI_API_KEY";
 const STORE_FILE_NAME: &str = "codex-providers.json";
@@ -40,10 +40,15 @@ pub fn delete_codex_provider(input: DeleteCodexProviderInput) -> AppResult<Codex
 }
 
 pub fn apply_codex_provider(input: ApplyCodexProviderInput) -> AppResult<CodexProviderApplyResult> {
+    let agent_environment = resolve_agent_environment(input.agent_environment);
+    let auth_path = resolve_codex_home_relative_path(agent_environment, ".codex/auth.json")?;
+    let config_path = resolve_codex_home_relative_path(agent_environment, ".codex/config.toml")?;
     apply_codex_provider_at(
         &store_path(APP_DIRECTORY, STORE_FILE_NAME)?,
-        &codex_auth_path(CODEX_DIRECTORY, AUTH_FILE_NAME)?,
-        &codex_config_path(CODEX_DIRECTORY, CONFIG_FILE_NAME)?,
+        &auth_path.host_path,
+        &auth_path.display_path,
+        &config_path.host_path,
+        &config_path.display_path,
         input,
     )
 }
@@ -51,7 +56,9 @@ pub fn apply_codex_provider(input: ApplyCodexProviderInput) -> AppResult<CodexPr
 fn apply_codex_provider_at(
     store_path: &Path,
     auth_path: &Path,
+    auth_display_path: &str,
     config_path: &Path,
+    config_display_path: &str,
     input: ApplyCodexProviderInput,
 ) -> AppResult<CodexProviderApplyResult> {
     let store = read_store(store_path)?;
@@ -80,8 +87,8 @@ fn apply_codex_provider_at(
     Ok(CodexProviderApplyResult {
         provider_id: record.id,
         provider_key: record.provider_key,
-        auth_path: auth_path.display().to_string(),
-        config_path: config_path.display().to_string(),
+        auth_path: auth_display_path.to_string(),
+        config_path: config_display_path.to_string(),
     })
 }
 

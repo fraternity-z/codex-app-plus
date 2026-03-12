@@ -1,9 +1,23 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Number, Value};
 
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum AgentEnvironment {
+    WindowsNative,
+    Wsl,
+}
+
+impl Default for AgentEnvironment {
+    fn default() -> Self {
+        Self::WindowsNative
+    }
+}
+
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AppServerStartInput {
+    pub agent_environment: Option<AgentEnvironment>,
     pub codex_path: Option<String>,
 }
 
@@ -97,7 +111,21 @@ pub struct GlobalAgentInstructionsOutput {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct OpenCodexConfigTomlInput {
+    pub agent_environment: AgentEnvironment,
+    pub file_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadGlobalAgentInstructionsInput {
+    pub agent_environment: AgentEnvironment,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateGlobalAgentInstructionsInput {
+    pub agent_environment: Option<AgentEnvironment>,
     pub content: String,
 }
 
@@ -160,6 +188,7 @@ pub struct DeleteCodexProviderInput {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApplyCodexProviderInput {
+    pub agent_environment: Option<AgentEnvironment>,
     pub id: String,
 }
 

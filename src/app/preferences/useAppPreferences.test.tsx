@@ -14,6 +14,7 @@ describe("useAppPreferences", () => {
   it("uses the default preference values", () => {
     const { result } = renderHook(() => useAppPreferences());
 
+    expect(result.current.agentEnvironment).toBe(DEFAULT_APP_PREFERENCES.agentEnvironment);
     expect(result.current.workspaceOpener).toBe(DEFAULT_APP_PREFERENCES.workspaceOpener);
     expect(result.current.embeddedTerminalShell).toBe(DEFAULT_APP_PREFERENCES.embeddedTerminalShell);
     expect(result.current.uiLanguage).toBe(DEFAULT_APP_PREFERENCES.uiLanguage);
@@ -25,6 +26,7 @@ describe("useAppPreferences", () => {
     const first = renderHook(() => useAppPreferences());
 
     act(() => {
+      first.result.current.setAgentEnvironment("wsl");
       first.result.current.setWorkspaceOpener("explorer");
       first.result.current.setEmbeddedTerminalShell("gitBash");
       first.result.current.setUiLanguage("en-US");
@@ -40,6 +42,7 @@ describe("useAppPreferences", () => {
 
     const second = renderHook(() => useAppPreferences());
 
+    expect(second.result.current.agentEnvironment).toBe("wsl");
     expect(second.result.current.workspaceOpener).toBe("explorer");
     expect(second.result.current.embeddedTerminalShell).toBe("gitBash");
     expect(second.result.current.uiLanguage).toBe("en-US");
@@ -51,6 +54,7 @@ describe("useAppPreferences", () => {
     window.localStorage.setItem(
       APP_PREFERENCES_STORAGE_KEY,
       JSON.stringify({
+        agentEnvironment: "linux",
         workspaceOpener: "unknown",
         embeddedTerminalShell: "bad-shell",
         uiLanguage: "fr-FR",
@@ -61,6 +65,7 @@ describe("useAppPreferences", () => {
 
     const { result } = renderHook(() => useAppPreferences());
 
+    expect(result.current.agentEnvironment).toBe(DEFAULT_APP_PREFERENCES.agentEnvironment);
     expect(result.current.workspaceOpener).toBe(DEFAULT_APP_PREFERENCES.workspaceOpener);
     expect(result.current.embeddedTerminalShell).toBe(DEFAULT_APP_PREFERENCES.embeddedTerminalShell);
     expect(result.current.uiLanguage).toBe(DEFAULT_APP_PREFERENCES.uiLanguage);

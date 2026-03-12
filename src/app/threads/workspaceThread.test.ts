@@ -97,4 +97,46 @@ describe("workspaceThread", () => {
       ).map((thread) => thread.id)
     ).toEqual(["thread-5"]);
   });
+
+  it("matches WSL mount paths against Windows workspace roots", () => {
+    expect(
+      listThreadsForWorkspace(
+        [
+          {
+            id: "thread-6",
+            title: "wsl-mount",
+            branch: null,
+            cwd: "/mnt/e/code/codex-app-plus",
+            archived: false,
+            updatedAt: "2026-03-06T13:00:00.000Z",
+            status: "idle",
+            activeFlags: [],
+            queuedCount: 0,
+          },
+        ],
+        "E:/code/codex-app-plus"
+      ).map((thread) => thread.id)
+    ).toEqual(["thread-6"]);
+  });
+
+  it("matches Linux paths against WSL UNC workspace roots", () => {
+    expect(
+      listThreadsForWorkspace(
+        [
+          {
+            id: "thread-7",
+            title: "wsl-home",
+            branch: null,
+            cwd: "/home/me/codex-app-plus",
+            archived: false,
+            updatedAt: "2026-03-06T14:00:00.000Z",
+            status: "idle",
+            activeFlags: [],
+            queuedCount: 0,
+          },
+        ],
+        "\\\\wsl.localhost\\Ubuntu\\home\\me\\codex-app-plus"
+      ).map((thread) => thread.id)
+    ).toEqual(["thread-7"]);
+  });
 });

@@ -1,4 +1,4 @@
-import type { BridgeEventName, BridgeEventPayloadMap, HostBridge } from "../bridge/types";
+import type { AppServerStartInput, BridgeEventName, BridgeEventPayloadMap, HostBridge } from "../bridge/types";
 import { parseConnectionStatus, parseNotificationEnvelope, parseServerRequestEnvelope } from "./guards";
 import type { ClientRequest } from "./generated/ClientRequest";
 import type { InitializeParams } from "./generated/InitializeParams";
@@ -61,14 +61,14 @@ export class ProtocolClient {
     this.#clearUnsubscribers();
   }
 
-  startAppServer(codexPath?: string): Promise<void> {
+  startAppServer(input?: AppServerStartInput): Promise<void> {
     this.#initialized = false;
-    return this.#hostBridge.appServer.start({ codexPath });
+    return this.#hostBridge.appServer.start(input);
   }
 
-  restartAppServer(codexPath?: string): Promise<void> {
+  restartAppServer(input?: AppServerStartInput): Promise<void> {
     this.#initialized = false;
-    return this.#hostBridge.appServer.restart({ codexPath });
+    return this.#hostBridge.appServer.restart(input);
   }
 
   stopAppServer(): Promise<void> {

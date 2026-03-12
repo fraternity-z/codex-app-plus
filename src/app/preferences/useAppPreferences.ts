@@ -4,13 +4,14 @@ import {
   isComposerPermissionLevel,
   type ComposerPermissionLevel,
 } from "../conversation/composerPermission";
-import type { EmbeddedTerminalShell, WorkspaceOpener } from "../../bridge/types";
+import type { AgentEnvironment, EmbeddedTerminalShell, WorkspaceOpener } from "../../bridge/types";
 import type { ComposerEnterBehavior, FollowUpMode } from "../../domain/timeline";
 
 export type UiLanguage = "zh-CN" | "en-US";
 export type ThreadDetailLevel = "compact" | "commands" | "full";
 
 export interface AppPreferences {
+  readonly agentEnvironment: AgentEnvironment;
   readonly workspaceOpener: WorkspaceOpener;
   readonly embeddedTerminalShell: EmbeddedTerminalShell;
   readonly uiLanguage: UiLanguage;
@@ -21,6 +22,7 @@ export interface AppPreferences {
 }
 
 export interface AppPreferencesController extends AppPreferences {
+  setAgentEnvironment: (agentEnvironment: AgentEnvironment) => void;
   setWorkspaceOpener: (workspaceOpener: WorkspaceOpener) => void;
   setEmbeddedTerminalShell: (shell: EmbeddedTerminalShell) => void;
   setUiLanguage: (language: UiLanguage) => void;
@@ -31,6 +33,8 @@ export interface AppPreferencesController extends AppPreferences {
 }
 
 export const APP_PREFERENCES_STORAGE_KEY = "codex-app-plus.app-preferences";
+
+const AGENT_ENVIRONMENTS: ReadonlyArray<AgentEnvironment> = ["windowsNative", "wsl"];
 
 const WORKSPACE_OPENERS: ReadonlyArray<WorkspaceOpener> = [
   "vscode",
@@ -53,6 +57,7 @@ const FOLLOW_UP_QUEUE_MODES: ReadonlyArray<FollowUpMode> = ["queue", "steer", "i
 const COMPOSER_ENTER_BEHAVIORS: ReadonlyArray<ComposerEnterBehavior> = ["enter", "cmdIfMultiline"];
 
 export const DEFAULT_APP_PREFERENCES: AppPreferences = {
+  agentEnvironment: "windowsNative",
   workspaceOpener: "vscode",
   embeddedTerminalShell: "powerShell",
   uiLanguage: "zh-CN",
@@ -72,6 +77,9 @@ function sanitizeStoredPreferences(value: unknown): AppPreferences {
   }
   const record = value as Record<string, unknown>;
   return {
+    agentEnvironment: isPreferenceValue(AGENT_ENVIRONMENTS, record.agentEnvironment)
+      ? record.agentEnvironment
+      : DEFAULT_APP_PREFERENCES.agentEnvironment,
     workspaceOpener: isPreferenceValue(WORKSPACE_OPENERS, record.workspaceOpener)
       ? record.workspaceOpener
       : DEFAULT_APP_PREFERENCES.workspaceOpener,
@@ -123,6 +131,10 @@ export function useAppPreferences(): AppPreferencesController {
     window.localStorage.setItem(APP_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
   }, [preferences]);
 
+  const setAgentEnvironment = useCallback((agentEnvironment: AgentEnvironment) => {
+    setPreferences((current) => updatePreferences(current, { agentEnvironment }));
+  }, []);
+
   const setWorkspaceOpener = useCallback((workspaceOpener: WorkspaceOpener) => {
     setPreferences((current) => updatePreferences(current, { workspaceOpener }));
   }, []);
@@ -154,6 +166,7 @@ export function useAppPreferences(): AppPreferencesController {
   return useMemo(
     () => ({
       ...preferences,
+      setAgentEnvironment,
       setWorkspaceOpener,
       setEmbeddedTerminalShell,
       setUiLanguage,
@@ -164,6 +177,7 @@ export function useAppPreferences(): AppPreferencesController {
     }),
     [
       preferences,
+      setAgentEnvironment,
       setComposerEnterBehavior,
       setComposerPermissionLevel,
       setEmbeddedTerminalShell,

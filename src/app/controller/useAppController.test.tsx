@@ -5,6 +5,8 @@ import type { HostBridge } from "../../bridge/types";
 import type { RequestId } from "../../protocol/generated/RequestId";
 import { AppStoreProvider } from "../../state/store";
 
+const DEFAULT_AGENT_ENVIRONMENT = "windowsNative" as const;
+
 const protocolState = vi.hoisted(() => ({
   handlers: null as null | {
     onConnectionChanged: (status: "disconnected" | "connecting" | "connected" | "error") => void;
@@ -32,12 +34,12 @@ vi.mock("../../protocol/client", () => ({
 
     detach(): void {}
 
-    startAppServer(): Promise<void> {
-      return protocolState.startAppServer();
+    startAppServer(input?: unknown): Promise<void> {
+      return protocolState.startAppServer(input);
     }
 
-    restartAppServer(): Promise<void> {
-      return protocolState.restartAppServer();
+    restartAppServer(input?: unknown): Promise<void> {
+      return protocolState.restartAppServer(input);
     }
 
     stopAppServer(): Promise<void> {
@@ -206,7 +208,7 @@ describe("useAppController auth helpers", () => {
 
   it("refreshes account state after account/login/completed succeeds", async () => {
     const hostBridge = createHostBridge();
-    const { result } = renderHook(() => useAppController(hostBridge), { wrapper });
+    const { result } = renderHook(() => useAppController(hostBridge, DEFAULT_AGENT_ENVIRONMENT), { wrapper });
 
     await waitFor(() => {
       expect(result.current.state.initialized).toBe(true);
@@ -221,6 +223,16 @@ describe("useAppController auth helpers", () => {
       expect(protocolState.request).toHaveBeenCalledWith("account/rateLimits/read", undefined);
     });
   });
+
+  it("starts app-server with the selected agent environment", async () => {
+    const hostBridge = createHostBridge();
+
+    renderHook(() => useAppController(hostBridge, "wsl"), { wrapper });
+
+    await waitFor(() => {
+      expect(protocolState.startAppServer).toHaveBeenCalledWith({ agentEnvironment: "wsl" });
+    });
+  });
 });
 
 describe("useAppController server request lifecycle", () => {
@@ -233,7 +245,7 @@ describe("useAppController server request lifecycle", () => {
 
   it("keeps pending requests until server confirmation and preserves numeric rpc ids", async () => {
     const hostBridge = createHostBridge();
-    const { result } = renderHook(() => useAppController(hostBridge), { wrapper });
+    const { result } = renderHook(() => useAppController(hostBridge, DEFAULT_AGENT_ENVIRONMENT), { wrapper });
 
     await waitFor(() => {
       expect(result.current.state.initialized).toBe(true);
@@ -278,7 +290,7 @@ describe("useAppController server request lifecycle", () => {
   it("keeps pending requests and reports an error when resolve fails", async () => {
     protocolState.resolveServerRequest.mockRejectedValueOnce(new Error("boom"));
     const hostBridge = createHostBridge();
-    const { result } = renderHook(() => useAppController(hostBridge), { wrapper });
+    const { result } = renderHook(() => useAppController(hostBridge, DEFAULT_AGENT_ENVIRONMENT), { wrapper });
 
     await waitFor(() => {
       expect(result.current.state.initialized).toBe(true);

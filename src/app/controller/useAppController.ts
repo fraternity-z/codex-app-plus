@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { HostBridge } from "../../bridge/types";
+import type { AgentEnvironment, HostBridge } from "../../bridge/types";
 import type { ReceivedServerRequest } from "../../domain/serverRequests";
 import type { AppAction, AppState, AuthStatus, ServerRequestResolution, ThreadSummary } from "../../domain/types";
 import type { GetAuthStatusResponse } from "../../protocol/generated/GetAuthStatusResponse";
@@ -154,14 +154,21 @@ async function loadBootstrapSnapshot(client: ProtocolClient, hostBridge: HostBri
   dispatch({ type: "experimentalFeatures/loaded", features: experimentalFeatures });
 }
 
-async function startOrReuseAppServer(client: ProtocolClient): Promise<void> {
+async function startOrReuseAppServer(
+  client: ProtocolClient,
+  agentEnvironment: AgentEnvironment
+): Promise<void> {
   try {
-    await client.startAppServer();
+    await client.startAppServer(createAppServerStartInput(agentEnvironment));
   } catch (error) {
     if (!toErrorMessage(error).includes("already")) {
       throw error;
     }
   }
+}
+
+function createAppServerStartInput(agentEnvironment: AgentEnvironment) {
+  return { agentEnvironment };
 }
 
 async function incrementThreadElicitation(client: ProtocolClient, threadId: string): Promise<void> {
@@ -217,7 +224,7 @@ export async function logoutWithLocalCleanup(client: AccountRequestClient, hostB
   await refreshAccountState(client, dispatch);
 }
 
-export function useAppController(hostBridge: HostBridge): AppController {
+export function useAppController(hostBridge: HostBridge, agentEnvironment: AgentEnvironment): AppController {
   const { state, dispatch } = useAppStore();
   const clientRef = useRef<ProtocolClient | null>(null);
   const bootStartedRef = useRef(false);
@@ -231,6 +238,7 @@ export function useAppController(hostBridge: HostBridge): AppController {
   const pausedRequestThreadIdsRef = useRef(new Map<string, string>());
   const requestThreadMetaRef = useRef(new Map<string, { threadId: string; turnId: string | null }>());
   const settledRequestIdsRef = useRef(new Set<string>());
+  const previousAgentEnvironmentRef = useRef(agentEnvironment);
 
   if (textDeltaQueueRef.current === null) {
     textDeltaQueueRef.current = new FrameTextDeltaQueue({ onFlush: (entries) => dispatch({ type: "conversation/textDeltasFlushed", entries }) });
@@ -376,9 +384,9 @@ export function useAppController(hostBridge: HostBridge): AppController {
     dispatch({ type: "initialized/changed", ready: false });
     try {
       if (forceRestart) {
-        await client.restartAppServer();
+        await client.restartAppServer(createAppServerStartInput(agentEnvironment));
       } else {
-        await startOrReuseAppServer(client);
+        await startOrReuseAppServer(client, agentEnvironment);
       }
       await client.initializeConnection(createInitializeParams());
       dispatch({ type: "initialized/changed", ready: true });
@@ -390,7 +398,7 @@ export function useAppController(hostBridge: HostBridge): AppController {
       dispatch({ type: "bootstrapBusy/changed", busy: false });
       bootingRef.current = false;
     }
-  }, [clearRetry, client, dispatch, scheduleRetry]);
+  }, [agentEnvironment, clearRetry, client, dispatch, scheduleRetry]);
 
   retryHandlerRef.current = () => void bootstrap(true);
 
@@ -433,6 +441,18 @@ export function useAppController(hostBridge: HostBridge): AppController {
     bootStartedRef.current = true;
     void bootstrap(false);
   }, [bootstrap]);
+
+  useEffect(() => {
+    if (!bootStartedRef.current) {
+      previousAgentEnvironmentRef.current = agentEnvironment;
+      return;
+    }
+    if (previousAgentEnvironmentRef.current === agentEnvironment) {
+      return;
+    }
+    previousAgentEnvironmentRef.current = agentEnvironment;
+    void bootstrap(true);
+  }, [agentEnvironment, bootstrap]);
 
   const runBusy = useCallback(async <T,>(runner: () => Promise<T>): Promise<T> => {
     dispatch({ type: "bootstrapBusy/changed", busy: true });

@@ -53,6 +53,7 @@ function renderConversation(hostBridge: HostBridge) {
     () => {
       const store = useAppStore();
       const conversation = useWorkspaceConversation({
+        agentEnvironment: "windowsNative",
         hostBridge,
         selectedRootPath: "E:/code/FPGA",
         collaborationModes: [{ name: "plan", mode: "plan", model: "gpt-5.2", reasoningEffort: "medium" }],

@@ -3,9 +3,14 @@ import type {
   ThreadDetailLevel,
   UiLanguage
 } from "../../../app/preferences/useAppPreferences";
-import type { EmbeddedTerminalShell, WorkspaceOpener } from "../../../bridge/types";
+import type { AgentEnvironment, EmbeddedTerminalShell, WorkspaceOpener } from "../../../bridge/types";
 import type { ComposerEnterBehavior, FollowUpMode } from "../../../domain/timeline";
 import { SettingsSelectRow, type SettingsSelectOption } from "./SettingsSelectRow";
+
+const AGENT_ENVIRONMENT_OPTIONS: ReadonlyArray<SettingsSelectOption<AgentEnvironment>> = [
+  { value: "windowsNative", label: "Windows native" },
+  { value: "wsl", label: "WSL" }
+];
 
 const WORKSPACE_OPENER_OPTIONS: ReadonlyArray<SettingsSelectOption<WorkspaceOpener>> = [
   { value: "vscode", label: "VS Code" },
@@ -57,6 +62,13 @@ export function GeneralSettingsSection(props: GeneralSettingsSectionProps): JSX.
         <h1 className="settings-page-title">常规</h1>
       </header>
       <section className="settings-card">
+        <SettingsSelectRow
+          label="Agent environment"
+          description="Choose where the agent runs on Windows."
+          value={preferences.agentEnvironment}
+          options={AGENT_ENVIRONMENT_OPTIONS}
+          onChange={preferences.setAgentEnvironment}
+        />
         <SettingsSelectRow
           label="默认打开目标"
           description="打开文件夹或工作区时优先使用的应用。"

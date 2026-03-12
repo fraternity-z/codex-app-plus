@@ -74,17 +74,6 @@ pub(super) fn store_path(app_directory: &str, store_file_name: &str) -> AppResul
     Ok(local_data.join(app_directory).join(store_file_name))
 }
 
-pub(super) fn codex_auth_path(code_directory: &str, auth_file_name: &str) -> AppResult<PathBuf> {
-    Ok(codex_dir(code_directory)?.join(auth_file_name))
-}
-
-pub(super) fn codex_config_path(
-    code_directory: &str,
-    config_file_name: &str,
-) -> AppResult<PathBuf> {
-    Ok(codex_dir(code_directory)?.join(config_file_name))
-}
-
 pub(super) fn generate_provider_id() -> AppResult<String> {
     let duration = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -134,10 +123,4 @@ fn read_optional_bytes(path: &Path) -> AppResult<Option<Vec<u8>>> {
         return Ok(None);
     }
     Ok(Some(fs::read(path)?))
-}
-
-fn codex_dir(code_directory: &str) -> AppResult<PathBuf> {
-    let home =
-        dirs::home_dir().ok_or_else(|| AppError::InvalidInput("无法解析用户目录".to_string()))?;
-    Ok(home.join(code_directory))
 }

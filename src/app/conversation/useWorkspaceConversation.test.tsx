@@ -107,10 +107,11 @@ function renderConversation(
   ] as const,
 ) {
   return renderHook(() => {
-    const store = useAppStore();
-    const conversation = useWorkspaceConversation({
-      hostBridge,
-      selectedRootPath: "E:/code/FPGA",
+      const store = useAppStore();
+      const conversation = useWorkspaceConversation({
+        agentEnvironment: "windowsNative",
+        hostBridge,
+        selectedRootPath: "E:/code/FPGA",
       collaborationModes,
       followUpQueueMode: "queue",
     });

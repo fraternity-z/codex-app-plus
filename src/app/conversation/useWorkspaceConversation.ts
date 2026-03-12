@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { CollaborationMode } from "../../protocol/generated/CollaborationMode";
 import type { ComposerSelection } from "./composerPreferences";
-import type { HostBridge } from "../../bridge/types";
+import type { AgentEnvironment, HostBridge } from "../../bridge/types";
 import type {
   CollaborationModePreset,
   CollaborationPreset,
@@ -33,6 +33,7 @@ import {
 import { buildComposerUserInputs } from "./composerAttachments";
 import { resolveCollaborationModePreset } from "./collaborationModeResolver";
 import { listThreadsForWorkspace } from "../threads/workspaceThread";
+import { resolveAgentWorkspacePath } from "../workspace/workspacePath";
 import { isComposerFuzzySessionId } from "../../components/replica/composerCommandBridge";
 import { useThreadResourceCleanup } from "../threads/threadResourceCleanup";
 export interface SendTurnOptions {
@@ -64,10 +65,18 @@ interface WorkspaceConversationController {
   clearQueuedFollowUps: () => void;
 }
 interface UseWorkspaceConversationOptions {
+  readonly agentEnvironment: AgentEnvironment;
   readonly hostBridge: HostBridge;
   readonly selectedRootPath: string | null;
   readonly collaborationModes: ReadonlyArray<CollaborationModePreset>;
   readonly followUpQueueMode: FollowUpMode;
+}
+
+function resolveConversationCwd(
+  cwd: string | null,
+  agentEnvironment: AgentEnvironment
+): string | null {
+  return cwd === null ? null : resolveAgentWorkspacePath(cwd, agentEnvironment);
 }
 function createInput(text: string, attachments: ReadonlyArray<ComposerAttachment>): Array<UserInput> {
   return buildComposerUserInputs(text, attachments);
@@ -197,13 +206,14 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
   const startTurn = useCallback(async (conversationId: string, sendOptions: SendTurnOptions, cwdOverride: string | null) => {
     const collaborationMode = resolveRequestedCollaborationMode(options.collaborationModes, sendOptions);
     const input = createInput(sendOptions.text, sendOptions.attachments);
-    dispatch({ type: "conversation/turnPlaceholderAdded", conversationId, params: { input, cwd: cwdOverride, model: sendOptions.selection.model, effort: sendOptions.selection.effort, serviceTier: sendOptions.selection.serviceTier, collaborationMode: collaborationMode ?? null } });
+    const resolvedCwd = resolveConversationCwd(cwdOverride, options.agentEnvironment);
+    dispatch({ type: "conversation/turnPlaceholderAdded", conversationId, params: { input, cwd: resolvedCwd, model: sendOptions.selection.model, effort: sendOptions.selection.effort, serviceTier: sendOptions.selection.serviceTier, collaborationMode: collaborationMode ?? null } });
     const params: TurnStartParams = {
       threadId: conversationId,
       model: sendOptions.selection.model ?? undefined,
       effort: sendOptions.selection.effort ?? undefined,
       serviceTier: sendOptions.selection.serviceTier ?? null,
-      cwd: cwdOverride ?? undefined,
+      cwd: resolvedCwd ?? undefined,
       input,
       collaborationMode,
       ...createTurnPermissionOverrides(sendOptions.permissionLevel)
@@ -211,14 +221,15 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     const response = (await options.hostBridge.rpc.request({ method: "turn/start", params })).result as TurnStartResponse;
     dispatch({ type: "conversation/turnStarted", conversationId, turn: response.turn });
     dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });
-  }, [dispatch, options.collaborationModes, options.hostBridge.rpc]);
+  }, [dispatch, options.agentEnvironment, options.collaborationModes, options.hostBridge.rpc]);
   const startNewConversation = useCallback(async (sendOptions: SendTurnOptions) => {
     const workspacePath = options.selectedRootPath ?? state.draftConversation?.workspacePath ?? null;
     if (workspacePath === null) {
       throw new Error("请先选择工作区。");
     }
+    const agentWorkspacePath = resolveAgentWorkspacePath(workspacePath, options.agentEnvironment);
     const prewarmedResponse = await consumePrewarmedThread(workspacePath);
-    const response = prewarmedResponse ?? (await options.hostBridge.rpc.request({ method: "thread/start", params: { model: sendOptions.selection.model ?? undefined, serviceTier: sendOptions.selection.serviceTier ?? null, cwd: workspacePath, experimentalRawEvents: false, persistExtendedHistory: true, ...createThreadPermissionOverrides(sendOptions.permissionLevel) } })).result as ThreadStartResponse;
+    const response = prewarmedResponse ?? (await options.hostBridge.rpc.request({ method: "thread/start", params: { model: sendOptions.selection.model ?? undefined, serviceTier: sendOptions.selection.serviceTier ?? null, cwd: agentWorkspacePath, experimentalRawEvents: false, persistExtendedHistory: true, ...createThreadPermissionOverrides(sendOptions.permissionLevel) } })).result as ThreadStartResponse;
     const conversation = createConversationFromThread(response.thread, { hidden: false, resumeState: "resumed" });
     const localPreviewTitle = pickConversationTitle(conversation.title, deriveConversationPreviewTitle(createInput(sendOptions.text, sendOptions.attachments)));
     dispatch({ type: "conversation/upserted", conversation });
@@ -226,8 +237,8 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
       dispatch({ type: "conversation/titleChanged", conversationId: conversation.id, title: localPreviewTitle });
     }
     dispatch({ type: "conversation/selected", conversationId: conversation.id });
-    await startTurn(conversation.id, sendOptions, response.thread.cwd || response.cwd || workspacePath);
-  }, [dispatch, options.hostBridge.rpc, options.selectedRootPath, startTurn, state.draftConversation]);
+    await startTurn(conversation.id, sendOptions, response.thread.cwd || response.cwd || agentWorkspacePath);
+  }, [dispatch, options.agentEnvironment, options.hostBridge.rpc, options.selectedRootPath, startTurn, state.draftConversation]);
   const steerTurn = useCallback(async (conversationId: string, turnId: string, sendOptions: SendTurnOptions) => {
     const input = createInput(sendOptions.text, sendOptions.attachments);
     const params: TurnSteerParams = { threadId: conversationId, input, expectedTurnId: turnId };

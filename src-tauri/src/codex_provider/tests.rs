@@ -124,8 +124,11 @@ fn apply_preserves_live_global_config_while_replacing_provider_table() {
     let result = apply_codex_provider_at(
         &store_file,
         &auth_path,
+        &auth_path.display().to_string(),
         &config_path,
+        &config_path.display().to_string(),
         ApplyCodexProviderInput {
+            agent_environment: None,
             id: saved.id.clone(),
         },
     )

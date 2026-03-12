@@ -50,8 +50,8 @@ function SettingsLoadingFallback(): JSX.Element {
 }
 
 export function App({ hostBridge }: AppProps): JSX.Element {
-  const controller = useAppController(hostBridge);
   const preferences = useAppPreferences();
+  const controller = useAppController(hostBridge, preferences.agentEnvironment);
   const composerPicker = useComposerPicker(hostBridge, controller.state.configSnapshot, controller.state.initialized);
   const workspace = useWorkspaceRoots();
   const [screen, setScreen] = useState<"home" | SettingsSection>("home");
@@ -62,6 +62,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const selectedRootPath = selectedRoot?.path ?? null;
 
   const conversation = useWorkspaceConversation({
+    agentEnvironment: preferences.agentEnvironment,
     hostBridge,
     selectedRootPath,
     collaborationModes: controller.state.collaborationModes,
@@ -74,16 +75,20 @@ export function App({ hostBridge }: AppProps): JSX.Element {
 
   const openConfigToml = useCallback(async () => {
     try {
-      await hostBridge.app.openCodexConfigToml();
+      const writeTarget = readUserConfigWriteTarget(controller.state.configSnapshot);
+      await hostBridge.app.openCodexConfigToml({
+        agentEnvironment: preferences.agentEnvironment,
+        filePath: writeTarget.filePath
+      });
     } catch (error) {
       console.error("打开 config.toml 失败", error);
       window.alert(`打开 config.toml 失败: ${String(error)}`);
     }
-  }, [hostBridge.app]);
+  }, [controller.state.configSnapshot, hostBridge.app, preferences.agentEnvironment]);
 
   const readGlobalAgentInstructions = useCallback(
-    () => hostBridge.app.readGlobalAgentInstructions(),
-    [hostBridge.app]
+    () => hostBridge.app.readGlobalAgentInstructions({ agentEnvironment: preferences.agentEnvironment }),
+    [hostBridge.app, preferences.agentEnvironment]
   );
 
   const listCodexProviders = useCallback(
@@ -105,14 +110,20 @@ export function App({ hostBridge }: AppProps): JSX.Element {
 
   const applyCodexProvider = useCallback(
     (input: Parameters<typeof hostBridge.app.applyCodexProvider>[0]) =>
-      hostBridge.app.applyCodexProvider(input),
-    [hostBridge.app]
+      hostBridge.app.applyCodexProvider({
+        ...input,
+        agentEnvironment: preferences.agentEnvironment
+      }),
+    [hostBridge.app, preferences.agentEnvironment]
   );
 
   const writeGlobalAgentInstructions = useCallback(
     (input: Parameters<typeof hostBridge.app.writeGlobalAgentInstructions>[0]) =>
-      hostBridge.app.writeGlobalAgentInstructions(input),
-    [hostBridge.app]
+      hostBridge.app.writeGlobalAgentInstructions({
+        ...input,
+        agentEnvironment: preferences.agentEnvironment
+      }),
+    [hostBridge.app, preferences.agentEnvironment]
   );
 
   const openSettings = useCallback(() => {

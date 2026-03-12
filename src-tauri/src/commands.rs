@@ -3,6 +3,9 @@ use std::path::{Path, PathBuf};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
 
+use crate::agent_environment::{
+    resolve_agent_environment, resolve_codex_home_relative_path, resolve_host_path_for_agent_path,
+};
 use crate::codex_data::{delete_codex_session, list_codex_sessions, read_codex_session};
 use crate::codex_provider::{
     apply_codex_provider, delete_codex_provider, list_codex_providers, upsert_codex_provider,
@@ -13,10 +16,11 @@ use crate::models::{
     AppServerStartInput, ApplyCodexProviderInput, ChatgptAuthTokensOutput,
     CodexProviderApplyResult, CodexProviderRecord, CodexProviderStore, CodexSessionReadInput,
     CodexSessionReadOutput, CodexSessionSummary, DeleteCodexProviderInput, DeleteCodexSessionInput,
-    GlobalAgentInstructionsOutput, ImportOfficialDataInput, OpenWorkspaceInput, RpcCancelInput,
-    RpcNotifyInput, RpcRequestInput, RpcRequestOutput, ServerRequestResolveInput,
-    ShowContextMenuInput, ShowNotificationInput, TerminalCloseInput, TerminalCreateInput,
-    TerminalCreateOutput, TerminalResizeInput, TerminalWriteInput, UpdateChatgptAuthTokensInput,
+    GlobalAgentInstructionsOutput, ImportOfficialDataInput, OpenCodexConfigTomlInput,
+    OpenWorkspaceInput, ReadGlobalAgentInstructionsInput, RpcCancelInput, RpcNotifyInput,
+    RpcRequestInput, RpcRequestOutput, ServerRequestResolveInput, ShowContextMenuInput,
+    ShowNotificationInput, TerminalCloseInput, TerminalCreateInput, TerminalCreateOutput,
+    TerminalResizeInput, TerminalWriteInput, UpdateChatgptAuthTokensInput,
     UpdateGlobalAgentInstructionsInput, UpsertCodexProviderInput, WorkspaceOpener,
 };
 use crate::process_manager::ProcessManager;
@@ -102,18 +106,15 @@ pub fn app_open_workspace(input: OpenWorkspaceInput) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn app_open_codex_config_toml() -> Result<(), String> {
-    let home = dirs::home_dir().ok_or_else(|| "无法解析用户目录".to_string())?;
-    let config_path = home.join(".codex").join("config.toml");
-    if !config_path.exists() {
-        return Err(format!("config.toml 不存在: {}", config_path.display()));
-    }
-    to_result(open::that_detached(config_path).map_err(|e| AppError::Io(e.to_string())))
+pub fn app_open_codex_config_toml(input: OpenCodexConfigTomlInput) -> Result<(), String> {
+    to_result(open_codex_config_toml(input))
 }
 
 #[tauri::command]
-pub fn app_read_global_agent_instructions() -> Result<GlobalAgentInstructionsOutput, String> {
-    to_result(read_global_agent_instructions())
+pub fn app_read_global_agent_instructions(
+    input: ReadGlobalAgentInstructionsInput,
+) -> Result<GlobalAgentInstructionsOutput, String> {
+    to_result(read_global_agent_instructions(input))
 }
 
 #[tauri::command]
@@ -460,17 +461,31 @@ fn find_tokens(
     }
 }
 
-fn global_agents_path() -> AppResult<PathBuf> {
-    let home =
-        dirs::home_dir().ok_or_else(|| AppError::InvalidInput("无法解析用户目录".to_string()))?;
-    Ok(home.join(".codex").join("AGENTS.md"))
+fn open_codex_config_toml(input: OpenCodexConfigTomlInput) -> AppResult<()> {
+    let host_path = match input.file_path.as_deref() {
+        Some(file_path) => resolve_host_path_for_agent_path(input.agent_environment, file_path)?,
+        None => {
+            resolve_codex_home_relative_path(input.agent_environment, ".codex/config.toml")?
+                .host_path
+        }
+    };
+    if !host_path.exists() {
+        return Err(AppError::InvalidInput(format!(
+            "config.toml 不存在: {}",
+            host_path.display()
+        )));
+    }
+    open::that_detached(host_path).map_err(|error| AppError::Io(error.to_string()))?;
+    Ok(())
 }
 
-fn read_global_agent_instructions() -> AppResult<GlobalAgentInstructionsOutput> {
-    let path = global_agents_path()?;
-    let content = std::fs::read_to_string(&path)?;
+fn read_global_agent_instructions(
+    input: ReadGlobalAgentInstructionsInput,
+) -> AppResult<GlobalAgentInstructionsOutput> {
+    let path = resolve_codex_home_relative_path(input.agent_environment, ".codex/AGENTS.md")?;
+    let content = std::fs::read_to_string(&path.host_path)?;
     Ok(GlobalAgentInstructionsOutput {
-        path: path.display().to_string(),
+        path: path.display_path,
         content,
     })
 }
@@ -478,10 +493,14 @@ fn read_global_agent_instructions() -> AppResult<GlobalAgentInstructionsOutput> 
 fn write_global_agent_instructions(
     input: UpdateGlobalAgentInstructionsInput,
 ) -> AppResult<GlobalAgentInstructionsOutput> {
-    let path = global_agents_path()?;
-    std::fs::write(&path, &input.content)?;
+    let agent_environment = resolve_agent_environment(input.agent_environment);
+    let path = resolve_codex_home_relative_path(agent_environment, ".codex/AGENTS.md")?;
+    if let Some(parent) = path.host_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&path.host_path, &input.content)?;
     Ok(GlobalAgentInstructionsOutput {
-        path: path.display().to_string(),
+        path: path.display_path,
         content: input.content,
     })
 }

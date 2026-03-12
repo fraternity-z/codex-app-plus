@@ -1,13 +1,15 @@
-use std::env;
-use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command};
 
+use crate::agent_environment::resolve_agent_environment;
 use crate::error::{AppError, AppResult};
-use crate::models::AppServerStartInput;
+use crate::models::{AgentEnvironment, AppServerStartInput};
 
-const WINDOWS_CANDIDATES: [&str; 4] = ["codex.cmd", "codex.exe", "codex.ps1", "codex"];
+mod windows;
+mod wsl;
+
+const WSL_PROGRAM: &str = "wsl.exe";
 
 pub struct SpawnedAppServer {
     pub child: Child,
@@ -21,12 +23,15 @@ pub struct CodexCli {
     pub(crate) program: String,
     pub(crate) prefix_args: Vec<String>,
     pub(crate) display_path: String,
+    is_wsl: bool,
 }
 
 impl CodexCli {
     pub fn resolve(input: &AppServerStartInput) -> AppResult<Self> {
-        let path = resolve_codex_path(input)?;
-        Ok(build_cli(path))
+        match resolve_agent_environment(input.agent_environment) {
+            AgentEnvironment::WindowsNative => windows::resolve_windows_cli(input),
+            AgentEnvironment::Wsl => wsl::resolve_wsl_cli(input),
+        }
     }
 
     pub async fn detect_version(&self) -> AppResult<String> {
@@ -36,12 +41,11 @@ impl CodexCli {
         }
 
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        let message = if stderr.is_empty() {
-            format!("{} 返回非零退出码: {}", self.display_path, output.status)
-        } else {
-            format!("{} 版本检测失败: {}", self.display_path, stderr)
-        };
-        Err(AppError::Protocol(message))
+        Err(AppError::Protocol(self.format_launch_error(
+            "version check failed",
+            &stderr,
+            output.status.to_string(),
+        )))
     }
 
     pub fn spawn_app_server(&self) -> AppResult<SpawnedAppServer> {
@@ -56,19 +60,25 @@ impl CodexCli {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
-        let mut child = command.spawn()?;
+        let mut child = command.spawn().map_err(|error| {
+            AppError::Protocol(self.format_launch_error(
+                "failed to spawn app-server",
+                &error.to_string(),
+                String::new(),
+            ))
+        })?;
         let stdin = child
             .stdin
             .take()
-            .ok_or_else(|| AppError::Protocol("无法获取 app-server stdin".to_string()))?;
+            .ok_or_else(|| AppError::Protocol("failed to acquire app-server stdin".to_string()))?;
         let stdout = child
             .stdout
             .take()
-            .ok_or_else(|| AppError::Protocol("无法获取 app-server stdout".to_string()))?;
+            .ok_or_else(|| AppError::Protocol("failed to acquire app-server stdout".to_string()))?;
         let stderr = child
             .stderr
             .take()
-            .ok_or_else(|| AppError::Protocol("无法获取 app-server stderr".to_string()))?;
+            .ok_or_else(|| AppError::Protocol("failed to acquire app-server stderr".to_string()))?;
 
         Ok(SpawnedAppServer {
             child,
@@ -85,6 +95,25 @@ impl CodexCli {
         configure_windows_command(&mut command);
         command
     }
+
+    fn format_launch_error(&self, action: &str, detail: &str, fallback_status: String) -> String {
+        let suffix = if detail.is_empty() {
+            fallback_status
+        } else {
+            detail.to_string()
+        };
+        if self.is_wsl {
+            return format!(
+                "{} {}. The interactive WSL shell and `wsl.exe --exec` do not share the same environment. {}",
+                self.display_path, action, suffix
+            );
+        }
+        if suffix.is_empty() {
+            format!("{} {}", self.display_path, action)
+        } else {
+            format!("{} {}: {}", self.display_path, action, suffix)
+        }
+    }
 }
 
 #[cfg(windows)]
@@ -97,93 +126,26 @@ fn configure_windows_command(command: &mut Command) {
 #[cfg(not(windows))]
 fn configure_windows_command(_command: &mut Command) {}
 
-fn resolve_codex_path(input: &AppServerStartInput) -> AppResult<PathBuf> {
-    if let Some(path) = resolve_custom_path(input)? {
-        return Ok(path);
-    }
-
-    search_path_candidates().ok_or_else(|| {
-        AppError::InvalidInput("未检测到已安装 Codex，请先确保 codex 已加入 PATH".to_string())
-    })
-}
-
-fn resolve_custom_path(input: &AppServerStartInput) -> AppResult<Option<PathBuf>> {
-    let Some(path) = input.codex_path.as_ref() else {
-        return Ok(None);
-    };
-
-    let candidate = PathBuf::from(path);
-    if candidate.is_file() {
-        return Ok(Some(candidate));
-    }
-    Err(AppError::InvalidInput(format!(
-        "codexPath 不存在或不是文件: {}",
-        candidate.display()
-    )))
-}
-
-fn search_path_candidates() -> Option<PathBuf> {
-    let path_var = env::var_os("PATH")?;
-    for directory in env::split_paths(&path_var) {
-        for candidate in WINDOWS_CANDIDATES {
-            let path = directory.join(candidate);
-            if path.is_file() {
-                return Some(path);
-            }
-        }
-    }
-    None
-}
-
-fn build_cli(path: PathBuf) -> CodexCli {
-    let display_path = path.to_string_lossy().to_string();
-    let extension = file_extension(&path);
-    let path_text = display_path.clone();
-
-    if extension == "cmd" || extension == "bat" {
-        return CodexCli {
-            program: "cmd.exe".to_string(),
-            prefix_args: vec!["/C".to_string(), path_text],
-            display_path,
-        };
-    }
-
-    if extension == "ps1" {
-        return CodexCli {
-            program: "powershell.exe".to_string(),
-            prefix_args: vec!["-File".to_string(), path_text],
-            display_path,
-        };
-    }
-
-    CodexCli {
-        program: path_text,
-        prefix_args: Vec::new(),
-        display_path,
-    }
-}
-
-fn file_extension(path: &Path) -> String {
-    path.extension()
-        .and_then(|value| value.to_str())
-        .unwrap_or_default()
-        .to_ascii_lowercase()
-}
-
 fn parse_version_output(stdout: &[u8]) -> AppResult<String> {
     let version = String::from_utf8_lossy(stdout).trim().to_string();
     if version.is_empty() {
-        return Err(AppError::Protocol("Codex 版本检测返回空输出".to_string()));
+        return Err(AppError::Protocol(
+            "Codex version check returned empty output".to_string(),
+        ));
     }
     Ok(version)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::env;
     use std::fs;
+    use std::path::PathBuf;
     use std::sync::{Mutex, OnceLock};
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    use super::CodexCli;
+    use crate::models::AppServerStartInput;
 
     fn env_lock() -> std::sync::MutexGuard<'static, ()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -208,11 +170,15 @@ mod tests {
 
         let input = AppServerStartInput {
             codex_path: Some(path.to_string_lossy().to_string()),
+            ..AppServerStartInput::default()
         };
         let cli = CodexCli::resolve(&input).unwrap();
 
         assert_eq!(cli.program, "cmd.exe");
-        assert_eq!(cli.prefix_args[0], "/C");
+        assert_eq!(
+            cli.prefix_args,
+            vec!["/C".to_string(), path.to_string_lossy().to_string()]
+        );
         assert_eq!(cli.display_path, path.to_string_lossy());
     }
 

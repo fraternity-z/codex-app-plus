@@ -5,6 +5,8 @@ import type { HostBridge } from "../../bridge/types";
 import type { RequestId } from "../../protocol/generated/RequestId";
 import { AppStoreProvider } from "../../state/store";
 
+const DEFAULT_AGENT_ENVIRONMENT = "windowsNative" as const;
+
 const protocolState = vi.hoisted(() => ({
   handlers: null as null | {
     onConnectionChanged: (status: "disconnected" | "connecting" | "connected" | "error") => void;
@@ -30,12 +32,12 @@ vi.mock("../../protocol/client", () => ({
 
     detach(): void {}
 
-    startAppServer(): Promise<void> {
-      return protocolState.startAppServer();
+    startAppServer(input?: unknown): Promise<void> {
+      return protocolState.startAppServer(input);
     }
 
-    restartAppServer(): Promise<void> {
-      return protocolState.restartAppServer();
+    restartAppServer(input?: unknown): Promise<void> {
+      return protocolState.restartAppServer(input);
     }
 
     initializeConnection(): Promise<void> {
@@ -144,7 +146,7 @@ describe("useAppController retry gating", () => {
 
   it("retries only after fatal errors", async () => {
     const hostBridge = createHostBridge();
-    const { result } = renderHook(() => useAppController(hostBridge), { wrapper });
+    const { result } = renderHook(() => useAppController(hostBridge, DEFAULT_AGENT_ENVIRONMENT), { wrapper });
 
     await waitFor(() => {
       expect(result.current.state.initialized).toBe(true);

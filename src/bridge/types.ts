@@ -65,7 +65,13 @@ export interface TerminalExitEventPayload {
 }
 
 export interface AppServerStartInput {
+  readonly agentEnvironment?: AgentEnvironment;
   readonly codexPath?: string;
+}
+
+export interface OpenCodexConfigTomlInput {
+  readonly agentEnvironment: AgentEnvironment;
+  readonly filePath?: string | null;
 }
 
 export interface RpcRequestInput {
@@ -122,6 +128,7 @@ export interface GlobalAgentInstructionsOutput {
 }
 
 export interface UpdateGlobalAgentInstructionsInput {
+  readonly agentEnvironment?: AgentEnvironment;
   readonly content: string;
 }
 
@@ -170,6 +177,7 @@ export interface DeleteCodexProviderInput {
 }
 
 export interface ApplyCodexProviderInput {
+  readonly agentEnvironment?: AgentEnvironment;
   readonly id: string;
 }
 
@@ -214,6 +222,8 @@ export type WorkspaceOpener =
   | "explorer"
   | "terminal"
   | "gitBash";
+
+export type AgentEnvironment = "windowsNative" | "wsl";
 
 export type EmbeddedTerminalShell = "powerShell" | "commandPrompt" | "gitBash";
 
@@ -315,8 +325,10 @@ export interface HostBridge {
   readonly app: {
     openExternal(url: string): Promise<void>;
     openWorkspace(input: OpenWorkspaceInput): Promise<void>;
-    openCodexConfigToml(): Promise<void>;
-    readGlobalAgentInstructions(): Promise<GlobalAgentInstructionsOutput>;
+    openCodexConfigToml(input: OpenCodexConfigTomlInput): Promise<void>;
+    readGlobalAgentInstructions(input: {
+      readonly agentEnvironment: AgentEnvironment;
+    }): Promise<GlobalAgentInstructionsOutput>;
     writeGlobalAgentInstructions(
       input: UpdateGlobalAgentInstructionsInput
     ): Promise<GlobalAgentInstructionsOutput>;
