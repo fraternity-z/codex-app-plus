@@ -63,6 +63,28 @@ describe("PersonalizationSettingsSection", () => {
     expect(screen.getByText("已同步到 Codex 全局 AGENTS.md。")).toBeInTheDocument();
   });
 
+  it("keeps an empty AGENTS file editable after load", async () => {
+    render(
+      <PersonalizationSettingsSection
+        configSnapshot={createSnapshot()}
+        busy={false}
+        readGlobalAgentInstructions={vi.fn().mockResolvedValue(createInstructionsResult(""))}
+        writeGlobalAgentInstructions={vi.fn().mockResolvedValue(createInstructionsResult("补充规则"))}
+      />
+    );
+
+    const textarea = await screen.findByLabelText("自定义指令");
+    const saveButton = screen.getByRole("button", { name: "保存" });
+
+    expect(textarea).toHaveValue("");
+    expect(textarea).not.toBeDisabled();
+    expect(saveButton).toBeDisabled();
+
+    fireEvent.change(textarea, { target: { value: "补充规则" } });
+
+    expect(saveButton).not.toBeDisabled();
+  });
+
   it("surfaces load and save errors instead of swallowing them", async () => {
     const writeGlobalAgentInstructions = vi.fn().mockRejectedValue(new Error("写入失败"));
 

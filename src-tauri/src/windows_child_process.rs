@@ -2,6 +2,7 @@ use std::process::Command as StdCommand;
 
 use tokio::process::Command as TokioCommand;
 
+#[cfg(not(windows))]
 const NO_CREATION_FLAGS: u32 = 0;
 
 #[cfg(windows)]

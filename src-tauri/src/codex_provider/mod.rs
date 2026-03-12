@@ -21,8 +21,6 @@ use support::{
 };
 
 const APP_DIRECTORY: &str = "CodexAppPlus";
-const AUTH_FILE_NAME: &str = "auth.json";
-const CONFIG_FILE_NAME: &str = "config.toml";
 const OPENAI_API_KEY: &str = "OPENAI_API_KEY";
 const STORE_FILE_NAME: &str = "codex-providers.json";
 const STORE_VERSION: u32 = 1;

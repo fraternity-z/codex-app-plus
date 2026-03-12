@@ -1,7 +1,7 @@
 use std::ffi::OsString;
 use std::path::Path;
 
-use crate::error::{AppError, AppResult};
+use crate::error::AppResult;
 
 use super::process::run_git_with_exit_codes;
 

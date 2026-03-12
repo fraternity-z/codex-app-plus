@@ -7,6 +7,9 @@ use serde_json::json;
 
 use super::*;
 
+const AUTH_FILE_NAME: &str = "auth.json";
+const CONFIG_FILE_NAME: &str = "config.toml";
+
 fn temp_dir(name: &str) -> PathBuf {
     let path = std::env::temp_dir().join(format!(
         "codex-app-plus-{name}-{}",

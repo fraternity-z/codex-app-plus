@@ -10,6 +10,7 @@ mod codex_session_text;
 mod commands;
 mod error;
 mod events;
+mod global_agent_instructions;
 mod git;
 mod models;
 mod process_manager;

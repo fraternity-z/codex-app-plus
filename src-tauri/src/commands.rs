@@ -12,6 +12,7 @@ use crate::codex_provider::{
 };
 use crate::error::{AppError, AppResult};
 use crate::events::{EVENT_CONTEXT_MENU_REQUESTED, EVENT_NOTIFICATION_REQUESTED};
+use crate::global_agent_instructions::read_global_agent_instructions_at;
 use crate::models::{
     AppServerStartInput, ApplyCodexProviderInput, ChatgptAuthTokensOutput,
     CodexProviderApplyResult, CodexProviderRecord, CodexProviderStore, CodexSessionReadInput,
@@ -484,11 +485,7 @@ fn read_global_agent_instructions(
     input: ReadGlobalAgentInstructionsInput,
 ) -> AppResult<GlobalAgentInstructionsOutput> {
     let path = resolve_codex_home_relative_path(input.agent_environment, ".codex/AGENTS.md")?;
-    let content = std::fs::read_to_string(&path.host_path)?;
-    Ok(GlobalAgentInstructionsOutput {
-        path: path.display_path,
-        content,
-    })
+    read_global_agent_instructions_at(path.display_path, &path.host_path)
 }
 
 fn write_global_agent_instructions(
