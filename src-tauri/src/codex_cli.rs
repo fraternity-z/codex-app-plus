@@ -82,9 +82,20 @@ impl CodexCli {
         let mut command = Command::new(&self.program);
         command.args(&self.prefix_args);
         command.args(args);
+        configure_windows_command(&mut command);
         command
     }
 }
+
+#[cfg(windows)]
+fn configure_windows_command(command: &mut Command) {
+    use windows_sys::Win32::System::Threading::CREATE_NO_WINDOW;
+
+    command.creation_flags(CREATE_NO_WINDOW);
+}
+
+#[cfg(not(windows))]
+fn configure_windows_command(_command: &mut Command) {}
 
 fn resolve_codex_path(input: &AppServerStartInput) -> AppResult<PathBuf> {
     if let Some(path) = resolve_custom_path(input)? {

@@ -16,9 +16,9 @@ mod rpc_transport;
 mod terminal_manager;
 
 use commands::{
-    app_apply_codex_provider, app_delete_codex_provider, app_delete_codex_session,
-    app_clear_chatgpt_auth_state, app_import_official_data, app_list_codex_providers, app_list_codex_sessions,
-    app_open_codex_config_toml, app_open_external, app_open_workspace,
+    app_apply_codex_provider, app_clear_chatgpt_auth_state, app_delete_codex_provider,
+    app_delete_codex_session, app_import_official_data, app_list_codex_providers,
+    app_list_codex_sessions, app_open_codex_config_toml, app_open_external, app_open_workspace,
     app_read_chatgpt_auth_tokens, app_read_codex_session, app_read_global_agent_instructions,
     app_server_restart, app_server_start, app_server_stop, app_show_context_menu,
     app_show_notification, app_upsert_codex_provider, app_write_chatgpt_auth_tokens,

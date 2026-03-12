@@ -3,8 +3,7 @@ use tauri::{AppHandle, Emitter};
 use crate::error::AppResult;
 use crate::models::{
     ConnectionChangedPayload, FatalErrorPayload, NotificationPayload, RequestId,
-    ServerRequestPayload,
-    TerminalExitPayload, TerminalOutputPayload,
+    ServerRequestPayload, TerminalExitPayload, TerminalOutputPayload,
 };
 
 pub const EVENT_CONNECTION_CHANGED: &str = "connection-changed";

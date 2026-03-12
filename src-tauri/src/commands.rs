@@ -1,4 +1,4 @@
-﻿use std::path::{Path, PathBuf};
+use std::path::{Path, PathBuf};
 
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, State};
@@ -91,7 +91,7 @@ pub async fn server_request_resolve(
 #[tauri::command]
 pub fn app_open_external(url: String) -> Result<(), String> {
     if url.trim().is_empty() {
-        return Err("url 涓嶈兘涓虹┖".to_string());
+        return Err("url 不能为空".to_string());
     }
     to_result(open::that_detached(url).map_err(|e| AppError::Io(e.to_string())))
 }
@@ -103,10 +103,10 @@ pub fn app_open_workspace(input: OpenWorkspaceInput) -> Result<(), String> {
 
 #[tauri::command]
 pub fn app_open_codex_config_toml() -> Result<(), String> {
-    let home = dirs::home_dir().ok_or_else(|| "鏃犳硶瑙ｆ瀽鐢ㄦ埛鐩綍".to_string())?;
+    let home = dirs::home_dir().ok_or_else(|| "无法解析用户目录".to_string())?;
     let config_path = home.join(".codex").join("config.toml");
     if !config_path.exists() {
-        return Err(format!("config.toml 涓嶅瓨鍦? {}", config_path.display()));
+        return Err(format!("config.toml 不存在: {}", config_path.display()));
     }
     to_result(open::that_detached(config_path).map_err(|e| AppError::Io(e.to_string())))
 }
@@ -169,7 +169,7 @@ pub fn app_clear_chatgpt_auth_state() -> Result<(), String> {
 #[tauri::command]
 pub fn app_show_notification(app: AppHandle, input: ShowNotificationInput) -> Result<(), String> {
     if input.title.trim().is_empty() {
-        return Err("notification.title 涓嶈兘涓虹┖".to_string());
+        return Err("notification.title 不能为空".to_string());
     }
     app.emit(EVENT_NOTIFICATION_REQUESTED, input)
         .map_err(|e| e.to_string())
@@ -178,7 +178,7 @@ pub fn app_show_notification(app: AppHandle, input: ShowNotificationInput) -> Re
 #[tauri::command]
 pub fn app_show_context_menu(app: AppHandle, input: ShowContextMenuInput) -> Result<(), String> {
     if input.items.is_empty() {
-        return Err("context menu items 涓嶈兘涓虹┖".to_string());
+        return Err("context menu items 不能为空".to_string());
     }
     app.emit(EVENT_CONTEXT_MENU_REQUESTED, input)
         .map_err(|e| e.to_string())
@@ -254,7 +254,7 @@ fn import_official_data(input: ImportOfficialDataInput) -> AppResult<()> {
 
 fn app_data_root() -> AppResult<PathBuf> {
     let local_data = dirs::data_local_dir()
-        .ok_or_else(|| AppError::InvalidInput("鏃犳硶瑙ｆ瀽 LOCALAPPDATA".to_string()))?;
+        .ok_or_else(|| AppError::InvalidInput("无法解析 LOCALAPPDATA".to_string()))?;
     Ok(local_data.join("CodexAppPlus"))
 }
 
@@ -345,11 +345,13 @@ fn write_chatgpt_auth_tokens_to_root(
     input: UpdateChatgptAuthTokensInput,
 ) -> AppResult<ChatgptAuthTokensOutput> {
     if input.access_token.trim().is_empty() {
-        return Err(AppError::InvalidInput("accessToken 娑撳秷鍏樻稉铏光敄".to_string()));
+        return Err(AppError::InvalidInput(
+            "accessToken 不能为空".to_string(),
+        ));
     }
     if input.chatgpt_account_id.trim().is_empty() {
         return Err(AppError::InvalidInput(
-            "chatgptAccountId 娑撳秷鍏樻稉铏光敄".to_string(),
+            "chatgptAccountId 不能为空".to_string(),
         ));
     }
     let path = chatgpt_auth_cache_path_for_root(root);
@@ -371,7 +373,10 @@ fn clear_chatgpt_auth_state_in_root(root: &Path) -> AppResult<()> {
     let auth_dir = chatgpt_auth_dir_for_root(root);
     std::fs::create_dir_all(&auth_dir)?;
     remove_file_if_exists(&chatgpt_auth_cache_path_for_root(root))?;
-    std::fs::write(chatgpt_auth_logout_marker_path_for_root(root), b"logged-out")?;
+    std::fs::write(
+        chatgpt_auth_logout_marker_path_for_root(root),
+        b"logged-out",
+    )?;
     Ok(())
 }
 
@@ -458,8 +463,8 @@ fn find_tokens(
 }
 
 fn global_agents_path() -> AppResult<PathBuf> {
-    let home =
-        dirs::home_dir().ok_or_else(|| AppError::InvalidInput("鏃犳硶瑙ｆ瀽鐢ㄦ埛鐩綍".to_string()))?;
+    let home = dirs::home_dir()
+        .ok_or_else(|| AppError::InvalidInput("无法解析用户目录".to_string()))?;
     Ok(home.join(".codex").join("AGENTS.md"))
 }
 
@@ -485,13 +490,13 @@ fn write_global_agent_instructions(
 
 fn open_workspace(input: OpenWorkspaceInput) -> AppResult<()> {
     if input.path.trim().is_empty() {
-        return Err(AppError::InvalidInput("path 涓嶈兘涓虹┖".to_string()));
+        return Err(AppError::InvalidInput("path 不能为空".to_string()));
     }
 
     let path = PathBuf::from(&input.path);
     if !path.exists() {
         return Err(AppError::InvalidInput(format!(
-            "path 涓嶅瓨鍦? {}",
+            "path 不存在: {}",
             path.display()
         )));
     }
@@ -637,4 +642,3 @@ mod tests {
         assert!(!chatgpt_auth_logout_marker_path_for_root(&root).exists());
     }
 }
-
