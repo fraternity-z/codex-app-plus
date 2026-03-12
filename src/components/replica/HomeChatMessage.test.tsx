@@ -23,6 +23,7 @@ describe("HomeChatMessage", () => {
     );
 
     expect(screen.getByText("请看附件")).toBeInTheDocument();
+    expect(container.querySelector(".home-chat-message-user > .home-chat-message-stack-user")).not.toBeNull();
     expect(container.querySelector(".home-chat-attachments img")?.getAttribute("src")).toBe(dataUrl);
   });
 
@@ -48,7 +49,7 @@ describe("HomeChatMessage", () => {
 
     expect(screen.getByText("正在输出正文")).toBeInTheDocument();
     expect(screen.queryByText("正在思考")).toBeNull();
-    expect(assistantChildren).toEqual(["home-chat-message-body"]);
+    expect(assistantChildren).toEqual(["home-chat-message-stack home-chat-message-stack-assistant"]);
   });
 
   it("does not render an empty assistant body", () => {
@@ -72,7 +73,7 @@ describe("HomeChatMessage", () => {
   });
 
   it("renders file attachments as read-only clips", () => {
-    render(
+    const { container } = render(
       <HomeChatMessage
         message={{
           id: "user-file-1",
@@ -89,6 +90,7 @@ describe("HomeChatMessage", () => {
     );
 
     expect(screen.getByText("notes.md")).toBeInTheDocument();
+    expect(container.querySelector(".home-chat-message-stack-user .home-chat-attachments")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /Remove/i })).toBeNull();
   });
 });

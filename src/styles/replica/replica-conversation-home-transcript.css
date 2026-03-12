@@ -1,5 +1,7 @@
 .home-assistant-transcript-entry {
-  width: min(900px, 100%);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   align-self: flex-start;
   color: #111827;
 }

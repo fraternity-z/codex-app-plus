@@ -19,7 +19,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 16px 24px 72px;
+  padding: 16px var(--conversation-column-gutter) 72px;
   scrollbar-gutter: stable;
 }
 
@@ -86,7 +86,7 @@
 }
 
 .home-conversation-thread {
-  width: min(980px, 100%);
+  width: var(--conversation-column-inline-size);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -100,24 +100,43 @@
 }
 
 .home-chat-message {
-  width: min(900px, 100%);
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
 .home-chat-message-user {
-  align-self: flex-end;
-  width: min(720px, 100%);
+  align-self: stretch;
   margin-bottom: 8px;
 }
 
 .home-chat-message-assistant {
-  align-self: flex-start;
+  align-self: stretch;
+}
+
+.home-chat-message-stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.home-chat-message-stack-user {
+  align-self: flex-end;
+  width: fit-content;
+  max-width: var(--user-message-max-width);
+}
+
+.home-chat-message-stack-assistant {
+  width: 100%;
+  max-width: 100%;
 }
 
 .home-chat-attachments {
   display: flex;
   flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
   justify-content: flex-end;
   gap: 8px;
   margin-bottom: 8px;
@@ -143,10 +162,15 @@
 
 .home-chat-bubble,
 .home-chat-message-body {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border-radius: 20px;
 }
 
 .home-chat-bubble {
+  width: fit-content;
+  align-self: flex-end;
   padding: 12px 14px;
   border: 1px solid var(--home-border);
   background: var(--home-user-bubble);
@@ -199,6 +223,8 @@
 
 .home-chat-markdown {
   color: var(--home-text);
+  max-width: 100%;
+  overflow-wrap: anywhere;
   word-break: break-word;
 }
 
@@ -233,7 +259,9 @@
 }
 
 .home-plan-draft-card {
-  width: min(900px, 100%);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 16px 18px;
   border: 1px solid #e3e8f4;
   border-radius: 24px;
@@ -377,13 +405,7 @@
 
 @media (max-width: 900px) {
   .home-conversation-scroll {
-    padding: 12px 14px 24px;
-  }
-
-  .home-chat-message,
-  .home-chat-message-user,
-  .home-conversation-thread {
-    width: 100%;
+    padding: 12px var(--conversation-column-gutter) 24px;
   }
 }
 

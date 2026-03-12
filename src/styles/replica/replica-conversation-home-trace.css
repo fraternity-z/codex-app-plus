@@ -2,12 +2,16 @@
 .home-entry-card,
 .home-request-card,
 .home-auxiliary-card {
-  width: min(900px, 100%);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   align-self: flex-start;
 }
 
 .home-trace-entry {
-  width: min(900px, 100%);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   align-self: flex-start;
 }
 
@@ -245,7 +249,8 @@
 
 
 .home-turn-plan-drawer {
-  width: min(720px, 100%);
+  width: var(--conversation-column-inline-size);
+  max-width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;

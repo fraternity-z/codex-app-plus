@@ -10,17 +10,25 @@ interface HomeChatMessageProps {
 export function HomeChatMessage(props: HomeChatMessageProps): JSX.Element {
   const assistant = props.message.role === "assistant";
   const className = assistant ? "home-chat-message home-chat-message-assistant" : "home-chat-message home-chat-message-user";
+  const stackClassName = assistant
+    ? "home-chat-message-stack home-chat-message-stack-assistant"
+    : "home-chat-message-stack home-chat-message-stack-user";
   const contentClassName = assistant ? "home-chat-message-body" : "home-chat-bubble";
   const markdownClassName = assistant ? "home-chat-markdown home-chat-markdown-assistant" : "home-chat-markdown home-chat-markdown-user";
   const attachments = props.message.attachments ?? [];
   const hasText = props.message.text.trim().length > 0;
+  const hasContent = attachments.length > 0 || hasText;
 
   return (
     <article className={className} data-status={props.message.status}>
-      {attachments.length > 0 ? <MessageAttachmentStrip attachments={attachments} /> : null}
-      {hasText ? (
-        <div className={contentClassName}>
-          <ConversationMessageContent className={markdownClassName} message={props.message} />
+      {hasContent ? (
+        <div className={stackClassName}>
+          {attachments.length > 0 ? <MessageAttachmentStrip attachments={attachments} /> : null}
+          {hasText ? (
+            <div className={contentClassName}>
+              <ConversationMessageContent className={markdownClassName} message={props.message} />
+            </div>
+          ) : null}
         </div>
       ) : null}
     </article>

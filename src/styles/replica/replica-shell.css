@@ -239,6 +239,13 @@
   color: #676767;
 }
 .replica-main {
+  --conversation-column-max-width: 760px;
+  --conversation-column-gutter: 40px;
+  --conversation-column-inline-size: min(
+    var(--conversation-column-max-width),
+    calc(100% - (var(--conversation-column-gutter) + var(--conversation-column-gutter)))
+  );
+  --user-message-max-width: 80%;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -320,5 +327,11 @@
 
   .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
     grid-template-columns: 0 minmax(0, 1fr) 340px;
+  }
+}
+
+@media (max-width: 900px) {
+  .replica-main {
+    --conversation-column-gutter: 14px;
   }
 }

@@ -253,6 +253,7 @@ describe("HomeConversationCanvas", () => {
     expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
     expect(screen.getByText("Additional input required")).toBeInTheDocument();
     expect(screen.getByText("请选择处理范围")).toBeInTheDocument();
+    expect(container.querySelector('.home-assistant-transcript-summary[data-truncate-summary="true"]')).not.toBeNull();
     expect(container.querySelector(".home-assistant-transcript-details details[open]")).toBeNull();
     expect(container.querySelector(".home-request-card")).not.toBeNull();
     expect(screen.queryByText(/正在思考/)).toBeNull();
