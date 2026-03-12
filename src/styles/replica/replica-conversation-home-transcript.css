@@ -208,3 +208,65 @@
 .home-assistant-transcript-detail-panel[data-variant="shell"] .home-assistant-transcript-detail-body {
   color: #202020;
 }
+
+.home-assistant-transcript-detail-panel[data-variant="diffSummary"] {
+  padding: 14px;
+}
+
+.home-turn-diff-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-turn-diff-summary-header {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-turn-diff-summary-title {
+  min-width: 0;
+  color: #2b2b2b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.home-turn-diff-summary-list {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid #e7e7e7;
+  border-radius: 14px;
+  background: #fcfcfc;
+}
+
+.home-turn-diff-summary-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.home-turn-diff-summary-row + .home-turn-diff-summary-row {
+  border-top: 1px solid #ececec;
+}
+
+.home-turn-diff-summary-row-title {
+  min-width: 0;
+  overflow: hidden;
+  color: #242424;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.home-turn-diff-summary-empty {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.6;
+}

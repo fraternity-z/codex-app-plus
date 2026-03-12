@@ -4,6 +4,7 @@ import type {
 import type { ConversationMessage, PlanEntry } from "../../domain/timeline";
 import { ConversationMessageContent } from "./ConversationMessageContent";
 import { HomeEntryCard } from "./HomeEntryCard";
+import { TurnDiffSummaryList } from "./TurnDiffSummaryList";
 
 interface HomeAuxiliaryEntryProps {
   readonly entry: AuxiliaryBlock;
@@ -28,7 +29,7 @@ function PlanBlock(props: { readonly entry: PlanEntry }): JSX.Element {
 }
 
 function DiffBlock(props: { readonly entry: Extract<AuxiliaryBlock, { kind: "turnDiffSnapshot" }> }): JSX.Element {
-  return <HomeEntryCard className="home-auxiliary-card" title="Unified diff"><pre className="home-trace-preview">{props.entry.diff}</pre></HomeEntryCard>;
+  return <HomeEntryCard className="home-auxiliary-card" title="代码 diff"><TurnDiffSummaryList diffText={props.entry.diff} /></HomeEntryCard>;
 }
 
 function FuzzySearchBlock(props: { readonly entry: Extract<AuxiliaryBlock, { kind: "fuzzySearch" }> }): JSX.Element {

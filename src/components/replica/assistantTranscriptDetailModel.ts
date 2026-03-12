@@ -2,7 +2,7 @@ import { stripConnectionRetryLines } from "./homeConnectionRetry";
 
 const EMPTY_VALUE = "-";
 
-export type AssistantTranscriptDetailPanelVariant = "generic" | "shell";
+export type AssistantTranscriptDetailPanelVariant = "generic" | "shell" | "diffSummary";
 
 export interface AssistantTranscriptDetailPanel {
   readonly label: string;

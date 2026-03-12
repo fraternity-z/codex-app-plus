@@ -197,7 +197,7 @@ function createAuxiliaryModel(key: string, entry: AuxiliaryBlock): AssistantTran
     return createDetailsModel({
       key,
       summary: "代码 diff 已更新",
-      detailPanel: createDetailBlockPanel({ body: entry.diff, label: "Diff" }),
+      detailPanel: createDetailBlockPanel({ body: entry.diff, label: "Diff", variant: "diffSummary" }),
     });
   }
 
