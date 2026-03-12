@@ -121,12 +121,7 @@ impl ProcessManager {
         let request_id = runtime.next_id.fetch_add(1, Ordering::SeqCst).to_string();
         let line = build_request_line(&request_id, &input.method, input.params)?;
         let (sender, receiver) = oneshot::channel();
-        runtime
-            .pending
-            .lock()
-            .await
-            .insert(request_id.clone(), sender);
-        send_line(&runtime.writer, line, "写入 app-server stdin 失败")?;
+        register_pending_request(&runtime, &request_id, sender, line).await?;
 
         await_request_response(&runtime, request_id, receiver, input.timeout_ms).await
     }
@@ -198,6 +193,24 @@ async fn await_request_response(
             Err(AppError::Timeout(format!("请求 {request_id} 超时")))
         }
     }
+}
+
+async fn register_pending_request(
+    runtime: &AppServerRuntime,
+    request_id: &str,
+    sender: oneshot::Sender<PendingOutcome>,
+    line: String,
+) -> AppResult<()> {
+    runtime
+        .pending
+        .lock()
+        .await
+        .insert(request_id.to_string(), sender);
+    if let Err(error) = send_line(&runtime.writer, line, "写入 app-server stdin 失败") {
+        runtime.pending.lock().await.remove(request_id);
+        return Err(error);
+    }
+    Ok(())
 }
 
 async fn spawn_runtime(
@@ -281,3 +294,6 @@ fn send_line(writer: &mpsc::UnboundedSender<String>, line: String, message: &str
         .send(line)
         .map_err(|_| AppError::Protocol(message.to_string()))
 }
+
+#[cfg(test)]
+mod tests;

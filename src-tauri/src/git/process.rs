@@ -43,7 +43,11 @@ pub(super) fn run_git_with_exit_codes(
             .to_string());
     }
 
-    Err(AppError::Protocol(format_git_error(args, &output.stderr, &output.stdout)))
+    Err(AppError::Protocol(format_git_error(
+        args,
+        &output.stderr,
+        &output.stdout,
+    )))
 }
 
 fn git_command() -> Command {

@@ -8,8 +8,8 @@ use crate::agent_environment::resolve_codex_home_relative_path;
 use crate::codex_session_text::summarize_user_message;
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    CodexSessionMessage, CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSummary,
-    DeleteCodexSessionInput, AgentEnvironment,
+    AgentEnvironment, CodexSessionMessage, CodexSessionReadInput, CodexSessionReadOutput,
+    CodexSessionSummary, DeleteCodexSessionInput,
 };
 
 const SUMMARY_TAIL_BYTES: u64 = 64 * 1024;
@@ -20,7 +20,9 @@ struct SessionHeader {
     title: Option<String>,
 }
 
-pub fn list_codex_sessions(agent_environment: AgentEnvironment) -> AppResult<Vec<CodexSessionSummary>> {
+pub fn list_codex_sessions(
+    agent_environment: AgentEnvironment,
+) -> AppResult<Vec<CodexSessionSummary>> {
     let mut files = Vec::new();
     collect_session_files(&codex_sessions_root(agent_environment)?, &mut files)?;
 
@@ -85,7 +87,10 @@ fn collect_session_files(root: &Path, files: &mut Vec<PathBuf>) -> AppResult<()>
     Ok(())
 }
 
-fn read_session_summary(path: &Path, agent_environment: AgentEnvironment) -> AppResult<Option<CodexSessionSummary>> {
+fn read_session_summary(
+    path: &Path,
+    agent_environment: AgentEnvironment,
+) -> AppResult<Option<CodexSessionSummary>> {
     let Some(header) = read_session_header(path)? else {
         return Ok(None);
     };
