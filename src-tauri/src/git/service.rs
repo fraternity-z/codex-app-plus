@@ -6,7 +6,7 @@ use crate::error::{AppError, AppResult};
 use super::diff::get_diff_preview;
 use super::models::{
     GitBranchRef, GitCheckoutInput, GitCommitInput, GitDiffInput, GitDiffOutput, GitDiscardInput,
-    GitPathsInput, GitRemoteInput, GitRepoInput, GitStatusSnapshotOutput,
+    GitPathsInput, GitPushInput, GitRemoteInput, GitRepoInput, GitStatusSnapshotOutput,
     GitWorkspaceDiffOutput, GitWorkspaceDiffsInput,
 };
 use super::parse::{parse_branch_refs, parse_status_output};
@@ -159,8 +159,10 @@ pub fn pull(input: GitRepoInput, cache: &RepositoryContextCache) -> AppResult<()
     run_repo_command(&input.repo_path, cache, &PULL_ARGS)
 }
 
-pub fn push(input: GitRepoInput, cache: &RepositoryContextCache) -> AppResult<()> {
-    run_repo_command(&input.repo_path, cache, &PUSH_ARGS)
+pub fn push(input: GitPushInput, cache: &RepositoryContextCache) -> AppResult<()> {
+    let context = require_repository_context(&input.repo_path, cache)?;
+    let args = create_push_args(input.force_with_lease.unwrap_or(false));
+    run_git(&context.repo_root, &args).map(|_| ())
 }
 
 pub fn checkout(input: GitCheckoutInput, cache: &RepositoryContextCache) -> AppResult<()> {
@@ -238,18 +240,37 @@ fn create_remote_url_args(remote_name: &str) -> Vec<OsString> {
     ]
 }
 
+fn create_push_args(force_with_lease: bool) -> Vec<OsString> {
+    let mut args = to_args(&PUSH_ARGS);
+    if force_with_lease {
+        args.push(OsString::from("--force-with-lease"));
+    }
+    args
+}
+
 fn extract_remote_name(upstream: &str) -> Option<&str> {
     upstream.split_once('/').map(|(name, _)| name)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::extract_remote_name;
+    use std::ffi::OsString;
+
+    use super::{create_push_args, extract_remote_name};
 
     #[test]
     fn extracts_remote_name_from_upstream() {
         assert_eq!(extract_remote_name("origin/main"), Some("origin"));
         assert_eq!(extract_remote_name("fork/feature/test"), Some("fork"));
         assert_eq!(extract_remote_name("main"), None);
+    }
+
+    #[test]
+    fn creates_push_args_with_force_with_lease() {
+        let args = create_push_args(true);
+
+        assert_eq!(args.len(), 2);
+        assert_eq!(args[0], OsString::from("push"));
+        assert_eq!(args[1], OsString::from("--force-with-lease"));
     }
 }

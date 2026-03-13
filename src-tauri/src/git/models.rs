@@ -64,6 +64,13 @@ pub struct GitCommitInput {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct GitPushInput {
+    pub repo_path: String,
+    pub force_with_lease: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GitCheckoutInput {
     pub repo_path: String,
     pub branch_name: String,

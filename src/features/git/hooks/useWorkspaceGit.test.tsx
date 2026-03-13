@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   GitBranchRef,
   GitDiffOutput,
@@ -51,6 +51,7 @@ function createHostBridge(
   getDiff: ReturnType<typeof vi.fn>,
   getBranchRefs?: ReturnType<typeof vi.fn>,
   getRemoteUrl?: ReturnType<typeof vi.fn>,
+  overrides?: Partial<HostBridge["git"]>,
 ): HostBridge {
   return {
     git: {
@@ -67,13 +68,19 @@ function createHostBridge(
       fetch: vi.fn().mockResolvedValue(undefined),
       pull: vi.fn().mockResolvedValue(undefined),
       push: vi.fn().mockResolvedValue(undefined),
-      checkout: vi.fn().mockResolvedValue(undefined)
+      checkout: vi.fn().mockResolvedValue(undefined),
+      ...overrides
     }
   } as unknown as HostBridge;
 }
 
 describe("useWorkspaceGit", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   afterEach(() => {
+    window.localStorage.clear();
     vi.useRealTimers();
   });
 
@@ -192,5 +199,61 @@ describe("useWorkspaceGit", () => {
     expect(getBranchRefs).toHaveBeenCalledTimes(1);
     expect(result.current.branchRefsLoaded).toBe(true);
     expect(result.current.status?.branches).toHaveLength(2);
+  });
+
+  it("applies the configured branch prefix when creating a branch", async () => {
+    window.localStorage.setItem("codex-app-plus.app-preferences", JSON.stringify({
+      gitBranchPrefix: "feature/"
+    }));
+    const checkout = vi.fn().mockResolvedValue(undefined);
+    const hostBridge = createHostBridge(
+      vi.fn().mockResolvedValue(createSnapshot()),
+      vi.fn().mockResolvedValue(createDiff("src/App.tsx")),
+      undefined,
+      undefined,
+      { checkout }
+    );
+
+    const { result } = renderHook(() => useWorkspaceGit({ hostBridge, selectedRootPath: "E:/code/project", autoRefreshEnabled: false }));
+
+    await waitFor(() => expect(result.current.statusLoaded).toBe(true));
+    act(() => {
+      result.current.setNewBranchName("login-flow");
+    });
+    await act(async () => {
+      await result.current.createBranch();
+    });
+
+    expect(checkout).toHaveBeenCalledWith({
+      repoPath: "E:/code/project",
+      branchName: "feature/login-flow",
+      create: true
+    });
+  });
+
+  it("passes force-with-lease to push when enabled in preferences", async () => {
+    window.localStorage.setItem("codex-app-plus.app-preferences", JSON.stringify({
+      gitPushForceWithLease: true
+    }));
+    const push = vi.fn().mockResolvedValue(undefined);
+    const hostBridge = createHostBridge(
+      vi.fn().mockResolvedValue(createSnapshot()),
+      vi.fn().mockResolvedValue(createDiff("src/App.tsx")),
+      undefined,
+      undefined,
+      { push }
+    );
+
+    const { result } = renderHook(() => useWorkspaceGit({ hostBridge, selectedRootPath: "E:/code/project", autoRefreshEnabled: false }));
+
+    await waitFor(() => expect(result.current.statusLoaded).toBe(true));
+    await act(async () => {
+      await result.current.push();
+    });
+
+    expect(push).toHaveBeenCalledWith({
+      repoPath: "E:/code/project",
+      forceWithLease: true
+    });
   });
 });

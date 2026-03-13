@@ -5,6 +5,7 @@ const PUSH_CONFIRM_LABEL = "推送更改";
 
 interface GitPushConfirmDialogProps {
   readonly branchName: string | null;
+  readonly forceWithLease: boolean;
   readonly open: boolean;
   readonly pending: boolean;
   readonly onClose: () => void;
@@ -33,7 +34,17 @@ export function GitPushConfirmDialog(props: GitPushConfirmDialogProps): JSX.Elem
             <span className="git-push-confirm-label">分支</span>
             <strong className="git-push-confirm-value">{branchName}</strong>
           </div>
-          <p className="git-push-confirm-text">将你最新的提交内容推送至远程存储库。</p>
+          {props.forceWithLease ? (
+            <div className="git-push-confirm-row">
+              <span className="git-push-confirm-label">参数</span>
+              <strong className="git-push-confirm-value">--force-with-lease</strong>
+            </div>
+          ) : null}
+          <p className="git-push-confirm-text">
+            {props.forceWithLease
+              ? "将使用 --force-with-lease 推送你最新的提交内容。"
+              : "将你最新的提交内容推送至远程存储库。"}
+          </p>
           <button type="button" className="git-primary-btn git-full-width git-push-confirm-submit" onClick={props.onConfirm} disabled={props.pending}>
             {props.pending ? "推送中…" : "推送"}
           </button>

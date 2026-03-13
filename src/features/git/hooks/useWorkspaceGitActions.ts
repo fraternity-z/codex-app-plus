@@ -9,6 +9,8 @@ interface UseWorkspaceGitActionsOptions {
   readonly commitMessage: string;
   readonly selectedBranch: string;
   readonly newBranchName: string;
+  readonly branchPrefix: string;
+  readonly pushForceWithLease: boolean;
   readonly setCommitMessage: (value: string) => void;
   readonly setSelectedBranch: (value: string) => void;
   readonly setNewBranchName: (value: string) => void;
@@ -18,6 +20,14 @@ interface UseWorkspaceGitActionsOptions {
   readonly refresh: () => Promise<void>;
   readonly invalidateBranchRefs: () => void;
   readonly invalidateRemoteUrl: () => void;
+}
+
+function applyBranchPrefix(branchPrefix: string, branchName: string): string {
+  const normalizedPrefix = branchPrefix.trim();
+  if (normalizedPrefix.length === 0 || branchName.startsWith(normalizedPrefix)) {
+    return branchName;
+  }
+  return `${normalizedPrefix}${branchName}`;
 }
 
 function useRunAction(options: UseWorkspaceGitActionsOptions) {
@@ -94,13 +104,18 @@ export function useWorkspaceGitActions(options: UseWorkspaceGitActionsOptions) {
     if (normalizedBranchName.length === 0) {
       return false;
     }
+    const targetBranchName = applyBranchPrefix(options.branchPrefix, normalizedBranchName);
     options.invalidateBranchRefs();
-    const succeeded = await runAction("新建分支", (repoPath) => options.hostBridge.git.checkout({ repoPath, branchName: normalizedBranchName, create: true }), `已创建并切换到分支 ${normalizedBranchName}。`);
+    const succeeded = await runAction(
+      "新建分支",
+      (repoPath) => options.hostBridge.git.checkout({ repoPath, branchName: targetBranchName, create: true }),
+      `已创建并切换到分支 ${targetBranchName}。`
+    );
     if (succeeded) {
       options.setNewBranchName("");
     }
     return succeeded;
-  }, [options.hostBridge.git, options.invalidateBranchRefs, options.setNewBranchName, runAction]);
+  }, [options.branchPrefix, options.hostBridge.git, options.invalidateBranchRefs, options.setNewBranchName, runAction]);
   const createBranch = useCallback(() => createBranchFromName(options.newBranchName), [createBranchFromName, options.newBranchName]);
   const initRepository = useCallback(async () => {
     options.invalidateBranchRefs();
@@ -117,8 +132,12 @@ export function useWorkspaceGitActions(options: UseWorkspaceGitActionsOptions) {
   }, [options.hostBridge.git, options.invalidateRemoteUrl, runAction]);
   const push = useCallback(async () => {
     options.invalidateRemoteUrl();
-    await runAction("推送分支", (repoPath) => options.hostBridge.git.push({ repoPath }), "本地提交已推送。");
-  }, [options.hostBridge.git, options.invalidateRemoteUrl, runAction]);
+    await runAction(
+      "推送分支",
+      (repoPath) => options.hostBridge.git.push({ repoPath, forceWithLease: options.pushForceWithLease }),
+      "本地提交已推送。"
+    );
+  }, [options.hostBridge.git, options.invalidateRemoteUrl, options.pushForceWithLease, runAction]);
   return {
     initRepository,
     fetch,

@@ -4,7 +4,7 @@ use crate::error::AppResult;
 
 use super::models::{
     GitBranchRef, GitCheckoutInput, GitCommitInput, GitDiffInput, GitDiffOutput,
-    GitDiscardInput, GitPathsInput, GitRemoteInput, GitRepoInput, GitStatusSnapshotOutput,
+    GitDiscardInput, GitPathsInput, GitPushInput, GitRemoteInput, GitRepoInput, GitStatusSnapshotOutput,
     GitWorkspaceDiffOutput, GitWorkspaceDiffsInput,
 };
 use super::repository::resolve_workspace;
@@ -145,7 +145,7 @@ pub async fn git_pull(
 #[tauri::command]
 pub async fn git_push(
     state: State<'_, GitRuntimeState>,
-    input: GitRepoInput,
+    input: GitPushInput,
 ) -> Result<(), String> {
     let cache = state.repository_cache();
     run_blocking(move || service::push(input, &cache)).await

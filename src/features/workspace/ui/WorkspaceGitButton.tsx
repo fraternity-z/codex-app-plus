@@ -3,6 +3,7 @@ import { GitCommitIcon, GitPullIcon, GitPushIcon } from "../../git/ui/gitIcons";
 import { GitPushConfirmDialog } from "../../git/ui/GitPushConfirmDialog";
 import { canCommitChanges, canPullChanges, canPushChanges } from "../../git/model/gitActionAvailability";
 import type { WorkspaceGitController } from "../../git/model/types";
+import { readStoredAppPreferences } from "../../settings/hooks/useAppPreferences";
 import { OfficialChevronRightIcon } from "../../shared/ui/officialIcons";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 
@@ -89,6 +90,7 @@ function WorkspaceGitMenu(props: {
 }
 
 export function WorkspaceGitButton(props: WorkspaceGitButtonProps): JSX.Element {
+  const appPreferences = readStoredAppPreferences();
   const [menuOpen, setMenuOpen] = useState(false);
   const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
   const [pushConfirmPending, setPushConfirmPending] = useState(false);
@@ -133,7 +135,14 @@ export function WorkspaceGitButton(props: WorkspaceGitButtonProps): JSX.Element 
         </button>
         {menuOpen ? <WorkspaceGitMenu actions={menuActions} onClose={closeMenu} /> : null}
       </div>
-      <GitPushConfirmDialog branchName={branchName} open={pushConfirmOpen} pending={pushConfirmPending} onClose={closePushConfirm} onConfirm={() => void confirmPush()} />
+      <GitPushConfirmDialog
+        branchName={branchName}
+        forceWithLease={appPreferences.gitPushForceWithLease}
+        open={pushConfirmOpen}
+        pending={pushConfirmPending}
+        onClose={closePushConfirm}
+        onConfirm={() => void confirmPush()}
+      />
     </>
   );
 }

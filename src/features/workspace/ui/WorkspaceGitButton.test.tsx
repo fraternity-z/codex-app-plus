@@ -1,7 +1,8 @@
 import type { ComponentProps } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GitStatusOutput } from "../../../bridge/types";
+import { APP_PREFERENCES_STORAGE_KEY } from "../../settings/hooks/useAppPreferences";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { WorkspaceGitButton } from "./WorkspaceGitButton";
 
@@ -76,6 +77,10 @@ function renderButton(overrides?: Partial<ComponentProps<typeof WorkspaceGitButt
 }
 
 describe("WorkspaceGitButton", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("未选择工作区时禁用快捷入口", () => {
     renderButton({ selectedRootPath: null });
 
@@ -128,5 +133,22 @@ describe("WorkspaceGitButton", () => {
     expect(screen.getByRole("dialog", { name: "推送更改" })).toBeInTheDocument();
     expect(screen.getByText("main")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "推送" })).toBeInTheDocument();
+  });
+
+  it("启用 force-with-lease 时会在确认框中显示参数", () => {
+    window.localStorage.setItem(APP_PREFERENCES_STORAGE_KEY, JSON.stringify({
+      gitPushForceWithLease: true
+    }));
+    renderButton({
+      controller: createController({
+        commitMessage: "feat: update",
+        status: { ...status, staged: [{ path: "src/App.tsx", originalPath: null, indexStatus: "M", worktreeStatus: " " }] }
+      })
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "推送当前工作区" }));
+
+    expect(screen.getByText("--force-with-lease")).toBeInTheDocument();
+    expect(screen.getByText("将使用 --force-with-lease 推送你最新的提交内容。")).toBeInTheDocument();
   });
 });

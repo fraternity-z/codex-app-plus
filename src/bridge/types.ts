@@ -267,6 +267,10 @@ export interface GitCommitInput extends GitRepoInput {
   readonly message: string;
 }
 
+export interface GitPushInput extends GitRepoInput {
+  readonly forceWithLease?: boolean;
+}
+
 export interface GitCheckoutInput extends GitRepoInput {
   readonly branchName: string;
   readonly create: boolean;
@@ -407,7 +411,7 @@ export interface HostBridge {
     commit(input: GitCommitInput): Promise<void>;
     fetch(input: GitRepoInput): Promise<void>;
     pull(input: GitRepoInput): Promise<void>;
-    push(input: GitRepoInput): Promise<void>;
+    push(input: GitPushInput): Promise<void>;
     checkout(input: GitCheckoutInput): Promise<void>;
   };
   readonly terminal: {
