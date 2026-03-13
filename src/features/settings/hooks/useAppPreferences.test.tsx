@@ -59,6 +59,35 @@ describe("useAppPreferences", () => {
     expect(second.result.current.gitPushForceWithLease).toBe(true);
   });
 
+  it("migrates the legacy default Chinese language to auto detection", () => {
+    window.localStorage.setItem(
+      APP_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        ...DEFAULT_APP_PREFERENCES,
+        uiLanguage: "zh-CN"
+      })
+    );
+
+    const { result } = renderHook(() => useAppPreferences());
+
+    expect(result.current.uiLanguage).toBe("auto");
+  });
+
+  it("preserves an explicit stored language choice", () => {
+    window.localStorage.setItem(
+      APP_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        ...DEFAULT_APP_PREFERENCES,
+        uiLanguage: "zh-CN",
+        uiLanguageExplicit: true
+      })
+    );
+
+    const { result } = renderHook(() => useAppPreferences());
+
+    expect(result.current.uiLanguage).toBe("zh-CN");
+  });
+
   it("falls back invalid stored values to defaults", () => {
     window.localStorage.setItem(
       APP_PREFERENCES_STORAGE_KEY,

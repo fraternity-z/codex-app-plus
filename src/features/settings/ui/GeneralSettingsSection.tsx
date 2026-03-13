@@ -1,11 +1,10 @@
 import type {
   AppPreferencesController,
   ThreadDetailLevel,
-  UiLanguage
 } from "../hooks/useAppPreferences";
 import type { AgentEnvironment, EmbeddedTerminalShell, WorkspaceOpener } from "../../../bridge/types";
 import type { ComposerEnterBehavior, FollowUpMode } from "../../../domain/timeline";
-import { useI18n, type MessageKey } from "../../../i18n";
+import { createLanguageOptions, useI18n, type MessageKey } from "../../../i18n";
 import { SettingsSelectRow, type SettingsSelectOption } from "./SettingsSelectRow";
 
 type Translator = (key: MessageKey) => string;
@@ -33,13 +32,6 @@ function createTerminalShellOptions(t: Translator): ReadonlyArray<SettingsSelect
     { value: "powerShell", label: t("settings.general.embeddedTerminalShell.options.powerShell") },
     { value: "commandPrompt", label: t("settings.general.embeddedTerminalShell.options.commandPrompt") },
     { value: "gitBash", label: t("settings.general.embeddedTerminalShell.options.gitBash") }
-  ];
-}
-
-function createLanguageOptions(t: Translator): ReadonlyArray<SettingsSelectOption<UiLanguage>> {
-  return [
-    { value: "zh-CN", label: t("settings.general.language.options.zhCN") },
-    { value: "en-US", label: t("settings.general.language.options.enUS") }
   ];
 }
 

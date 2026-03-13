@@ -68,3 +68,48 @@
 .settings-popover-danger {
   color: #b33131;
 }
+
+.settings-popover-submenu {
+  margin: 4px 0 6px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.settings-popover-submenu-item {
+  width: 100%;
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: transparent;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-popover-submenu-item:hover {
+  background: #e2e8f0;
+}
+
+.settings-popover-submenu-item:focus-visible {
+  outline: 2px solid #7aa2ff;
+  outline-offset: 1px;
+}
+
+.settings-popover-submenu-item-active {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.settings-popover-submenu-check {
+  width: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18px;
+}

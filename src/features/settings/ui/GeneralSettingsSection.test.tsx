@@ -74,8 +74,18 @@ describe("GeneralSettingsSection", () => {
   it("shows the language note and the active thread-detail note", () => {
     renderSection();
 
-    expect(screen.getByText("切换后会立即作用于已接入 i18n 的界面。")).toBeInTheDocument();
+    expect(screen.getByText("默认跟随系统语言；手动切换后会保留你的选择，并立即作用于已接入 i18n 的界面。")).toBeInTheDocument();
     expect(screen.getByText("已作用于时间线；完整输出会额外显示 raw response 与调试项。")).toBeInTheDocument();
+  });
+
+  it("offers auto language detection alongside Chinese and English", () => {
+    renderSection();
+
+    fireEvent.click(screen.getByRole("button", { name: "界面语言：自动检测（跟随系统）" }));
+
+    expect(screen.getByRole("menuitemradio", { name: /自动检测（跟随系统）/ })).toBeInTheDocument();
+    expect(screen.getByRole("menuitemradio", { name: "中文（中国）" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitemradio", { name: "English (US)" })).toBeInTheDocument();
   });
 
   it("toggles the embedded terminal utf-8 preference", () => {
@@ -93,7 +103,7 @@ describe("GeneralSettingsSection", () => {
     renderSection("en-US");
 
     expect(screen.getByText("Interface language")).toBeInTheDocument();
-    expect(screen.getByText("Takes effect immediately on screens already migrated to i18n.")).toBeInTheDocument();
+    expect(screen.getByText("Defaults to the system language, keeps your manual choice once changed, and updates migrated screens immediately.")).toBeInTheDocument();
     expect(screen.getByText("Force UTF-8 for the embedded terminal")).toBeInTheDocument();
   });
 });

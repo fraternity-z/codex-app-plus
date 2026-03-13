@@ -1,187 +1,167 @@
+<p align="center">
+  <img src="./src/assets/official/app.png" alt="Codex App Plus 图标" width="120" />
+</p>
+
 # Codex App Plus
 
-基于 `React + Vite + Tauri 2` 的 Codex Windows 桌面外壳。
+[简体中文](./README.zh-CN.md)
 
-这个仓库当前聚焦于把官方 `codex app-server` / `codex CLI` 的协议能力接到本地桌面应用里，并补齐工作区、会话、设置、Git、终端与宿主集成体验。
+Codex App Plus is a Windows desktop shell for Codex, built with `React + TypeScript + Vite + Tauri 2`.
+The project bridges the official `codex app-server` and `codex CLI` protocol capabilities into a local desktop experience with explicit state, visible errors, and host-level integrations.
 
-## 当前能力
+## What The Project Does
 
-- **工作区与线程**
-  - 添加、切换、移除多个工作区
-  - 新建线程、切换线程、恢复本地 Codex 会话
-  - 已归档线程视图与本地会话删除
-- **对话与 Composer**
-  - 发送 turn、打断响应、跟进队列
-  - 模型 / effort / service tier 选择
-  - 权限级别切换（默认 / 全权限）
-  - 上下文窗口指示、附件、斜杠命令、计划抽屉
-  - 实验性 multi-agent 能力识别与开关（取决于协议与配置）
-- **设置与配置**
-  - 常规、配置、个性化、MCP 服务、Git、环境、工作树、已归档线程页面
-  - 打开 `config.toml`
-  - 读写全局 Agent 指令
-  - Codex provider 的列出 / 新增 / 更新 / 删除 / 应用
-  - Windows Sandbox 配置读取与 setup 流程
-- **桌面集成**
-  - 外部链接打开与工作区目录打开
-  - 系统通知与上下文菜单
-  - 官方数据导入
-  - ChatGPT 登录与 token 读写辅助
-- **开发辅助**
-  - 内嵌终端 session 创建、写入、缩放、关闭
-  - Git 状态、diff、stage、unstage、discard、commit、fetch、pull、push、checkout、init
-  - 会话时间线、服务端请求响应、fatal error 事件透传
+- Workspace and thread management
+  - Add, switch, and remove multiple workspaces
+  - Create threads, switch between them, and restore local Codex sessions
+  - Browse archived threads and delete local sessions
+- Conversation and Composer workflow
+  - Send turns, interrupt responses, and manage follow-up queues
+  - Pick model, reasoning effort, and service tier
+  - Switch permission profiles, attach context, and use slash commands
+  - Show plan drawers, context window indicators, and experimental multi-agent signals when the protocol supports them
+- Settings and configuration
+  - Manage general preferences, config, personalization, MCP services, Git, environment, worktree, and archived-thread pages
+  - Open `config.toml`
+  - Read and write global agent instructions
+  - List, create, update, delete, and apply Codex providers
+  - Read Windows Sandbox configuration and run setup flows
+- Desktop and host integration
+  - Open external links and workspace folders
+  - Show system notifications and context menus
+  - Import official app data
+  - Assist with ChatGPT auth token read and write flows
+- Developer tooling inside the app
+  - Create, resize, write to, and close embedded terminal sessions
+  - Inspect Git state and run stage, unstage, discard, commit, fetch, pull, push, checkout, and init actions
+  - Surface session timelines, server request/response traffic, and fatal host errors
 
-## 技术栈
+## Tech Stack
 
-- **前端**：React 18、TypeScript、Vite、Vitest
-- **桌面宿主**：Tauri 2、Rust、portable-pty
-- **富文本与终端**：react-markdown、remark-gfm、highlight.js、xterm
-- **协议层**：基于官方 `codex app-server` 生成的 TypeScript 类型与 JSON Schema
+- Frontend: React 18, TypeScript, Vite, Vitest
+- Desktop host: Tauri 2, Rust, portable PTY support
+- Rich content and terminal UI: `react-markdown`, `remark-gfm`, `highlight.js`, `xterm`
+- Protocol layer: generated TypeScript types and JSON Schema derived from the official `codex app-server`
 
-## 目录结构
+## Repository Layout
 
 ```text
 .
-├─ src/                     前端入口、状态管理、Bridge、协议适配
-│  ├─ app/                  应用入口与全局 controller 编排
-│  ├─ bridge/               Tauri Host Bridge 类型与实现
-│  ├─ features/             按功能域组织的前端代码
-│  │  ├─ auth/              登录与鉴权界面
-│  │  ├─ composer/          Composer 交互、命令与发送逻辑
-│  │  ├─ conversation/      会话状态、时间线、消息渲染
-│  │  ├─ git/               工作区 Git 面板与 diff 视图
-│  │  ├─ home/              首页壳层、主布局、侧栏
-│  │  ├─ mcp/               MCP 设置与表单模型
-│  │  ├─ settings/          配置、偏好与 Sandbox 设置
-│  │  ├─ terminal/          内嵌终端运行时与组件
-│  │  ├─ workspace/         工作区、线程目录与切换
-│  │  └─ shared/            跨功能域共享 UI / hooks
-│  ├─ protocol/             协议客户端、生成产物、Schema、测试
-│  └─ assets/               官方资源与第三方许可证清单
-├─ src-tauri/               Rust 宿主、命令、事件、Git/终端实现
-├─ scripts/                 协议与许可证生成脚本
-└─ README.md
+├─ src/
+│  ├─ app/                  App bootstrap and controller orchestration
+│  ├─ bridge/               Typed bridge for Tauri commands and events
+│  ├─ features/             Feature-domain React code
+│  ├─ protocol/             Generated protocol types, schema, guards, and tests
+│  ├─ state/                Global state and reducers
+│  └─ assets/               Official assets and generated license data
+├─ src-tauri/               Rust host runtime, commands, events, Git, and terminal logic
+├─ scripts/                 Protocol and license generation scripts
+├─ docs/                    Supporting project documentation
+├─ README.md                Main documentation in English
+└─ README.zh-CN.md          Chinese documentation
 ```
 
-## 环境准备
+## Development Steps
 
-- Windows 开发环境
-- Node.js 与 `pnpm`
-- Rust toolchain 与 Tauri 2 所需依赖
-- 可执行的官方 `codex` CLI（仅在重新生成协议时需要）
+### 1. Prepare the environment
 
-仓库已经提交协议生成产物，日常开发通常可以直接启动；只有在升级 `codex` CLI 或需要重新对齐协议时，才需要执行协议生成脚本。
+You will typically need:
 
-## 快速启动
+- Windows for the full desktop workflow
+- A recent Node.js LTS release
+- `pnpm`
+- Rust toolchain and the dependencies required by Tauri 2
+- The official `codex` CLI only when you need to regenerate protocol artifacts
 
-```powershell
+Protocol output is already committed to the repository, so normal UI and host development usually does not require a local `codex` binary.
+
+### 2. Install dependencies
+
+```bash
 pnpm install
+```
+
+### 3. Start the desktop app in development mode
+
+```bash
 pnpm run dev:tauri
 ```
 
-如果只想跑前端界面：
+This launches the Vite frontend together with the Tauri host runtime.
 
-```powershell
+### 4. Start the frontend only when you do not need the host
+
+```bash
 pnpm run dev
 ```
 
-## 常用脚本
+Use this mode for UI iteration that does not depend on Tauri commands or host events.
 
-| 命令 | 说明 |
+### 5. Run verification before committing
+
+```bash
+pnpm run typecheck
+pnpm test
+```
+
+### 6. Build distributable artifacts
+
+```bash
+pnpm run build
+pnpm run build:tauri
+```
+
+`build` validates TypeScript and produces the frontend bundle.
+`build:tauri` builds the frontend first and then packages the desktop application.
+
+## Common Scripts
+
+| Command | Purpose |
 | --- | --- |
-| `pnpm run dev` | 启动 Vite 前端开发服务器 |
-| `pnpm run dev:tauri` | 启动 Tauri 桌面应用开发模式 |
-| `pnpm run build` | 执行 TypeScript 检查并构建前端产物 |
-| `pnpm run build:tauri` | 构建前端后打包 Tauri 应用 |
-| `pnpm run typecheck` | 运行 TypeScript 类型检查 |
-| `pnpm test` | 运行 Vitest 测试 |
-| `pnpm run generate:protocol` | 重新生成协议 TypeScript 类型与 JSON Schema |
-| `pnpm run generate:licenses` | 重新生成 `src/assets/third-party-licenses.json` |
+| `pnpm run dev` | Start the Vite development server |
+| `pnpm run dev:tauri` | Start the desktop app in Tauri development mode |
+| `pnpm run build` | Run TypeScript checks and build the frontend bundle |
+| `pnpm run build:tauri` | Build the frontend and package the Tauri app |
+| `pnpm run preview` | Preview the built frontend locally |
+| `pnpm run typecheck` | Run TypeScript type checking |
+| `pnpm test` | Run the Vitest suite |
+| `pnpm run generate:protocol` | Regenerate protocol TypeScript types and JSON Schema |
+| `pnpm run generate:licenses` | Regenerate `src/assets/third-party-licenses.json` |
 
-## 协议生成
+## Generated Artifacts
 
-`scripts/generate-protocol.mjs` 会调用官方 `codex` CLI，重新生成以下目录：
+### Protocol generation
+
+Run the following when the upstream Codex protocol changes or when you upgrade the local `codex` CLI:
+
+```bash
+pnpm run generate:protocol
+```
+
+The script reads `CODEX_BINARY_PATH` first. If that variable is not set, it searches the executable from `PATH`, including common names such as `codex`, `codex.cmd`, `codex.exe`, and `codex.ps1`.
+
+Example on Windows PowerShell:
+
+```powershell
+$env:CODEX_BINARY_PATH = "C:\\path\\to\\codex.cmd"
+pnpm run generate:protocol
+```
+
+This refreshes:
 
 - `src/protocol/generated`
 - `src/protocol/schema`
 
-执行方式：
+### License data generation
 
-```powershell
-pnpm run generate:protocol
+If dependency metadata changes, refresh the generated third-party license file with:
+
+```bash
+pnpm run generate:licenses
 ```
 
-脚本会优先读取 `CODEX_BINARY_PATH`；如果未设置，则自动从 `PATH` 中查找官方 `codex` CLI，例如：`codex`、`codex.cmd`、`codex.exe`、`codex.ps1`。
+## Runtime Notes
 
-如果本机 `codex` 没有加入 `PATH`，再显式指定可执行文件路径：
-
-```powershell
-$env:CODEX_BINARY_PATH = "C:\path\to\codex.cmd"
-pnpm run generate:protocol
-```
-
-## 宿主层约定
-
-- 前后端通信建立在官方 app-server 协议之上
-- Host 层通过 Tauri command 暴露桌面能力，通过事件向前端推送状态变更
-- 宿主命令层不做静默降级，失败会显式抛出并通过 `fatal-error` 等事件暴露
-- 本地数据目录默认位于 `%LOCALAPPDATA%\CodexAppPlus`
-
-## 当前 Tauri 命令面
-
-- **App Server 生命周期**
-  - `app_server_start`
-  - `app_server_stop`
-  - `app_server_restart`
-- **RPC / Server Request**
-  - `rpc_request`
-  - `rpc_notify`
-  - `rpc_cancel`
-  - `server_request_resolve`
-- **应用与配置**
-  - `app_open_external`
-  - `app_open_workspace`
-  - `app_open_codex_config_toml`
-  - `app_read_global_agent_instructions`
-  - `app_write_global_agent_instructions`
-  - `app_list_codex_providers`
-  - `app_upsert_codex_provider`
-  - `app_delete_codex_provider`
-  - `app_apply_codex_provider`
-  - `app_read_chatgpt_auth_tokens`
-  - `app_write_chatgpt_auth_tokens`
-  - `app_show_notification`
-  - `app_show_context_menu`
-  - `app_import_official_data`
-  - `app_list_codex_sessions`
-  - `app_read_codex_session`
-  - `app_delete_codex_session`
-- **Git**
-  - `git_get_status`
-  - `git_get_diff`
-  - `git_init_repository`
-  - `git_stage_paths`
-  - `git_unstage_paths`
-  - `git_discard_paths`
-  - `git_commit`
-  - `git_fetch`
-  - `git_pull`
-  - `git_push`
-  - `git_checkout`
-- **Terminal**
-  - `terminal_create_session`
-  - `terminal_write`
-  - `terminal_resize`
-  - `terminal_close_session`
-
-## 当前事件通道
-
-- `connection-changed`
-- `notification-received`
-- `server-request-received`
-- `fatal-error`
-- `terminal-output`
-- `terminal-exit`
-- `app-context-menu-requested`
-- `app-notification-requested`
+- The app is protocol-first: frontend and host communication flows through typed bridge calls and protocol payloads.
+- Host failures are expected to surface explicitly instead of falling back silently.
+- Local application data is stored under `%LOCALAPPDATA%\\CodexAppPlus` by default.

@@ -80,8 +80,9 @@ export const enUS = {
       language: {
         label: "Interface language",
         description: "Display language for the app UI.",
-        note: "Takes effect immediately on screens already migrated to i18n.",
+        note: "Defaults to the system language, keeps your manual choice once changed, and updates migrated screens immediately.",
         options: {
+          auto: "Automatic (System)",
           zhCN: "Chinese (China)",
           enUS: "English (US)",
         },

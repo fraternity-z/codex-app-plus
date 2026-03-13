@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import {
   DEFAULT_COMPOSER_PERMISSION_LEVEL,
   isComposerPermissionLevel,
@@ -6,8 +7,7 @@ import {
 } from "../../composer/model/composerPermission";
 import type { AgentEnvironment, EmbeddedTerminalShell, WorkspaceOpener } from "../../../bridge/types";
 import type { ComposerEnterBehavior, FollowUpMode } from "../../../domain/timeline";
-
-export type UiLanguage = "zh-CN" | "en-US";
+import type { UiLanguage } from "../../../i18n";
 export type ThreadDetailLevel = "compact" | "commands" | "full";
 
 export interface AppPreferences {
@@ -40,6 +40,7 @@ export interface AppPreferencesController extends AppPreferences {
 
 export const APP_PREFERENCES_STORAGE_KEY = "codex-app-plus.app-preferences";
 export const DEFAULT_GIT_BRANCH_PREFIX = "codex/";
+type PreferencesStateSetter = Dispatch<SetStateAction<AppPreferences>>;
 
 const AGENT_ENVIRONMENTS: ReadonlyArray<AgentEnvironment> = ["windowsNative", "wsl"];
 
@@ -58,7 +59,7 @@ const EMBEDDED_TERMINAL_SHELLS: ReadonlyArray<EmbeddedTerminalShell> = [
   "gitBash"
 ];
 
-const UI_LANGUAGES: ReadonlyArray<UiLanguage> = ["zh-CN", "en-US"];
+const UI_LANGUAGES: ReadonlyArray<UiLanguage> = ["auto", "zh-CN", "en-US"];
 const THREAD_DETAIL_LEVELS: ReadonlyArray<ThreadDetailLevel> = ["compact", "commands", "full"];
 const FOLLOW_UP_QUEUE_MODES: ReadonlyArray<FollowUpMode> = ["queue", "steer", "interrupt"];
 const COMPOSER_ENTER_BEHAVIORS: ReadonlyArray<ComposerEnterBehavior> = ["enter", "cmdIfMultiline"];
@@ -68,7 +69,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   workspaceOpener: "vscode",
   embeddedTerminalShell: "powerShell",
   embeddedTerminalUtf8: true,
-  uiLanguage: "zh-CN",
+  uiLanguage: "auto",
   threadDetailLevel: "commands",
   followUpQueueMode: "queue",
   composerEnterBehavior: "enter",
@@ -86,6 +87,24 @@ function sanitizeGitBranchPrefix(value: unknown): string {
     return DEFAULT_APP_PREFERENCES.gitBranchPrefix;
   }
   return value.trim();
+}
+
+// Legacy builds stored the default zh-CN value, so only explicit markers and en-US
+// are treated as user choices during migration.
+function readStoredUiLanguage(record: Record<string, unknown>): UiLanguage {
+  if (record.uiLanguage === "auto") {
+    return "auto";
+  }
+
+  if (record.uiLanguageExplicit === true && isPreferenceValue(UI_LANGUAGES, record.uiLanguage)) {
+    return record.uiLanguage;
+  }
+
+  if (record.uiLanguage === "en-US") {
+    return "en-US";
+  }
+
+  return DEFAULT_APP_PREFERENCES.uiLanguage;
 }
 
 function sanitizeStoredPreferences(value: unknown): AppPreferences {
@@ -106,9 +125,7 @@ function sanitizeStoredPreferences(value: unknown): AppPreferences {
     embeddedTerminalUtf8: typeof record.embeddedTerminalUtf8 === "boolean"
       ? record.embeddedTerminalUtf8
       : DEFAULT_APP_PREFERENCES.embeddedTerminalUtf8,
-    uiLanguage: isPreferenceValue(UI_LANGUAGES, record.uiLanguage)
-      ? record.uiLanguage
-      : DEFAULT_APP_PREFERENCES.uiLanguage,
+    uiLanguage: readStoredUiLanguage(record),
     threadDetailLevel: isPreferenceValue(THREAD_DETAIL_LEVELS, record.threadDetailLevel)
       ? record.threadDetailLevel
       : DEFAULT_APP_PREFERENCES.threadDetailLevel,
@@ -150,60 +167,44 @@ function updatePreferences(
   return { ...current, ...nextValue };
 }
 
+function serializePreferences(preferences: AppPreferences): Record<string, unknown> {
+  return {
+    ...preferences,
+    uiLanguageExplicit: preferences.uiLanguage !== "auto"
+  };
+}
+
+function usePreferenceSetter<K extends keyof AppPreferences>(
+  setPreferences: PreferencesStateSetter,
+  key: K,
+  normalize?: (value: AppPreferences[K]) => AppPreferences[K]
+): (value: AppPreferences[K]) => void {
+  return useCallback((value: AppPreferences[K]) => {
+    const nextValue = normalize ? normalize(value) : value;
+    setPreferences((current) => updatePreferences(current, { [key]: nextValue } as Pick<AppPreferences, K>));
+  }, [key, normalize, setPreferences]);
+}
+
 export function useAppPreferences(): AppPreferencesController {
   const [preferences, setPreferences] = useState<AppPreferences>(() =>
     readStoredAppPreferences()
   );
 
   useEffect(() => {
-    window.localStorage.setItem(APP_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
+    window.localStorage.setItem(APP_PREFERENCES_STORAGE_KEY, JSON.stringify(serializePreferences(preferences)));
   }, [preferences]);
 
-  const setAgentEnvironment = useCallback((agentEnvironment: AgentEnvironment) => {
-    setPreferences((current) => updatePreferences(current, { agentEnvironment }));
-  }, []);
-
-  const setWorkspaceOpener = useCallback((workspaceOpener: WorkspaceOpener) => {
-    setPreferences((current) => updatePreferences(current, { workspaceOpener }));
-  }, []);
-
-  const setEmbeddedTerminalShell = useCallback((shell: EmbeddedTerminalShell) => {
-    setPreferences((current) => updatePreferences(current, { embeddedTerminalShell: shell }));
-  }, []);
-
-  const setEmbeddedTerminalUtf8 = useCallback((embeddedTerminalUtf8: boolean) => {
-    setPreferences((current) => updatePreferences(current, { embeddedTerminalUtf8 }));
-  }, []);
-
-  const setUiLanguage = useCallback((language: UiLanguage) => {
-    setPreferences((current) => updatePreferences(current, { uiLanguage: language }));
-  }, []);
-
-  const setThreadDetailLevel = useCallback((detailLevel: ThreadDetailLevel) => {
-    setPreferences((current) => updatePreferences(current, { threadDetailLevel: detailLevel }));
-  }, []);
-
-  const setFollowUpQueueMode = useCallback((followUpQueueMode: FollowUpMode) => {
-    setPreferences((current) => updatePreferences(current, { followUpQueueMode }));
-  }, []);
-
-  const setComposerEnterBehavior = useCallback((composerEnterBehavior: ComposerEnterBehavior) => {
-    setPreferences((current) => updatePreferences(current, { composerEnterBehavior }));
-  }, []);
-
-  const setComposerPermissionLevel = useCallback((composerPermissionLevel: ComposerPermissionLevel) => {
-    setPreferences((current) => updatePreferences(current, { composerPermissionLevel }));
-  }, []);
-
-  const setGitBranchPrefix = useCallback((gitBranchPrefix: string) => {
-    setPreferences((current) => updatePreferences(current, {
-      gitBranchPrefix: sanitizeGitBranchPrefix(gitBranchPrefix)
-    }));
-  }, []);
-
-  const setGitPushForceWithLease = useCallback((gitPushForceWithLease: boolean) => {
-    setPreferences((current) => updatePreferences(current, { gitPushForceWithLease }));
-  }, []);
+  const setAgentEnvironment = usePreferenceSetter(setPreferences, "agentEnvironment");
+  const setWorkspaceOpener = usePreferenceSetter(setPreferences, "workspaceOpener");
+  const setEmbeddedTerminalShell = usePreferenceSetter(setPreferences, "embeddedTerminalShell");
+  const setEmbeddedTerminalUtf8 = usePreferenceSetter(setPreferences, "embeddedTerminalUtf8");
+  const setUiLanguage = usePreferenceSetter(setPreferences, "uiLanguage");
+  const setThreadDetailLevel = usePreferenceSetter(setPreferences, "threadDetailLevel");
+  const setFollowUpQueueMode = usePreferenceSetter(setPreferences, "followUpQueueMode");
+  const setComposerEnterBehavior = usePreferenceSetter(setPreferences, "composerEnterBehavior");
+  const setComposerPermissionLevel = usePreferenceSetter(setPreferences, "composerPermissionLevel");
+  const setGitBranchPrefix = usePreferenceSetter(setPreferences, "gitBranchPrefix", sanitizeGitBranchPrefix);
+  const setGitPushForceWithLease = usePreferenceSetter(setPreferences, "gitPushForceWithLease");
 
   return useMemo(
     () => ({

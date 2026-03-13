@@ -11,7 +11,7 @@ function LocaleProbe(): JSX.Element {
 describe("I18nProvider", () => {
   it("updates document metadata when locale changes", () => {
     const { rerender } = render(
-      <I18nProvider locale="zh-CN" setLocale={() => undefined}>
+      <I18nProvider language="zh-CN" setLanguage={() => undefined}>
         <LocaleProbe />
       </I18nProvider>
     );
@@ -21,7 +21,7 @@ describe("I18nProvider", () => {
     expect(document.title).toBe("Codex App Plus 桌面端");
 
     rerender(
-      <I18nProvider locale="en-US" setLocale={() => undefined}>
+      <I18nProvider language="en-US" setLanguage={() => undefined}>
         <LocaleProbe />
       </I18nProvider>
     );
@@ -29,5 +29,30 @@ describe("I18nProvider", () => {
     expect(screen.getByText("en-US:Choose sign-in method")).toBeInTheDocument();
     expect(document.documentElement.lang).toBe("en-US");
     expect(document.title).toBe("Codex App Plus Desktop");
+  });
+
+  it("resolves auto mode from the system language", () => {
+    const originalLanguages = window.navigator.languages;
+
+    Object.defineProperty(window.navigator, "languages", {
+      configurable: true,
+      value: ["zh-TW", "en-US"]
+    });
+
+    try {
+      render(
+        <I18nProvider language="auto" setLanguage={() => undefined}>
+          <LocaleProbe />
+        </I18nProvider>
+      );
+
+      expect(screen.getByText("zh-CN:选择登录方式")).toBeInTheDocument();
+      expect(document.documentElement.lang).toBe("zh-CN");
+    } finally {
+      Object.defineProperty(window.navigator, "languages", {
+        configurable: true,
+        value: originalLanguages
+      });
+    }
   });
 });

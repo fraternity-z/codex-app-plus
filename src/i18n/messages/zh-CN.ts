@@ -79,8 +79,9 @@ export const zhCN = {
       language: {
         label: "界面语言",
         description: "应用界面显示语言。",
-        note: "切换后会立即作用于已接入 i18n 的界面。",
+        note: "默认跟随系统语言；手动切换后会保留你的选择，并立即作用于已接入 i18n 的界面。",
         options: {
+          auto: "自动检测（跟随系统）",
           zhCN: "中文（中国）",
           enUS: "English (US)",
         },

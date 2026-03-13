@@ -1,13 +1,15 @@
 import { createContext, useEffect, useMemo } from "react";
 import type { PropsWithChildren } from "react";
 import { formatMessage } from "./format";
+import { resolveLocale } from "./locale";
 import { MESSAGES_BY_LOCALE } from "./messages";
 import type { MessageKey } from "./messages/schema";
-import type { Locale, TranslationParams } from "./types";
+import type { Locale, TranslationParams, UiLanguage } from "./types";
 
 interface I18nContextValue {
+  readonly language: UiLanguage;
   readonly locale: Locale;
-  readonly setLocale: (locale: Locale) => void;
+  readonly setLanguage: (language: UiLanguage) => void;
   readonly t: (key: MessageKey, params?: TranslationParams) => string;
 }
 
@@ -21,19 +23,21 @@ function useDocumentLocale(locale: Locale, t: I18nContextValue["t"]): void {
 }
 
 interface I18nProviderProps extends PropsWithChildren {
-  readonly locale: Locale;
-  readonly setLocale: (locale: Locale) => void;
+  readonly language: UiLanguage;
+  readonly setLanguage: (language: UiLanguage) => void;
 }
 
 export function I18nProvider(props: I18nProviderProps): JSX.Element {
-  const messages = useMemo(() => MESSAGES_BY_LOCALE[props.locale], [props.locale]);
+  const locale = resolveLocale(props.language);
+  const messages = useMemo(() => MESSAGES_BY_LOCALE[locale], [locale]);
   const value = useMemo<I18nContextValue>(() => ({
-    locale: props.locale,
-    setLocale: props.setLocale,
+    language: props.language,
+    locale,
+    setLanguage: props.setLanguage,
     t: (key, params) => formatMessage(messages, key, params),
-  }), [messages, props.locale, props.setLocale]);
+  }), [locale, messages, props.language, props.setLanguage]);
 
-  useDocumentLocale(props.locale, value.t);
+  useDocumentLocale(locale, value.t);
 
   return <I18nContext.Provider value={value}>{props.children}</I18nContext.Provider>;
 }

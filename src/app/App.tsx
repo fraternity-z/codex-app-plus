@@ -12,7 +12,7 @@ import type { HostBridge } from "../bridge/types";
 import { AuthChoiceView } from "../features/auth/ui/AuthChoiceView";
 import { HomeView } from "../features/home/ui/HomeView";
 import type { SettingsSection } from "../features/settings/ui/SettingsView";
-import { I18nProvider, type MessageKey, type TranslationParams, translate } from "../i18n";
+import { I18nProvider, resolveLocale, type MessageKey, type TranslationParams, translate } from "../i18n";
 import { requestWorkspaceFolder } from "./workspacePicker";
 import { SettingsLoadingFallback } from "./ui/SettingsLoadingFallback";
 const LazySettingsView = lazy(async () => {
@@ -30,9 +30,10 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const workspace = useWorkspaceRoots();
   const [screen, setScreen] = useState<"home" | SettingsSection>("home");
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const locale = resolveLocale(preferences.uiLanguage);
   const t = useCallback(
-    (key: MessageKey, params?: TranslationParams) => translate(preferences.uiLanguage, key, params),
-    [preferences.uiLanguage]
+    (key: MessageKey, params?: TranslationParams) => translate(locale, key, params),
+    [locale]
   );
   const { dismissBanner, pushBanner } = useUiBannerNotifications("app");
   const reportAppError = useCallback(
@@ -287,7 +288,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       );
 
   return (
-    <I18nProvider locale={preferences.uiLanguage} setLocale={preferences.setUiLanguage}>
+    <I18nProvider language={preferences.uiLanguage} setLanguage={preferences.setUiLanguage}>
       {content}
     </I18nProvider>
   );

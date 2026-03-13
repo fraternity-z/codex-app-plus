@@ -1,9 +1,32 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { I18nProvider, type UiLanguage } from "../../../i18n";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { SettingsPopover } from "./SettingsPopover";
 
 describe("SettingsPopover", () => {
+  function renderPopoverWithLanguage(initialLanguage: UiLanguage): void {
+    function Wrapper(): JSX.Element {
+      const [language, setLanguage] = useState<UiLanguage>(initialLanguage);
+      return (
+        <I18nProvider language={language} setLanguage={setLanguage}>
+          <SettingsPopover
+            authStatus="needs_login"
+            authMode={null}
+            authBusy={false}
+            authLoginPending={false}
+            onOpenSettings={vi.fn()}
+            onLogin={vi.fn().mockResolvedValue(undefined)}
+            onLogout={vi.fn().mockResolvedValue(undefined)}
+          />
+        </I18nProvider>
+      );
+    }
+
+    render(<Wrapper />);
+  }
+
   it("shows the logout action for authenticated users", () => {
     const onLogout = vi.fn().mockResolvedValue(undefined);
 
@@ -63,6 +86,33 @@ describe("SettingsPopover", () => {
     );
 
     expect(screen.getByRole("button", { name: "→ 正在登录..." })).toBeDisabled();
+  });
+
+  it("lets the user change language from the popover", () => {
+    const originalLanguages = window.navigator.languages;
+
+    Object.defineProperty(window.navigator, "languages", {
+      configurable: true,
+      value: ["zh-CN", "en-US"]
+    });
+
+    try {
+      renderPopoverWithLanguage("auto");
+
+      fireEvent.click(screen.getByRole("button", { name: /语言.*自动检测（跟随系统）/ }));
+
+      expect(screen.getByRole("menuitemradio", { name: /自动检测（跟随系统）/ })).toHaveAttribute("aria-checked", "true");
+
+      fireEvent.click(screen.getByRole("menuitemradio", { name: "English (US)" }));
+
+      expect(document.documentElement.lang).toBe("en-US");
+      expect(screen.getByRole("button", { name: /Language.*English \(US\)/ })).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window.navigator, "languages", {
+        configurable: true,
+        value: originalLanguages
+      });
+    }
   });
 
   it("renders translated English labels", () => {
