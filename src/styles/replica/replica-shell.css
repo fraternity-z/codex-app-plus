@@ -1,7 +1,8 @@
 .replica-app {
+  --replica-sidebar-width: 300px;
   position: relative;
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   height: 100vh;
   background: #ffffff;
@@ -9,7 +10,7 @@
 }
 
 .replica-app-with-diff-sidebar {
-  grid-template-columns: 248px minmax(0, 1fr) 388px;
+  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) 388px;
 }
 
 .replica-app:has(.sidebar-collapsed) {
@@ -27,7 +28,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 8px 6px 12px 8px;
+  padding: 8px 4px 12px;
   border-right: 1px solid #ebebeb;
   background: #ffffff;
   min-width: 0;
@@ -93,7 +94,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 6px;
+  padding: 0 4px;
 }
 .thread-section-title {
   display: flex;
@@ -121,10 +122,15 @@
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
   display: grid;
   align-content: start;
   gap: 2px;
+}
+
+.thread-list::-webkit-scrollbar {
+  width: 10px;
 }
 .thread-item {
   height: 30px;
@@ -136,7 +142,7 @@
   box-sizing: border-box;
   cursor: pointer;
   border-radius: 8px;
-  padding: 0 6px;
+  padding: 0 4px;
   color: #555;
 }
 .thread-empty {
@@ -318,11 +324,12 @@
 
 @media (max-width: 1080px) {
   .replica-app {
-    grid-template-columns: 220px minmax(0, 1fr);
+    --replica-sidebar-width: 236px;
+    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr);
   }
 
   .replica-app-with-diff-sidebar {
-    grid-template-columns: 220px minmax(0, 1fr) 340px;
+    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) 340px;
   }
 
   .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {

@@ -4,7 +4,7 @@
 }
 
 .replica-app-with-diff-sidebar {
-  grid-template-columns: 248px minmax(0, 1fr) var(--replica-diff-sidebar-width);
+  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) var(--replica-diff-sidebar-width);
 }
 
 .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
@@ -352,7 +352,7 @@
   }
 
   .replica-app-with-diff-sidebar {
-    grid-template-columns: 220px minmax(0, 1fr) var(--replica-diff-sidebar-width);
+    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) var(--replica-diff-sidebar-width);
   }
 
   .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
