@@ -164,12 +164,36 @@ describe("HomeView", () => {
   it("submits with plan mode after selecting the collaboration preset", async () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
     renderHomeView({ onSendTurn });
+
     fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Plan" }));
+    const modeToggle = await screen.findByRole("switch", { name: "计划模式" });
+    fireEvent.click(modeToggle);
+
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
     await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(
       expect.objectContaining({
         collaborationPreset: "plan",
+        selection: expect.objectContaining({ model: "gpt-5.2", effort: "xhigh", serviceTier: null })
+      })
+    ));
+    expect(modeToggle).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("keeps plan mode off by default and submits with the default collaboration preset", async () => {
+    const onSendTurn = vi.fn().mockResolvedValue(undefined);
+    renderHomeView({ onSendTurn });
+
+    fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
+
+    const modeToggle = await screen.findByRole("switch", { name: "计划模式" });
+    expect(modeToggle).toHaveAttribute("aria-checked", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collaborationPreset: "default",
         selection: expect.objectContaining({ model: "gpt-5.2", effort: "xhigh", serviceTier: null })
       })
     ));

@@ -740,6 +740,43 @@
   font-size: 12px;
   color: #7b7b7b;
 }
+.composer-attachment-mode-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e4e4e4;
+  border-radius: 14px;
+  background: #f3f3f3;
+}
+.composer-attachment-mode-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: #2f2f2f;
+}
+.composer-attachment-mode-icon-wrap {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  background: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.composer-attachment-mode-icon {
+  width: 14px;
+  height: 14px;
+  color: #505050;
+}
+.composer-attachment-mode-label {
+  font-size: 13px;
+  font-weight: 600;
+}
 .composer-attachment-choice-grid {
   display: flex;
   flex-wrap: wrap;
@@ -776,6 +813,10 @@
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
+.composer-attachment-mode-toggle:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
 .composer-attachment-toggle-knob {
   position: absolute;
   top: 2px;
@@ -788,6 +829,10 @@
   transition: left 0.15s ease;
 }
 .composer-attachment-toggle-on {
+  background: #1f1f1f;
+  border-color: #1f1f1f;
+}
+.composer-attachment-mode-toggle-on {
   background: #1f1f1f;
   border-color: #1f1f1f;
 }

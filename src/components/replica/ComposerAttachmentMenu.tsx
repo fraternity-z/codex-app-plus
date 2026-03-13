@@ -22,11 +22,7 @@ export function ComposerAttachmentMenu(props: ComposerAttachmentMenuProps): JSX.
       </button>
       <div className="composer-attachment-separator" />
       <div className="composer-attachment-group">
-        <div className="composer-attachment-group-title">Collaboration</div>
-        <div className="composer-attachment-choice-grid" role="group" aria-label="Collaboration mode">
-          <MenuChoiceButton label="Default" selected={props.collaborationPreset === "default"} onClick={() => props.onSelectCollaborationPreset("default")} />
-          <MenuChoiceButton label="Plan" selected={props.collaborationPreset === "plan"} onClick={() => props.onSelectCollaborationPreset("plan")} />
-        </div>
+        <PlanModeRow collaborationPreset={props.collaborationPreset} onToggle={() => props.onSelectCollaborationPreset(toggleCollaborationPreset(props.collaborationPreset))} />
       </div>
       <div className="composer-attachment-group">
         <div className="composer-attachment-group-title">Service tier</div>
@@ -45,6 +41,30 @@ export function ComposerAttachmentMenu(props: ComposerAttachmentMenuProps): JSX.
           </div>
         </>
       ) : null}
+    </div>
+  );
+}
+
+function PlanModeRow(props: {
+  readonly collaborationPreset: CollaborationPreset;
+  readonly onToggle: () => void;
+}): JSX.Element {
+  const enabled = props.collaborationPreset === "plan";
+  const toggleClassName = enabled
+    ? "composer-attachment-toggle composer-attachment-mode-toggle composer-attachment-toggle-on composer-attachment-mode-toggle-on"
+    : "composer-attachment-toggle composer-attachment-mode-toggle";
+
+  return (
+    <div className="composer-attachment-mode-card" role="group" aria-label="计划模式">
+      <span className="composer-attachment-mode-copy">
+        <span className="composer-attachment-mode-icon-wrap" aria-hidden="true">
+          <PlanModeIcon className="composer-attachment-mode-icon" />
+        </span>
+        <span className="composer-attachment-mode-label">计划模式</span>
+      </span>
+      <button type="button" className={toggleClassName} role="switch" aria-label="计划模式" aria-checked={enabled} onClick={props.onToggle}>
+        <span className="composer-attachment-toggle-knob" />
+      </button>
     </div>
   );
 }
@@ -70,6 +90,23 @@ function AttachmentIcon(props: { readonly className?: string }): JSX.Element {
   return <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M11.883 5.55 7.05 10.384a2.333 2.333 0 0 0 3.299 3.299l5.127-5.127a4 4 0 1 0-5.657-5.657L4.595 8.122a5.667 5.667 0 0 0 8.014 8.014l4.243-4.243" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
+function PlanModeIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M4.5 5.5h1.5m2 0h7.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M4.5 10h4.5m2 0h4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M4.5 14.5h1.5m2 0h5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="6.5" cy="5.5" r="1" fill="currentColor" />
+      <circle cx="9" cy="10" r="1" fill="currentColor" />
+      <circle cx="6.5" cy="14.5" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 function AgentsIcon(props: { readonly className?: string }): JSX.Element {
   return <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6.5 8.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm7 0a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5ZM3.75 14.75a2.75 2.75 0 0 1 5.5 0m3.5 0a2.75 2.75 0 0 1 5.5 0M10 15a2.5 2.5 0 0 0-5 0m5 0a2.5 2.5 0 0 1 5 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function toggleCollaborationPreset(preset: CollaborationPreset): CollaborationPreset {
+  return preset === "plan" ? "default" : "plan";
 }
