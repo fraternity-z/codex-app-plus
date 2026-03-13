@@ -72,6 +72,7 @@ export interface HomeViewProps {
   readonly defaultServiceTier?: ComposerSelection["serviceTier"];
   readonly workspaceOpener: WorkspaceOpener;
   readonly embeddedTerminalShell: EmbeddedTerminalShell;
+  readonly embeddedTerminalUtf8?: boolean;
   readonly threadDetailLevel: ThreadDetailLevel;
   readonly followUpQueueMode: FollowUpMode;
   readonly composerEnterBehavior: ComposerEnterBehavior;
@@ -179,6 +180,7 @@ export function HomeView(props: HomeViewProps): JSX.Element {
           open={terminalOpen}
           cwd={props.selectedRootPath}
           cwdLabel={props.selectedRootName}
+          enforceUtf8={props.embeddedTerminalUtf8}
           shell={props.embeddedTerminalShell}
           onClose={() => setTerminalOpen(false)}
         />

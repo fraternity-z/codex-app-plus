@@ -18,6 +18,8 @@ function renderSection(locale: Locale = "zh-CN"): void {
           setWorkspaceOpener: (workspaceOpener) => setPreferences((current) => ({ ...current, workspaceOpener })),
           setEmbeddedTerminalShell: (embeddedTerminalShell) =>
             setPreferences((current) => ({ ...current, embeddedTerminalShell })),
+          setEmbeddedTerminalUtf8: (embeddedTerminalUtf8) =>
+            setPreferences((current) => ({ ...current, embeddedTerminalUtf8 })),
           setUiLanguage: (uiLanguage) => setPreferences((current) => ({ ...current, uiLanguage })),
           setThreadDetailLevel: (threadDetailLevel) =>
             setPreferences((current) => ({ ...current, threadDetailLevel })),
@@ -76,10 +78,22 @@ describe("GeneralSettingsSection", () => {
     expect(screen.getByText("已作用于时间线；完整输出会额外显示 raw response 与调试项。")).toBeInTheDocument();
   });
 
+  it("toggles the embedded terminal utf-8 preference", () => {
+    renderSection();
+
+    const toggle = screen.getByRole("switch", { name: "强制内置终端使用 UTF-8" });
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+  });
+
   it("renders English copy when locale is en-US", () => {
     renderSection("en-US");
 
     expect(screen.getByText("Interface language")).toBeInTheDocument();
     expect(screen.getByText("Takes effect immediately on screens already migrated to i18n.")).toBeInTheDocument();
+    expect(screen.getByText("Force UTF-8 for the embedded terminal")).toBeInTheDocument();
   });
 });

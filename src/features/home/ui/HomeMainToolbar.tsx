@@ -64,7 +64,7 @@ function resolveTitle(props: HomeMainToolbarProps): string {
   if (props.conversationActive) {
     return props.selectedThreadTitle?.trim() || DEFAULT_CONVERSATION_TITLE;
   }
-  return props.selectedRootPath === null ? DEFAULT_WORKSPACE_TITLE : props.selectedRootName;
+  return DEFAULT_WORKSPACE_TITLE;
 }
 
 function truncateToolbarTitle(value: string): string {

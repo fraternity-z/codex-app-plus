@@ -72,6 +72,11 @@ export const enUS = {
           gitBash: "Git Bash",
         },
       },
+      embeddedTerminalUtf8: {
+        label: "Force UTF-8 for the embedded terminal",
+        description: "Inject UTF-8 locale environment variables into built-in terminal sessions on Windows.",
+        note: "Keeps the existing shell init and also sets LANG, LC_ALL, and LC_CTYPE.",
+      },
       language: {
         label: "Interface language",
         description: "Display language for the app UI.",

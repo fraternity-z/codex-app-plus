@@ -16,6 +16,7 @@ import {
 interface UseEmbeddedTerminalOptions {
   readonly cwd: string | null;
   readonly cwdLabel: string;
+  readonly enforceUtf8?: boolean;
   readonly hostBridge: HostBridge;
   readonly open: boolean;
   readonly shell: EmbeddedTerminalShell;
@@ -78,8 +79,8 @@ function useTerminalSessionReset(options: UseTerminalSessionResetOptions): void 
 }
 
 export function useEmbeddedTerminal(options: UseEmbeddedTerminalOptions): EmbeddedTerminalController {
-  const { cwd, cwdLabel, hostBridge, open, shell } = options;
-  const sessionKey = `${cwd ?? ""}::${shell}`;
+  const { cwd, cwdLabel, enforceUtf8 = true, hostBridge, open, shell } = options;
+  const sessionKey = `${cwd ?? ""}::${shell}::${enforceUtf8 ? "utf8" : "system"}`;
   const sessionIdRef = useRef<string | null>(null);
   const creatingRef = useRef(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -96,7 +97,7 @@ export function useEmbeddedTerminal(options: UseEmbeddedTerminalOptions): Embedd
     terminalRef.current?.focus();
   }, [terminalRef]);
   const syncTerminalSize = useTerminalSyncSize({ fitAddonRef, hostBridge, open, reportError, sessionIdRef, terminalRef });
-  const openTerminal = useTerminalOpenAction({ creatingRef, cwd, fitAddonRef, hostBridge, mountedRef, open, reportError, sessionIdRef, setErrorMessage, setShellLabel, setStatus, shell, syncTerminalSize, terminalRef });
+  const openTerminal = useTerminalOpenAction({ creatingRef, cwd, enforceUtf8, fitAddonRef, hostBridge, mountedRef, open, reportError, sessionIdRef, setErrorMessage, setShellLabel, setStatus, shell, syncTerminalSize, terminalRef });
   const scheduleTerminalLayout = useScheduledLayout({ focusTerminal, syncTerminalSize });
 
   const terminalEventsReady = useTerminalEvents({ hostBridge, reportError, sessionIdRef, setStatus, terminalRef });

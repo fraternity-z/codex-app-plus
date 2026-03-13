@@ -109,6 +109,7 @@ describe("useTerminalOpenAction", () => {
       useTerminalOpenAction({
         creatingRef: { current: false },
         cwd: "E:/code/project",
+        enforceUtf8: true,
         fitAddonRef,
         hostBridge: createHostBridge(createSession),
         mountedRef: { current: true },
@@ -132,10 +133,46 @@ describe("useTerminalOpenAction", () => {
       cwd: "E:/code/project",
       cols: 140,
       rows: 36,
-      shell: "gitBash"
+      shell: "gitBash",
+      enforceUtf8: true
     });
     expect(fit).toHaveBeenCalledTimes(1);
     expect(setShellLabel).toHaveBeenCalledWith("Git Bash");
     expect(syncTerminalSize).toHaveBeenCalled();
+  });
+
+  it("passes the utf-8 toggle state when disabled", async () => {
+    const createSession = vi.fn().mockResolvedValue({ sessionId: "terminal-1", shell: "PowerShell" });
+    const { result } = renderHook(() =>
+      useTerminalOpenAction({
+        creatingRef: { current: false },
+        cwd: null,
+        enforceUtf8: false,
+        fitAddonRef: { current: null },
+        hostBridge: createHostBridge(createSession),
+        mountedRef: { current: true },
+        open: true,
+        reportError: vi.fn(),
+        sessionIdRef: { current: null },
+        setErrorMessage: vi.fn(),
+        setShellLabel: vi.fn(),
+        setStatus: vi.fn(),
+        shell: "powerShell",
+        syncTerminalSize: vi.fn().mockResolvedValue(undefined),
+        terminalRef: { current: null }
+      })
+    );
+
+    await act(async () => {
+      await result.current();
+    });
+
+    expect(createSession).toHaveBeenCalledWith({
+      cwd: undefined,
+      cols: 120,
+      rows: 32,
+      shell: "powerShell",
+      enforceUtf8: false
+    });
   });
 });

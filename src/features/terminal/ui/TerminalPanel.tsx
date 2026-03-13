@@ -7,6 +7,7 @@ interface TerminalPanelProps {
   readonly open: boolean;
   readonly cwd: string | null;
   readonly cwdLabel: string;
+  readonly enforceUtf8?: boolean;
   readonly shell: EmbeddedTerminalShell;
   readonly onClose: () => void;
 }

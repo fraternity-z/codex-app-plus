@@ -71,6 +71,11 @@ export const zhCN = {
           gitBash: "Git Bash",
         },
       },
+      embeddedTerminalUtf8: {
+        label: "强制内置终端使用 UTF-8",
+        description: "在 Windows 内置终端会话里额外注入 UTF-8 locale 环境变量。",
+        note: "保留现有 shell 初始化，同时补充 LANG、LC_ALL、LC_CTYPE。",
+      },
       language: {
         label: "界面语言",
         description: "应用界面显示语言。",

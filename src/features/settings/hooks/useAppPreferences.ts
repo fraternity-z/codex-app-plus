@@ -14,6 +14,7 @@ export interface AppPreferences {
   readonly agentEnvironment: AgentEnvironment;
   readonly workspaceOpener: WorkspaceOpener;
   readonly embeddedTerminalShell: EmbeddedTerminalShell;
+  readonly embeddedTerminalUtf8: boolean;
   readonly uiLanguage: UiLanguage;
   readonly threadDetailLevel: ThreadDetailLevel;
   readonly followUpQueueMode: FollowUpMode;
@@ -27,6 +28,7 @@ export interface AppPreferencesController extends AppPreferences {
   setAgentEnvironment: (agentEnvironment: AgentEnvironment) => void;
   setWorkspaceOpener: (workspaceOpener: WorkspaceOpener) => void;
   setEmbeddedTerminalShell: (shell: EmbeddedTerminalShell) => void;
+  setEmbeddedTerminalUtf8: (enabled: boolean) => void;
   setUiLanguage: (language: UiLanguage) => void;
   setThreadDetailLevel: (detailLevel: ThreadDetailLevel) => void;
   setFollowUpQueueMode: (mode: FollowUpMode) => void;
@@ -65,6 +67,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   agentEnvironment: "windowsNative",
   workspaceOpener: "vscode",
   embeddedTerminalShell: "powerShell",
+  embeddedTerminalUtf8: true,
   uiLanguage: "zh-CN",
   threadDetailLevel: "commands",
   followUpQueueMode: "queue",
@@ -100,6 +103,9 @@ function sanitizeStoredPreferences(value: unknown): AppPreferences {
     embeddedTerminalShell: isPreferenceValue(EMBEDDED_TERMINAL_SHELLS, record.embeddedTerminalShell)
       ? record.embeddedTerminalShell
       : DEFAULT_APP_PREFERENCES.embeddedTerminalShell,
+    embeddedTerminalUtf8: typeof record.embeddedTerminalUtf8 === "boolean"
+      ? record.embeddedTerminalUtf8
+      : DEFAULT_APP_PREFERENCES.embeddedTerminalUtf8,
     uiLanguage: isPreferenceValue(UI_LANGUAGES, record.uiLanguage)
       ? record.uiLanguage
       : DEFAULT_APP_PREFERENCES.uiLanguage,
@@ -165,6 +171,10 @@ export function useAppPreferences(): AppPreferencesController {
     setPreferences((current) => updatePreferences(current, { embeddedTerminalShell: shell }));
   }, []);
 
+  const setEmbeddedTerminalUtf8 = useCallback((embeddedTerminalUtf8: boolean) => {
+    setPreferences((current) => updatePreferences(current, { embeddedTerminalUtf8 }));
+  }, []);
+
   const setUiLanguage = useCallback((language: UiLanguage) => {
     setPreferences((current) => updatePreferences(current, { uiLanguage: language }));
   }, []);
@@ -201,6 +211,7 @@ export function useAppPreferences(): AppPreferencesController {
       setAgentEnvironment,
       setWorkspaceOpener,
       setEmbeddedTerminalShell,
+      setEmbeddedTerminalUtf8,
       setUiLanguage,
       setThreadDetailLevel,
       setFollowUpQueueMode,
@@ -215,6 +226,7 @@ export function useAppPreferences(): AppPreferencesController {
       setComposerEnterBehavior,
       setComposerPermissionLevel,
       setEmbeddedTerminalShell,
+      setEmbeddedTerminalUtf8,
       setFollowUpQueueMode,
       setGitBranchPrefix,
       setGitPushForceWithLease,

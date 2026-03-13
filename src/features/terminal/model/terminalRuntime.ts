@@ -41,6 +41,7 @@ interface UseTerminalSyncSizeOptions {
 interface UseTerminalOpenActionOptions {
   readonly creatingRef: MutableRefObject<boolean>;
   readonly cwd: string | null;
+  readonly enforceUtf8: boolean;
   readonly fitAddonRef: MutableRefObject<FitAddon | null>;
   readonly hostBridge: HostBridge;
   readonly mountedRef: MutableRefObject<boolean>;
@@ -58,6 +59,21 @@ interface UseTerminalOpenActionOptions {
 interface UseScheduledLayoutOptions {
   readonly focusTerminal: () => void;
   readonly syncTerminalSize: () => Promise<void>;
+}
+
+function buildTerminalCreateInput(
+  cwd: string | null,
+  shell: EmbeddedTerminalShell,
+  enforceUtf8: boolean,
+  size: { readonly cols: number; readonly rows: number }
+) {
+  return {
+    cwd: cwd ?? undefined,
+    cols: size.cols,
+    rows: size.rows,
+    shell,
+    enforceUtf8
+  };
 }
 
 function createTerminalInstance(): { readonly terminal: Terminal; readonly fitAddon: FitAddon } {
@@ -253,6 +269,7 @@ export function useTerminalOpenAction(options: UseTerminalOpenActionOptions) {
   const {
     creatingRef,
     cwd,
+    enforceUtf8,
     fitAddonRef,
     hostBridge,
     mountedRef,
@@ -276,7 +293,9 @@ export function useTerminalOpenAction(options: UseTerminalOpenActionOptions) {
     setErrorMessage(null);
     try {
       const size = readInitialTerminalSize(terminalRef, fitAddonRef);
-      const result = await hostBridge.terminal.createSession({ cwd: cwd ?? undefined, cols: size.cols, rows: size.rows, shell });
+      const result = await hostBridge.terminal.createSession(
+        buildTerminalCreateInput(cwd, shell, enforceUtf8, size)
+      );
       if (!mountedRef.current) {
         await hostBridge.terminal.closeSession({ sessionId: result.sessionId });
         return;
@@ -290,7 +309,7 @@ export function useTerminalOpenAction(options: UseTerminalOpenActionOptions) {
     } finally {
       creatingRef.current = false;
     }
-  }, [creatingRef, cwd, fitAddonRef, hostBridge.terminal, mountedRef, open, reportError, sessionIdRef, setErrorMessage, setShellLabel, setStatus, shell, syncTerminalSize, terminalRef]);
+  }, [creatingRef, cwd, enforceUtf8, fitAddonRef, hostBridge.terminal, mountedRef, open, reportError, sessionIdRef, setErrorMessage, setShellLabel, setStatus, shell, syncTerminalSize, terminalRef]);
 }
 
 export function useScheduledLayout(options: UseScheduledLayoutOptions): () => void {

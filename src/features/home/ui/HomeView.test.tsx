@@ -522,6 +522,16 @@ describe("HomeView", () => {
     expect(onDismissBanner).toHaveBeenCalledWith("banner-error");
   });
 
+  it("uses the generic toolbar title for a new thread instead of the workspace name", () => {
+    renderHomeView({
+      selectedThread: null,
+      selectedThreadId: null,
+    });
+
+    expect(screen.getByRole("heading", { level: 1, name: "工作区会话" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 1, name: "FPGA" })).toBeNull();
+  });
+
   it("truncates long toolbar titles while preserving the full title in tooltip", () => {
     const longTitle = "这是一个用于验证工具栏标题截断效果的超长测试标题，末尾保留工作区路径以确保 tooltip 能完整展示 E:/code/openai.chatgpt-26.304.20706-win32-x64";
 

@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+#[path = "terminal_environment.rs"]
+mod terminal_environment;
 #[path = "terminal_output_decoder.rs"]
 mod terminal_output_decoder;
 #[path = "terminal_shell.rs"]
@@ -16,6 +18,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use tauri::AppHandle;
+use terminal_environment::apply_utf8_environment;
 use terminal_output_decoder::Utf8ChunkDecoder;
 use terminal_shell::{build_shell_command, resolve_shell_config, ShellConfig};
 const DEFAULT_COLUMNS: u16 = 120;
@@ -60,16 +63,24 @@ impl TerminalManager {
         app: AppHandle,
         input: TerminalCreateInput,
     ) -> AppResult<TerminalCreateOutput> {
+        let TerminalCreateInput {
+            cwd,
+            cols,
+            rows,
+            shell: requested_shell,
+            enforce_utf8,
+        } = input;
         let session_id = self.allocate_session_id();
-        let shell = resolve_shell_config(input.shell)?;
-        let pty_pair = create_pty_pair(input.cols, input.rows)?;
+        let shell = resolve_shell_config(requested_shell)?;
+        let pty_pair = create_pty_pair(cols, rows)?;
         let supervisor = ProcessSupervisor::new("terminal-session")?;
         let reader = pty_pair
             .master
             .try_clone_reader()
             .map_err(map_terminal_error)?;
         let writer = pty_pair.master.take_writer().map_err(map_terminal_error)?;
-        let mut child = spawn_shell_process(pty_pair.slave, &shell, input.cwd)?;
+        let mut child =
+            spawn_shell_process(pty_pair.slave, &shell, cwd, enforce_utf8.unwrap_or(true))?;
         if let Err(error) = supervisor.assign_portable_child(child.as_ref()) {
             let _ = child.clone_killer().kill();
             let _ = child.wait();
@@ -112,7 +123,6 @@ impl TerminalManager {
         };
         kill_session(session)
     }
-
     fn allocate_session_id(&self) -> String {
         let value = self.next_session_id.fetch_add(1, Ordering::Relaxed);
         format!("terminal-{value}")
@@ -146,12 +156,14 @@ fn spawn_shell_process(
     slave: Box<dyn portable_pty::SlavePty + Send>,
     shell: &ShellConfig,
     cwd: Option<String>,
+    enforce_utf8: bool,
 ) -> AppResult<Box<dyn Child + Send + Sync>> {
     let cwd = normalize_cwd(cwd)?;
     let mut command = build_shell_command(shell);
     if let Some(path) = cwd {
         command.cwd(path);
     }
+    apply_utf8_environment(&mut command, enforce_utf8);
     slave.spawn_command(command).map_err(map_terminal_error)
 }
 

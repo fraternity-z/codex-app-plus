@@ -70,6 +70,25 @@ interface GeneralSettingsSectionProps {
   readonly preferences: AppPreferencesController;
 }
 
+function ToggleSwitch(props: {
+  readonly checked: boolean;
+  readonly label: string;
+  readonly onToggle: () => void;
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      className={props.checked ? "settings-toggle settings-toggle-on" : "settings-toggle"}
+      role="switch"
+      aria-checked={props.checked}
+      aria-label={props.label}
+      onClick={props.onToggle}
+    >
+      <span className="settings-toggle-knob" />
+    </button>
+  );
+}
+
 export function GeneralSettingsSection(props: GeneralSettingsSectionProps): JSX.Element {
   const { preferences } = props;
   const { t } = useI18n();
@@ -108,6 +127,18 @@ export function GeneralSettingsSection(props: GeneralSettingsSectionProps): JSX.
           options={terminalShellOptions}
           onChange={preferences.setEmbeddedTerminalShell}
         />
+        <div className="settings-row">
+          <div className="settings-row-copy">
+            <strong>{t("settings.general.embeddedTerminalUtf8.label")}</strong>
+            <p>{t("settings.general.embeddedTerminalUtf8.description")}</p>
+            <p className="settings-row-note">{t("settings.general.embeddedTerminalUtf8.note")}</p>
+          </div>
+          <ToggleSwitch
+            checked={preferences.embeddedTerminalUtf8}
+            label={t("settings.general.embeddedTerminalUtf8.label")}
+            onToggle={() => preferences.setEmbeddedTerminalUtf8(!preferences.embeddedTerminalUtf8)}
+          />
+        </div>
         <SettingsSelectRow
           label={t("settings.general.language.label")}
           description={t("settings.general.language.description")}

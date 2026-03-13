@@ -16,6 +16,7 @@ function renderSection(): void {
           setAgentEnvironment: () => undefined,
           setWorkspaceOpener: () => undefined,
           setEmbeddedTerminalShell: () => undefined,
+          setEmbeddedTerminalUtf8: () => undefined,
           setUiLanguage: () => undefined,
           setThreadDetailLevel: () => undefined,
           setFollowUpQueueMode: () => undefined,

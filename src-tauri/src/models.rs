@@ -279,6 +279,7 @@ pub struct TerminalCreateInput {
     pub cols: Option<u16>,
     pub rows: Option<u16>,
     pub shell: Option<EmbeddedTerminalShell>,
+    pub enforce_utf8: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]

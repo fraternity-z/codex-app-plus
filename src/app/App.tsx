@@ -243,6 +243,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
           defaultServiceTier={composerPicker.defaultServiceTier}
           workspaceOpener={preferences.workspaceOpener}
           embeddedTerminalShell={preferences.embeddedTerminalShell}
+          embeddedTerminalUtf8={preferences.embeddedTerminalUtf8}
           threadDetailLevel={preferences.threadDetailLevel}
           followUpQueueMode={preferences.followUpQueueMode}
           composerEnterBehavior={preferences.composerEnterBehavior}

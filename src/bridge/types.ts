@@ -32,6 +32,7 @@ export interface TerminalCreateInput {
   readonly cols?: number;
   readonly rows?: number;
   readonly shell?: EmbeddedTerminalShell;
+  readonly enforceUtf8?: boolean;
 }
 
 export interface TerminalCreateOutput {

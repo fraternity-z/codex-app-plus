@@ -9,9 +9,9 @@
 .plan-request-composer {
   width: var(--conversation-column-inline-size);
   border: 1px solid #e3e8f4;
-  border-radius: 24px;
+  border-radius: var(--radius-lg);
   background: #ffffff;
-  box-shadow: 8px 12px 26px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -205,10 +205,10 @@
   --composer-input-max-height: calc(var(--composer-input-min-height) + (3 * var(--composer-input-line-height)));
   position: relative;
   width: var(--conversation-column-inline-size);
-  border: 1px solid #dbdbdb;
-  border-radius: 17px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
   background: #ffffff;
-  box-shadow: 8px 12px 26px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-lg);
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
   overflow: visible;
 }
@@ -220,7 +220,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  border-radius: 17px;
+  border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(4px);
   color: #2f2f2f;
@@ -261,7 +261,7 @@
   outline: none;
   overflow-y: hidden;
   background: transparent;
-  color: #474747;
+  color: var(--text-main);
   padding: 14px 15px 8px;
   font-size: 14px;
   line-height: var(--composer-input-line-height);

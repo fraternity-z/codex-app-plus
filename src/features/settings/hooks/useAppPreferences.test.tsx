@@ -17,6 +17,7 @@ describe("useAppPreferences", () => {
     expect(result.current.agentEnvironment).toBe(DEFAULT_APP_PREFERENCES.agentEnvironment);
     expect(result.current.workspaceOpener).toBe(DEFAULT_APP_PREFERENCES.workspaceOpener);
     expect(result.current.embeddedTerminalShell).toBe(DEFAULT_APP_PREFERENCES.embeddedTerminalShell);
+    expect(result.current.embeddedTerminalUtf8).toBe(DEFAULT_APP_PREFERENCES.embeddedTerminalUtf8);
     expect(result.current.uiLanguage).toBe(DEFAULT_APP_PREFERENCES.uiLanguage);
     expect(result.current.threadDetailLevel).toBe(DEFAULT_APP_PREFERENCES.threadDetailLevel);
     expect(result.current.composerPermissionLevel).toBe(DEFAULT_APP_PREFERENCES.composerPermissionLevel);
@@ -31,6 +32,7 @@ describe("useAppPreferences", () => {
       first.result.current.setAgentEnvironment("wsl");
       first.result.current.setWorkspaceOpener("explorer");
       first.result.current.setEmbeddedTerminalShell("gitBash");
+      first.result.current.setEmbeddedTerminalUtf8(false);
       first.result.current.setUiLanguage("en-US");
       first.result.current.setThreadDetailLevel("full");
       first.result.current.setComposerPermissionLevel("full");
@@ -49,6 +51,7 @@ describe("useAppPreferences", () => {
     expect(second.result.current.agentEnvironment).toBe("wsl");
     expect(second.result.current.workspaceOpener).toBe("explorer");
     expect(second.result.current.embeddedTerminalShell).toBe("gitBash");
+    expect(second.result.current.embeddedTerminalUtf8).toBe(false);
     expect(second.result.current.uiLanguage).toBe("en-US");
     expect(second.result.current.threadDetailLevel).toBe("full");
     expect(second.result.current.composerPermissionLevel).toBe("full");
@@ -63,6 +66,7 @@ describe("useAppPreferences", () => {
         agentEnvironment: "linux",
         workspaceOpener: "unknown",
         embeddedTerminalShell: "bad-shell",
+        embeddedTerminalUtf8: "yes",
         uiLanguage: "fr-FR",
         threadDetailLevel: "verbose",
         composerPermissionLevel: "admin",
@@ -76,6 +80,7 @@ describe("useAppPreferences", () => {
     expect(result.current.agentEnvironment).toBe(DEFAULT_APP_PREFERENCES.agentEnvironment);
     expect(result.current.workspaceOpener).toBe(DEFAULT_APP_PREFERENCES.workspaceOpener);
     expect(result.current.embeddedTerminalShell).toBe(DEFAULT_APP_PREFERENCES.embeddedTerminalShell);
+    expect(result.current.embeddedTerminalUtf8).toBe(DEFAULT_APP_PREFERENCES.embeddedTerminalUtf8);
     expect(result.current.uiLanguage).toBe(DEFAULT_APP_PREFERENCES.uiLanguage);
     expect(result.current.threadDetailLevel).toBe(DEFAULT_APP_PREFERENCES.threadDetailLevel);
     expect(result.current.composerPermissionLevel).toBe(DEFAULT_APP_PREFERENCES.composerPermissionLevel);
