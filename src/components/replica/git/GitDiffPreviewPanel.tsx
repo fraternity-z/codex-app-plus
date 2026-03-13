@@ -2,7 +2,7 @@ import { confirm } from "@tauri-apps/plugin-dialog";
 import { useMemo } from "react";
 import type { GitChangeEntryMode } from "./GitChangeBrowser";
 import { GitDiffCodeView } from "./GitDiffCodeView";
-import { parseUnifiedDiff } from "./diffPreviewModel";
+import { parseUnifiedDiff, type ParsedDiffFile } from "./diffPreviewModel";
 import { createGitDiffKey } from "./gitDiffKey";
 import { GitRestoreIcon, GitStageIcon } from "./gitIcons";
 import type { WorkspaceGitController } from "./types";
@@ -73,15 +73,14 @@ function PreviewActions(props: { readonly controller: WorkspaceGitController; re
   );
 }
 
-function PreviewBody(props: { readonly diffText: string | null; readonly loading: boolean; readonly selectedPath: string }): JSX.Element {
-  const parsedDiff = useMemo(() => (props.diffText === null ? null : parseUnifiedDiff(props.diffText)), [props.diffText]);
-  if (props.loading && props.diffText === null) {
+function PreviewBody(props: { readonly parsedDiff: ParsedDiffFile | null; readonly loading: boolean; readonly selectedPath: string }): JSX.Element {
+  if (props.loading && props.parsedDiff === null) {
     return <div className="workspace-diff-preview-loading">正在更新差异…</div>;
   }
-  if (parsedDiff === null) {
+  if (props.parsedDiff === null) {
     return <div className="workspace-diff-preview-loading">正在准备差异预览…</div>;
   }
-  return <GitDiffCodeView parsed={parsedDiff} path={props.selectedPath} />;
+  return <GitDiffCodeView parsed={props.parsedDiff} path={props.selectedPath} />;
 }
 
 export function GitDiffPreviewPanel(props: { readonly controller: WorkspaceGitController; readonly selectedFile: SelectedGitDiffFile | null }): JSX.Element {
@@ -99,7 +98,7 @@ export function GitDiffPreviewPanel(props: { readonly controller: WorkspaceGitCo
   const selectedDiff = props.controller.diff;
   const diffText = cachedDiff?.diff
     ?? (selectedDiff?.path === props.selectedFile.path && selectedDiff.staged === props.selectedFile.staged ? selectedDiff.diff : null);
-  const parsedDiff = diffText === null ? null : parseUnifiedDiff(diffText);
+  const parsedDiff = useMemo(() => (diffText === null ? null : parseUnifiedDiff(diffText)), [diffText]);
   const loading = props.controller.loadingDiffKeys.includes(diffKey);
   const pending = loading || props.controller.staleDiffKeys.includes(diffKey);
 
@@ -120,7 +119,7 @@ export function GitDiffPreviewPanel(props: { readonly controller: WorkspaceGitCo
         </div>
         <PreviewActions controller={props.controller} selectedFile={props.selectedFile} />
       </header>
-      <PreviewBody diffText={diffText} loading={loading} selectedPath={props.selectedFile.path} />
+      <PreviewBody parsedDiff={parsedDiff} loading={loading} selectedPath={props.selectedFile.path} />
     </section>
   );
 }

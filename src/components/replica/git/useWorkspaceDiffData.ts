@@ -50,23 +50,48 @@ function getSummary(controller: WorkspaceGitController, sections: ReadonlyArray<
   return { files, additions, deletions, pending };
 }
 
-export function useWorkspaceDiffData(controller: WorkspaceGitController, scope: GitChangeScope, enabled: boolean) {
-  const sections = useMemo(() => getVisibleSections(controller, scope), [controller.status, scope]);
+function shouldLoadDiff(controller: WorkspaceGitController, diffKey: string): boolean {
+  const hasCachedDiff = controller.diffCache[diffKey] !== undefined;
+  if (!hasCachedDiff) {
+    return !controller.loadingDiffKeys.includes(diffKey);
+  }
+  return controller.staleDiffKeys.includes(diffKey) && !controller.loadingDiffKeys.includes(diffKey);
+}
 
-  useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-    for (const section of sections) {
-      for (const { entry } of section.entries) {
-        const diffKey = createGitDiffKey(entry.path, section.staged);
-        const shouldLoad = controller.diffCache[diffKey] === undefined || controller.staleDiffKeys.includes(diffKey);
-        if (shouldLoad && !controller.loadingDiffKeys.includes(diffKey)) {
-          void controller.ensureDiff(entry.path, section.staged);
-        }
+function getNextDiffTarget(
+  controller: WorkspaceGitController,
+  sections: ReadonlyArray<GitChangeSectionData>,
+  enabled: boolean,
+): { readonly path: string; readonly staged: boolean } | null {
+  if (!enabled) {
+    return null;
+  }
+
+  for (const section of sections) {
+    for (const { entry } of section.entries) {
+      const diffKey = createGitDiffKey(entry.path, section.staged);
+      if (shouldLoadDiff(controller, diffKey)) {
+        return { path: entry.path, staged: section.staged };
       }
     }
-  }, [controller, enabled, sections]);
+  }
+
+  return null;
+}
+
+export function useWorkspaceDiffData(controller: WorkspaceGitController, scope: GitChangeScope, enabled: boolean) {
+  const sections = useMemo(() => getVisibleSections(controller, scope), [controller.status, scope]);
+  const nextDiffTarget = useMemo(
+    () => getNextDiffTarget(controller, sections, enabled),
+    [controller.diffCache, controller.loadingDiffKeys, controller.staleDiffKeys, enabled, sections],
+  );
+
+  useEffect(() => {
+    if (nextDiffTarget === null) {
+      return;
+    }
+    void controller.ensureDiff(nextDiffTarget.path, nextDiffTarget.staged);
+  }, [controller.ensureDiff, nextDiffTarget]);
 
   const summary = useMemo(
     () => getSummary(controller, sections, enabled),

@@ -13,6 +13,7 @@ import {
   safeJson,
   type AssistantTranscriptDetailPanel,
 } from "./assistantTranscriptDetailModel";
+import { formatFileChangeSummary } from "./fileChangeSummary";
 interface MessageEntryModel {
   readonly key: string;
   readonly kind: "message";
@@ -108,7 +109,7 @@ function createCommandTraceModel(key: string, entry: Extract<TraceEntry, { kind:
 function createFileChangeTraceModel(key: string, entry: Extract<TraceEntry, { kind: "fileChange" }>): AssistantTranscriptEntryModel {
   return createDetailsModel({
     key,
-    summary: createFileChangeSummary(entry.status, entry.changes.length),
+    summary: formatFileChangeSummary(entry.status, entry.changes),
     detailPanel: createDetailBlockPanel({
       body: joinDetailLines([
         entry.changes.length > 0 ? "变更文件：" : null,
@@ -290,11 +291,4 @@ function createCommandSummary(command: string, status: string): string {
   if (status === "failed") return `命令失败：${command}`;
   if (status === "declined") return `命令已拒绝：${command}`;
   return `正在执行命令：${command}`;
-}
-
-function createFileChangeSummary(status: string, fileCount: number): string {
-  if (status === "completed") return `已编辑 ${fileCount} 个文件`;
-  if (status === "failed") return "文件编辑失败";
-  if (status === "declined") return "文件编辑已拒绝";
-  return "正在编辑文件";
 }

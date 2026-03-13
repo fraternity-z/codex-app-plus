@@ -119,6 +119,22 @@ describe("WorkspaceDiffSidebar", () => {
     await waitFor(() => expect(controller.selectDiff).toHaveBeenCalledWith("src/App.tsx", false));
   });
 
+  it("loads diff previews progressively instead of requesting every file at once", async () => {
+    const controller = createController({
+      status: createStatus({
+        unstaged: [
+          { path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" },
+          { path: "src/Next.ts", originalPath: null, indexStatus: " ", worktreeStatus: "M" }
+        ]
+      })
+    });
+
+    renderSidebar(controller);
+
+    await waitFor(() => expect(controller.ensureDiff).toHaveBeenCalledWith("src/App.tsx", false));
+    expect(controller.ensureDiff).toHaveBeenCalledTimes(1);
+  });
+
   it("renders a single preview panel for the active file", () => {
     const controller = createController({
       status: createStatus({ unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }] }),
