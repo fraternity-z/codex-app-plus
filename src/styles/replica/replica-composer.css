@@ -745,10 +745,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 12px;
-  border: 1px solid #e4e4e4;
-  border-radius: 14px;
-  background: #f3f3f3;
+  padding: 2px;
 }
 .composer-attachment-mode-copy {
   display: inline-flex;
