@@ -1,22 +1,20 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { ReviewDecision } from "../../protocol/generated/ReviewDecision";
 import type { ServerRequestResolution } from "../../domain/types";
 import type {
   PendingApprovalEntry,
   PendingTokenRefreshEntry,
   PendingToolCallEntry,
-  PendingUserInputEntry,
 } from "../../domain/timeline";
 import { HomeEntryCard } from "./HomeEntryCard";
 
 interface HomeRequestEntryProps {
-  readonly entry: PendingApprovalEntry | PendingUserInputEntry | PendingToolCallEntry | PendingTokenRefreshEntry;
+  readonly entry: PendingApprovalEntry | PendingToolCallEntry | PendingTokenRefreshEntry;
   readonly onResolveServerRequest: (resolution: ServerRequestResolution) => Promise<void>;
 }
 
 export function HomeRequestEntry(props: HomeRequestEntryProps): JSX.Element {
   if (props.entry.kind === "pendingApproval") return <ApprovalRequest entry={props.entry} onResolveServerRequest={props.onResolveServerRequest} />;
-  if (props.entry.kind === "pendingUserInput") return <UserInputRequest entry={props.entry} onResolveServerRequest={props.onResolveServerRequest} />;
   if (props.entry.kind === "pendingToolCall") return <ToolCallRequestCard entry={props.entry} onResolveServerRequest={props.onResolveServerRequest} />;
   return <TokenRefreshRequestCard entry={props.entry} onResolveServerRequest={props.onResolveServerRequest} />;
 }
@@ -64,13 +62,6 @@ function createApprovalButtons(entry: PendingApprovalEntry): ReadonlyArray<{ rea
   ];
 }
 
-function UserInputRequest(props: { readonly entry: PendingUserInputEntry; readonly onResolveServerRequest: (resolution: ServerRequestResolution) => Promise<void> }): JSX.Element {
-  const [answers, setAnswers] = useState<Record<string, string[]>>(() => Object.fromEntries(props.entry.request.questions.map((question) => [question.id, [] as string[]])));
-  const [freeText, setFreeText] = useState<Record<string, string>>({});
-  const questions = useMemo(() => props.entry.request.questions, [props.entry.request.questions]);
-  return <HomeEntryCard className="home-request-card" title="Additional input required" status="Pending" meta={props.entry.request.method}><div className="home-request-form">{questions.map((question) => <section key={question.id} className="home-request-question"><strong>{question.header}</strong><p className="home-request-copy">{question.question}</p>{question.options?.map((option) => <label key={option.label} className="home-request-option"><input type="checkbox" checked={(answers[question.id] ?? []).includes(option.label)} onChange={() => setAnswers((current) => toggleAnswer(current, question.id, option.label))} /><span>{option.label}</span><small>{option.description}</small></label>)}{question.isOther || question.options === null ? <input className="home-request-input" type={question.isSecret ? "password" : "text"} value={freeText[question.id] ?? ""} placeholder="Enter a response" onChange={(event) => setFreeText((current) => ({ ...current, [question.id]: event.target.value }))} /> : null}</section>)}</div><div className="home-request-actions"><button type="button" className="home-request-button home-request-button-primary" onClick={() => void props.onResolveServerRequest(buildUserInputResolution(props.entry, answers, freeText))}>Submit</button></div></HomeEntryCard>;
-}
-
 function ToolCallRequestCard(props: { readonly entry: PendingToolCallEntry; readonly onResolveServerRequest: (resolution: ServerRequestResolution) => Promise<void> }): JSX.Element {
   const [value, setValue] = useState("{}");
   const [error, setError] = useState<string | null>(null);
@@ -82,21 +73,6 @@ function TokenRefreshRequestCard(props: { readonly entry: PendingTokenRefreshEnt
   const [chatgptAccountId, setChatgptAccountId] = useState(props.entry.request.params.previousAccountId ?? "");
   const [chatgptPlanType, setChatgptPlanType] = useState("");
   return <HomeEntryCard className="home-request-card" title="ChatGPT token refresh" status="Pending" meta={props.entry.request.method}><p className="home-request-copy">A fresh ChatGPT access token is required to continue.</p><input className="home-request-input" type="password" value={accessToken} placeholder="Access token" onChange={(event) => setAccessToken(event.target.value)} /><input className="home-request-input" type="text" value={chatgptAccountId} placeholder="ChatGPT account ID" onChange={(event) => setChatgptAccountId(event.target.value)} /><input className="home-request-input" type="text" value={chatgptPlanType} placeholder="Plan type (optional)" onChange={(event) => setChatgptPlanType(event.target.value)} /><div className="home-request-actions"><button type="button" className="home-request-button home-request-button-primary" onClick={() => void props.onResolveServerRequest({ kind: "tokenRefresh", requestId: props.entry.requestId, result: { accessToken, chatgptAccountId, chatgptPlanType: chatgptPlanType.trim().length === 0 ? null : chatgptPlanType.trim() } })}>Submit tokens</button></div></HomeEntryCard>;
-}
-
-function toggleAnswer(current: Record<string, string[]>, questionId: string, optionLabel: string): Record<string, string[]> {
-  const selected = current[questionId] ?? [];
-  const nextValues = selected.includes(optionLabel) ? selected.filter((item) => item !== optionLabel) : [...selected, optionLabel];
-  return { ...current, [questionId]: nextValues };
-}
-
-function buildUserInputResolution(entry: PendingUserInputEntry, answers: Record<string, string[]>, freeText: Record<string, string>): ServerRequestResolution {
-  const payload = Object.fromEntries(entry.request.questions.map((question) => {
-    const selected = answers[question.id] ?? [];
-    const extra = freeText[question.id]?.trim();
-    return [question.id, extra ? [...selected, extra] : selected];
-  }));
-  return { kind: "userInput", requestId: entry.requestId, answers: payload };
 }
 
 function createApprovalTitle(kind: PendingApprovalEntry["request"]["kind"]): string {

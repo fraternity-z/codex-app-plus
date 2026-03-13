@@ -18,10 +18,12 @@ import { HomeComposer } from "./HomeComposer";
 import { HomeMainToolbar } from "./HomeMainToolbar";
 import { HomePlanRequestComposer } from "./HomePlanRequestComposer";
 import { HomeTurnPlanDrawer } from "./HomeTurnPlanDrawer";
+import { HomeUserInputPrompt } from "./HomeUserInputPrompt";
 import { createComposerCommandBridge } from "./composerCommandBridge";
 import type { WorkspaceGitController } from "./git/types";
 import { extractConnectionRetryInfo } from "./homeConnectionRetry";
 import { removeTurnPlanEntries, selectLatestTurnPlan } from "./homeTurnPlanModel";
+import { selectLatestPendingUserInput } from "./homeUserInputPromptModel";
 import { OfficialChevronRightIcon } from "./officialIcons";
 import { selectLatestPlanModePrompt } from "./planModePrompt";
 
@@ -98,6 +100,10 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
   );
   const latestPlanPrompt = useMemo(
     () => selectLatestPlanModePrompt(props.activities),
+    [props.activities],
+  );
+  const pendingUserInput = useMemo(
+    () => selectLatestPendingUserInput(props.activities),
     [props.activities],
   );
   const [planDrawerCollapsed, setPlanDrawerCollapsed] = useState(true);
@@ -203,7 +209,14 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
         collapsed={planDrawerCollapsed}
         onToggle={() => setPlanDrawerCollapsed((value) => !value)}
       />
-      {showPlanPrompt ? (
+      {pendingUserInput !== null ? (
+        <HomeUserInputPrompt
+          busy={props.busy}
+          entry={pendingUserInput}
+          onResolveServerRequest={props.onResolveServerRequest}
+        />
+      ) : null}
+      {showPlanPrompt && pendingUserInput === null ? (
         <HomePlanRequestComposer
           busy={props.busy}
           onDismiss={dismissPlanPrompt}

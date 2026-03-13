@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { HomePromptCard } from "./HomePromptCard";
 
 const IMPLEMENT_OPTION = "是，实施此计划";
 const REFINE_OPTION = "否，请告知 Codex 如何调整";
@@ -23,40 +24,12 @@ export function HomePlanRequestComposer(props: HomePlanRequestComposerProps): JS
   const submitDisabled = props.busy || (refineSelected && notes.trim().length === 0);
 
   return (
-    <footer className="composer-area">
-      <section className="plan-request-composer" aria-label="实施此计划？">
-        <div className="plan-request-header">
-          <p className="plan-request-title">实施此计划？</p>
-          <p className="plan-request-subtitle">确认实施，或补充你希望 Codex 调整的方案细节。</p>
-        </div>
-        <div className="plan-request-body">
-          <PlanOptionButton
-            index={1}
-            label={IMPLEMENT_OPTION}
-            description="切换到默认模式并开始编码。"
-            selected={selectedOption === IMPLEMENT_OPTION}
-            disabled={props.busy}
-            onClick={() => setSelectedOption(IMPLEMENT_OPTION)}
-          />
-          <PlanOptionButton
-            index={2}
-            label={REFINE_OPTION}
-            description="继续在计划模式中完善方案。"
-            selected={refineSelected}
-            disabled={props.busy}
-            onClick={() => setSelectedOption(REFINE_OPTION)}
-          />
-          {refineSelected ? (
-            <textarea
-              className="plan-request-notes"
-              value={notes}
-              disabled={props.busy}
-              placeholder="请告诉 Codex 该如何调整方案"
-              onChange={(event) => setNotes(event.currentTarget.value)}
-            />
-          ) : null}
-        </div>
-        <div className="plan-request-actions">
+    <HomePromptCard
+      ariaLabel="实施此计划？"
+      title="实施此计划？"
+      subtitle="确认实施，或补充你希望 Codex 调整的方案细节。"
+      actions={(
+        <>
           <button type="button" className="plan-request-escape" disabled={props.busy} onClick={props.onDismiss}>Esc</button>
           <button
             type="button"
@@ -66,9 +39,35 @@ export function HomePlanRequestComposer(props: HomePlanRequestComposerProps): JS
           >
             提交
           </button>
-        </div>
-      </section>
-    </footer>
+        </>
+      )}
+    >
+      <PlanOptionButton
+        index={1}
+        label={IMPLEMENT_OPTION}
+        description="切换到默认模式并开始编码。"
+        selected={selectedOption === IMPLEMENT_OPTION}
+        disabled={props.busy}
+        onClick={() => setSelectedOption(IMPLEMENT_OPTION)}
+      />
+      <PlanOptionButton
+        index={2}
+        label={REFINE_OPTION}
+        description="继续在计划模式中完善方案。"
+        selected={refineSelected}
+        disabled={props.busy}
+        onClick={() => setSelectedOption(REFINE_OPTION)}
+      />
+      {refineSelected ? (
+        <textarea
+          className="plan-request-notes"
+          value={notes}
+          disabled={props.busy}
+          placeholder="请告诉 Codex 该如何调整方案"
+          onChange={(event) => setNotes(event.currentTarget.value)}
+        />
+      ) : null}
+    </HomePromptCard>
   );
 }
 

@@ -6,6 +6,7 @@
 @import "./replica/replica-empty-state.css";
 @import "./replica/replica-toolbar.css";
 @import "./replica/replica-composer.css";
+@import "./replica/replica-prompt-cards.css";
 @import "./replica/replica-composer-command-palette.css";
 @import "./replica/replica-composer-context-window.css";
 @import "./replica/replica-composer-extras.css";

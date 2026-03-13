@@ -249,15 +249,14 @@ describe("HomeConversationCanvas", () => {
     expect(container.querySelector(".home-thinking-block")).toBeNull();
   });
 
-  it("renders transcript summaries and keeps request cards in the conversation flow", () => {
+  it("keeps user input requests out of the timeline while suppressing the thinking indicator", () => {
     const { container } = renderCanvas([USER_MESSAGE, COMMAND_ENTRY, REQUEST_ENTRY], { activeTurnId: "turn-1" });
 
     expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
-    expect(screen.getByText("Additional input required")).toBeInTheDocument();
-    expect(screen.getByText("请选择处理范围")).toBeInTheDocument();
+    expect(screen.queryByText("请选择处理范围")).toBeNull();
     expect(container.querySelector('.home-assistant-transcript-summary[data-truncate-summary="true"]')).not.toBeNull();
     expect(container.querySelector(".home-assistant-transcript-details details[open]")).toBeNull();
-    expect(container.querySelector(".home-request-card")).not.toBeNull();
+    expect(container.querySelector(".home-request-card")).toBeNull();
     expect(screen.queryByText(/正在思考/)).toBeNull();
   });
 

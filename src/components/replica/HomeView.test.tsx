@@ -277,7 +277,7 @@ describe("HomeView", () => {
     expect(screen.getByText("Adjust spacing")).toBeInTheDocument();
   });
 
-  it("renders command cards and inline request cards", () => {
+  it("renders command cards and shows user input prompts above the composer", () => {
     const activities: ReadonlyArray<TimelineEntry> = [
       {
         id: "cmd-1",
@@ -340,11 +340,15 @@ describe("HomeView", () => {
       }
     ];
 
-    renderHomeView({ activities });
+    const { container } = renderHomeView({ activities });
 
     expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
-    expect(screen.getByText("Additional input required")).toBeInTheDocument();
+    expect(screen.getByText("需要补充信息")).toBeInTheDocument();
+    expect(screen.getByText("请选择下一步")).toBeInTheDocument();
     expect(screen.getByText("Queue")).toBeInTheDocument();
+    expect(screen.getByText("1/1")).toBeInTheDocument();
+    expect(screen.queryByText("Additional input required")).toBeNull();
+    expect(container.querySelector(".home-user-input-prompt")).not.toBeNull();
   });
 
   it("applies thread detail level to the timeline immediately", () => {
