@@ -50,16 +50,16 @@ vi.mock("../../protocol/client", () => ({
   },
 }));
 
-vi.mock("../config/configOperations", () => ({
+vi.mock("../../features/settings/config/configOperations", () => ({
   listAllExperimentalFeatures: vi.fn().mockResolvedValue([]),
   listAllMcpServerStatuses: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../threads/threadCatalog", () => ({
+vi.mock("../../features/workspace/model/threadCatalog", () => ({
   loadThreadCatalog: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../sandbox/windowsSandboxSetup", () => ({
+vi.mock("../../features/settings/sandbox/windowsSandboxSetup", () => ({
   refreshConfigAfterWindowsSandboxSetup: vi.fn().mockResolvedValue(undefined),
   startWindowsSandboxSetupRequest: vi.fn(),
 }));

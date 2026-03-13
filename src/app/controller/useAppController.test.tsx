@@ -60,7 +60,7 @@ vi.mock("../../protocol/client", () => ({
   },
 }));
 
-vi.mock("../config/configOperations", () => ({
+vi.mock("../../features/settings/config/configOperations", () => ({
   batchWriteConfigAndReadSnapshot: vi.fn(),
   batchWriteConfigAndRefresh: vi.fn(),
   listAllExperimentalFeatures: vi.fn().mockResolvedValue([]),
@@ -70,11 +70,11 @@ vi.mock("../config/configOperations", () => ({
   writeConfigValueAndRefresh: vi.fn(),
 }));
 
-vi.mock("../threads/threadCatalog", () => ({
+vi.mock("../../features/workspace/model/threadCatalog", () => ({
   loadThreadCatalog: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock("../sandbox/windowsSandboxSetup", () => ({
+vi.mock("../../features/settings/sandbox/windowsSandboxSetup", () => ({
   refreshConfigAfterWindowsSandboxSetup: vi.fn().mockResolvedValue(undefined),
   startWindowsSandboxSetupRequest: vi.fn(),
 }));

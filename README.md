@@ -44,9 +44,19 @@
 ```text
 .
 ├─ src/                     前端入口、状态管理、Bridge、协议适配
-│  ├─ app/                  应用状态、配置读写、会话编排
+│  ├─ app/                  应用入口与全局 controller 编排
 │  ├─ bridge/               Tauri Host Bridge 类型与实现
-│  ├─ components/           桌面 UI / Replica UI / Git / Terminal
+│  ├─ features/             按功能域组织的前端代码
+│  │  ├─ auth/              登录与鉴权界面
+│  │  ├─ composer/          Composer 交互、命令与发送逻辑
+│  │  ├─ conversation/      会话状态、时间线、消息渲染
+│  │  ├─ git/               工作区 Git 面板与 diff 视图
+│  │  ├─ home/              首页壳层、主布局、侧栏
+│  │  ├─ mcp/               MCP 设置与表单模型
+│  │  ├─ settings/          配置、偏好与 Sandbox 设置
+│  │  ├─ terminal/          内嵌终端运行时与组件
+│  │  ├─ workspace/         工作区、线程目录与切换
+│  │  └─ shared/            跨功能域共享 UI / hooks
 │  ├─ protocol/             协议客户端、生成产物、Schema、测试
 │  └─ assets/               官方资源与第三方许可证清单
 ├─ src-tauri/               Rust 宿主、命令、事件、Git/终端实现

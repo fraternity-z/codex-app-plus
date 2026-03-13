@@ -27,15 +27,15 @@ import {
   refreshMcpData,
   type McpRefreshResult,
   writeConfigValueAndRefresh,
-} from "../config/configOperations";
-import { readUserConfigWriteTarget } from "../config/configWriteTarget";
+} from "../../features/settings/config/configOperations";
+import { readUserConfigWriteTarget } from "../../features/settings/config/configWriteTarget";
 import { applyAppServerNotification } from "./appControllerNotifications";
-import { createConversationFromThread, createConversationFromThreadSummary } from "../conversation/conversationState";
-import { FrameTextDeltaQueue } from "../conversation/frameTextDeltaQueue";
-import { OutputDeltaQueue } from "../conversation/outputDeltaQueue";
+import { createConversationFromThread, createConversationFromThreadSummary } from "../../features/conversation/model/conversationState";
+import { FrameTextDeltaQueue } from "../../features/conversation/model/frameTextDeltaQueue";
+import { OutputDeltaQueue } from "../../features/conversation/model/outputDeltaQueue";
 import { createServerRequestPayload, normalizeServerRequest } from "./serverRequests";
-import { listAllThreads, loadThreadCatalog } from "../threads/threadCatalog";
-import { refreshConfigAfterWindowsSandboxSetup, startWindowsSandboxSetupRequest } from "../sandbox/windowsSandboxSetup";
+import { listAllThreads, loadThreadCatalog } from "../../features/workspace/model/threadCatalog";
+import { refreshConfigAfterWindowsSandboxSetup, startWindowsSandboxSetupRequest } from "../../features/settings/sandbox/windowsSandboxSetup";
 import { ProtocolClient } from "../../protocol/client";
 import { useAppStore } from "../../state/store";
 

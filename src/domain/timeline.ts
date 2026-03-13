@@ -1,5 +1,5 @@
 import type { AgentEnvironment } from "../bridge/types";
-import type { ComposerPermissionLevel } from "../app/conversation/composerPermission";
+import type { ComposerPermissionLevel } from "../features/composer/model/composerPermission";
 import type { ReasoningEffort } from "../protocol/generated/ReasoningEffort";
 import type { ServiceTier } from "../protocol/generated/ServiceTier";
 import type { Tool } from "../protocol/generated/Tool";
