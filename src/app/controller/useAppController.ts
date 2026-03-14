@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { AgentEnvironment, HostBridge } from "../../bridge/types";
 import type { ReceivedServerRequest } from "../../domain/serverRequests";
-import type { AppAction, AppState, AuthStatus, ServerRequestResolution, ThreadSummary } from "../../domain/types";
+import type { AppAction, AuthStatus, ServerRequestResolution, ThreadSummary } from "../../domain/types";
 import type { GetAuthStatusResponse } from "../../protocol/generated/GetAuthStatusResponse";
 import type { InitializeParams } from "../../protocol/generated/InitializeParams";
 import type { GetAccountRateLimitsResponse } from "../../protocol/generated/v2/GetAccountRateLimitsResponse";
@@ -37,7 +37,8 @@ import { createServerRequestPayload, normalizeServerRequest } from "./serverRequ
 import { listAllThreads, loadThreadCatalog } from "../../features/workspace/model/threadCatalog";
 import { refreshConfigAfterWindowsSandboxSetup, startWindowsSandboxSetupRequest } from "../../features/settings/sandbox/windowsSandboxSetup";
 import { ProtocolClient } from "../../protocol/client";
-import { useAppStore } from "../../state/store";
+import { useAppDispatch } from "../../state/store";
+import { useAppControllerRuntimeState } from "./appControllerState";
 
 const APP_VERSION = "0.1.0";
 const RETRY_DELAY_MS = 3_000;
@@ -47,7 +48,6 @@ type AccountRequestClient = Pick<ProtocolClient, "request">;
 type AppHostBridge = Pick<HostBridge, "app">;
 
 interface AppController {
-  readonly state: AppState;
   setInput: (text: string) => void;
   retryConnection: () => Promise<void>;
   refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
@@ -227,7 +227,8 @@ export async function logoutWithLocalCleanup(client: AccountRequestClient, hostB
 }
 
 export function useAppController(hostBridge: HostBridge, agentEnvironment: AgentEnvironment): AppController {
-  const { state, dispatch } = useAppStore();
+  const dispatch = useAppDispatch();
+  const runtimeState = useAppControllerRuntimeState();
   const clientRef = useRef<ProtocolClient | null>(null);
   const bootStartedRef = useRef(false);
   const bootingRef = useRef(false);
@@ -236,7 +237,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
   const retryHandlerRef = useRef<() => void>(() => undefined);
   const textDeltaQueueRef = useRef<FrameTextDeltaQueue | null>(null);
   const outputDeltaQueueRef = useRef<OutputDeltaQueue | null>(null);
-  const pendingRequestsRef = useRef(state.pendingRequestsById);
+  const pendingRequestsRef = useRef(runtimeState.pendingRequestsById);
   const pausedRequestThreadIdsRef = useRef(new Map<string, string>());
   const requestThreadMetaRef = useRef(new Map<string, { threadId: string; turnId: string | null }>());
   const settledRequestIdsRef = useRef(new Set<string>());
@@ -272,21 +273,21 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
   }, [dispatch]);
 
   useEffect(() => {
-    pendingRequestsRef.current = state.pendingRequestsById;
-  }, [state.pendingRequestsById]);
+    pendingRequestsRef.current = runtimeState.pendingRequestsById;
+  }, [runtimeState.pendingRequestsById]);
 
   useEffect(() => {
     agentEnvironmentRef.current = agentEnvironment;
   }, [agentEnvironment]);
 
   useEffect(() => {
-    if (state.connectionStatus === "connected") {
+    if (runtimeState.connectionStatus === "connected") {
       return;
     }
     pausedRequestThreadIdsRef.current.clear();
     requestThreadMetaRef.current.clear();
     settledRequestIdsRef.current.clear();
-  }, [state.connectionStatus]);
+  }, [runtimeState.connectionStatus]);
 
   const resumeThreadTimeout = useCallback((threadId: string, turnId: string | null) => {
     if (clientRef.current === null) {
@@ -426,7 +427,11 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
       window.clearTimeout(windowsSandboxResetTimerRef.current);
       windowsSandboxResetTimerRef.current = null;
     }
-    if (state.windowsSandboxSetup.pending || state.windowsSandboxSetup.mode === null || state.windowsSandboxSetup.success === null) {
+    if (
+      runtimeState.windowsSandboxSetup.pending
+      || runtimeState.windowsSandboxSetup.mode === null
+      || runtimeState.windowsSandboxSetup.success === null
+    ) {
       return;
     }
     windowsSandboxResetTimerRef.current = window.setTimeout(() => {
@@ -439,7 +444,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
         windowsSandboxResetTimerRef.current = null;
       }
     };
-  }, [dispatch, state.windowsSandboxSetup]);
+  }, [dispatch, runtimeState.windowsSandboxSetup]);
 
   useEffect(() => {
     if (bootStartedRef.current) {
@@ -506,10 +511,10 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
   const archiveThread = useCallback(async (threadId: string) => {
     await client.request("thread/archive", { threadId });
     dispatch({ type: "conversation/hiddenChanged", conversationId: threadId, hidden: true });
-    if (state.selectedConversationId === threadId) {
+    if (runtimeState.selectedConversationId === threadId) {
       dispatch({ type: "conversation/selected", conversationId: null });
     }
-  }, [client, dispatch, state.selectedConversationId]);
+  }, [client, dispatch, runtimeState.selectedConversationId]);
   const unarchiveThread = useCallback(async (threadId: string) => {
     const response = (await client.request("thread/unarchive", { threadId })) as ThreadUnarchiveResponse;
     dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(response.thread, { agentEnvironment }) });
@@ -520,7 +525,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
   const batchWriteConfigSnapshot = useCallback((params: ConfigBatchWriteParams) => runBusy(() => batchWriteConfigAndReadSnapshot(client, dispatch, params)), [client, dispatch, runBusy]);
   const setMultiAgentEnabled = useCallback(async (enabled: boolean) => {
     await runBusy(async () => {
-      const writeTarget = readUserConfigWriteTarget(state.configSnapshot);
+      const writeTarget = readUserConfigWriteTarget(runtimeState.configSnapshot);
       await client.request("config/value/write", {
         keyPath: "features.multi_agent",
         value: enabled,
@@ -530,7 +535,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
       });
       await bootstrap(true);
     });
-  }, [bootstrap, client, runBusy, state.configSnapshot]);
+  }, [bootstrap, client, runBusy, runtimeState.configSnapshot]);
   const startWindowsSandboxSetup = useCallback((mode: WindowsSandboxSetupMode) => startWindowsSandboxSetupRequest(client, dispatch, mode), [client, dispatch]);
 
   const resolveServerRequest = useCallback(async (resolution: ServerRequestResolution) => {
@@ -548,5 +553,5 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
     }
   }, [client, dispatch, hostBridge.app]);
 
-  return { state, setInput: (text) => dispatch({ type: "input/changed", value: text }), retryConnection: () => bootstrap(true), refreshConfigSnapshot: refreshConfig, refreshAuthState: refreshAuth, refreshMcpData: refreshMcp, listMcpServerStatuses: listStatuses, listArchivedThreads, archiveThread, unarchiveThread, writeConfigValue, batchWriteConfig, batchWriteConfigSnapshot, setMultiAgentEnabled, startWindowsSandboxSetup, login, logout, resolveServerRequest };
+  return { setInput: (text) => dispatch({ type: "input/changed", value: text }), retryConnection: () => bootstrap(true), refreshConfigSnapshot: refreshConfig, refreshAuthState: refreshAuth, refreshMcpData: refreshMcp, listMcpServerStatuses: listStatuses, listArchivedThreads, archiveThread, unarchiveThread, writeConfigValue, batchWriteConfig, batchWriteConfigSnapshot, setMultiAgentEnabled, startWindowsSandboxSetup, login, logout, resolveServerRequest };
 }

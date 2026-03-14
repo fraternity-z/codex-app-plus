@@ -10,8 +10,6 @@ import {
   appendConversationRawResponse,
   appendConversationReviewState,
   appendConversationTerminalInteraction,
-  applyConversationOutputDelta,
-  applyConversationTextDelta,
   attachApprovalRequestToConversation,
   attachConversationRawResponse,
   hydrateConversationFromThread,
@@ -28,6 +26,7 @@ import {
   upsertConversationItem,
 } from "../features/conversation/model/conversationState";
 import { pickConversationTitle } from "../features/conversation/model/conversationTitle";
+import { flushConversationOutputDeltas, flushConversationTextDeltas } from "./conversationDeltaReducer";
 
 const MAX_NOTIFICATION_LOG = 500;
 const MAX_BANNERS = 20;
@@ -205,20 +204,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "conversation/itemStarted":
     case "conversation/itemCompleted":
       return updateConversation(state, action.conversationId, (conversation) => upsertConversationItem(conversation, action.turnId, action.item));
-    case "conversation/textDeltasFlushed": {
-      let nextState = state;
-      for (const entry of action.entries) {
-        nextState = updateConversation(nextState, entry.conversationId, (conversation) => applyConversationTextDelta(conversation, entry));
-      }
-      return nextState;
-    }
-    case "conversation/outputDeltasFlushed": {
-      let nextState = state;
-      for (const entry of action.entries) {
-        nextState = updateConversation(nextState, entry.conversationId, (conversation) => applyConversationOutputDelta(conversation, entry));
-      }
-      return nextState;
-    }
+    case "conversation/textDeltasFlushed":
+      return flushConversationTextDeltas(state, action.entries);
+    case "conversation/outputDeltasFlushed":
+      return flushConversationOutputDeltas(state, action.entries);
     case "conversation/terminalInteraction":
       return updateConversation(state, action.conversationId, (conversation) => appendConversationTerminalInteraction(conversation, action.turnId, action.itemId, action.stdin));
     case "conversation/rawResponseAttached":

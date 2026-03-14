@@ -29,7 +29,7 @@ function createNoticeId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function createItemState(item: ThreadItem) {
+export function createItemState(item: ThreadItem) {
   return {
     item,
     approvalRequestId: null,
@@ -40,7 +40,7 @@ function createItemState(item: ThreadItem) {
   };
 }
 
-function createSkeletonItem(itemId: string, target: ConversationTextDelta["target"] | ConversationOutputDelta["target"], cwd: string | null): ThreadItem {
+export function createSkeletonItem(itemId: string, target: ConversationTextDelta["target"] | ConversationOutputDelta["target"], cwd: string | null): ThreadItem {
   if (target === "commandExecution") {
     return { type: "commandExecution", id: itemId, command: "", cwd: cwd ?? "", processId: null, status: "inProgress", commandActions: [], aggregatedOutput: "", exitCode: null, durationMs: null };
   }
@@ -94,15 +94,6 @@ function createEmptyTurn(turnId: string | null): ConversationTurnState {
     contextCompactions: [],
     tokenUsage: null,
   };
-}
-
-function updateIndexedTextArray(parts: ReadonlyArray<string>, index: number, delta: string): Array<string> {
-  const next = [...parts];
-  while (next.length <= index) {
-    next.push("");
-  }
-  next[index] = `${next[index]}${delta}`;
-  return next;
 }
 
 function ensureTurnState(conversation: ConversationState, turnId: string | null): { turns: Array<ConversationTurnState>; turnIndex: number } {
@@ -162,7 +153,7 @@ function mergeSparseTurnState(currentTurn: ConversationTurnState, turn: Turn): C
   };
 }
 
-function updateTurn(conversation: ConversationState, turnId: string | null, updater: (turn: ConversationTurnState) => ConversationTurnState): ConversationState {
+export function updateTurn(conversation: ConversationState, turnId: string | null, updater: (turn: ConversationTurnState) => ConversationTurnState): ConversationState {
   const { turns, turnIndex } = ensureTurnState(conversation, turnId);
   turns[turnIndex] = updater(turns[turnIndex]);
   return { ...conversation, turns };
@@ -238,42 +229,6 @@ export function syncCompletedTurn(conversation: ConversationState, turn: Turn): 
 
 export function upsertConversationItem(conversation: ConversationState, turnId: string, item: ThreadItem): ConversationState {
   return updateTurn(conversation, turnId, (turn) => upsertTurnItem(turn, item));
-}
-
-export function applyConversationTextDelta(conversation: ConversationState, entry: ConversationTextDelta): ConversationState {
-  return updateTurn(conversation, entry.turnId, (turn) => {
-    const itemIndex = turn.items.findIndex((item) => item.item.id === entry.itemId);
-    const current = itemIndex >= 0 ? turn.items[itemIndex] : createItemState(createSkeletonItem(entry.itemId, entry.target, conversation.cwd));
-    const item = current.item;
-    let nextItem = item;
-    if (item.type === "agentMessage" && entry.target.type === "agentMessage") {
-      nextItem = { ...item, text: `${item.text}${entry.delta}` };
-    }
-    if (item.type === "plan" && entry.target.type === "plan") {
-      nextItem = { ...item, text: `${item.text}${entry.delta}` };
-    }
-    if (item.type === "reasoning" && entry.target.type === "reasoningSummary") {
-      nextItem = { ...item, summary: updateIndexedTextArray(item.summary, entry.target.summaryIndex, entry.delta) };
-    }
-    if (item.type === "reasoning" && entry.target.type === "reasoningContent") {
-      nextItem = { ...item, content: updateIndexedTextArray(item.content, entry.target.contentIndex, entry.delta) };
-    }
-    const nextItemState = { ...current, item: nextItem };
-    const items = itemIndex >= 0 ? turn.items.map((itemState, index) => index === itemIndex ? nextItemState : itemState) : [...turn.items, nextItemState];
-    return { ...turn, items };
-  });
-}
-
-export function applyConversationOutputDelta(conversation: ConversationState, entry: ConversationOutputDelta): ConversationState {
-  return updateTurn(conversation, entry.turnId, (turn) => {
-    const itemIndex = turn.items.findIndex((item) => item.item.id === entry.itemId);
-    const current = itemIndex >= 0 ? turn.items[itemIndex] : createItemState(createSkeletonItem(entry.itemId, entry.target, conversation.cwd));
-    const nextOutput = `${current.outputText}${entry.delta}`;
-    const nextItem = current.item.type === "commandExecution" ? { ...current.item, aggregatedOutput: nextOutput } : current.item;
-    const nextItemState = { ...current, item: nextItem, outputText: nextOutput };
-    const items = itemIndex >= 0 ? turn.items.map((itemState, index) => index === itemIndex ? nextItemState : itemState) : [...turn.items, nextItemState];
-    return { ...turn, items };
-  });
 }
 
 export function appendConversationTerminalInteraction(conversation: ConversationState, turnId: string, itemId: string, stdin: string): ConversationState {

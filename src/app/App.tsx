@@ -2,6 +2,7 @@ import { Suspense, lazy, useCallback, useMemo, useState } from "react";
 import type { ComposerSelection } from "../features/composer/model/composerPreferences";
 import { readUserConfigWriteTarget } from "../features/settings/config/configWriteTarget";
 import { selectMultiAgentFeatureState } from "../features/settings/config/experimentalFeatures";
+import { useAppShellState } from "./controller/appControllerState";
 import { useAppController } from "./controller/useAppController";
 import { useAppPreferences } from "../features/settings/hooks/useAppPreferences";
 import { useComposerPicker } from "../features/composer/hooks/useComposerPicker";
@@ -26,8 +27,9 @@ interface AppProps {
 
 export function App({ hostBridge }: AppProps): JSX.Element {
   const preferences = useAppPreferences();
+  const appState = useAppShellState();
   const controller = useAppController(hostBridge, preferences.agentEnvironment);
-  const composerPicker = useComposerPicker(hostBridge, controller.state.configSnapshot, controller.state.initialized);
+  const composerPicker = useComposerPicker(hostBridge, appState.configSnapshot, appState.initialized);
   const workspace = useWorkspaceRoots();
   const [screen, setScreen] = useState<"home" | SettingsSection>("home");
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
@@ -51,16 +53,16 @@ export function App({ hostBridge }: AppProps): JSX.Element {
     agentEnvironment: preferences.agentEnvironment,
     hostBridge,
     selectedRootPath,
-    collaborationModes: controller.state.collaborationModes,
+    collaborationModes: appState.collaborationModes,
     followUpQueueMode: preferences.followUpQueueMode,
   });
   const multiAgentState = useMemo(
-    () => selectMultiAgentFeatureState(controller.state.experimentalFeatures, controller.state.configSnapshot),
-    [controller.state.configSnapshot, controller.state.experimentalFeatures]
+    () => selectMultiAgentFeatureState(appState.experimentalFeatures, appState.configSnapshot),
+    [appState.configSnapshot, appState.experimentalFeatures]
   );
   const openConfigToml = useCallback(async () => {
     try {
-      const writeTarget = readUserConfigWriteTarget(controller.state.configSnapshot);
+      const writeTarget = readUserConfigWriteTarget(appState.configSnapshot);
       await hostBridge.app.openCodexConfigToml({
         agentEnvironment: preferences.agentEnvironment,
         filePath: writeTarget.filePath
@@ -69,7 +71,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       console.error("打开 config.toml 失败", error);
       reportAppError("app.alerts.openConfigFailed", error);
     }
-  }, [controller.state.configSnapshot, hostBridge.app, preferences.agentEnvironment, reportAppError]);
+  }, [appState.configSnapshot, hostBridge.app, preferences.agentEnvironment, reportAppError]);
   const readGlobalAgentInstructions = useCallback(
     () => hostBridge.app.readGlobalAgentInstructions({ agentEnvironment: preferences.agentEnvironment }),
     [hostBridge.app, preferences.agentEnvironment]
@@ -147,7 +149,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       if (selection.model === null || selection.effort === null) {
         throw new Error(t("app.composer.invalidSelection"));
       }
-      const writeTarget = readUserConfigWriteTarget(controller.state.configSnapshot);
+      const writeTarget = readUserConfigWriteTarget(appState.configSnapshot);
       await controller.batchWriteConfigSnapshot({
         edits: [
           { keyPath: "model", value: selection.model, mergeStrategy: "upsert" },
@@ -158,7 +160,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
         expectedVersion: writeTarget.expectedVersion
       });
     },
-    [controller.batchWriteConfigSnapshot, controller.state.configSnapshot, t]
+    [appState.configSnapshot, controller.batchWriteConfigSnapshot, t]
   );
   const setMultiAgentEnabled = useCallback(async (enabled: boolean) => {
     try {
@@ -170,12 +172,12 @@ export function App({ hostBridge }: AppProps): JSX.Element {
     }
   }, [controller, reportAppError]);
 
-  const rateLimitSummary = controller.state.rateLimits === null
+  const rateLimitSummary = appState.rateLimits === null
     ? null
-    : `Rate limit: ${controller.state.rateLimits.limitName ?? controller.state.rateLimits.limitId ?? "default"}`;
-  const authBusy = controller.state.bootstrapBusy || controller.state.authLogin.pending;
-  const shouldShowAuthChoice = controller.state.authStatus === "needs_login" && screen === "home";
-  useDismissStartupScreen(controller.state.fatalError !== null || (controller.state.initialized && !controller.state.bootstrapBusy));
+    : `Rate limit: ${appState.rateLimits.limitName ?? appState.rateLimits.limitId ?? "default"}`;
+  const authBusy = appState.bootstrapBusy || appState.authLoginPending;
+  const shouldShowAuthChoice = appState.authStatus === "needs_login" && screen === "home";
+  useDismissStartupScreen(appState.fatalError !== null || (appState.initialized && !appState.bootstrapBusy));
   const content = screen !== "home"
     ? (
       <Suspense fallback={<SettingsLoadingFallback />}>
@@ -183,9 +185,9 @@ export function App({ hostBridge }: AppProps): JSX.Element {
           section={screen}
           roots={workspace.roots}
           preferences={preferences}
-          configSnapshot={controller.state.configSnapshot}
-          busy={controller.state.bootstrapBusy}
-          windowsSandboxSetup={controller.state.windowsSandboxSetup}
+          configSnapshot={appState.configSnapshot}
+          busy={appState.bootstrapBusy}
+          windowsSandboxSetup={appState.windowsSandboxSetup}
           onBackHome={() => setScreen("home")}
           onSelectSection={setScreen}
           onAddRoot={addRoot}
@@ -211,7 +213,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       ? (
         <AuthChoiceView
           busy={authBusy}
-          loginPending={controller.state.authLogin.pending}
+          loginPending={appState.authLoginPending}
           onLogin={controller.login}
           onUseApiKey={() => setScreen("config")}
         />
@@ -219,8 +221,8 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       : (
         <HomeView
           hostBridge={hostBridge}
-          busy={controller.state.bootstrapBusy}
-          inputText={controller.state.inputText}
+          busy={appState.bootstrapBusy}
+          inputText={appState.inputText}
           roots={workspace.roots}
           selectedRootId={workspace.selectedRootId}
           selectedRootName={selectedRootName}
@@ -233,8 +235,8 @@ export function App({ hostBridge }: AppProps): JSX.Element {
           isResponding={conversation.isResponding}
           interruptPending={conversation.interruptPending}
           activities={conversation.activities}
-          banners={controller.state.banners}
-          account={controller.state.account}
+          banners={appState.banners}
+          account={appState.account}
           rateLimitSummary={rateLimitSummary}
           queuedFollowUps={conversation.queuedFollowUps}
           draftActive={conversation.draftActive}
@@ -251,13 +253,13 @@ export function App({ hostBridge }: AppProps): JSX.Element {
           followUpQueueMode={preferences.followUpQueueMode}
           composerEnterBehavior={preferences.composerEnterBehavior}
           composerPermissionLevel={preferences.composerPermissionLevel}
-          connectionStatus={controller.state.connectionStatus}
-          fatalError={controller.state.fatalError}
-          authStatus={controller.state.authStatus}
-          authMode={controller.state.authMode}
+          connectionStatus={appState.connectionStatus}
+          fatalError={appState.fatalError}
+          authStatus={appState.authStatus}
+          authMode={appState.authMode}
           authBusy={authBusy}
-          authLoginPending={controller.state.authLogin.pending}
-          retryScheduledAt={controller.state.retryScheduledAt}
+          authLoginPending={appState.authLoginPending}
+          retryScheduledAt={appState.retryScheduledAt}
           settingsMenuOpen={settingsMenuOpen}
           onToggleSettingsMenu={() => setSettingsMenuOpen((openValue) => !openValue)}
           onDismissSettingsMenu={() => setSettingsMenuOpen(false)}

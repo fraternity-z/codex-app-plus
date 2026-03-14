@@ -2,8 +2,9 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../bridge/types";
+import type { ConversationState } from "../../domain/conversation";
 import type { RequestId } from "../../protocol/generated/RequestId";
-import { AppStoreProvider } from "../../state/store";
+import { AppStoreProvider, useAppDispatch, useAppSelector } from "../../state/store";
 
 const DEFAULT_AGENT_ENVIRONMENT = "windowsNative" as const;
 
@@ -160,6 +161,34 @@ function wrapper(props: PropsWithChildren): JSX.Element {
   return <AppStoreProvider>{props.children}</AppStoreProvider>;
 }
 
+function createConversation(id = "thread-1"): ConversationState {
+  return {
+    id,
+    title: id,
+    branch: null,
+    cwd: "E:/code/codex-app-plus",
+    updatedAt: "2026-03-14T00:00:00.000Z",
+    source: "rpc",
+    agentEnvironment: DEFAULT_AGENT_ENVIRONMENT,
+    status: "idle",
+    activeFlags: [],
+    resumeState: "resumed",
+    turns: [],
+    queuedFollowUps: [],
+    interruptRequestedTurnId: null,
+    hidden: false,
+  };
+}
+
+function useControllerHarness(hostBridge: HostBridge) {
+  const controller = useAppController(hostBridge, DEFAULT_AGENT_ENVIRONMENT);
+  const banners = useAppSelector((state) => state.banners);
+  const initialized = useAppSelector((state) => state.initialized);
+  const pendingRequestsById = useAppSelector((state) => state.pendingRequestsById);
+  const dispatch = useAppDispatch();
+  return { banners, controller, dispatch, initialized, pendingRequestsById };
+}
+
 describe("useAppController auth helpers", () => {
   beforeEach(() => {
     protocolState.handlers = null;
@@ -208,10 +237,10 @@ describe("useAppController auth helpers", () => {
 
   it("refreshes account state after account/login/completed succeeds", async () => {
     const hostBridge = createHostBridge();
-    const { result } = renderHook(() => useAppController(hostBridge, DEFAULT_AGENT_ENVIRONMENT), { wrapper });
+    const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.state.initialized).toBe(true);
+      expect(result.current.initialized).toBe(true);
     });
     protocolState.request.mockClear();
 
@@ -245,10 +274,10 @@ describe("useAppController server request lifecycle", () => {
 
   it("keeps pending requests until server confirmation and preserves numeric rpc ids", async () => {
     const hostBridge = createHostBridge();
-    const { result } = renderHook(() => useAppController(hostBridge, DEFAULT_AGENT_ENVIRONMENT), { wrapper });
+    const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.state.initialized).toBe(true);
+      expect(result.current.initialized).toBe(true);
     });
     protocolState.request.mockClear();
 
@@ -262,12 +291,12 @@ describe("useAppController server request lifecycle", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.state.pendingRequestsById["1"]).toBeDefined();
+      expect(result.current.pendingRequestsById["1"]).toBeDefined();
       expect(protocolState.request).toHaveBeenCalledWith("thread/increment_elicitation", { threadId: "thread-1" });
     });
 
     await act(async () => {
-      await result.current.resolveServerRequest({ kind: "userInput", requestId: "1", answers: { scope: ["main"] } });
+      await result.current.controller.resolveServerRequest({ kind: "userInput", requestId: "1", answers: { scope: ["main"] } });
     });
 
     expect(protocolState.resolveServerRequest).toHaveBeenCalledWith(1, {
@@ -275,14 +304,14 @@ describe("useAppController server request lifecycle", () => {
         scope: { answers: ["main"] },
       },
     });
-    expect(result.current.state.pendingRequestsById["1"]).toBeDefined();
+    expect(result.current.pendingRequestsById["1"]).toBeDefined();
 
     act(() => {
       protocolState.handlers?.onNotification("serverRequest/resolved", { threadId: "thread-1", requestId: 1 });
     });
 
     await waitFor(() => {
-      expect(result.current.state.pendingRequestsById["1"]).toBeUndefined();
+      expect(result.current.pendingRequestsById["1"]).toBeUndefined();
       expect(protocolState.request).toHaveBeenCalledWith("thread/decrement_elicitation", { threadId: "thread-1" });
     });
   });
@@ -290,10 +319,10 @@ describe("useAppController server request lifecycle", () => {
   it("keeps pending requests and reports an error when resolve fails", async () => {
     protocolState.resolveServerRequest.mockRejectedValueOnce(new Error("boom"));
     const hostBridge = createHostBridge();
-    const { result } = renderHook(() => useAppController(hostBridge, DEFAULT_AGENT_ENVIRONMENT), { wrapper });
+    const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.state.initialized).toBe(true);
+      expect(result.current.initialized).toBe(true);
     });
 
     act(() => {
@@ -306,17 +335,52 @@ describe("useAppController server request lifecycle", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.state.pendingRequestsById["1"]).toBeDefined();
+      expect(result.current.pendingRequestsById["1"]).toBeDefined();
     });
 
     await act(async () => {
-      await result.current.resolveServerRequest({ kind: "userInput", requestId: "1", answers: {} });
+      await result.current.controller.resolveServerRequest({ kind: "userInput", requestId: "1", answers: {} });
     });
 
-    expect(result.current.state.pendingRequestsById["1"]).toBeDefined();
-    expect(result.current.state.banners[0]).toEqual(expect.objectContaining({
+    expect(result.current.pendingRequestsById["1"]).toBeDefined();
+    expect(result.current.banners[0]).toEqual(expect.objectContaining({
       title: "Failed to submit request response",
       detail: "boom",
     }));
+  });
+
+  it("does not rerender for conversation streaming updates outside the controller runtime slice", async () => {
+    const hostBridge = createHostBridge();
+    let renderCount = 0;
+    const { result } = renderHook(() => {
+      renderCount += 1;
+      return useControllerHarness(hostBridge);
+    }, { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.initialized).toBe(true);
+    });
+
+    const stableRenderCount = renderCount;
+
+    act(() => {
+      result.current.dispatch({ type: "conversation/upserted", conversation: createConversation() });
+    });
+    expect(renderCount).toBe(stableRenderCount);
+
+    act(() => {
+      result.current.dispatch({
+        type: "conversation/textDeltasFlushed",
+        entries: [{
+          conversationId: "thread-1",
+          turnId: "turn-1",
+          itemId: "item-1",
+          target: { type: "agentMessage" },
+          delta: "delta",
+        }],
+      });
+    });
+
+    expect(renderCount).toBe(stableRenderCount);
   });
 });

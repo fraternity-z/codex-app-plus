@@ -3,7 +3,7 @@ import type { PropsWithChildren } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../bridge/types";
 import type { RequestId } from "../../protocol/generated/RequestId";
-import { AppStoreProvider } from "../../state/store";
+import { AppStoreProvider, useAppSelector } from "../../state/store";
 
 const DEFAULT_AGENT_ENVIRONMENT = "windowsNative" as const;
 
@@ -130,6 +130,12 @@ function wrapper(props: PropsWithChildren): JSX.Element {
   return <AppStoreProvider>{props.children}</AppStoreProvider>;
 }
 
+function useControllerHarness(hostBridge: HostBridge) {
+  const controller = useAppController(hostBridge, DEFAULT_AGENT_ENVIRONMENT);
+  const initialized = useAppSelector((state) => state.initialized);
+  return { controller, initialized };
+}
+
 describe("useAppController retry gating", () => {
   beforeEach(() => {
     vi.useRealTimers();
@@ -146,10 +152,10 @@ describe("useAppController retry gating", () => {
 
   it("retries only after fatal errors", async () => {
     const hostBridge = createHostBridge();
-    const { result } = renderHook(() => useAppController(hostBridge, DEFAULT_AGENT_ENVIRONMENT), { wrapper });
+    const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.state.initialized).toBe(true);
+      expect(result.current.initialized).toBe(true);
     });
 
     vi.useFakeTimers();
