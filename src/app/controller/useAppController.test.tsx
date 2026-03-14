@@ -185,8 +185,9 @@ function useControllerHarness(hostBridge: HostBridge) {
   const banners = useAppSelector((state) => state.banners);
   const initialized = useAppSelector((state) => state.initialized);
   const pendingRequestsById = useAppSelector((state) => state.pendingRequestsById);
+  const tokenRefresh = useAppSelector((state) => state.tokenRefresh);
   const dispatch = useAppDispatch();
-  return { banners, controller, dispatch, initialized, pendingRequestsById };
+  return { banners, controller, dispatch, initialized, pendingRequestsById, tokenRefresh };
 }
 
 describe("useAppController auth helpers", () => {
@@ -347,6 +348,46 @@ describe("useAppController server request lifecycle", () => {
       title: "Failed to submit request response",
       detail: "boom",
     }));
+  });
+
+  it("clears stale pending requests and token refresh state after disconnect", async () => {
+    const hostBridge = createHostBridge();
+    const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.initialized).toBe(true);
+    });
+
+    act(() => {
+      protocolState.handlers?.onServerRequest("7", "account/chatgptAuthTokens/refresh", {
+        reason: "unauthorized",
+        previousAccountId: "account-123",
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.pendingRequestsById["7"]).toBeDefined();
+      expect(result.current.tokenRefresh).toEqual({
+        requestId: "7",
+        previousAccountId: "account-123",
+        pending: true,
+        error: null,
+      });
+    });
+
+    act(() => {
+      protocolState.handlers?.onConnectionChanged("disconnected");
+    });
+
+    await waitFor(() => {
+      expect(result.current.pendingRequestsById["7"]).toBeUndefined();
+      expect(result.current.tokenRefresh).toEqual({
+        requestId: null,
+        previousAccountId: null,
+        pending: false,
+        error: null,
+      });
+    });
   });
 
   it("does not rerender for conversation streaming updates outside the controller runtime slice", async () => {

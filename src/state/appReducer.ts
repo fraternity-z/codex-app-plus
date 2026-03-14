@@ -89,6 +89,15 @@ function rebuildPendingRequestsByConversationId(requestsById: Record<string, App
   return nextMap;
 }
 
+function resetTransientRequestState(state: AppState): AppState {
+  return {
+    ...state,
+    pendingRequestsById: INITIAL_STATE.pendingRequestsById,
+    pendingRequestsByConversationId: INITIAL_STATE.pendingRequestsByConversationId,
+    tokenRefresh: INITIAL_STATE.tokenRefresh,
+  };
+}
+
 function pushNotification(state: AppState, action: Extract<AppAction, { type: "notification/received" }>): AppState {
   const notifications = [...state.notifications, action.notification];
   return { ...state, notifications: notifications.length > MAX_NOTIFICATION_LOG ? notifications.slice(-MAX_NOTIFICATION_LOG) : notifications };
@@ -141,15 +150,23 @@ function updateRealtimeState(state: AppState, threadId: string, updater: (curren
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
-    case "connection/changed":
-      return {
+    case "connection/changed": {
+      const nextState = {
         ...state,
         connectionStatus: action.status,
         fatalError: action.status === "error" ? state.fatalError : null,
         windowsSandboxSetup: action.status === "connected" ? state.windowsSandboxSetup : INITIAL_STATE.windowsSandboxSetup,
       };
+      return action.status === "connected" ? nextState : resetTransientRequestState(nextState);
+    }
     case "fatal/error":
-      return { ...state, connectionStatus: "error", fatalError: action.message, initialized: false, windowsSandboxSetup: INITIAL_STATE.windowsSandboxSetup };
+      return resetTransientRequestState({
+        ...state,
+        connectionStatus: "error",
+        fatalError: action.message,
+        initialized: false,
+        windowsSandboxSetup: INITIAL_STATE.windowsSandboxSetup,
+      });
     case "view/changed":
       return { ...state, activeView: action.view };
     case "conversations/catalogLoaded": {
