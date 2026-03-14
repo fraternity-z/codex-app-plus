@@ -3,21 +3,9 @@ name: Release Installer
 on:
   workflow_dispatch:
     inputs:
-      tag_mode:
-        description: 'tag 生成方式：auto 使用当前版本生成 v<version>，manual 使用 tag_name'
-        required: true
-        default: auto
-        type: choice
-        options:
-          - auto
-          - manual
       tag_name:
-        description: '手动指定的 tag 名称，仅在 tag_mode=manual 时生效'
-        required: false
-        type: string
-      release_notes:
-        description: '可选更新内容，将写入 GitHub Release 描述'
-        required: false
+        description: '手动指定 release tag，例如 v0.2.0'
+        required: true
         type: string
 
 permissions:
@@ -52,9 +40,7 @@ jobs:
         id: meta
         shell: pwsh
         env:
-          INPUT_TAG_MODE: ${{ github.event.inputs.tag_mode }}
           INPUT_TAG_NAME: ${{ github.event.inputs.tag_name }}
-          INPUT_RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
         run: |
           $package = Get-Content package.json -Raw | ConvertFrom-Json
           $tauriConfig = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
@@ -77,25 +63,12 @@ jobs:
             throw "版本号不一致：$($details -join ', ')"
           }
 
-          $version = $distinctVersions[0]
-          $tagMode = if ([string]::IsNullOrWhiteSpace($env:INPUT_TAG_MODE)) { "auto" } else { $env:INPUT_TAG_MODE.Trim() }
           $manualTag = if ($null -eq $env:INPUT_TAG_NAME) { "" } else { $env:INPUT_TAG_NAME.Trim() }
-
-          switch ($tagMode) {
-            "auto" {
-              $tag = "v$version"
-            }
-            "manual" {
-              if ([string]::IsNullOrWhiteSpace($manualTag)) {
-                throw "tag_mode=manual 时必须提供 tag_name。"
-              }
-
-              $tag = $manualTag
-            }
-            default {
-              throw "不支持的 tag_mode：$tagMode"
-            }
+          if ([string]::IsNullOrWhiteSpace($manualTag)) {
+            throw "必须提供 tag_name。"
           }
+
+          $tag = $manualTag
 
           git check-ref-format "refs/tags/$tag"
           if ($LASTEXITCODE -ne 0) {
@@ -125,24 +98,17 @@ jobs:
             throw "检查 tag 是否存在失败：$tag"
           }
 
-          $notesFile = Join-Path $env:RUNNER_TEMP "release-notes.md"
-          $notes = $env:INPUT_RELEASE_NOTES
+          $notesFile = Join-Path $env:GITHUB_WORKSPACE "updatelog.md"
+          if (-not (Test-Path $notesFile -PathType Leaf)) {
+            throw "未找到更新日志文件：$notesFile"
+          }
 
+          $notes = Get-Content $notesFile -Raw
           if ([string]::IsNullOrWhiteSpace($notes)) {
-            @(
-              "## Codex App Plus $tag",
-              "",
-              "- Version: $version",
-              "- Commit: $env:GITHUB_SHA"
-            ) | Set-Content $notesFile -Encoding utf8
-          }
-          else {
-            $notes | Set-Content $notesFile -Encoding utf8
+            throw "更新日志文件为空：$notesFile"
           }
 
-          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "notes_file=$notesFile" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -166,7 +132,7 @@ jobs:
           tag_name: ${{ steps.meta.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: Codex App Plus ${{ steps.meta.outputs.tag }}
-          body_path: ${{ steps.meta.outputs.notes_file }}
+          body_path: updatelog.md
           files: |
             src-tauri/target/release/bundle/nsis/*.exe
           fail_on_unmatched_files: true
