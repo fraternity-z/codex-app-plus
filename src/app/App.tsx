@@ -15,6 +15,7 @@ import type { SettingsSection } from "../features/settings/ui/SettingsView";
 import { I18nProvider, resolveLocale, type MessageKey, type TranslationParams, translate } from "../i18n";
 import { requestWorkspaceFolder } from "./workspacePicker";
 import { SettingsLoadingFallback } from "./ui/SettingsLoadingFallback";
+import { useDismissStartupScreen } from "./startupScreen";
 const LazySettingsView = lazy(async () => {
   const module = await import("../features/settings/ui/SettingsView");
   return { default: module.SettingsView };
@@ -174,6 +175,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
     : `Rate limit: ${controller.state.rateLimits.limitName ?? controller.state.rateLimits.limitId ?? "default"}`;
   const authBusy = controller.state.bootstrapBusy || controller.state.authLogin.pending;
   const shouldShowAuthChoice = controller.state.authStatus === "needs_login" && screen === "home";
+  useDismissStartupScreen(controller.state.fatalError !== null || (controller.state.initialized && !controller.state.bootstrapBusy));
   const content = screen !== "home"
     ? (
       <Suspense fallback={<SettingsLoadingFallback />}>

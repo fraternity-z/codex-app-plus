@@ -4,8 +4,255 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Codex App Plus</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #f3efe6;
+      }
+
+      #startup-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(241, 185, 105, 0.2), transparent 30%),
+          radial-gradient(circle at 82% 14%, rgba(214, 194, 150, 0.24), transparent 28%),
+          linear-gradient(180deg, #fcfbf7 0%, #f2ede2 100%);
+        transition: opacity 420ms ease, visibility 420ms ease;
+      }
+
+      #startup-screen::before,
+      #startup-screen::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(22px);
+      }
+
+      #startup-screen::before {
+        width: min(40vw, 420px);
+        height: min(40vw, 420px);
+        top: 10%;
+        left: 8%;
+        background: rgba(240, 180, 83, 0.16);
+        animation: startup-screen-drift 10s ease-in-out infinite;
+      }
+
+      #startup-screen::after {
+        width: min(34vw, 360px);
+        height: min(34vw, 360px);
+        right: 10%;
+        bottom: 12%;
+        background: rgba(191, 165, 113, 0.18);
+        animation: startup-screen-drift 12s ease-in-out infinite reverse;
+      }
+
+      #startup-screen.startup-screen--exiting {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .startup-screen__panel {
+        position: relative;
+        display: grid;
+        justify-items: center;
+        gap: 16px;
+        width: min(320px, calc(100vw - 48px));
+        padding: 34px 30px 28px;
+        border: 1px solid rgba(210, 192, 161, 0.68);
+        border-radius: 32px;
+        background: rgba(255, 255, 255, 0.76);
+        box-shadow:
+          0 28px 64px rgba(103, 82, 48, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(18px);
+      }
+
+      .startup-screen__badge {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 148px;
+        height: 148px;
+      }
+
+      .startup-screen__badge::before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 44px;
+        border: 1px solid rgba(203, 157, 78, 0.38);
+        animation: startup-badge-ring 2.4s ease-out infinite;
+      }
+
+      .startup-screen__logo-shell {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 124px;
+        height: 124px;
+        border-radius: 36px;
+        background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(246, 238, 225, 0.88));
+        box-shadow:
+          0 18px 44px rgba(169, 125, 55, 0.18),
+          inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        animation: startup-shell-breathe 2.8s ease-in-out infinite;
+      }
+
+      .startup-screen__logo-shell::before {
+        content: "";
+        position: absolute;
+        inset: 12px;
+        border-radius: 28px;
+        background: linear-gradient(180deg, rgba(255, 248, 236, 0.88), rgba(255, 255, 255, 0.18));
+      }
+
+      .startup-screen__logo {
+        position: relative;
+        z-index: 1;
+        width: 78px;
+        height: 78px;
+        object-fit: contain;
+        filter: drop-shadow(0 12px 20px rgba(183, 118, 27, 0.18));
+        animation: startup-logo-float 1.9s cubic-bezier(0.33, 1, 0.68, 1) infinite;
+      }
+
+      .startup-screen__title {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #47331b;
+      }
+
+      .startup-screen__subtitle {
+        font-size: 13px;
+        color: #7b6b53;
+        text-align: center;
+        line-height: 1.6;
+      }
+
+      .startup-screen__meter {
+        position: relative;
+        width: min(220px, 72vw);
+        height: 6px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(190, 156, 96, 0.14);
+      }
+
+      .startup-screen__meter-fill {
+        display: block;
+        width: 38%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #bf8741 0%, #f0cf95 50%, #bf8741 100%);
+        box-shadow: 0 0 16px rgba(220, 167, 80, 0.38);
+        animation: startup-meter-slide 1.35s ease-in-out infinite;
+      }
+
+      @keyframes startup-logo-float {
+        0%,
+        100% {
+          transform: translateY(0) scale(1);
+        }
+
+        50% {
+          transform: translateY(-6px) scale(1.03);
+        }
+      }
+
+      @keyframes startup-shell-breathe {
+        0%,
+        100% {
+          transform: scale(1);
+          box-shadow:
+            0 18px 44px rgba(169, 125, 55, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        }
+
+        50% {
+          transform: scale(1.03);
+          box-shadow:
+            0 22px 52px rgba(169, 125, 55, 0.24),
+            inset 0 1px 0 rgba(255, 255, 255, 0.96);
+        }
+      }
+
+      @keyframes startup-badge-ring {
+        0% {
+          transform: scale(0.92);
+          opacity: 0;
+        }
+
+        30% {
+          opacity: 0.5;
+        }
+
+        100% {
+          transform: scale(1.12);
+          opacity: 0;
+        }
+      }
+
+      @keyframes startup-meter-slide {
+        0% {
+          transform: translateX(-130%);
+        }
+
+        55% {
+          transform: translateX(100%);
+        }
+
+        100% {
+          transform: translateX(190%);
+        }
+      }
+
+      @keyframes startup-screen-drift {
+        0%,
+        100% {
+          transform: translate3d(0, 0, 0);
+        }
+
+        50% {
+          transform: translate3d(10px, -14px, 0);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #startup-screen,
+        #startup-screen::before,
+        #startup-screen::after,
+        .startup-screen__badge::before,
+        .startup-screen__logo-shell,
+        .startup-screen__logo,
+        .startup-screen__meter-fill {
+          animation: none;
+          transition: none;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="startup-screen" role="status" aria-live="polite" aria-label="正在启动 Codex App Plus">
+      <div class="startup-screen__panel">
+        <div class="startup-screen__badge" aria-hidden="true">
+          <div class="startup-screen__logo-shell">
+            <img class="startup-screen__logo" src="./src/assets/official/app.png" alt="" />
+          </div>
+        </div>
+        <div class="startup-screen__title">Codex App Plus</div>
+        <div class="startup-screen__subtitle">正在启动桌面会话与工作区能力</div>
+        <div class="startup-screen__meter" aria-hidden="true">
+          <span class="startup-screen__meter-fill"></span>
+        </div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
