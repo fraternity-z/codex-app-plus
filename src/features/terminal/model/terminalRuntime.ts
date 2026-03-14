@@ -88,9 +88,15 @@ function createTerminalInstance(): { readonly terminal: Terminal; readonly fitAd
       background: "#ffffff",
       brightWhite: "#ffffff",
       cursor: "#1f1f1f",
-      foreground: "#1f1f1f",
-      black: "#1f1f1f",
-      white: "#ffffff"
+      foreground: "#24292f",
+      black: "#24292f",
+      white: "#ffffff",
+      blue: "#0550ae",
+      green: "#116329",
+      red: "#cf222e",
+      yellow: "#4d2d00",
+      magenta: "#8250df",
+      cyan: "#8250df"
     }
   });
   const fitAddon = new FitAddon();

@@ -358,8 +358,8 @@
 .home-chat-markdown code {
   padding: 1px 5px;
   border-radius: 7px;
-  background: #edf0f5;
-  color: var(--home-text);
+  background: #f1f3f7;
+  color: #24292f;
   font-family: Consolas, "Cascadia Code", monospace;
   font-size: 0.86em;
 }
@@ -369,7 +369,7 @@
   padding: 10px 12px;
   border: 1px solid var(--home-border);
   border-radius: 12px;
-  background: var(--home-subtle-surface);
+  background: #f6f8fa;
 }
 
 .home-chat-markdown pre code {

@@ -1,6 +1,6 @@
 .replica-app {
   --replica-diff-sidebar-width: clamp(440px, 34vw, 620px);
-  --replica-code-font-family: "JetBrains Mono", "Cascadia Code", "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --replica-code-font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", "Source Code Pro", "SFMono-Regular", Consolas, monospace;
 }
 
 .replica-app-with-diff-sidebar {
@@ -81,10 +81,10 @@
 .workspace-diff-file-list-pane,
 .workspace-diff-preview-card {
   min-width: 0;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--border-light);
   border-radius: 16px;
   background: #ffffff;
-  box-shadow: 0 8px 24px rgba(20, 20, 20, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .workspace-diff-file-list-pane {
@@ -127,16 +127,18 @@
   color: #2b2b2b;
   cursor: pointer;
   text-align: left;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .workspace-diff-file-row:hover {
-  background: #f7f7f7;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
 .workspace-diff-file-row-active {
-  border-color: #d9d9d9;
+  border-color: var(--accent-color);
   background: #ffffff;
-  box-shadow: 0 6px 18px rgba(20, 20, 20, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.08);
 }
 
 .workspace-diff-file-row-title {
@@ -265,17 +267,18 @@
 .workspace-diff-raw-content {
   color: #1f2328;
   font-family: var(--replica-code-font-family);
-  font-size: 12.5px;
-  line-height: 1.75;
+  font-size: 13px;
+  line-height: 1.8;
   letter-spacing: 0.01em;
   font-feature-settings: "calt" 1, "liga" 1;
+  -webkit-font-smoothing: subpixel-antialiased;
 }
 
 .workspace-diff-code-content .hljs-comment,
 .workspace-diff-raw-content .hljs-comment,
 .workspace-diff-code-content .hljs-quote,
 .workspace-diff-raw-content .hljs-quote {
-  color: #6e7781;
+  color: #8b949e;
   font-style: italic;
 }
 
@@ -285,7 +288,7 @@
 .workspace-diff-raw-content .hljs-selector-tag,
 .workspace-diff-code-content .hljs-literal,
 .workspace-diff-raw-content .hljs-literal {
-  color: #8250df;
+  color: #cf222e;
 }
 
 .workspace-diff-code-content .hljs-string,
@@ -294,7 +297,7 @@
 .workspace-diff-raw-content .hljs-regexp,
 .workspace-diff-code-content .hljs-attribute,
 .workspace-diff-raw-content .hljs-attribute {
-  color: #0a7c34;
+  color: #0550ae;
 }
 
 .workspace-diff-code-content .hljs-number,
@@ -305,7 +308,7 @@
 .workspace-diff-raw-content .hljs-variable,
 .workspace-diff-code-content .hljs-template-variable,
 .workspace-diff-raw-content .hljs-template-variable {
-  color: #b35900;
+  color: #953800;
 }
 
 .workspace-diff-code-content .hljs-title,
@@ -318,7 +321,7 @@
 .workspace-diff-raw-content .hljs-property,
 .workspace-diff-code-content .hljs-title.class_,
 .workspace-diff-raw-content .hljs-title.class_ {
-  color: #0550ae;
+  color: #8250df;
 }
 
 .workspace-diff-code-content .hljs-tag,
