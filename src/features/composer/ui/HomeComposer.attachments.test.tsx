@@ -72,6 +72,7 @@ function createCommandBridge(): ComposerCommandBridge {
     startFuzzySession: vi.fn().mockResolvedValue(undefined),
     updateFuzzySession: vi.fn().mockResolvedValue(undefined),
     stopFuzzySession: vi.fn().mockResolvedValue(undefined),
+    request: vi.fn().mockResolvedValue({}),
   };
 }
 

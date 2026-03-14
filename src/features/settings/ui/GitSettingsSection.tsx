@@ -80,10 +80,12 @@ export function GitSettingsSection(props: GitSettingsSectionProps): JSX.Element 
                 : t("settings.git.forceLeaseDisabledNote")}
             </p>
           </div>
-          <ToggleSwitch
-            checked={props.preferences.gitPushForceWithLease}
-            onToggle={() => props.preferences.setGitPushForceWithLease(!props.preferences.gitPushForceWithLease)}
-          />
+          <div className="settings-row-control">
+            <ToggleSwitch
+              checked={props.preferences.gitPushForceWithLease}
+              onToggle={() => props.preferences.setGitPushForceWithLease(!props.preferences.gitPushForceWithLease)}
+            />
+          </div>
         </div>
       </section>
       <p className="settings-note settings-note-pad">{t("settings.git.appScopeNote")}</p>

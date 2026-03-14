@@ -281,6 +281,7 @@ function createHomeMainContentProps(
     onSelectComposerPermissionLevel: props.onSelectComposerPermissionLevel,
     onUpdateThreadBranch: props.onUpdateThreadBranch,
     onInterruptTurn: props.onInterruptTurn,
+    onLogout: props.onLogout,
     onResolveServerRequest: props.onResolveServerRequest,
     onRemoveQueuedFollowUp: props.onRemoveQueuedFollowUp,
     onClearQueuedFollowUps: props.onClearQueuedFollowUps,

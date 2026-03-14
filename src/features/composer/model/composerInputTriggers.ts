@@ -30,14 +30,14 @@ export function replaceComposerTrigger(
 function getSlashTrigger(text: string, caret: number): ComposerActiveTrigger | null {
   const lineStart = text.lastIndexOf("\n", Math.max(caret - 1, 0)) + 1;
   const currentLine = text.slice(lineStart, caret);
-  const match = currentLine.match(/^\/([^\s]*)$/);
+  const match = currentLine.match(/^\/([^\n]*)$/);
   if (match === null) {
     return null;
   }
 
   return {
     kind: "slash",
-    query: match[1] ?? "",
+    query: (match[1] ?? "").trimStart(),
     range: { start: lineStart, end: caret },
   };
 }

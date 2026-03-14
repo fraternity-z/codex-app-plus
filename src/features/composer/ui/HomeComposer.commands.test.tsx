@@ -29,7 +29,13 @@ function createGitController(): import("../../git/model/types").WorkspaceGitCont
   };
 }
 
-function ComposerHarness(props: { readonly selectedRootPath?: string | null; readonly onCreateThread?: ReturnType<typeof vi.fn>; readonly onToggleDiff?: ReturnType<typeof vi.fn> }): JSX.Element {
+function ComposerHarness(props: {
+  readonly selectedRootPath?: string | null;
+  readonly onCreateThread?: ReturnType<typeof vi.fn>;
+  readonly onToggleDiff?: ReturnType<typeof vi.fn>;
+  readonly onSelectCollaborationPreset?: ReturnType<typeof vi.fn>;
+  readonly request?: ReturnType<typeof vi.fn>;
+}): JSX.Element {
   const { dispatch } = useAppStore();
   const [inputText, setInputText] = useState("");
   const [permissionLevel, setPermissionLevel] = useState<ComposerPermissionLevel>("default");
@@ -39,7 +45,8 @@ function ComposerHarness(props: { readonly selectedRootPath?: string | null; rea
       dispatch({ type: "fuzzySearch/updated", sessionId, query, files: [{ root: "E:/code/codex-app-plus", path: "src/App.tsx", file_name: "App.tsx", score: 1, indices: null }] });
     }),
     stopFuzzySession: vi.fn().mockResolvedValue(undefined),
-  }), [dispatch]);
+    request: props.request ?? vi.fn().mockResolvedValue({}),
+  }), [dispatch, props.request]);
 
   return (
     <HomeComposer
@@ -60,7 +67,7 @@ function ComposerHarness(props: { readonly selectedRootPath?: string | null; rea
       isResponding={false}
       interruptPending={false}
       composerCommandBridge={composerCommandBridge}
-      onSelectCollaborationPreset={vi.fn()}
+      onSelectCollaborationPreset={props.onSelectCollaborationPreset ?? vi.fn()}
       onInputChange={setInputText}
       onCreateThread={props.onCreateThread ?? vi.fn().mockResolvedValue(undefined)}
       onSendTurn={vi.fn().mockResolvedValue(undefined)}
@@ -123,6 +130,33 @@ describe("HomeComposer commands", () => {
     fireEvent.keyDown(textarea, { key: "Enter" });
 
     await waitFor(() => expect(screen.getByRole("menu", { name: "Choose permissions" })).toBeInTheDocument());
+  });
+
+  it("executes /rename with inline arguments through the official request path", async () => {
+    const request = vi.fn().mockResolvedValue({});
+    renderHarness({ request });
+    const textarea = screen.getByRole("textbox");
+
+    fireEvent.change(textarea, { target: { value: "/rename slash command rollout", selectionStart: 29 } });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+
+    await waitFor(() => expect(request).toHaveBeenCalledWith("thread/name/set", {
+      threadId: "thread-1",
+      name: "slash command rollout",
+    }));
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
+  });
+
+  it("switches the composer preset when /plan is executed", async () => {
+    const onSelectCollaborationPreset = vi.fn();
+    renderHarness({ onSelectCollaborationPreset });
+    const textarea = screen.getByRole("textbox");
+
+    fireEvent.change(textarea, { target: { value: "/plan", selectionStart: 5 } });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+
+    await waitFor(() => expect(onSelectCollaborationPreset).toHaveBeenCalledWith("plan"));
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
   });
 
   it("opens mention results from @ and adds a chip", async () => {

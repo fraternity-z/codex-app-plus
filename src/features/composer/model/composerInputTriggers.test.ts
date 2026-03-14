@@ -5,6 +5,7 @@ import { getActiveComposerTrigger, replaceComposerTrigger } from "./composerInpu
 describe("composerInputTriggers", () => {
   it("detects slash commands only from the current line start", () => {
     expect(getActiveComposerTrigger("/model", 6)).toEqual({ kind: "slash", query: "model", range: { start: 0, end: 6 } });
+    expect(getActiveComposerTrigger("/rename 修复命令", 12)).toEqual({ kind: "slash", query: "rename 修复命令", range: { start: 0, end: 12 } });
     expect(getActiveComposerTrigger("hello /model", 12)).toBeNull();
   });
 

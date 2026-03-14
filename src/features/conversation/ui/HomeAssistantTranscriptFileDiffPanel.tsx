@@ -16,9 +16,11 @@ export function HomeAssistantTranscriptFileDiffPanel(
   const hasFooter = props.footerStatus !== null;
   return (
     <div className="home-assistant-transcript-detail-panel" data-variant="fileDiff">
-      <div className="home-assistant-transcript-detail-header">
-        <span className="home-assistant-transcript-detail-label">{props.label}</span>
-      </div>
+      {hasFooter ? (
+        <div className="home-assistant-transcript-detail-header">
+          <span className="home-assistant-transcript-detail-label">{props.label}</span>
+        </div>
+      ) : null}
       <div className="home-assistant-transcript-file-diff-list">
         {props.changes.map((change) => (
           <TranscriptFileDiffCard key={createChangeKey(change)} change={change} />

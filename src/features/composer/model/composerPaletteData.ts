@@ -2,13 +2,31 @@ import type { ComposerPermissionLevel } from "./composerPermission";
 import type { ComposerModelOption } from "./composerPreferences";
 import type { ComposerCommandPaletteItem } from "../ui/ComposerCommandPalette";
 import type { ComposerActiveTrigger } from "./composerInputTriggers";
-import { listComposerSlashCommands } from "./composerSlashCommands";
+import {
+  listComposerSlashCommands,
+  type ComposerSlashCommandContext,
+} from "./composerSlashCommands";
 
-export type PaletteMode = "slash-root" | "slash-model" | "slash-permissions" | "mention" | null;
+export type PaletteMode =
+  | "slash-root"
+  | "slash-model"
+  | "slash-permissions"
+  | "slash-collab"
+  | "slash-resume"
+  | "mention"
+  | null;
 
 const SEARCHING_MESSAGE = "Searching workspace files…";
 const NO_RESULTS_MESSAGE = "No matching files";
 const NO_COMMANDS_MESSAGE = "No matching commands";
+const NO_COLLABORATION_MESSAGE = "No collaboration presets available";
+const NO_THREADS_MESSAGE = "No resumable threads";
+
+export interface SlashPaletteCollections {
+  readonly slashContext: ComposerSlashCommandContext;
+  readonly collaborationItems: ReadonlyArray<ComposerCommandPaletteItem>;
+  readonly resumeItems: ReadonlyArray<ComposerCommandPaletteItem>;
+}
 
 export function createPaletteItems(
   mode: PaletteMode,
@@ -18,21 +36,22 @@ export function createPaletteItems(
   permissionLevel: ComposerPermissionLevel,
   mentionSession: MentionPaletteSession | null,
   paletteError: string | null,
+  collections: SlashPaletteCollections,
 ): ReadonlyArray<ComposerCommandPaletteItem> {
   if (mode === "slash-root") {
-    return createSlashItems(activeTrigger?.query ?? "");
+    return createSlashItems(activeTrigger?.query ?? "", collections.slashContext);
   }
   if (mode === "slash-model") {
-    return models.map((model) => ({
-      key: model.value,
-      label: model.label,
-      description: `Default effort: ${model.defaultEffort}`,
-      disabled: false,
-      meta: model.value === selectedModel ? "Current" : null,
-    }));
+    return createModelItems(models, selectedModel);
   }
   if (mode === "slash-permissions") {
     return createPermissionItems(permissionLevel);
+  }
+  if (mode === "slash-collab") {
+    return createStaticItems(collections.collaborationItems, NO_COLLABORATION_MESSAGE);
+  }
+  if (mode === "slash-resume") {
+    return createStaticItems(collections.resumeItems, NO_THREADS_MESSAGE);
   }
   if (mode === "mention") {
     return createMentionItems(mentionSession, paletteError);
@@ -46,6 +65,12 @@ export function getPaletteTitle(mode: PaletteMode): string {
   }
   if (mode === "slash-permissions") {
     return "Choose permissions";
+  }
+  if (mode === "slash-collab") {
+    return "Choose collaboration mode";
+  }
+  if (mode === "slash-resume") {
+    return "Resume thread";
   }
   if (mode === "mention") {
     return "Mention file";
@@ -62,8 +87,11 @@ export interface MentionPaletteSession {
   readonly completed: boolean;
 }
 
-function createSlashItems(query: string): ReadonlyArray<ComposerCommandPaletteItem> {
-  const commands = listComposerSlashCommands(query);
+function createSlashItems(
+  query: string,
+  context: ComposerSlashCommandContext,
+): ReadonlyArray<ComposerCommandPaletteItem> {
+  const commands = listComposerSlashCommands(query, context);
   if (commands.length === 0) {
     return [createNoticeItem(NO_COMMANDS_MESSAGE)];
   }
@@ -72,8 +100,31 @@ function createSlashItems(query: string): ReadonlyArray<ComposerCommandPaletteIt
     label: command.name,
     description: command.disabledReason ?? command.description,
     disabled: command.disabledReason !== null,
-    meta: command.disabledReason === null ? null : "Unavailable",
+    meta: command.disabledReason === null ? command.metaLabel : "Unavailable",
   }));
+}
+
+function createModelItems(
+  models: ReadonlyArray<ComposerModelOption>,
+  selectedModel: string | null,
+): ReadonlyArray<ComposerCommandPaletteItem> {
+  return models.map((model) => ({
+    key: model.value,
+    label: model.label,
+    description: `Default effort: ${model.defaultEffort}`,
+    disabled: false,
+    meta: model.value === selectedModel ? "Current" : null,
+  }));
+}
+
+function createStaticItems(
+  items: ReadonlyArray<ComposerCommandPaletteItem>,
+  emptyMessage: string,
+): ReadonlyArray<ComposerCommandPaletteItem> {
+  if (items.length === 0) {
+    return [createNoticeItem(emptyMessage)];
+  }
+  return items;
 }
 
 function createPermissionItems(
@@ -83,14 +134,14 @@ function createPermissionItems(
     {
       key: "default",
       label: "Default permissions",
-      description: "Use the default approval flow.",
+      description: "Use on-request approvals.",
       disabled: false,
       meta: permissionLevel === "default" ? "Current" : null,
     },
     {
       key: "full",
       label: "Full permissions",
-      description: "Allow broader local actions.",
+      description: "Use never approvals.",
       disabled: false,
       meta: permissionLevel === "full" ? "Current" : null,
     },

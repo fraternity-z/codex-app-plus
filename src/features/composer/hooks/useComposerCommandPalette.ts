@@ -9,31 +9,39 @@ import {
   type RefObject,
   type SetStateAction,
 } from "react";
+import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
+import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
+import type { CollaborationPreset } from "../../../domain/timeline";
 import type { ComposerPermissionLevel } from "../model/composerPermission";
 import type { ComposerModelOption } from "../model/composerPreferences";
 import type { AppState } from "../../../domain/types";
 import type { AppStoreApi } from "../../../state/store";
 import { useAppDispatch, useAppSelector } from "../../../state/store";
 import type { ComposerCommandPaletteItem } from "../ui/ComposerCommandPalette";
-import {
-  executeSlashCommand,
-  focusTextarea,
-  readTextareaCaret,
-  toPermissionLevel,
-} from "../model/composerCommandActions";
+import { executeSlashCommand, focusTextarea, readTextareaCaret, toPermissionLevel } from "../model/composerCommandActions";
 import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import { getActiveComposerTrigger, replaceComposerTrigger, type ComposerActiveTrigger } from "../model/composerInputTriggers";
 import { createPaletteItems, createTriggerKey, getPaletteTitle, type PaletteMode } from "../model/composerPaletteData";
+import { parseComposerSlashQuery } from "../model/composerSlashCommands";
 import { stopMentionSession, syncMentionSession, type MentionSessionRefs } from "../model/composerMentionSession";
+import {
+  applySlashPermissionLevel,
+  executeDirectSlashCommand,
+  resumeSlashThread,
+  type SlashExecutionContext,
+  type SlashExecutionDependencies,
+} from "../service/composerSlashCommandExecutor";
 
-type ManualPaletteMode = "slash-model" | "slash-permissions" | null;
+type ManualPaletteMode = "slash-model" | "slash-permissions" | "slash-collab" | "slash-resume" | null;
 
 interface UseComposerCommandPaletteOptions {
   readonly inputText: string;
   readonly selectedRootPath: string | null;
   readonly selectedThreadId: string | null;
+  readonly collaborationPreset: CollaborationPreset;
   readonly models: ReadonlyArray<ComposerModelOption>;
   readonly selectedModel: string | null;
+  readonly selectedServiceTier: ServiceTier | null;
   readonly permissionLevel: ComposerPermissionLevel;
   readonly composerCommandBridge: ComposerCommandBridge;
   readonly onInputChange: (text: string) => void;
@@ -41,7 +49,10 @@ interface UseComposerCommandPaletteOptions {
   readonly onCreateThread: () => Promise<void>;
   readonly onToggleDiff: () => void;
   readonly onSelectModel: (model: string) => void;
+  readonly onSelectServiceTier: (serviceTier: ServiceTier | null) => void;
   readonly onSelectPermissionLevel: (level: ComposerPermissionLevel) => void;
+  readonly onSelectCollaborationPreset: (preset: CollaborationPreset) => void;
+  readonly onLogout: () => Promise<void>;
 }
 
 interface UseComposerCommandPaletteState {
@@ -58,6 +69,7 @@ interface UseComposerCommandPaletteState {
 }
 
 const NO_WORKSPACE_MESSAGE = "请先选择工作区后再使用 @ 文件提及。";
+const LOCAL_OR_PICKER_COMMANDS = new Set(["new", "clear", "diff", "mention", "model", "approvals", "permissions", "collab", "resume"]);
 
 export function useComposerCommandPalette(
   options: UseComposerCommandPaletteOptions,
@@ -65,17 +77,41 @@ export function useComposerCommandPalette(
   const dispatch = useAppDispatch();
   const trigger = usePaletteTrigger(options.inputText);
   const mention = useMentionPalette(options, dispatch, trigger.mode, trigger.activeTrigger);
+  const selectedConversation = useSelectedConversation(options.selectedThreadId);
+  const runtimeState = useSlashRuntimeState(options.selectedThreadId);
   const mentionSession = useAppSelector(
     useMemo(
       () => (state: AppState) => mention.sessionId === null ? null : state.fuzzySearchSessionsById[mention.sessionId] ?? null,
       [mention.sessionId],
     ),
   );
+  const collections = useSlashCollections(options, runtimeState.realtimeState);
   const items = useMemo(
-    () => createPaletteItems(trigger.mode, trigger.activeTrigger, options.models, options.selectedModel, options.permissionLevel, mentionSession, mention.error),
-    [mention.error, mentionSession, options.models, options.permissionLevel, options.selectedModel, trigger.activeTrigger, trigger.mode],
+    () => createPaletteItems(trigger.mode, trigger.activeTrigger, options.models, options.selectedModel, options.permissionLevel, mentionSession, mention.error, collections),
+    [collections, mention.error, mentionSession, options.models, options.permissionLevel, options.selectedModel, trigger.activeTrigger, trigger.mode],
   );
   const [selectedIndex, setSelectedIndex] = useBoundedSelection(items.length);
+  const slashContext = useMemo<SlashExecutionContext>(() => ({
+    selectedThreadId: options.selectedThreadId,
+    selectedRootPath: options.selectedRootPath,
+    selectedServiceTier: options.selectedServiceTier,
+    collaborationPreset: options.collaborationPreset,
+    selectedConversation,
+    configSnapshot: runtimeState.configSnapshot,
+    account: runtimeState.account,
+    rateLimits: runtimeState.rateLimits,
+    connectionStatus: runtimeState.connectionStatus,
+    realtimeState: runtimeState.realtimeState,
+    collaborationModes: runtimeState.collaborationModes,
+  }), [options.collaborationPreset, options.selectedRootPath, options.selectedServiceTier, options.selectedThreadId, runtimeState.account, runtimeState.collaborationModes, runtimeState.configSnapshot, runtimeState.connectionStatus, runtimeState.rateLimits, runtimeState.realtimeState, selectedConversation]);
+  const slashDeps = useMemo<SlashExecutionDependencies>(() => ({
+    composerCommandBridge: options.composerCommandBridge,
+    dispatch,
+    onSelectServiceTier: options.onSelectServiceTier,
+    onSelectPermissionLevel: options.onSelectPermissionLevel,
+    onSelectCollaborationPreset: options.onSelectCollaborationPreset,
+    onLogout: options.onLogout,
+  }), [dispatch, options.composerCommandBridge, options.onLogout, options.onSelectCollaborationPreset, options.onSelectPermissionLevel, options.onSelectServiceTier]);
   const dismiss = useCallback(async () => {
     trigger.suppressCurrentTrigger();
     trigger.setManualMode(null);
@@ -83,7 +119,7 @@ export function useComposerCommandPalette(
     setSelectedIndex(0);
     await mention.stop();
   }, [mention, setSelectedIndex, trigger]);
-  const selectItem = useSelectPaletteItem(options, trigger, mention, dismiss);
+  const selectItem = useSelectPaletteItem(options, trigger, mention, dismiss, slashContext, slashDeps);
   const selectCurrentItem = useCallback(() => selectItem(items[selectedIndex] ?? null), [items, selectedIndex, selectItem]);
   const handleKeyDown = usePaletteKeyboard(trigger.mode, items.length, setSelectedIndex, dismiss, selectCurrentItem);
 
@@ -112,9 +148,7 @@ function usePaletteTrigger(inputText: string) {
   const mode = useMemo<PaletteMode>(() => manualMode ?? (activeTrigger?.kind === "slash" ? "slash-root" : activeTrigger?.kind === "mention" ? "mention" : null), [activeTrigger, manualMode]);
 
   useEffect(() => {
-    if (suppressedTriggerKey !== null && suppressedTriggerKey !== triggerKey) {
-      setSuppressedTriggerKey(null);
-    }
+    if (suppressedTriggerKey !== null && suppressedTriggerKey !== triggerKey) setSuppressedTriggerKey(null);
   }, [suppressedTriggerKey, triggerKey]);
   useEffect(() => setCaret(readTextareaCaret(textareaRef.current, inputText.length)), [inputText]);
 
@@ -126,21 +160,37 @@ function usePaletteTrigger(inputText: string) {
     setSuppressedTriggerKey,
     suppressCurrentTrigger: () => setSuppressedTriggerKey(triggerKey),
     syncFromTextInput: (value: string, nextCaret: number) => {
-      if (manualMode !== null) {
-        setManualMode(null);
-      }
+      if (manualMode !== null) setManualMode(null);
       setCaret(Math.max(0, Math.min(nextCaret, value.length)));
     },
     syncFromTextareaSelection: () => setCaret(readTextareaCaret(textareaRef.current, inputText.length)),
   };
 }
 
-function useMentionPalette(
-  options: UseComposerCommandPaletteOptions,
-  dispatch: AppStoreApi["dispatch"],
-  mode: PaletteMode,
-  activeTrigger: ComposerActiveTrigger | null,
-) {
+function useSelectedConversation(selectedThreadId: string | null) {
+  return useAppSelector(useMemo(() => (state: AppState) => selectedThreadId === null ? null : state.conversationsById[selectedThreadId] ?? null, [selectedThreadId]));
+}
+
+function useSlashRuntimeState(selectedThreadId: string | null) {
+  return useAppSelector(useMemo(() => (state: AppState) => ({
+    configSnapshot: state.configSnapshot,
+    account: state.account,
+    rateLimits: state.rateLimits,
+    connectionStatus: state.connectionStatus,
+    collaborationModes: state.collaborationModes,
+    realtimeState: selectedThreadId === null ? null : state.realtimeByThreadId[selectedThreadId] ?? null,
+  }), [selectedThreadId]));
+}
+
+function useSlashCollections(options: UseComposerCommandPaletteOptions, realtimeState: SlashExecutionContext["realtimeState"]) {
+  return useAppSelector(useMemo(() => (state: AppState) => ({
+    slashContext: { hasThread: options.selectedThreadId !== null, hasWorkspace: options.selectedRootPath !== null, realtimeActive: realtimeState !== null && realtimeState.sessionId !== null && !realtimeState.closed },
+    collaborationItems: state.collaborationModes.filter((mode) => mode.mode !== null).map((mode) => ({ key: mode.mode!, label: mode.name, description: `${mode.model ?? "Use current model"} · ${mode.reasoningEffort ?? "default effort"}`, disabled: false, meta: options.collaborationPreset === mode.mode ? "Current" : null })),
+    resumeItems: state.orderedConversationIds.map((threadId) => state.conversationsById[threadId]).filter((conversation): conversation is NonNullable<typeof conversation> => conversation !== undefined && !conversation.hidden && conversation.id !== options.selectedThreadId).map((conversation) => ({ key: conversation.id, label: conversation.title ?? conversation.id, description: conversation.cwd ?? "No workspace", disabled: false, meta: conversation.resumeState === "resumed" ? "Loaded" : "Needs resume" })),
+  }), [options.collaborationPreset, options.selectedRootPath, options.selectedThreadId, realtimeState]));
+}
+
+function useMentionPalette(options: UseComposerCommandPaletteOptions, dispatch: AppStoreApi["dispatch"], mode: PaletteMode, activeTrigger: ComposerActiveTrigger | null) {
   const previousThreadIdRef = useRef(options.selectedThreadId);
   const previousRootPathRef = useRef(options.selectedRootPath);
   const refs = useMentionSessionRefs();
@@ -149,23 +199,17 @@ function useMentionPalette(
   const stop = useCallback(() => stopMentionSession({ composerCommandBridge: options.composerCommandBridge, dispatch, refs, setMentionSessionId: setSessionId }), [dispatch, options.composerCommandBridge, refs]);
 
   useEffect(() => {
-    if (previousThreadIdRef.current === options.selectedThreadId && previousRootPathRef.current === options.selectedRootPath) {
-      return;
-    }
+    if (previousThreadIdRef.current === options.selectedThreadId && previousRootPathRef.current === options.selectedRootPath) return;
     previousThreadIdRef.current = options.selectedThreadId;
     previousRootPathRef.current = options.selectedRootPath;
     void stop();
     setError(null);
   }, [options.selectedRootPath, options.selectedThreadId, stop]);
   useEffect(() => {
-    if (mode !== "mention" || activeTrigger?.kind !== "mention") {
-      void stop();
-      return;
-    }
+    if (mode !== "mention" || activeTrigger?.kind !== "mention") return void stop();
     if (options.selectedRootPath === null) {
       setError(NO_WORKSPACE_MESSAGE);
-      void stop();
-      return;
+      return void stop();
     }
     void syncMentionSession({ composerCommandBridge: options.composerCommandBridge, dispatch, refs, setMentionSessionId: setSessionId, rootPath: options.selectedRootPath, query: activeTrigger.query, setPaletteError: setError });
   }, [activeTrigger, dispatch, mode, options.composerCommandBridge, options.selectedRootPath, stop, refs]);
@@ -183,63 +227,69 @@ function useMentionSessionRefs(): MentionSessionRefs {
 
 function useBoundedSelection(itemCount: number) {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  useEffect(() => {
-    setSelectedIndex((current) => {
-      if (itemCount === 0) {
-        return 0;
-      }
-      return Math.min(current, itemCount - 1);
-    });
-  }, [itemCount]);
+  useEffect(() => setSelectedIndex((current) => itemCount === 0 ? 0 : Math.min(current, itemCount - 1)), [itemCount]);
   return [selectedIndex, setSelectedIndex] as const;
 }
 
-function useSelectPaletteItem(
-  options: UseComposerCommandPaletteOptions,
-  trigger: ReturnType<typeof usePaletteTrigger>,
-  mention: ReturnType<typeof useMentionPalette>,
-  dismiss: () => Promise<void>,
-) {
+function useSelectPaletteItem(options: UseComposerCommandPaletteOptions, trigger: ReturnType<typeof usePaletteTrigger>, mention: ReturnType<typeof useMentionPalette>, dismiss: () => Promise<void>, slashContext: SlashExecutionContext, slashDeps: SlashExecutionDependencies) {
   return useCallback(async (item: ComposerCommandPaletteItem | null) => {
-    if (item === null || item.disabled) {
-      return;
-    }
-    if (trigger.mode === "mention" && trigger.activeTrigger?.kind === "mention") {
-      const next = replaceComposerTrigger(options.inputText, trigger.activeTrigger.range, "");
-      options.onInputChange(next.text);
-      options.onAppendMentionPath(item.meta ?? item.label);
-      await dismiss();
-      focusTextarea(trigger.textareaRef, next.caret);
-      return;
-    }
-    if (trigger.mode === "slash-model") {
-      options.onSelectModel(item.key);
-      await dismiss();
-      focusTextarea(trigger.textareaRef, readTextareaCaret(trigger.textareaRef.current, 0));
-      return;
-    }
-    if (trigger.mode === "slash-permissions") {
-      options.onSelectPermissionLevel(toPermissionLevel(item.key));
-      await dismiss();
-      focusTextarea(trigger.textareaRef, readTextareaCaret(trigger.textareaRef.current, 0));
-      return;
-    }
-    await executeSlashCommand(item.key, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
-    mention.clearError();
-  }, [dismiss, mention, options, trigger]);
+    if (item === null || item.disabled) return;
+    if (trigger.mode === "mention" && trigger.activeTrigger?.kind === "mention") return selectMentionItem(item, options, trigger, dismiss);
+    if (trigger.mode === "slash-model") return selectModelItem(item.key, options.onSelectModel, dismiss, trigger.textareaRef);
+    if (trigger.mode === "slash-permissions") return selectPermissionItem(item.key, slashContext.configSnapshot, slashDeps, dismiss, trigger.textareaRef);
+    if (trigger.mode === "slash-collab") return selectCollaborationItem(item.key, options.onSelectCollaborationPreset, dismiss, trigger.textareaRef);
+    if (trigger.mode === "slash-resume") return selectResumeItem(item.key, slashContext, slashDeps, dismiss, trigger.textareaRef);
+    await selectRootSlashItem(item.key, options, trigger, mention, slashContext, slashDeps);
+  }, [dismiss, mention, options, slashContext, slashDeps, trigger]);
 }
 
-function usePaletteKeyboard(
-  mode: PaletteMode,
-  itemCount: number,
-  setSelectedIndex: Dispatch<SetStateAction<number>>,
-  dismiss: () => Promise<void>,
-  selectCurrentItem: () => Promise<void>,
-) {
+async function selectMentionItem(item: ComposerCommandPaletteItem, options: UseComposerCommandPaletteOptions, trigger: ReturnType<typeof usePaletteTrigger>, dismiss: () => Promise<void>): Promise<void> {
+  const next = replaceComposerTrigger(options.inputText, trigger.activeTrigger!.range, "");
+  options.onInputChange(next.text);
+  options.onAppendMentionPath(item.meta ?? item.label);
+  await dismiss();
+  focusTextarea(trigger.textareaRef, next.caret);
+}
+
+async function selectModelItem(itemKey: string, onSelectModel: (model: string) => void, dismiss: () => Promise<void>, textareaRef: RefObject<HTMLTextAreaElement>): Promise<void> {
+  onSelectModel(itemKey);
+  await dismiss();
+  focusTextarea(textareaRef, readTextareaCaret(textareaRef.current, 0));
+}
+
+async function selectPermissionItem(itemKey: string, configSnapshot: ConfigReadResponse | null, slashDeps: SlashExecutionDependencies, dismiss: () => Promise<void>, textareaRef: RefObject<HTMLTextAreaElement>): Promise<void> {
+  await applySlashPermissionLevel(toPermissionLevel(itemKey), configSnapshot, slashDeps);
+  await dismiss();
+  focusTextarea(textareaRef, readTextareaCaret(textareaRef.current, 0));
+}
+
+async function selectCollaborationItem(itemKey: string, onSelectCollaborationPreset: (preset: CollaborationPreset) => void, dismiss: () => Promise<void>, textareaRef: RefObject<HTMLTextAreaElement>): Promise<void> {
+  onSelectCollaborationPreset(itemKey as CollaborationPreset);
+  await dismiss();
+  focusTextarea(textareaRef, readTextareaCaret(textareaRef.current, 0));
+}
+
+async function selectResumeItem(itemKey: string, slashContext: SlashExecutionContext, slashDeps: SlashExecutionDependencies, dismiss: () => Promise<void>, textareaRef: RefObject<HTMLTextAreaElement>): Promise<void> {
+  await resumeSlashThread(itemKey, slashContext, slashDeps);
+  await dismiss();
+  focusTextarea(textareaRef, readTextareaCaret(textareaRef.current, 0));
+}
+
+async function selectRootSlashItem(itemKey: string, options: UseComposerCommandPaletteOptions, trigger: ReturnType<typeof usePaletteTrigger>, mention: ReturnType<typeof useMentionPalette>, slashContext: SlashExecutionContext, slashDeps: SlashExecutionDependencies): Promise<void> {
+  if (trigger.activeTrigger?.kind !== "slash") return;
+  const parsed = parseComposerSlashQuery(trigger.activeTrigger.query);
+  mention.clearError();
+  if (LOCAL_OR_PICKER_COMMANDS.has(itemKey)) {
+    await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
+    return;
+  }
+  await executeDirectSlashCommand(itemKey, parsed.argumentsText, slashContext, slashDeps);
+  await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
+}
+
+function usePaletteKeyboard(mode: PaletteMode, itemCount: number, setSelectedIndex: Dispatch<SetStateAction<number>>, dismiss: () => Promise<void>, selectCurrentItem: () => Promise<void>) {
   return useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (mode === null || itemCount === 0) {
-      return false;
-    }
+    if (mode === null || itemCount === 0) return false;
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setSelectedIndex((current) => (current + 1) % itemCount);

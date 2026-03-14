@@ -125,11 +125,13 @@ export function GeneralSettingsSection(props: GeneralSettingsSectionProps): JSX.
             <p>{t("settings.general.embeddedTerminalUtf8.description")}</p>
             <p className="settings-row-note">{t("settings.general.embeddedTerminalUtf8.note")}</p>
           </div>
-          <ToggleSwitch
-            checked={preferences.embeddedTerminalUtf8}
-            label={t("settings.general.embeddedTerminalUtf8.label")}
-            onToggle={() => preferences.setEmbeddedTerminalUtf8(!preferences.embeddedTerminalUtf8)}
-          />
+          <div className="settings-row-control">
+            <ToggleSwitch
+              checked={preferences.embeddedTerminalUtf8}
+              label={t("settings.general.embeddedTerminalUtf8.label")}
+              onToggle={() => preferences.setEmbeddedTerminalUtf8(!preferences.embeddedTerminalUtf8)}
+            />
+          </div>
         </div>
         <SettingsSelectRow
           label={t("settings.general.language.label")}

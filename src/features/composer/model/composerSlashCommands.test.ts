@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { listComposerSlashCommands } from "./composerSlashCommands";
 
 function listCommandIds(): ReadonlyArray<string> {
-  return listComposerSlashCommands("").map((command) => command.id);
+  return listComposerSlashCommands("", { hasThread: true, hasWorkspace: true, realtimeActive: false }).map((command) => command.id);
 }
 
 describe("composerSlashCommands", () => {
@@ -54,13 +54,21 @@ describe("composerSlashCommands", () => {
   });
 
   it("keeps wired aliases enabled and marks the rest as unavailable", () => {
-    const commands = listComposerSlashCommands("");
+    const commands = listComposerSlashCommands("", { hasThread: true, hasWorkspace: true, realtimeActive: false });
     const approvals = commands.find((command) => command.id === "approvals");
     const newThread = commands.find((command) => command.id === "new");
-    const skills = commands.find((command) => command.id === "skills");
+    const sandboxReadDir = commands.find((command) => command.id === "sandbox-add-read-dir");
 
     expect(approvals?.disabledReason).toBeNull();
     expect(newThread?.disabledReason).toBeNull();
-    expect(skills?.disabledReason).toContain("not wired");
+    expect(sandboxReadDir?.disabledReason).toContain("官方链路");
+  });
+
+  it("requires arguments for rename and realtime start", () => {
+    const rename = listComposerSlashCommands("rename", { hasThread: true, hasWorkspace: true, realtimeActive: false })[0];
+    const realtime = listComposerSlashCommands("realtime", { hasThread: true, hasWorkspace: true, realtimeActive: false })[0];
+
+    expect(rename?.disabledReason).toContain("新的线程标题");
+    expect(realtime?.disabledReason).toContain("提示词");
   });
 });

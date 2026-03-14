@@ -55,6 +55,7 @@ export interface HomeComposerProps {
   readonly onToggleDiff: () => void;
   readonly onUpdateThreadBranch: (branch: string) => Promise<void>;
   readonly onInterruptTurn: () => Promise<void>;
+  readonly onLogout?: () => Promise<void>;
   readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
   readonly onClearQueuedFollowUps: () => void;
 }
@@ -65,13 +66,33 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
   const multiAgentAvailable = props.multiAgentAvailable ?? false;
   const multiAgentEnabled = props.multiAgentEnabled ?? false;
   const setMultiAgentEnabled = props.onSetMultiAgentEnabled ?? (async () => undefined);
+  const logout = props.onLogout ?? (async () => undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [multiAgentPending, setMultiAgentPending] = useState(false);
   const { attachments, appendPaths, clearAttachments, openFilePicker, removeAttachment, handlePaste } = useComposerAttachments({ selectedThreadId: props.selectedThreadId });
   const composerSelection = useComposerSelection(props.models, props.defaultModel, props.defaultEffort, defaultServiceTier);
   const { handleSelectModel, handleSelectEffort, handleSelectServiceTier } = useComposerSelectionPersistence({ models: props.models, defaultModel: props.defaultModel, defaultEffort: props.defaultEffort, defaultServiceTier, selectedModel: composerSelection.selectedModel, selectedEffort: composerSelection.selectedEffort, selectedServiceTier: composerSelection.selectedServiceTier, replaceSelection: composerSelection.replaceSelection, persistSelection: props.onPersistComposerSelection });
-  const commandPalette = useComposerCommandPalette({ inputText: props.inputText, selectedRootPath: props.selectedRootPath, selectedThreadId: props.selectedThreadId, models: props.models, selectedModel: composerSelection.selectedModel, permissionLevel: props.permissionLevel, composerCommandBridge: props.composerCommandBridge, onInputChange: props.onInputChange, onAppendMentionPath: (path) => appendPaths([path]), onCreateThread: props.onCreateThread, onToggleDiff: props.onToggleDiff, onSelectModel: handleSelectModel, onSelectPermissionLevel: props.onSelectPermissionLevel });
+  const commandPalette = useComposerCommandPalette({
+    inputText: props.inputText,
+    selectedRootPath: props.selectedRootPath,
+    selectedThreadId: props.selectedThreadId,
+    collaborationPreset: props.collaborationPreset,
+    models: props.models,
+    selectedModel: composerSelection.selectedModel,
+    selectedServiceTier: composerSelection.selectedServiceTier,
+    permissionLevel: props.permissionLevel,
+    composerCommandBridge: props.composerCommandBridge,
+    onInputChange: props.onInputChange,
+    onAppendMentionPath: (path) => appendPaths([path]),
+    onCreateThread: props.onCreateThread,
+    onToggleDiff: props.onToggleDiff,
+    onSelectModel: handleSelectModel,
+    onSelectServiceTier: handleSelectServiceTier,
+    onSelectPermissionLevel: props.onSelectPermissionLevel,
+    onSelectCollaborationPreset: props.onSelectCollaborationPreset,
+    onLogout: logout,
+  });
   const interactionDisabled = props.busy || multiAgentPending;
   const canSend = !interactionDisabled && (props.inputText.trim().length >= MIN_TRIMMED_MESSAGE_LENGTH || attachments.length > 0);
   const buttonDisabled = interactionDisabled || (props.isResponding ? props.interruptPending : !canSend);

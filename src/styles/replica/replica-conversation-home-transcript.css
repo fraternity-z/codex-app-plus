@@ -226,7 +226,21 @@
 }
 
 .home-assistant-transcript-detail-panel[data-variant="fileDiff"] {
-  padding: 14px;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.home-assistant-transcript-detail-panel[data-variant="fileDiff"] .home-assistant-transcript-file-diff-list {
+  gap: 0;
+}
+
+.home-assistant-transcript-detail-panel[data-variant="fileDiff"] .home-assistant-transcript-file-diff-card {
+  margin-top: 8px;
+}
+
+.home-assistant-transcript-detail-panel[data-variant="fileDiff"] .home-assistant-transcript-file-diff-card:first-child {
+  margin-top: 0;
 }
 
 .home-assistant-transcript-file-diff-list {

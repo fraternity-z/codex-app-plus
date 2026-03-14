@@ -86,6 +86,7 @@ export interface HomeViewMainContentProps {
   readonly onSelectComposerPermissionLevel: (level: ComposerPermissionLevel) => void;
   readonly onUpdateThreadBranch: (branch: string) => Promise<void>;
   readonly onInterruptTurn: () => Promise<void>;
+  readonly onLogout: () => Promise<void>;
   readonly onResolveServerRequest: (resolution: ServerRequestResolution) => Promise<void>;
   readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
   readonly onClearQueuedFollowUps: () => void;
@@ -279,6 +280,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           onToggleDiff={props.onToggleDiff}
           onUpdateThreadBranch={props.onUpdateThreadBranch}
           onInterruptTurn={props.onInterruptTurn}
+          onLogout={props.onLogout}
           onRemoveQueuedFollowUp={props.onRemoveQueuedFollowUp}
           onClearQueuedFollowUps={props.onClearQueuedFollowUps}
         />

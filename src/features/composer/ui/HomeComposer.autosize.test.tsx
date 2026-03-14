@@ -43,6 +43,7 @@ function ComposerHarness(): JSX.Element {
       dispatch({ type: "fuzzySearch/updated", sessionId, query, files: [] });
     }),
     stopFuzzySession: vi.fn().mockResolvedValue(undefined),
+    request: vi.fn().mockResolvedValue({}),
   }), [dispatch]);
 
   return (

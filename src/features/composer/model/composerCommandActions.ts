@@ -26,7 +26,7 @@ export async function executeSlashCommand(
   itemKey: string,
   options: SlashCommandExecutionOptions,
   textareaRef: RefObject<HTMLTextAreaElement>,
-  setManualMode: Dispatch<SetStateAction<"slash-model" | "slash-permissions" | null>>,
+  setManualMode: Dispatch<SetStateAction<"slash-model" | "slash-permissions" | "slash-collab" | "slash-resume" | null>>,
   setSuppressedTriggerKey: Dispatch<SetStateAction<string | null>>,
 ): Promise<void> {
   if (options.activeTrigger?.kind !== "slash") {
@@ -48,6 +48,12 @@ export async function executeSlashCommand(
   }
   if (itemKey === "approvals" || itemKey === "permissions") {
     setManualMode("slash-permissions");
+  }
+  if (itemKey === "collab") {
+    setManualMode("slash-collab");
+  }
+  if (itemKey === "resume") {
+    setManualMode("slash-resume");
   }
   focusTextarea(textareaRef, next.caret);
 }
