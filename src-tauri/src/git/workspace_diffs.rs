@@ -200,11 +200,7 @@ fn split_diff_by_file(output: &str) -> HashMap<String, String> {
     map
 }
 
-fn insert_chunk(
-    map: &mut HashMap<String, String>,
-    path: &Option<String>,
-    lines: &[&str],
-) {
+fn insert_chunk(map: &mut HashMap<String, String>, path: &Option<String>, lines: &[&str]) {
     if let Some(path) = path {
         map.insert(path.clone(), lines.join("\n"));
     }
@@ -220,7 +216,11 @@ fn count_diff_stats(diff: &str) -> (usize, usize) {
     let mut additions = 0;
     let mut deletions = 0;
     for line in diff.lines() {
-        if line.is_empty() || DIFF_METADATA_PREFIXES.iter().any(|prefix| line.starts_with(prefix)) {
+        if line.is_empty()
+            || DIFF_METADATA_PREFIXES
+                .iter()
+                .any(|prefix| line.starts_with(prefix))
+        {
             continue;
         }
         if line.starts_with('+') {

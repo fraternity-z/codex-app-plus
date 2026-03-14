@@ -12,6 +12,10 @@ use crate::models::{
     CodexSessionSummary, DeleteCodexSessionInput,
 };
 
+mod index;
+#[cfg(test)]
+mod tests;
+
 const SUMMARY_TAIL_BYTES: u64 = 64 * 1024;
 
 struct SessionHeader {
@@ -23,24 +27,15 @@ struct SessionHeader {
 pub fn list_codex_sessions(
     agent_environment: AgentEnvironment,
 ) -> AppResult<Vec<CodexSessionSummary>> {
-    let mut files = Vec::new();
-    collect_session_files(&codex_sessions_root(agent_environment)?, &mut files)?;
-
-    let mut sessions = Vec::new();
-    for file in files {
-        if let Some(summary) = read_session_summary(&file, agent_environment)? {
-            sessions.push(summary);
-        }
-    }
-
-    sessions.sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
-    Ok(sessions)
+    let root = codex_sessions_root(agent_environment)?;
+    index::list_session_summaries(&root, agent_environment)
 }
 
 pub fn read_codex_session(input: CodexSessionReadInput) -> AppResult<CodexSessionReadOutput> {
     validate_thread_id(&input.thread_id)?;
 
-    let path = find_session_file(input.agent_environment, &input.thread_id)?;
+    let root = codex_sessions_root(input.agent_environment)?;
+    let path = index::find_session_path(&root, input.agent_environment, &input.thread_id)?;
     let messages = read_session_messages(&path, &input.thread_id)?;
     Ok(CodexSessionReadOutput {
         thread_id: input.thread_id,
@@ -52,7 +47,7 @@ pub fn delete_codex_session(input: DeleteCodexSessionInput) -> AppResult<()> {
     validate_thread_id(&input.thread_id)?;
 
     let root = codex_sessions_root(input.agent_environment)?;
-    delete_session_by_id(&root, &input.thread_id)
+    delete_session_by_id(&root, input.agent_environment, &input.thread_id)
 }
 
 fn validate_thread_id(thread_id: &str) -> AppResult<()> {
@@ -187,34 +182,20 @@ fn read_last_timestamp(path: &Path) -> AppResult<Option<String>> {
     Ok(updated_at)
 }
 
-fn find_session_file(agent_environment: AgentEnvironment, thread_id: &str) -> AppResult<PathBuf> {
-    find_session_file_in_root(&codex_sessions_root(agent_environment)?, thread_id)
-}
-
-fn find_session_file_in_root(root: &Path, thread_id: &str) -> AppResult<PathBuf> {
-    let mut files = Vec::new();
-    collect_session_files(root, &mut files)?;
-
-    for file in files {
-        if session_file_matches(&file, thread_id)? {
-            return Ok(file);
-        }
-    }
-
-    Err(AppError::InvalidInput(format!(
-        "session not found: {thread_id}"
-    )))
-}
-
-fn delete_session_by_id(root: &Path, thread_id: &str) -> AppResult<()> {
-    let path = find_session_file_in_root(root, thread_id)?;
+fn delete_session_by_id(
+    root: &Path,
+    agent_environment: AgentEnvironment,
+    thread_id: &str,
+) -> AppResult<()> {
+    let path = index::find_session_path(root, agent_environment, thread_id)?;
     fs::remove_file(&path)?;
-    prune_empty_session_dirs(path.parent(), root)
+    prune_empty_session_dirs(path.parent(), root)?;
+    index::remove_session(root, agent_environment, thread_id, &path)
 }
 
 fn prune_empty_session_dirs(mut current: Option<&Path>, root: &Path) -> AppResult<()> {
     while let Some(directory) = current {
-        if directory == root || directory.starts_with(root) == false {
+        if directory == root || !directory.starts_with(root) {
             break;
         }
         if fs::read_dir(directory)?.next().is_some() {
@@ -224,16 +205,6 @@ fn prune_empty_session_dirs(mut current: Option<&Path>, root: &Path) -> AppResul
         current = directory.parent();
     }
     Ok(())
-}
-
-fn session_file_matches(path: &Path, thread_id: &str) -> AppResult<bool> {
-    for line in BufReader::new(File::open(path)?).lines().take(3) {
-        let value = parse_line(&line?)?;
-        if read_session_id(&value).as_deref() == Some(thread_id) {
-            return Ok(true);
-        }
-    }
-    Ok(false)
 }
 
 fn read_session_messages(path: &Path, thread_id: &str) -> AppResult<Vec<CodexSessionMessage>> {
@@ -335,113 +306,4 @@ fn infer_name_from_path(path: &str) -> String {
         .next_back()
         .unwrap_or(path)
         .to_string()
-}
-
-#[cfg(test)]
-mod tests {
-    use std::fs;
-    use std::path::{Path, PathBuf};
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    use crate::models::AgentEnvironment;
-
-    use super::{delete_session_by_id, infer_name_from_path, read_session_summary};
-
-    fn create_temp_session_file(contents: &str) -> PathBuf {
-        let suffix = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time before unix epoch")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("codex-app-plus-session-{suffix}.jsonl"));
-        fs::write(&path, contents).expect("write temp session file");
-        path
-    }
-
-    fn create_temp_session_root() -> PathBuf {
-        let suffix = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time before unix epoch")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("codex-app-plus-sessions-{suffix}"));
-        fs::create_dir_all(&path).expect("create temp session root");
-        path
-    }
-
-    fn write_session_file(root: &Path, relative_path: &str, contents: &str) -> PathBuf {
-        let path = root.join(relative_path);
-        let parent = path.parent().expect("session file parent");
-        fs::create_dir_all(parent).expect("create session file parent");
-        fs::write(&path, contents).expect("write session file");
-        path
-    }
-
-    #[test]
-    fn infers_name_from_windows_path() {
-        assert_eq!(
-            infer_name_from_path("e:\\code\\MathStudyPlatform"),
-            "MathStudyPlatform"
-        );
-    }
-
-    #[test]
-    fn reads_summary_from_header_and_tail() {
-        let filler = "x".repeat(80_000);
-        let contents = [
-            "{\"timestamp\":\"2026-03-01T10:00:00Z\",\"type\":\"session_meta\",\"payload\":{\"id\":\"thread-1\",\"cwd\":\"E:/code/project\"}}\n",
-            "{\"timestamp\":\"2026-03-01T10:00:01Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"Fix slow startup\"}]}}\n",
-            "{\"timestamp\":\"2026-03-01T10:00:02Z\",\"type\":\"log\",\"payload\":{\"text\":\"",
-            filler.as_str(),
-            "\"}}\n",
-            "{\"timestamp\":\"2026-03-01T10:09:59Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"done\"}]}}\n"
-        ]
-        .join("");
-        let path = create_temp_session_file(&contents);
-
-        let summary = read_session_summary(&path, AgentEnvironment::WindowsNative)
-            .expect("read summary")
-            .expect("session summary present");
-
-        assert_eq!(summary.id, "thread-1");
-        assert_eq!(summary.title, "Fix slow startup");
-        assert_eq!(summary.cwd, "E:/code/project");
-        assert_eq!(summary.updated_at, "2026-03-01T10:09:59Z");
-        assert_eq!(summary.agent_environment, AgentEnvironment::WindowsNative);
-
-        fs::remove_file(path).expect("remove temp session file");
-    }
-
-    #[test]
-    fn ignores_developer_messages_when_picking_session_title() {
-        let contents = [
-            "{\"timestamp\":\"2026-03-01T10:00:00Z\",\"type\":\"session_meta\",\"payload\":{\"id\":\"thread-2\",\"cwd\":\"E:/code/project\"}}\n",
-            "{\"timestamp\":\"2026-03-01T10:00:01Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"developer\",\"content\":[{\"type\":\"input_text\",\"text\":\"<permissions instructions>\\nFilesystem sandboxing defines which files can be read or written.\\n</permissions instructions>\"}]}}\n",
-            "{\"timestamp\":\"2026-03-01T10:00:02Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"真正的首条用户消息\"}]}}\n"
-        ]
-        .join("");
-        let path = create_temp_session_file(&contents);
-
-        let summary = read_session_summary(&path, AgentEnvironment::Wsl)
-            .expect("read summary")
-            .expect("session summary present");
-
-        assert_eq!(summary.title, "真正的首条用户消息");
-        assert_eq!(summary.agent_environment, AgentEnvironment::Wsl);
-
-        fs::remove_file(path).expect("remove temp session file");
-    }
-
-    #[test]
-    fn deletes_session_file_and_prunes_empty_directories() {
-        let root = create_temp_session_root();
-        let contents = "{\"timestamp\":\"2026-03-01T10:00:00Z\",\"type\":\"session_meta\",\"payload\":{\"id\":\"thread-delete\",\"cwd\":\"E:/code/project\"}}\n";
-        let path = write_session_file(&root, "2026/03/thread-delete.jsonl", contents);
-
-        delete_session_by_id(&root, "thread-delete").expect("delete session");
-
-        assert!(!path.exists());
-        assert!(!root.join("2026/03").exists());
-        assert!(root.exists());
-
-        fs::remove_dir_all(root).expect("remove temp session root");
-    }
 }

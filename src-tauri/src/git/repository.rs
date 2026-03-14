@@ -96,10 +96,14 @@ fn resolve_workspace_path(repo_path: &str) -> AppResult<PathBuf> {
     }
     let path = PathBuf::from(trimmed_path);
     if !path.exists() {
-        return Err(AppError::InvalidInput(format!("工作区不存在: {trimmed_path}")));
+        return Err(AppError::InvalidInput(format!(
+            "工作区不存在: {trimmed_path}"
+        )));
     }
     if !path.is_dir() {
-        return Err(AppError::InvalidInput(format!("工作区不是目录: {trimmed_path}")));
+        return Err(AppError::InvalidInput(format!(
+            "工作区不是目录: {trimmed_path}"
+        )));
     }
     std::fs::canonicalize(path).map_err(AppError::from)
 }

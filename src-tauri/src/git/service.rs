@@ -95,10 +95,7 @@ pub fn get_workspace_diffs(
     )
 }
 
-pub fn init_repository(
-    input: GitRepoInput,
-    cache: &RepositoryContextCache,
-) -> AppResult<()> {
+pub fn init_repository(input: GitRepoInput, cache: &RepositoryContextCache) -> AppResult<()> {
     let resolved = resolve_workspace(&input.repo_path, cache)?;
     if resolved.repo_root.is_some() {
         return Err(AppError::InvalidInput(
@@ -123,10 +120,7 @@ pub fn unstage_paths(input: GitPathsInput, cache: &RepositoryContextCache) -> Ap
     run_git(&context.repo_root, &args).map(|_| ())
 }
 
-pub fn discard_paths(
-    input: GitDiscardInput,
-    cache: &RepositoryContextCache,
-) -> AppResult<()> {
+pub fn discard_paths(input: GitDiscardInput, cache: &RepositoryContextCache) -> AppResult<()> {
     let context = require_repository_context(&input.repo_path, cache)?;
     let prefix_args = if input.delete_untracked {
         &["clean", "-f", "--"][..]

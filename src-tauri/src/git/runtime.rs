@@ -62,11 +62,7 @@ impl GitRuntimeState {
         self.repository_cache.clone()
     }
 
-    pub async fn run_status_snapshot<Fut>(
-        &self,
-        repo_key: String,
-        task: Fut,
-    ) -> SnapshotResult
+    pub async fn run_status_snapshot<Fut>(&self, repo_key: String, task: Fut) -> SnapshotResult
     where
         Fut: Future<Output = SnapshotResult>,
     {
@@ -107,9 +103,7 @@ impl GitRuntimeState {
     }
 }
 
-async fn await_snapshot(
-    mut receiver: watch::Receiver<Option<SnapshotResult>>,
-) -> SnapshotResult {
+async fn await_snapshot(mut receiver: watch::Receiver<Option<SnapshotResult>>) -> SnapshotResult {
     if let Some(result) = receiver.borrow().clone() {
         return result;
     }
@@ -129,8 +123,8 @@ mod tests {
     use super::GitRuntimeState;
     use super::SnapshotResult;
     use crate::git::models::{GitBranchSummary, GitStatusSnapshotOutput};
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
     use std::time::Duration;
 
     fn sample_snapshot() -> GitStatusSnapshotOutput {
@@ -163,14 +157,22 @@ mod tests {
     async fn coalesces_inflight_status_requests() {
         let runtime = GitRuntimeState::new();
         let counter = Arc::new(AtomicUsize::new(0));
-        let first = runtime.run_status_snapshot("repo".to_string(), delayed_snapshot(counter.clone()));
+        let first =
+            runtime.run_status_snapshot("repo".to_string(), delayed_snapshot(counter.clone()));
         tokio::task::yield_now().await;
-        let second = runtime.run_status_snapshot("repo".to_string(), delayed_snapshot(counter.clone()));
+        let second =
+            runtime.run_status_snapshot("repo".to_string(), delayed_snapshot(counter.clone()));
 
         let (left, right) = tokio::join!(first, second);
 
         assert_eq!(counter.load(Ordering::SeqCst), 1);
-        assert_eq!(left.expect("first snapshot").remote_name.as_deref(), Some("origin"));
-        assert_eq!(right.expect("second snapshot").remote_name.as_deref(), Some("origin"));
+        assert_eq!(
+            left.expect("first snapshot").remote_name.as_deref(),
+            Some("origin")
+        );
+        assert_eq!(
+            right.expect("second snapshot").remote_name.as_deref(),
+            Some("origin")
+        );
     }
 }

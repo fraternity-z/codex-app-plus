@@ -3,8 +3,8 @@ use tauri::State;
 use crate::error::AppResult;
 
 use super::models::{
-    GitBranchRef, GitCheckoutInput, GitCommitInput, GitDiffInput, GitDiffOutput,
-    GitDiscardInput, GitPathsInput, GitPushInput, GitRemoteInput, GitRepoInput, GitStatusSnapshotOutput,
+    GitBranchRef, GitCheckoutInput, GitCommitInput, GitDiffInput, GitDiffOutput, GitDiscardInput,
+    GitPathsInput, GitPushInput, GitRemoteInput, GitRepoInput, GitStatusSnapshotOutput,
     GitWorkspaceDiffOutput, GitWorkspaceDiffsInput,
 };
 use super::repository::resolve_workspace;

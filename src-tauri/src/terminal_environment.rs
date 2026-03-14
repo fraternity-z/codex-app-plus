@@ -37,9 +37,9 @@ fn contains_utf8_token(value: &str) -> bool {
 
 #[cfg(target_os = "windows")]
 pub fn apply_utf8_environment(command: &mut CommandBuilder, enforce_utf8: bool) {
-    for (key, value) in build_utf8_environment_assignments(enforce_utf8, |name| {
-        std::env::var(name).ok()
-    }) {
+    for (key, value) in
+        build_utf8_environment_assignments(enforce_utf8, |name| std::env::var(name).ok())
+    {
         command.env(key, value);
     }
 }

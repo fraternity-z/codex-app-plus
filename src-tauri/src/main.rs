@@ -32,8 +32,8 @@ use commands::{
 };
 use git::commands::{
     git_checkout, git_commit, git_discard_paths, git_fetch, git_get_branch_refs, git_get_diff,
-    git_get_remote_url, git_get_status_snapshot, git_get_workspace_diffs,
-    git_init_repository, git_pull, git_push, git_stage_paths, git_unstage_paths,
+    git_get_remote_url, git_get_status_snapshot, git_get_workspace_diffs, git_init_repository,
+    git_pull, git_push, git_stage_paths, git_unstage_paths,
 };
 use git::runtime::GitRuntimeState;
 use process_manager::ProcessManager;
