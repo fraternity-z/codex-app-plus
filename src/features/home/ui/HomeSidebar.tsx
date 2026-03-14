@@ -9,6 +9,34 @@ import { OfficialSettingsGearIcon } from "../../shared/ui/officialIcons";
 import { SettingsPopover } from "./SettingsPopover";
 import { WorkspaceSidebarSection } from "../../workspace/ui/WorkspaceSidebarSection";
 
+function SidebarLoadingOverlay(): JSX.Element {
+  return (
+    <div className="sidebar-loading-overlay" role="status" aria-live="polite" aria-label="正在加载会话">
+      <div className="sidebar-loading-panel" aria-hidden="true">
+        <div className="sidebar-loading-group sidebar-loading-group-nav">
+          <span className="sidebar-loading-pill sidebar-loading-pill-primary" />
+          <span className="sidebar-loading-pill sidebar-loading-pill-secondary" />
+          <span className="sidebar-loading-pill sidebar-loading-pill-tertiary" />
+        </div>
+        <div className="sidebar-loading-group sidebar-loading-group-section">
+          <div className="sidebar-loading-heading-row">
+            <span className="sidebar-loading-heading" />
+            <span className="sidebar-loading-heading-actions" />
+          </div>
+          <div className="sidebar-loading-list">
+            <span className="sidebar-loading-row sidebar-loading-row-wide" />
+            <span className="sidebar-loading-row sidebar-loading-row-medium" />
+            <span className="sidebar-loading-row sidebar-loading-row-wide" />
+            <span className="sidebar-loading-row sidebar-loading-row-short" />
+            <span className="sidebar-loading-row sidebar-loading-row-medium" />
+          </div>
+        </div>
+        <span className="sidebar-loading-footer" />
+      </div>
+    </div>
+  );
+}
+
 export interface HomeSidebarProps {
   readonly hostBridge: HostBridge;
   readonly roots: ReadonlyArray<WorkspaceRoot>;
@@ -99,14 +127,13 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
   }, [cleanupTransport, clearSelectedThread, dispatch, props, store]);
 
   return (
-    <aside className={sidebarClassName}>
+    <aside className={sidebarClassName} aria-busy={props.codexSessionsLoading}>
       {props.settingsMenuOpen ? <button type="button" className="settings-backdrop" onClick={props.onDismissSettingsMenu} aria-label="关闭菜单" /> : null}
       <div className="sidebar-header" aria-hidden="true" />
       <SidebarNav onCreateThread={props.onCreateThread} />
       <WorkspaceSidebarSection
         roots={props.roots}
         codexSessions={props.codexSessions}
-        loading={props.codexSessionsLoading}
         error={props.codexSessionsError}
         selectedRootId={props.selectedRootId}
         selectedThreadId={props.selectedThreadId}
@@ -134,6 +161,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
           <span>设置</span>
         </button>
       </div>
+      {props.codexSessionsLoading ? <SidebarLoadingOverlay /> : null}
     </aside>
   );
 }

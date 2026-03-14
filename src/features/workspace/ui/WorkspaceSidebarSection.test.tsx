@@ -33,7 +33,6 @@ function createThread(
 function renderSection(
   codexSessions: ReadonlyArray<ThreadSummary>,
   options?: {
-    readonly loading?: boolean;
     readonly error?: string | null;
     readonly onDeleteThread?: (thread: ThreadSummary) => Promise<void>;
     readonly onArchiveThread?: (thread: ThreadSummary) => Promise<void>;
@@ -49,7 +48,6 @@ function renderSection(
         <WorkspaceSidebarSection
           roots={ROOTS}
           codexSessions={codexSessions}
-          loading={options?.loading ?? false}
           error={options?.error ?? null}
           selectedRootId={selectedRootId}
           selectedThreadId={selectedThreadId}
@@ -132,10 +130,9 @@ describe("WorkspaceSidebarSection", () => {
     expect(within(threadButton as HTMLButtonElement).getByText("FPGA Thread 1")).toBeInTheDocument();
   });
 
-  it("shows loading and explicit errors", () => {
-    renderSection([], { loading: true, error: "boom" });
+  it("shows explicit errors", () => {
+    renderSection([], { error: "boom" });
 
-    expect(screen.getByRole("status")).toHaveTextContent("加载会话中...");
     expect(screen.getByRole("alert")).toHaveTextContent("加载会话失败：boom");
   });
 

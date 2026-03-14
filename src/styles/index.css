@@ -1,4 +1,5 @@
 @import "./replica/replica-shell.css";
+@import "./replica/replica-sidebar-loading.css";
 @import "./replica/replica-sidebar-tree.css";
 @import "./replica/replica-git.css";
 @import "./replica/replica-git-diff.css";
@@ -81,4 +82,3 @@ button,
 textarea {
   font: inherit;
 }
-

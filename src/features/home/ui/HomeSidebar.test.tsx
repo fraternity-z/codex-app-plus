@@ -79,6 +79,8 @@ function renderSidebar(thread: ThreadSummary, options?: {
   readonly deleteCodexSession?: ReturnType<typeof vi.fn>;
   readonly request?: ReturnType<typeof vi.fn>;
   readonly initializeStore?: (dispatch: AppStoreApi["dispatch"]) => void;
+  readonly codexSessionsLoading?: boolean;
+  readonly codexSessionsError?: string | null;
 }) {
   const onArchiveThread = options?.onArchiveThread ?? vi.fn().mockResolvedValue(undefined);
   const deleteCodexSession = options?.deleteCodexSession ?? vi.fn().mockResolvedValue(undefined);
@@ -96,8 +98,8 @@ function renderSidebar(thread: ThreadSummary, options?: {
           hostBridge={hostBridge}
           roots={[ROOT]}
           codexSessions={[thread]}
-          codexSessionsLoading={false}
-          codexSessionsError={null}
+          codexSessionsLoading={options?.codexSessionsLoading ?? false}
+          codexSessionsError={options?.codexSessionsError ?? null}
           selectedRootId={ROOT.id}
           selectedThreadId={selectedThreadId}
           authStatus="authenticated"
@@ -137,6 +139,14 @@ function DispatchRecorder(props: { readonly onReady: (dispatch: AppStoreApi["dis
 }
 
 describe("HomeSidebar", () => {
+  it("shows a full-sidebar loading overlay without visible loading text", () => {
+    renderSidebar(createThread("codexData"), { codexSessionsLoading: true });
+
+    expect(screen.getByRole("status", { name: "正在加载会话" })).toBeInTheDocument();
+    expect(document.querySelector(".replica-sidebar")).toHaveAttribute("aria-busy", "true");
+    expect(screen.queryByText("加载会话中...")).not.toBeInTheDocument();
+  });
+
   it("clears the current selection after archiving the selected thread", async () => {
     const thread = createThread("rpc");
     const { onArchiveThread } = renderSidebar(thread);

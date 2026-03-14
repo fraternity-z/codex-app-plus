@@ -13,7 +13,6 @@ const DAY_IN_MS = 24 * HOUR_IN_MS;
 interface WorkspaceSidebarSectionProps {
   readonly roots: ReadonlyArray<WorkspaceRoot>;
   readonly codexSessions: ReadonlyArray<ThreadSummary>;
-  readonly loading: boolean;
   readonly error: string | null;
   readonly selectedRootId: string | null;
   readonly selectedThreadId: string | null;
@@ -244,7 +243,6 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
           </button>
         </div>
       </div>
-      {props.loading ? <div className="thread-section-status" role="status">加载会话中...</div> : null}
       {props.error !== null ? <div className="thread-section-status" role="alert">加载会话失败：{props.error}</div> : null}
       <ul className="thread-list">
         {props.roots.map((root) => (
