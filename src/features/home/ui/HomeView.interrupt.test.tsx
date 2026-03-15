@@ -126,6 +126,7 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       onToggleSettingsMenu={vi.fn()}
       onDismissSettingsMenu={vi.fn()}
       onOpenSettings={vi.fn()}
+      onOpenSkills={vi.fn()}
       onSelectWorkspaceOpener={vi.fn()}
       onSelectComposerPermissionLevel={vi.fn()}
       onUpdateThreadBranch={vi.fn().mockResolvedValue(undefined)}

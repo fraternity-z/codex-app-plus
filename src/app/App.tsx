@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { ComposerSelection } from "../features/composer/model/composerPreferences";
 import { readUserConfigWriteTarget } from "../features/settings/config/configWriteTarget";
 import { selectMultiAgentFeatureState } from "../features/settings/config/experimentalFeatures";
@@ -10,17 +10,13 @@ import { useWorkspaceConversation } from "../features/conversation/hooks/useWork
 import { useUiBannerNotifications } from "../features/shared/hooks/useUiBannerNotifications";
 import { useWorkspaceRoots } from "../features/workspace/hooks/useWorkspaceRoots";
 import type { HostBridge } from "../bridge/types";
-import { AuthChoiceView } from "../features/auth/ui/AuthChoiceView";
-import { HomeView } from "../features/home/ui/HomeView";
 import type { SettingsSection } from "../features/settings/ui/SettingsView";
 import { I18nProvider, resolveLocale, type MessageKey, type TranslationParams, translate } from "../i18n";
+import { AppScreenContent, type AppScreen } from "./ui/AppScreenContent";
 import { requestWorkspaceFolder } from "./workspacePicker";
-import { SettingsLoadingFallback } from "./ui/SettingsLoadingFallback";
 import { useDismissStartupScreen } from "./startupScreen";
-const LazySettingsView = lazy(async () => {
-  const module = await import("../features/settings/ui/SettingsView");
-  return { default: module.SettingsView };
-});
+
+const SKILLS_LEARN_MORE_URL = "https://openai.com/index/introducing-the-codex-app/";
 interface AppProps {
   readonly hostBridge: HostBridge;
 }
@@ -31,7 +27,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const controller = useAppController(hostBridge, preferences.agentEnvironment);
   const composerPicker = useComposerPicker(hostBridge, appState.configSnapshot, appState.initialized);
   const workspace = useWorkspaceRoots();
-  const [screen, setScreen] = useState<"home" | SettingsSection>("home");
+  const [screen, setScreen] = useState<AppScreen>("home");
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const locale = resolveLocale(preferences.uiLanguage);
   const t = useCallback(
@@ -106,8 +102,19 @@ export function App({ hostBridge }: AppProps): JSX.Element {
       }),
     [hostBridge.app, preferences.agentEnvironment]
   );
+  const backHome = useCallback(() => {
+    setScreen("home");
+    setSettingsMenuOpen(false);
+  }, []);
+  const openSettingsSection = useCallback((section: SettingsSection) => {
+    setScreen(section);
+    setSettingsMenuOpen(false);
+  }, []);
   const openSettings = useCallback(() => {
-    setScreen("general");
+    openSettingsSection("general");
+  }, [openSettingsSection]);
+  const openSkills = useCallback(() => {
+    setScreen("skills");
     setSettingsMenuOpen(false);
   }, []);
   const addRoot = useCallback(async () => {
@@ -172,128 +179,48 @@ export function App({ hostBridge }: AppProps): JSX.Element {
     }
   }, [controller, reportAppError]);
 
-  const rateLimitSummary = appState.rateLimits === null
-    ? null
-    : `Rate limit: ${appState.rateLimits.limitName ?? appState.rateLimits.limitId ?? "default"}`;
   const authBusy = appState.bootstrapBusy || appState.authLoginPending;
   const shouldShowAuthChoice = appState.authStatus === "needs_login" && screen === "home";
   useDismissStartupScreen(appState.fatalError !== null || (appState.initialized && !appState.bootstrapBusy));
-  const content = screen !== "home"
-    ? (
-      <Suspense fallback={<SettingsLoadingFallback />}>
-        <LazySettingsView
-          section={screen}
-          roots={workspace.roots}
-          preferences={preferences}
-          configSnapshot={appState.configSnapshot}
-          busy={appState.bootstrapBusy}
-          windowsSandboxSetup={appState.windowsSandboxSetup}
-          onBackHome={() => setScreen("home")}
-          onSelectSection={setScreen}
-          onAddRoot={addRoot}
-          onOpenConfigToml={openConfigToml}
-          refreshConfigSnapshot={controller.refreshConfigSnapshot}
-          refreshAuthState={controller.refreshAuthState}
-          readGlobalAgentInstructions={readGlobalAgentInstructions}
-          writeGlobalAgentInstructions={writeGlobalAgentInstructions}
-          listCodexProviders={listCodexProviders}
-          upsertCodexProvider={upsertCodexProvider}
-          deleteCodexProvider={deleteCodexProvider}
-          applyCodexProvider={applyCodexProvider}
-          refreshMcpData={controller.refreshMcpData}
-          listArchivedThreads={controller.listArchivedThreads}
-          unarchiveThread={controller.unarchiveThread}
-          writeConfigValue={controller.writeConfigValue}
-          batchWriteConfig={controller.batchWriteConfig}
-          startWindowsSandboxSetup={controller.startWindowsSandboxSetup}
-        />
-      </Suspense>
-    )
-    : shouldShowAuthChoice
-      ? (
-        <AuthChoiceView
-          busy={authBusy}
-          loginPending={appState.authLoginPending}
-          onLogin={controller.login}
-          onUseApiKey={() => setScreen("config")}
-        />
-      )
-      : (
-        <HomeView
-          hostBridge={hostBridge}
-          busy={appState.bootstrapBusy}
-          inputText={appState.inputText}
-          roots={workspace.roots}
-          selectedRootId={workspace.selectedRootId}
-          selectedRootName={selectedRootName}
-          selectedRootPath={selectedRootPath}
-          threads={conversation.workspaceThreads}
-          selectedThread={conversation.selectedThread}
-          selectedThreadId={conversation.selectedThreadId}
-          activeTurnId={conversation.activeTurnId}
-          turnStatuses={conversation.turnStatuses}
-          isResponding={conversation.isResponding}
-          interruptPending={conversation.interruptPending}
-          activities={conversation.activities}
-          banners={appState.banners}
-          account={appState.account}
-          rateLimitSummary={rateLimitSummary}
-          queuedFollowUps={conversation.queuedFollowUps}
-          draftActive={conversation.draftActive}
-          selectedConversationLoading={conversation.selectedConversationLoading}
-          collaborationPreset={conversation.collaborationPreset}
-          models={composerPicker.models}
-          defaultModel={composerPicker.defaultModel}
-          defaultEffort={composerPicker.defaultEffort}
-          defaultServiceTier={composerPicker.defaultServiceTier}
-          workspaceOpener={preferences.workspaceOpener}
-          embeddedTerminalShell={preferences.embeddedTerminalShell}
-          embeddedTerminalUtf8={preferences.embeddedTerminalUtf8}
-          threadDetailLevel={preferences.threadDetailLevel}
-          followUpQueueMode={preferences.followUpQueueMode}
-          composerEnterBehavior={preferences.composerEnterBehavior}
-          composerPermissionLevel={preferences.composerPermissionLevel}
-          connectionStatus={appState.connectionStatus}
-          fatalError={appState.fatalError}
-          authStatus={appState.authStatus}
-          authMode={appState.authMode}
-          authBusy={authBusy}
-          authLoginPending={appState.authLoginPending}
-          retryScheduledAt={appState.retryScheduledAt}
-          settingsMenuOpen={settingsMenuOpen}
-          onToggleSettingsMenu={() => setSettingsMenuOpen((openValue) => !openValue)}
-          onDismissSettingsMenu={() => setSettingsMenuOpen(false)}
-          onOpenSettings={openSettings}
-          onSelectWorkspaceOpener={preferences.setWorkspaceOpener}
-          onSelectComposerPermissionLevel={preferences.setComposerPermissionLevel}
-          onSelectRoot={workspace.selectRoot}
-          onSelectThread={conversation.selectThread}
-          onSelectCollaborationPreset={conversation.selectCollaborationPreset}
-          onInputChange={controller.setInput}
-          onCreateThread={createWorkspaceThread}
-          onArchiveThread={controller.archiveThread}
-          onSendTurn={sendWorkspaceTurn}
-          onPersistComposerSelection={persistComposerSelection}
-          multiAgentAvailable={multiAgentState.available}
-          multiAgentEnabled={multiAgentState.enabled}
-          onSetMultiAgentEnabled={setMultiAgentEnabled}
-          onUpdateThreadBranch={conversation.updateThreadBranch}
-          onInterruptTurn={conversation.interruptActiveTurn}
-          onAddRoot={addRoot}
-          onRemoveRoot={workspace.removeRoot}
-          onRetryConnection={controller.retryConnection}
-          onLogin={controller.login}
-          onLogout={controller.logout}
-          onResolveServerRequest={controller.resolveServerRequest}
-          onRemoveQueuedFollowUp={conversation.removeQueuedFollowUp}
-          onClearQueuedFollowUps={conversation.clearQueuedFollowUps}
-          onDismissBanner={dismissBanner}
-        />
-      );
 
   return (
     <I18nProvider language={preferences.uiLanguage} setLanguage={preferences.setUiLanguage}>
-      {content}
+      <AppScreenContent
+        screen={screen}
+        hostBridge={hostBridge}
+        appState={appState}
+        preferences={preferences}
+        workspace={workspace}
+        conversation={conversation}
+        composerPicker={composerPicker}
+        controller={controller}
+        multiAgentState={multiAgentState}
+        selectedRootName={selectedRootName}
+        selectedRootPath={selectedRootPath}
+        settingsMenuOpen={settingsMenuOpen}
+        authBusy={authBusy}
+        shouldShowAuthChoice={shouldShowAuthChoice}
+        onBackHome={backHome}
+        onOpenSettings={openSettings}
+        onOpenSettingsSection={openSettingsSection}
+        onOpenSkills={openSkills}
+        onToggleSettingsMenu={() => setSettingsMenuOpen((openValue) => !openValue)}
+        onDismissSettingsMenu={() => setSettingsMenuOpen(false)}
+        onAddRoot={addRoot}
+        onCreateWorkspaceThread={createWorkspaceThread}
+        onSendWorkspaceTurn={sendWorkspaceTurn}
+        onPersistComposerSelection={persistComposerSelection}
+        onSetMultiAgentEnabled={setMultiAgentEnabled}
+        onDismissBanner={dismissBanner}
+        onOpenConfigToml={openConfigToml}
+        readGlobalAgentInstructions={readGlobalAgentInstructions}
+        writeGlobalAgentInstructions={writeGlobalAgentInstructions}
+        listCodexProviders={listCodexProviders}
+        upsertCodexProvider={upsertCodexProvider}
+        deleteCodexProvider={deleteCodexProvider}
+        applyCodexProvider={applyCodexProvider}
+        onOpenSkillsLearnMore={() => hostBridge.app.openExternal(SKILLS_LEARN_MORE_URL)}
+      />
     </I18nProvider>
   );
 }

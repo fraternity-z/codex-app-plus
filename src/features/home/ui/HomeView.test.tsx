@@ -156,6 +156,7 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
         onToggleSettingsMenu={vi.fn()}
         onDismissSettingsMenu={vi.fn()}
         onOpenSettings={vi.fn()}
+        onOpenSkills={vi.fn()}
         onSelectWorkspaceOpener={vi.fn()}
         onSelectComposerPermissionLevel={vi.fn()}
         onSelectRoot={vi.fn()}
@@ -467,6 +468,7 @@ describe("HomeView", () => {
         onToggleSettingsMenu={vi.fn()}
         onDismissSettingsMenu={vi.fn()}
         onOpenSettings={vi.fn()}
+        onOpenSkills={vi.fn()}
         onSelectWorkspaceOpener={vi.fn()}
         onSelectComposerPermissionLevel={vi.fn()}
         onSelectRoot={vi.fn()}

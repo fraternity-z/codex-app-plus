@@ -76,6 +76,7 @@ function readThreadId(params: unknown): string {
 
 function renderSidebar(thread: ThreadSummary, options?: {
   readonly onArchiveThread?: (threadId: string) => Promise<void>;
+  readonly onOpenSkills?: () => void;
   readonly deleteCodexSession?: ReturnType<typeof vi.fn>;
   readonly request?: ReturnType<typeof vi.fn>;
   readonly initializeStore?: (dispatch: AppStoreApi["dispatch"]) => void;
@@ -83,6 +84,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
   readonly codexSessionsError?: string | null;
 }) {
   const onArchiveThread = options?.onArchiveThread ?? vi.fn().mockResolvedValue(undefined);
+  const onOpenSkills = options?.onOpenSkills ?? vi.fn();
   const deleteCodexSession = options?.deleteCodexSession ?? vi.fn().mockResolvedValue(undefined);
   const request = options?.request ?? vi.fn().mockResolvedValue({ requestId: "noop", result: {} });
   const hostBridge = { app: { deleteCodexSession }, rpc: { request } } as unknown as HostBridge;
@@ -111,6 +113,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
           onToggleSettingsMenu={vi.fn()}
           onDismissSettingsMenu={vi.fn()}
           onOpenSettings={vi.fn()}
+          onOpenSkills={onOpenSkills}
           onLogin={vi.fn().mockResolvedValue(undefined)}
           onLogout={vi.fn().mockResolvedValue(undefined)}
           onSelectRoot={vi.fn()}
@@ -125,7 +128,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
   }
 
   render(<Harness />);
-  return { onArchiveThread, deleteCodexSession, request };
+  return { onArchiveThread, onOpenSkills, deleteCodexSession, request };
 }
 
 function DispatchRecorder(props: { readonly onReady: (dispatch: AppStoreApi["dispatch"]) => void }): null {
@@ -145,6 +148,14 @@ describe("HomeSidebar", () => {
     expect(screen.getByRole("status", { name: "正在加载会话" })).toBeInTheDocument();
     expect(document.querySelector(".replica-sidebar")).toHaveAttribute("aria-busy", "true");
     expect(screen.queryByText("加载会话中...")).not.toBeInTheDocument();
+  });
+
+  it("opens the skills screen from the sidebar nav", () => {
+    const { onOpenSkills } = renderSidebar(createThread("codexData"));
+
+    fireEvent.click(screen.getByRole("button", { name: "技能" }));
+
+    expect(onOpenSkills).toHaveBeenCalledTimes(1);
   });
 
   it("clears the current selection after archiving the selected thread", async () => {
@@ -256,6 +267,7 @@ describe("HomeSidebar", () => {
             onToggleSettingsMenu={vi.fn()}
             onDismissSettingsMenu={vi.fn()}
             onOpenSettings={vi.fn()}
+            onOpenSkills={vi.fn()}
             onLogin={vi.fn().mockResolvedValue(undefined)}
             onLogout={vi.fn().mockResolvedValue(undefined)}
             onSelectRoot={vi.fn()}

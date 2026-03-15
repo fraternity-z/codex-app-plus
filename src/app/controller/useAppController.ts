@@ -10,6 +10,14 @@ import type { CollaborationModeListResponse } from "../../protocol/generated/v2/
 import type { ConfigBatchWriteParams } from "../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigReadResponse } from "../../protocol/generated/v2/ConfigReadResponse";
 import type { ConfigValueWriteParams } from "../../protocol/generated/v2/ConfigValueWriteParams";
+import type { SkillsConfigWriteParams } from "../../protocol/generated/v2/SkillsConfigWriteParams";
+import type { SkillsConfigWriteResponse } from "../../protocol/generated/v2/SkillsConfigWriteResponse";
+import type { SkillsListParams } from "../../protocol/generated/v2/SkillsListParams";
+import type { SkillsListResponse } from "../../protocol/generated/v2/SkillsListResponse";
+import type { SkillsRemoteReadParams } from "../../protocol/generated/v2/SkillsRemoteReadParams";
+import type { SkillsRemoteReadResponse } from "../../protocol/generated/v2/SkillsRemoteReadResponse";
+import type { SkillsRemoteWriteParams } from "../../protocol/generated/v2/SkillsRemoteWriteParams";
+import type { SkillsRemoteWriteResponse } from "../../protocol/generated/v2/SkillsRemoteWriteResponse";
 import type { LoginAccountResponse } from "../../protocol/generated/v2/LoginAccountResponse";
 import type { McpServerStatus } from "../../protocol/generated/v2/McpServerStatus";
 import type { WindowsSandboxSetupCompletedNotification } from "../../protocol/generated/v2/WindowsSandboxSetupCompletedNotification";
@@ -60,6 +68,10 @@ interface AppController {
   writeConfigValue: (params: ConfigValueWriteParams) => Promise<ConfigMutationResult>;
   batchWriteConfig: (params: ConfigBatchWriteParams) => Promise<ConfigMutationResult>;
   batchWriteConfigSnapshot: (params: ConfigBatchWriteParams) => Promise<ConfigSnapshotMutationResult>;
+  listSkills: (params: SkillsListParams) => Promise<SkillsListResponse>;
+  listRemoteSkills: (params: SkillsRemoteReadParams) => Promise<SkillsRemoteReadResponse>;
+  writeSkillConfig: (params: SkillsConfigWriteParams) => Promise<SkillsConfigWriteResponse>;
+  exportRemoteSkill: (params: SkillsRemoteWriteParams) => Promise<SkillsRemoteWriteResponse>;
   setMultiAgentEnabled: (enabled: boolean) => Promise<void>;
   startWindowsSandboxSetup: (mode: WindowsSandboxSetupMode) => Promise<WindowsSandboxSetupStartResponse>;
   login: () => Promise<void>;
@@ -523,6 +535,18 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
   const writeConfigValue = useCallback((params: ConfigValueWriteParams) => runBusy(() => writeConfigValueAndRefresh(client, dispatch, params)), [client, dispatch, runBusy]);
   const batchWriteConfig = useCallback((params: ConfigBatchWriteParams) => runBusy(() => batchWriteConfigAndRefresh(client, dispatch, params)), [client, dispatch, runBusy]);
   const batchWriteConfigSnapshot = useCallback((params: ConfigBatchWriteParams) => runBusy(() => batchWriteConfigAndReadSnapshot(client, dispatch, params)), [client, dispatch, runBusy]);
+  const listSkills = useCallback((params: SkillsListParams) => (
+    client.request("skills/list", params) as Promise<SkillsListResponse>
+  ), [client]);
+  const listRemoteSkills = useCallback((params: SkillsRemoteReadParams) => (
+    client.request("skills/remote/list", params) as Promise<SkillsRemoteReadResponse>
+  ), [client]);
+  const writeSkillConfig = useCallback((params: SkillsConfigWriteParams) => (
+    client.request("skills/config/write", params) as Promise<SkillsConfigWriteResponse>
+  ), [client]);
+  const exportRemoteSkill = useCallback((params: SkillsRemoteWriteParams) => (
+    client.request("skills/remote/export", params) as Promise<SkillsRemoteWriteResponse>
+  ), [client]);
   const setMultiAgentEnabled = useCallback(async (enabled: boolean) => {
     await runBusy(async () => {
       const writeTarget = readUserConfigWriteTarget(runtimeState.configSnapshot);
@@ -553,5 +577,27 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
     }
   }, [client, dispatch, hostBridge.app]);
 
-  return { setInput: (text) => dispatch({ type: "input/changed", value: text }), retryConnection: () => bootstrap(true), refreshConfigSnapshot: refreshConfig, refreshAuthState: refreshAuth, refreshMcpData: refreshMcp, listMcpServerStatuses: listStatuses, listArchivedThreads, archiveThread, unarchiveThread, writeConfigValue, batchWriteConfig, batchWriteConfigSnapshot, setMultiAgentEnabled, startWindowsSandboxSetup, login, logout, resolveServerRequest };
+  return {
+    setInput: (text) => dispatch({ type: "input/changed", value: text }),
+    retryConnection: () => bootstrap(true),
+    refreshConfigSnapshot: refreshConfig,
+    refreshAuthState: refreshAuth,
+    refreshMcpData: refreshMcp,
+    listMcpServerStatuses: listStatuses,
+    listArchivedThreads,
+    archiveThread,
+    unarchiveThread,
+    writeConfigValue,
+    batchWriteConfig,
+    batchWriteConfigSnapshot,
+    listSkills,
+    listRemoteSkills,
+    writeSkillConfig,
+    exportRemoteSkill,
+    setMultiAgentEnabled,
+    startWindowsSandboxSetup,
+    login,
+    logout,
+    resolveServerRequest,
+  };
 }

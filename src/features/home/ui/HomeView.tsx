@@ -88,6 +88,7 @@ export interface HomeViewProps {
   readonly onToggleSettingsMenu: () => void;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
+  readonly onOpenSkills: () => void;
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
   readonly onSelectRoot: (rootId: string) => void;
   readonly onSelectThread: (threadId: string | null) => void;
@@ -117,9 +118,7 @@ export interface HomeViewProps {
 }
 
 function createReplicaAppClassName(diffSidebarOpen: boolean): string {
-  return diffSidebarOpen
-    ? "replica-app replica-app-with-diff-sidebar"
-    : "replica-app";
+  return diffSidebarOpen ? "replica-app replica-app-with-diff-sidebar" : "replica-app";
 }
 
 export function HomeView(props: HomeViewProps): JSX.Element {
@@ -143,12 +142,8 @@ export function HomeView(props: HomeViewProps): JSX.Element {
     }
   }, [props.selectedRootPath]);
 
-  const toggleTerminal = useCallback(() => {
-    setTerminalOpen((value) => !value);
-  }, []);
-  const toggleDiffSidebar = useCallback(() => {
-    setDiffSidebarOpen((value) => !value);
-  }, []);
+  const toggleTerminal = useCallback(() => setTerminalOpen((value) => !value), []);
+  const toggleDiffSidebar = useCallback(() => setDiffSidebarOpen((value) => !value), []);
   const sidebarProps = createHomeSidebarProps(props, sidebarCollapsed);
   const contentProps = createHomeMainContentProps(
     props,
@@ -214,6 +209,7 @@ function createHomeSidebarProps(
     onToggleSettingsMenu: props.onToggleSettingsMenu,
     onDismissSettingsMenu: props.onDismissSettingsMenu,
     onOpenSettings: props.onOpenSettings,
+    onOpenSkills: props.onOpenSkills,
     onLogin: props.onLogin,
     onLogout: props.onLogout,
     onSelectRoot: props.onSelectRoot,

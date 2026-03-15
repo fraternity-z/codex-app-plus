@@ -15,6 +15,7 @@ export interface AppShellState {
   readonly fatalError: AppState["fatalError"];
   readonly initialized: boolean;
   readonly inputText: AppState["inputText"];
+  readonly notifications: AppState["notifications"];
   readonly rateLimits: AppState["rateLimits"];
   readonly retryScheduledAt: AppState["retryScheduledAt"];
   readonly windowsSandboxSetup: AppState["windowsSandboxSetup"];
@@ -43,6 +44,7 @@ function selectAppShellState(state: AppState): AppShellState {
     fatalError: state.fatalError,
     initialized: state.initialized,
     inputText: state.inputText,
+    notifications: state.notifications,
     rateLimits: state.rateLimits,
     retryScheduledAt: state.retryScheduledAt,
     windowsSandboxSetup: state.windowsSandboxSetup,
@@ -63,6 +65,7 @@ function isAppShellStateEqual(left: AppShellState, right: AppShellState): boolea
     && left.fatalError === right.fatalError
     && left.initialized === right.initialized
     && left.inputText === right.inputText
+    && Object.is(left.notifications, right.notifications)
     && Object.is(left.rateLimits, right.rateLimits)
     && left.retryScheduledAt === right.retryScheduledAt
     && Object.is(left.windowsSandboxSetup, right.windowsSandboxSetup);

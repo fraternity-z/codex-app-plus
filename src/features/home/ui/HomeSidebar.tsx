@@ -54,6 +54,7 @@ export interface HomeSidebarProps {
   readonly onToggleSettingsMenu: () => void;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
+  readonly onOpenSkills: () => void;
   readonly onLogin: () => Promise<void>;
   readonly onLogout: () => Promise<void>;
   readonly onSelectRoot: (rootId: string) => void;
@@ -64,7 +65,10 @@ export interface HomeSidebarProps {
   readonly onRemoveRoot: (rootId: string) => void;
 }
 
-function SidebarNav(props: { readonly onCreateThread: () => Promise<void> }): JSX.Element {
+function SidebarNav(props: {
+  readonly onCreateThread: () => Promise<void>;
+  readonly onOpenSkills: () => void;
+}): JSX.Element {
   return (
     <nav className="sidebar-nav">
       <button type="button" className="sidebar-nav-item" onClick={() => void props.onCreateThread()}>
@@ -75,7 +79,7 @@ function SidebarNav(props: { readonly onCreateThread: () => Promise<void> }): JS
         <SidebarIcon kind="automation" />
         <span>自动化</span>
       </button>
-      <button type="button" className="sidebar-nav-item">
+      <button type="button" className="sidebar-nav-item" onClick={props.onOpenSkills}>
         <SidebarIcon kind="skills" />
         <span>技能</span>
       </button>
@@ -130,7 +134,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
     <aside className={sidebarClassName} aria-busy={props.codexSessionsLoading}>
       {props.settingsMenuOpen ? <button type="button" className="settings-backdrop" onClick={props.onDismissSettingsMenu} aria-label="关闭菜单" /> : null}
       <div className="sidebar-header" aria-hidden="true" />
-      <SidebarNav onCreateThread={props.onCreateThread} />
+      <SidebarNav onCreateThread={props.onCreateThread} onOpenSkills={props.onOpenSkills} />
       <WorkspaceSidebarSection
         roots={props.roots}
         codexSessions={props.codexSessions}

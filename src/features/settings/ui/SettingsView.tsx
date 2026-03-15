@@ -40,7 +40,7 @@ export type SettingsSection =
   | "worktree"
   | "archived";
 
-interface SettingsViewProps {
+export interface SettingsViewProps {
   readonly section: SettingsSection;
   readonly roots: ReadonlyArray<WorkspaceRoot>;
   readonly preferences: AppPreferencesController;
