@@ -43,6 +43,19 @@ Codex App Plus 是一个面向 Windows 的 Codex 桌面外壳，基于 `React + 
 - 富文本与终端：`react-markdown`、`remark-gfm`、`highlight.js`、`xterm`
 - 协议层：基于官方 `codex app-server` 生成的 TypeScript 类型与 JSON Schema
 
+## 运行时与版本对齐
+
+- 本项目在运行时依赖本地已安装的官方 `codex` CLI，因为桌面宿主会通过它启动 `codex app-server`
+- 当前仓库文档与协议生成产物按 `codex-cli 0.114.0` 对齐
+- 如果本地 `codex` CLI 版本明显高于或低于 `0.114.0`，可能出现协议字段、事件或行为不一致
+- 建议先确认：
+
+```bash
+codex --version
+```
+
+- Windows 环境下如果 `codex` 不在 `PATH` 中，需要手动加入 `PATH`，或在协议生成时通过 `CODEX_BINARY_PATH` 指定可执行文件路径
+
 ## 仓库结构
 
 ```text
@@ -71,9 +84,13 @@ Codex App Plus 是一个面向 Windows 的 Codex 桌面外壳，基于 `React + 
 - 较新的 Node.js LTS
 - `pnpm`
 - Rust toolchain 以及 Tauri 2 所需依赖
-- 仅在需要重新生成协议产物时才需要官方 `codex` CLI
+- 官方 `codex` CLI
 
-仓库已经提交协议生成结果，所以日常前端或宿主开发通常不需要本地安装 `codex` 可执行文件。
+说明：
+
+- 日常桌面运行依赖本地 `codex` CLI，因为应用需要通过它拉起 `app-server`
+- 仓库已经提交协议生成结果，所以不是每次开发都要重新生成协议文件
+- 但如果本机没有安装 `codex` CLI，桌面宿主链路本身无法完整运行
 
 ### 2. 安装依赖
 
@@ -152,6 +169,11 @@ pnpm run generate:protocol
 - `src/protocol/generated`
 - `src/protocol/schema`
 
+说明：
+
+- 协议生成依赖本地 `codex` CLI
+- 为避免生成产物与宿主运行时协议不一致，建议生成和运行都使用 `codex-cli 0.114.0`
+
 ### 许可证数据生成
 
 依赖元数据变化后，可执行以下命令重新生成第三方许可证文件：
@@ -165,3 +187,26 @@ pnpm run generate:licenses
 - 项目遵循协议优先设计，前后端通过类型化 bridge 和协议 payload 通信。
 - 宿主层失败会显式暴露，不做静默降级。
 - 本地应用数据默认存储在 `%LOCALAPPDATA%\\CodexAppPlus`。
+
+## 版本号规范
+
+从 `1.2.2` 之后，项目版本号按语义化版本（SemVer）管理，tag 统一使用 `vX.Y.Z` 或预发布格式 `vX.Y.Z-beta.N`。
+
+- `PATCH`：`1.2.2 -> 1.2.3`
+  适用于 bug 修复、样式修正、文案调整、构建与发布流程修复、性能优化等“不新增用户新能力”的变更
+- `MINOR`：`1.2.2 -> 1.3.0`
+  适用于新增功能，但保持原有配置、数据和使用方式兼容
+- `MAJOR`：`1.2.2 -> 2.0.0`
+  适用于破坏兼容的变更，例如配置格式、协议字段、数据目录结构或插件/技能接口不再兼容
+
+实务判断规则：
+
+- 修东西，升 `PATCH`
+- 加东西，升 `MINOR`
+- 改坏兼容，升 `MAJOR`
+
+补充约定：
+
+- `1.2.2` 之前的历史 tag 保留，不追溯重写
+- 从 `1.2.2` 之后开始执行这套规范
+- 发布工作流按 tag 推导构建版本，安装包版本号应与 release tag 对齐
