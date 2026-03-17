@@ -14,6 +14,7 @@ import { useAppController } from "../controller/useAppController";
 import type { SettingsSection, SettingsViewProps } from "../../features/settings/ui/SettingsView";
 import { SettingsLoadingFallback } from "./SettingsLoadingFallback";
 import type { SkillsViewProps } from "../../features/skills/ui/SkillsView";
+import { WindowTitlebar } from "./WindowTitlebar";
 
 const LazySettingsView = lazy(async () => {
   const module = await import("../../features/settings/ui/SettingsView");
@@ -74,6 +75,17 @@ interface AppScreenContentProps {
 }
 
 export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
+  const content = renderAppScreenContent(props);
+
+  return (
+    <div className="app-shell">
+      <WindowTitlebar hostBridge={props.hostBridge} />
+      <div className="app-shell-body">{content}</div>
+    </div>
+  );
+}
+
+function renderAppScreenContent(props: AppScreenContentProps): JSX.Element {
   if (props.screen === "skills") {
     return <SuspendedSkillsView {...createSkillsProps(props)} />;
   }

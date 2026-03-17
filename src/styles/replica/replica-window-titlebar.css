@@ -1,0 +1,90 @@
+.window-titlebar {
+  height: 40px;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  flex-shrink: 0;
+  user-select: none;
+  border-bottom: 1px solid var(--border-light);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface-panel) 94%, var(--accent-soft)) 0%, var(--surface-panel) 100%);
+}
+
+.window-titlebar-brand {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  color: var(--text-main);
+}
+
+.window-titlebar-logo {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--accent-color);
+}
+
+.window-titlebar-logo-image {
+  display: block;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.window-titlebar-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.window-titlebar-controls {
+  display: inline-flex;
+  align-items: stretch;
+  margin-left: auto;
+}
+
+.window-titlebar-button {
+  width: 46px;
+  border: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.window-titlebar-button svg {
+  width: 12px;
+  height: 12px;
+}
+
+.window-titlebar-close-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.window-titlebar-button:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+.window-titlebar-button:focus-visible {
+  outline: none;
+  color: var(--text-main);
+  background: var(--surface-hover);
+  box-shadow: inset 0 0 0 2px var(--focus-ring);
+}
+
+.window-titlebar-button-close:hover,
+.window-titlebar-button-close:focus-visible {
+  background: #d92d20;
+  color: #fff;
+  box-shadow: none;
+}

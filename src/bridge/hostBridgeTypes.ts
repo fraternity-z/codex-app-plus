@@ -23,6 +23,7 @@ import type {
   ServerRequestResolveInput,
   ShowContextMenuInput,
   ShowNotificationInput,
+  WindowChromeAction,
   WindowTheme,
   UpdateChatgptAuthTokensInput,
   UpdateGlobalAgentInstructionsInput,
@@ -68,6 +69,7 @@ export interface HostBridge {
   };
   readonly app: {
     setWindowTheme(theme: WindowTheme): Promise<void>;
+    controlWindow(action: WindowChromeAction): Promise<void>;
     openExternal(url: string): Promise<void>;
     openWorkspace(input: OpenWorkspaceInput): Promise<void>;
     openCodexConfigToml(input: OpenCodexConfigTomlInput): Promise<void>;

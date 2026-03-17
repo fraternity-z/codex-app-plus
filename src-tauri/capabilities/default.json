@@ -13,6 +13,8 @@
       "rpc_notify",
       "rpc_cancel",
       "server_request_resolve",
+      "app_set_window_theme",
+      "app_control_window",
       "app_open_external",
       "app_open_workspace",
       "app_open_codex_config_toml",

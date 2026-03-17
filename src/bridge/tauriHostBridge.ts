@@ -95,6 +95,10 @@ export function createTauriHostBridge(): HostBridge {
         invoke("app_set_window_theme", {
           theme
         }),
+      controlWindow: (action) =>
+        invoke("app_control_window", {
+          action
+        }),
       openExternal: (url: string) =>
         invoke("app_open_external", {
           url

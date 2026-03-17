@@ -83,6 +83,14 @@ pub struct ShowNotificationInput {
     pub body: String,
 }
 
+#[derive(Debug, Deserialize, Clone, Copy)]
+#[serde(rename_all = "camelCase")]
+pub enum WindowChromeAction {
+    Minimize,
+    ToggleMaximize,
+    Close,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ContextMenuItem {
     pub id: String,

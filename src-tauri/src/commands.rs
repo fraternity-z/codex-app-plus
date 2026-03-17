@@ -20,7 +20,7 @@ use crate::models::{
     RpcNotifyInput, RpcRequestInput, RpcRequestOutput, ServerRequestResolveInput,
     ShowContextMenuInput, ShowNotificationInput, TerminalCloseInput, TerminalCreateInput,
     TerminalCreateOutput, TerminalResizeInput, TerminalWriteInput, UpdateChatgptAuthTokensInput,
-    UpdateGlobalAgentInstructionsInput, UpsertCodexProviderInput,
+    UpdateGlobalAgentInstructionsInput, UpsertCodexProviderInput, WindowChromeAction,
 };
 use crate::process_manager::ProcessManager;
 use crate::terminal_manager::TerminalManager;
@@ -28,6 +28,14 @@ use crate::window_theme::{apply_window_theme, WindowTheme};
 
 fn to_result<T>(result: AppResult<T>) -> Result<T, String> {
     result.map_err(|error| error.to_string())
+}
+
+fn toggle_window_maximize(window: &tauri::WebviewWindow) -> AppResult<()> {
+    if window.is_maximized().map_err(AppError::from)? {
+        return window.unmaximize().map_err(AppError::from);
+    }
+
+    window.maximize().map_err(AppError::from)
 }
 
 #[tauri::command]
@@ -100,6 +108,19 @@ pub fn app_open_external(url: String) -> Result<(), String> {
 pub fn app_set_window_theme(window: tauri::WebviewWindow, theme: String) -> Result<(), String> {
     let parsed_theme = to_result(WindowTheme::parse(theme.trim()))?;
     to_result(apply_window_theme(&window, parsed_theme))
+}
+
+#[tauri::command]
+pub fn app_control_window(
+    window: tauri::WebviewWindow,
+    action: WindowChromeAction,
+) -> Result<(), String> {
+    let result = match action {
+        WindowChromeAction::Minimize => window.minimize().map_err(AppError::from),
+        WindowChromeAction::ToggleMaximize => toggle_window_maximize(&window),
+        WindowChromeAction::Close => window.close().map_err(AppError::from),
+    };
+    to_result(result)
 }
 
 #[tauri::command]

@@ -26,6 +26,12 @@ impl From<std::io::Error> for AppError {
     }
 }
 
+impl From<tauri::Error> for AppError {
+    fn from(value: tauri::Error) -> Self {
+        Self::Protocol(value.to_string())
+    }
+}
+
 impl From<serde_json::Error> for AppError {
     fn from(value: serde_json::Error) -> Self {
         Self::Json(value.to_string())

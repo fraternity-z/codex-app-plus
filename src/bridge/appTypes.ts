@@ -47,6 +47,7 @@ export interface ShowNotificationInput {
 }
 
 export type WindowTheme = "light" | "dark";
+export type WindowChromeAction = "minimize" | "toggleMaximize" | "close";
 
 export interface ShowContextMenuInput {
   readonly x: number;
