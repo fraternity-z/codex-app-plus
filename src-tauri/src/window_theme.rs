@@ -11,9 +11,7 @@ impl WindowTheme {
         match value {
             "light" => Ok(Self::Light),
             "dark" => Ok(Self::Dark),
-            _ => Err(AppError::InvalidInput(format!(
-                "未知窗口主题: {value}"
-            ))),
+            _ => Err(AppError::InvalidInput(format!("未知窗口主题: {value}"))),
         }
     }
 }
@@ -22,6 +20,7 @@ impl WindowTheme {
 mod platform {
     use super::WindowTheme;
     use crate::error::{AppError, AppResult};
+    use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::mpsc::sync_channel;
     use tauri::WebviewWindow;
     use windows_sys::Win32::Foundation::HWND;
@@ -45,6 +44,35 @@ mod platform {
     const DARK_CAPTION_COLOR: u32 = rgb(31, 31, 31);
     const DARK_BORDER_COLOR: u32 = rgb(47, 47, 47);
     const DARK_TEXT_COLOR: u32 = rgb(243, 243, 243);
+
+    static CAPTION_COLOR_SUPPORTED: AtomicBool = AtomicBool::new(true);
+    static BORDER_COLOR_SUPPORTED: AtomicBool = AtomicBool::new(true);
+    static TEXT_COLOR_SUPPORTED: AtomicBool = AtomicBool::new(true);
+
+    #[derive(Clone, Copy)]
+    enum OptionalDwmAttribute {
+        CaptionColor,
+        BorderColor,
+        TextColor,
+    }
+
+    impl OptionalDwmAttribute {
+        const fn id(self) -> u32 {
+            match self {
+                Self::CaptionColor => DWMWA_CAPTION_COLOR,
+                Self::BorderColor => DWMWA_BORDER_COLOR,
+                Self::TextColor => DWMWA_TEXT_COLOR,
+            }
+        }
+
+        const fn label(self) -> &'static str {
+            match self {
+                Self::CaptionColor => "标题栏颜色",
+                Self::BorderColor => "窗口边框颜色",
+                Self::TextColor => "标题栏文本颜色",
+            }
+        }
+    }
 
     pub fn apply_window_theme(window: &WebviewWindow, theme: WindowTheme) -> AppResult<()> {
         let (sender, receiver) = sync_channel(1);
@@ -79,19 +107,15 @@ mod platform {
             &dark_mode_enabled,
             "沉浸式深色模式",
         )?;
-        set_optional_dwm_attribute(raw_hwnd, DWMWA_CAPTION_COLOR, &caption_color, "标题栏颜色")?;
-        set_optional_dwm_attribute(raw_hwnd, DWMWA_BORDER_COLOR, &border_color, "窗口边框颜色")?;
-        set_optional_dwm_attribute(raw_hwnd, DWMWA_TEXT_COLOR, &text_color, "标题栏文本颜色")?;
+        set_optional_dwm_attribute(raw_hwnd, OptionalDwmAttribute::CaptionColor, &caption_color)?;
+        set_optional_dwm_attribute(raw_hwnd, OptionalDwmAttribute::BorderColor, &border_color)?;
+        set_optional_dwm_attribute(raw_hwnd, OptionalDwmAttribute::TextColor, &text_color)?;
         force_title_bar_redraw(raw_hwnd);
 
         Ok(())
     }
 
-    fn apply_dwm_attribute<T>(
-        hwnd: HWND,
-        attribute: u32,
-        value: &T,
-    ) -> Result<(), i32> {
+    fn apply_dwm_attribute<T>(hwnd: HWND, attribute: u32, value: &T) -> Result<(), i32> {
         let status = unsafe {
             DwmSetWindowAttribute(
                 hwnd,
@@ -124,19 +148,39 @@ mod platform {
 
     fn set_optional_dwm_attribute<T>(
         hwnd: HWND,
-        attribute: u32,
+        attribute: OptionalDwmAttribute,
         value: &T,
-        label: &str,
     ) -> AppResult<()> {
-        match apply_dwm_attribute(hwnd, attribute, value) {
+        if !supports_optional_dwm_attribute(attribute) {
+            return Ok(());
+        }
+
+        match apply_dwm_attribute(hwnd, attribute.id(), value) {
             Ok(()) => Ok(()),
             Err(status) if status == E_INVALIDARG => {
-                eprintln!("跳过不受支持的 {label}，DWM 错误码: {status}");
+                let _ = mark_optional_dwm_attribute_unsupported(attribute);
                 Ok(())
             }
             Err(status) => Err(AppError::Protocol(format!(
-                "设置{label}失败，DWM 错误码: {status}"
+                "设置{}失败，DWM 错误码: {status}",
+                attribute.label()
             ))),
+        }
+    }
+
+    fn supports_optional_dwm_attribute(attribute: OptionalDwmAttribute) -> bool {
+        optional_dwm_support_flag(attribute).load(Ordering::Relaxed)
+    }
+
+    fn mark_optional_dwm_attribute_unsupported(attribute: OptionalDwmAttribute) -> bool {
+        optional_dwm_support_flag(attribute).swap(false, Ordering::Relaxed)
+    }
+
+    fn optional_dwm_support_flag(attribute: OptionalDwmAttribute) -> &'static AtomicBool {
+        match attribute {
+            OptionalDwmAttribute::CaptionColor => &CAPTION_COLOR_SUPPORTED,
+            OptionalDwmAttribute::BorderColor => &BORDER_COLOR_SUPPORTED,
+            OptionalDwmAttribute::TextColor => &TEXT_COLOR_SUPPORTED,
         }
     }
 
@@ -162,6 +206,58 @@ mod platform {
 
     const fn rgb(red: u32, green: u32, blue: u32) -> u32 {
         red | (green << 8) | (blue << 16)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn optional_attributes_stop_retrying_after_marked_unsupported() {
+            reset_optional_dwm_support();
+
+            assert!(supports_optional_dwm_attribute(
+                OptionalDwmAttribute::CaptionColor
+            ));
+            assert!(mark_optional_dwm_attribute_unsupported(
+                OptionalDwmAttribute::CaptionColor
+            ));
+            assert!(!mark_optional_dwm_attribute_unsupported(
+                OptionalDwmAttribute::CaptionColor
+            ));
+            assert!(!supports_optional_dwm_attribute(
+                OptionalDwmAttribute::CaptionColor
+            ));
+
+            reset_optional_dwm_support();
+        }
+
+        #[test]
+        fn optional_attributes_track_support_independently() {
+            reset_optional_dwm_support();
+
+            assert!(supports_optional_dwm_attribute(
+                OptionalDwmAttribute::BorderColor
+            ));
+            assert!(supports_optional_dwm_attribute(
+                OptionalDwmAttribute::TextColor
+            ));
+            let _ = mark_optional_dwm_attribute_unsupported(OptionalDwmAttribute::BorderColor);
+            assert!(!supports_optional_dwm_attribute(
+                OptionalDwmAttribute::BorderColor
+            ));
+            assert!(supports_optional_dwm_attribute(
+                OptionalDwmAttribute::TextColor
+            ));
+
+            reset_optional_dwm_support();
+        }
+
+        fn reset_optional_dwm_support() {
+            CAPTION_COLOR_SUPPORTED.store(true, Ordering::Relaxed);
+            BORDER_COLOR_SUPPORTED.store(true, Ordering::Relaxed);
+            TEXT_COLOR_SUPPORTED.store(true, Ordering::Relaxed);
+        }
     }
 }
 
