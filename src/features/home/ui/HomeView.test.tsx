@@ -98,13 +98,27 @@ function createTurnPlanActivity(overrides?: Partial<TurnPlanSnapshotEntry>): Tur
 
 function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
   mockedUseWorkspaceGit.mockReturnValue(createController());
-  const root = { id: "root-1", name: "FPGA", path: "E:/code/FPGA" };
-  const thread = createThread();
   const {
     collaborationPreset: initialCollaborationPreset = "default",
     onSelectCollaborationPreset,
+    roots = [{ id: "root-1", name: "FPGA", path: "E:/code/FPGA" }],
+    selectedRootId = roots[0]?.id ?? null,
+    selectedRootName,
+    selectedRootPath,
+    selectedThread,
+    threads,
+    selectedThreadId,
     ...restOverrides
   } = overrides ?? {};
+  const activeRoot = roots.find((root) => root.id === selectedRootId) ?? null;
+  const resolvedSelectedRootName = selectedRootName ?? activeRoot?.name ?? "选择工作区";
+  const resolvedSelectedRootPath = selectedRootPath ?? activeRoot?.path ?? null;
+  const defaultThread = createThread({ cwd: resolvedSelectedRootPath ?? "E:/code/FPGA" });
+  const resolvedSelectedThread = selectedThread === undefined ? defaultThread : selectedThread;
+  const resolvedThreads = threads ?? [defaultThread];
+  const resolvedSelectedThreadId = selectedThreadId === undefined
+    ? resolvedSelectedThread?.id ?? null
+    : selectedThreadId;
 
   function HomeViewHarness(
     props: Omit<Partial<ComponentProps<typeof HomeView>>, "collaborationPreset" | "onSelectCollaborationPreset">,
@@ -122,13 +136,13 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
         hostBridge={{} as HostBridge}
         busy={false}
         inputText="请分析当前工作区"
-        roots={[root]}
-        selectedRootId={root.id}
-        selectedRootName={root.name}
-        selectedRootPath={root.path}
-        threads={[thread]}
-        selectedThread={thread}
-        selectedThreadId={thread.id}
+        roots={roots}
+        selectedRootId={selectedRootId}
+        selectedRootName={resolvedSelectedRootName}
+        selectedRootPath={resolvedSelectedRootPath}
+        threads={resolvedThreads}
+        selectedThread={resolvedSelectedThread}
+        selectedThreadId={resolvedSelectedThreadId}
         activeTurnId={null}
         isResponding={false}
         interruptPending={false}
@@ -536,6 +550,42 @@ describe("HomeView", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "工作区会话" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 1, name: "FPGA" })).toBeNull();
+  });
+
+  it("shows the current workspace empty state after creating a draft thread", () => {
+    renderHomeView({
+      selectedThread: null,
+      selectedThreadId: null,
+      draftActive: true,
+    });
+
+    expect(screen.getByRole("heading", { level: 2, name: "Current workspace" })).toBeInTheDocument();
+    expect(screen.queryByText("Ready to start a new thread")).toBeNull();
+  });
+
+  it("opens the workspace selector menu and switches workspace from the empty state", async () => {
+    const onSelectRoot = vi.fn();
+    const roots = [
+      { id: "root-1", name: "FPGA", path: "E:/code/FPGA" },
+      { id: "root-2", name: "codex-app-plus", path: "E:/code/codex-app-plus" },
+    ];
+
+    renderHomeView({
+      roots,
+      selectedRootId: "root-1",
+      selectedThread: null,
+      selectedThreadId: null,
+      onSelectRoot,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "选择工作区：FPGA" }));
+
+    expect(screen.getByRole("menu", { name: "选择工作区" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitemradio", { name: "FPGA" })).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "codex-app-plus" }));
+
+    await waitFor(() => expect(onSelectRoot).toHaveBeenCalledWith("root-2"));
   });
 
   it("truncates long toolbar titles while preserving the full title in tooltip", () => {

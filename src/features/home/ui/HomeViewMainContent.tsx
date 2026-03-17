@@ -31,9 +31,10 @@ import { GitCommitDialog } from "../../git/ui/GitCommitDialog";
 import { extractConnectionRetryInfo } from "../model/homeConnectionRetry";
 import { removeTurnPlanEntries, selectLatestTurnPlan } from "../../conversation/model/homeTurnPlanModel";
 import { selectLatestPendingUserInput } from "../../conversation/model/homeUserInputPromptModel";
-import { OfficialChevronRightIcon } from "../../shared/ui/officialIcons";
 import { selectLatestPlanModePrompt } from "../../composer/model/planModePrompt";
 import { HomeBannerStack, selectVisibleHomeBanners } from "./HomeBannerStack";
+import { HomeWorkspaceEmptyState } from "./HomeWorkspaceEmptyState";
+import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 
 interface PlanPromptTurnOptions {
   readonly text: string;
@@ -57,6 +58,8 @@ export interface HomeViewMainContentProps {
   readonly defaultEffort: ComposerSelection["effort"];
   readonly defaultServiceTier?: ComposerSelection["serviceTier"];
   readonly workspaceOpener: WorkspaceOpener;
+  readonly roots: ReadonlyArray<WorkspaceRoot>;
+  readonly selectedRootId: string | null;
   readonly selectedRootName: string;
   readonly selectedRootPath: string | null;
   readonly selectedThread: ThreadSummary | null;
@@ -65,7 +68,6 @@ export interface HomeViewMainContentProps {
   readonly threadDetailLevel: ThreadDetailLevel;
   readonly isResponding: boolean;
   readonly interruptPending: boolean;
-  readonly draftActive: boolean;
   readonly selectedConversationLoading: boolean;
   readonly terminalOpen: boolean;
   readonly diffOpen: boolean;
@@ -77,6 +79,7 @@ export interface HomeViewMainContentProps {
   readonly fatalError: string | null;
   readonly retryScheduledAt: number | null;
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
+  readonly onSelectRoot: (rootId: string) => void;
   readonly onSelectCollaborationPreset: (preset: CollaborationPreset) => void;
   readonly onInputChange: (text: string) => void;
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
@@ -127,17 +130,14 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
   const [dismissedPlanPromptId, setDismissedPlanPromptId] = useState<string | null>(null);
   const planSnapshotKeyRef = useRef<string | null>(null);
 
-  const conversationActive = props.draftActive
-    || props.selectedConversationLoading
+  const conversationActive = props.selectedConversationLoading
     || props.selectedThread !== null
     || props.activities.length > 0;
-  const placeholder = props.draftActive
-    ? { title: "Ready to start a new thread", body: "Send the first message to switch into the full official timeline." }
-    : props.selectedConversationLoading
-      ? { title: "Loading thread", body: "Historical turns and items are being restored." }
-      : props.selectedThread !== null
-        ? { title: "Thread opened", body: "New plans, tools, approvals, realtime updates, and file changes appear here." }
-        : null;
+  const placeholder = props.selectedConversationLoading
+    ? { title: "Loading thread", body: "Historical turns and items are being restored." }
+    : props.selectedThread !== null
+      ? { title: "Thread opened", body: "New plans, tools, approvals, realtime updates, and file changes appear here." }
+      : null;
 
   useEffect(() => {
     if (currentTurnPlan === null) {
@@ -222,9 +222,12 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           onRetryConnection={props.onRetryConnection}
         />
       ) : (
-        <EmptyCanvas
+        <HomeWorkspaceEmptyState
+          roots={props.roots}
+          selectedRootId={props.selectedRootId}
           selectedRootName={props.selectedRootName}
           selectedRootPath={props.selectedRootPath}
+          onSelectRoot={props.onSelectRoot}
         />
       )}
       <HomeTurnPlanDrawer
@@ -293,26 +296,4 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
 
 function createTurnPlanChangeKey(plan: { readonly entry: { readonly id: string }; readonly totalSteps: number; readonly completedSteps: number }): string {
   return `${plan.entry.id}:${plan.totalSteps}:${plan.completedSteps}`;
-}
-
-function EmptyCanvas(props: {
-  readonly selectedRootName: string;
-  readonly selectedRootPath: string | null;
-}): JSX.Element {
-  const selectorClassName = props.selectedRootPath === null
-    ? "workspace-selector workspace-selector-placeholder"
-    : "workspace-selector";
-  const title = props.selectedRootPath === null ? "Get started" : "Current workspace";
-
-  return (
-    <main className="main-canvas">
-      <div className="empty-state" aria-label="工作区空状态">
-        <h2 className="empty-title">{title}</h2>
-        <button type="button" className={selectorClassName}>
-          <span className="workspace-selector-label">{props.selectedRootName}</span>
-          <OfficialChevronRightIcon className="workspace-selector-caret" />
-        </button>
-      </div>
-    </main>
-  );
 }

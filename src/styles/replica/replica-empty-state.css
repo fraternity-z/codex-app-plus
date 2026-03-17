@@ -30,9 +30,23 @@
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
+.workspace-selector-shell {
+  position: relative;
+}
+
 .workspace-selector:hover {
   background: var(--surface-hover);
   border-color: var(--border-strong);
+}
+
+.workspace-selector:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.workspace-selector:disabled:hover {
+  background: var(--surface-panel);
+  border-color: var(--border-light);
 }
 
 .workspace-selector-label {
@@ -55,6 +69,82 @@
   height: 18px;
   color: var(--text-subtle);
   transform: rotate(90deg);
+}
+
+.workspace-selector-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  min-width: min(520px, calc(100vw - 48px));
+  padding: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(-50%);
+  z-index: 40;
+}
+
+.workspace-selector-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: left;
+}
+
+.workspace-selector-item:hover {
+  background: var(--surface-hover);
+}
+
+.workspace-selector-item:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 1px;
+}
+
+.workspace-selector-item-active {
+  background: var(--surface-active);
+}
+
+.workspace-selector-item-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.workspace-selector-item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.workspace-selector-item-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.workspace-selector-item-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.workspace-selector-item-active .workspace-selector-item-indicator {
+  background: var(--accent-color);
 }
 
 .auth-choice-layout {
@@ -160,6 +250,10 @@
 
   .workspace-selector-label {
     font-size: 16px;
+  }
+
+  .workspace-selector-menu {
+    min-width: min(440px, calc(100vw - 32px));
   }
 
   .auth-choice-card {
