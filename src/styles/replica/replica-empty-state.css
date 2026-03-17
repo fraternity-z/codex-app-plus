@@ -72,17 +72,47 @@
 }
 
 .workspace-selector-menu {
+  --workspace-selector-visible-count: 4;
+  --workspace-selector-item-height: 72px;
   position: absolute;
   top: calc(100% + 10px);
   left: 50%;
   min-width: min(520px, calc(100vw - 48px));
+  max-height: min(
+    calc(var(--workspace-selector-visible-count) * var(--workspace-selector-item-height) + 16px),
+    calc(100vh - 140px)
+  );
   padding: 8px;
   border: 1px solid var(--border-light);
   border-radius: 16px;
   background: var(--surface-panel);
   box-shadow: var(--shadow-lg);
   transform: translateX(-50%);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.22) transparent;
   z-index: 40;
+}
+
+.workspace-selector-menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.workspace-selector-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workspace-selector-menu::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.22);
+  background-clip: padding-box;
+}
+
+.workspace-selector-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.32);
+  background-clip: padding-box;
 }
 
 .workspace-selector-item {
