@@ -2,11 +2,13 @@ use tauri::{AppHandle, Emitter};
 
 use crate::error::AppResult;
 use crate::models::{
-    ConnectionChangedPayload, FatalErrorPayload, NotificationPayload, RequestId,
-    ServerRequestPayload, TerminalExitPayload, TerminalOutputPayload,
+    CodexSessionIndexUpdatedPayload, ConnectionChangedPayload, FatalErrorPayload,
+    NotificationPayload, RequestId, ServerRequestPayload, TerminalExitPayload,
+    TerminalOutputPayload,
 };
 
 pub const EVENT_CONNECTION_CHANGED: &str = "connection-changed";
+pub const EVENT_CODEX_SESSION_INDEX_UPDATED: &str = "codex-session-index-updated";
 pub const EVENT_NOTIFICATION_RECEIVED: &str = "notification-received";
 pub const EVENT_SERVER_REQUEST_RECEIVED: &str = "server-request-received";
 pub const EVENT_FATAL_ERROR: &str = "fatal-error";
@@ -49,6 +51,14 @@ pub fn emit_fatal(app: &AppHandle, message: impl Into<String>) -> AppResult<()> 
         message: message.into(),
     };
     app.emit(EVENT_FATAL_ERROR, payload)
+        .map_err(|e| crate::error::AppError::Protocol(e.to_string()))
+}
+
+pub fn emit_codex_session_index_updated(
+    app: &AppHandle,
+    payload: CodexSessionIndexUpdatedPayload,
+) -> AppResult<()> {
+    app.emit(EVENT_CODEX_SESSION_INDEX_UPDATED, payload)
         .map_err(|e| crate::error::AppError::Protocol(e.to_string()))
 }
 

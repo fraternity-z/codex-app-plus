@@ -15,12 +15,23 @@ function pathDepth(value: string | null): number {
     .filter((part) => part.length > 0).length;
 }
 
-function matchesWorkspacePath(threadPath: string | null, workspacePath: string): boolean {
+export function threadBelongsToWorkspace(
+  threadPath: string | null,
+  workspacePath: string | null,
+): boolean {
+  if (workspacePath === null) {
+    return false;
+  }
+  const normalizedWorkspacePath = normalizeWorkspacePath(workspacePath);
+  if (normalizedWorkspacePath.length === 0) {
+    return false;
+  }
   const normalizedThreadPath = normalizeWorkspacePath(threadPath ?? "");
   if (normalizedThreadPath.length === 0) {
     return false;
   }
-  return normalizedThreadPath === workspacePath || normalizedThreadPath.startsWith(`${workspacePath}/`);
+  return normalizedThreadPath === normalizedWorkspacePath
+    || normalizedThreadPath.startsWith(`${normalizedWorkspacePath}/`);
 }
 
 export function listThreadsForWorkspace(
@@ -37,7 +48,7 @@ export function listThreadsForWorkspace(
   }
 
   return [...threads]
-    .filter((thread) => matchesWorkspacePath(thread.cwd, normalizedWorkspacePath))
+    .filter((thread) => threadBelongsToWorkspace(thread.cwd, normalizedWorkspacePath))
     .sort((left, right) => {
       const updatedAtDelta = toUpdatedAtTimestamp(right.updatedAt) - toUpdatedAtTimestamp(left.updatedAt);
       if (updatedAtDelta !== 0) {

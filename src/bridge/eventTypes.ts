@@ -3,6 +3,7 @@ import type { TerminalExitEventPayload, TerminalOutputEventPayload } from "./ter
 
 export type BridgeEventName =
   | "connection-changed"
+  | "codex-session-index-updated"
   | "notification-received"
   | "server-request-received"
   | "fatal-error"
@@ -28,8 +29,15 @@ export interface FatalErrorPayload {
   readonly message: string;
 }
 
+export interface CodexSessionIndexUpdatedPayload {
+  readonly agentEnvironment: "windowsNative" | "wsl";
+  readonly durationMs: number;
+  readonly sessionCount: number;
+}
+
 export type BridgeEventPayloadMap = {
   "connection-changed": ConnectionChangedPayload;
+  "codex-session-index-updated": CodexSessionIndexUpdatedPayload;
   "notification-received": NotificationEventPayload;
   "server-request-received": ServerRequestEventPayload;
   "fatal-error": FatalErrorPayload;

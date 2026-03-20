@@ -20,6 +20,7 @@ import type {
   ThreadSummary,
   TimelineEntry,
   UiBanner,
+  WorkspaceSwitchState,
 } from "../../../domain/types";
 import type {
   CollaborationPreset,
@@ -31,6 +32,7 @@ import type { ResolvedTheme } from "../../../domain/theme";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
 import { useWorkspaceGit } from "../../git/hooks/useWorkspaceGit";
 import type { WorkspaceGitController } from "../../git/model/types";
+import { useWorkspaceSwitchTracker } from "../hooks/useWorkspaceSwitchTracker";
 import { OfficialSidebarToggleIcon } from "../../shared/ui/officialIcons";
 import { useTerminalController } from "../../terminal/hooks/useTerminalController";
 import { TerminalDock } from "../../terminal/ui/TerminalDock";
@@ -90,6 +92,7 @@ export interface HomeViewProps {
   readonly authBusy: boolean;
   readonly authLoginPending: boolean;
   readonly retryScheduledAt: number | null;
+  readonly workspaceSwitch: WorkspaceSwitchState;
   readonly settingsMenuOpen: boolean;
   readonly onToggleSettingsMenu: () => void;
   readonly onDismissSettingsMenu: () => void;
@@ -133,11 +136,19 @@ export function HomeView(props: HomeViewProps): JSX.Element {
   const [terminalOpen, setTerminalOpen] = useState(true);
   const canShowDiffSidebar = diffSidebarOpen && props.selectedRootPath !== null;
   const gitController = useWorkspaceGit({
+    diffStateEnabled: canShowDiffSidebar,
     hostBridge: props.hostBridge,
     selectedRootPath: props.selectedRootPath,
     autoRefreshEnabled: canShowDiffSidebar,
     gitBranchPrefix: props.gitBranchPrefix,
     gitPushForceWithLease: props.gitPushForceWithLease,
+  });
+  useWorkspaceSwitchTracker({
+    selectedRootId: props.selectedRootId,
+    selectedRootPath: props.selectedRootPath,
+    gitError: gitController.error,
+    gitLoading: gitController.loading,
+    gitStatusLoaded: gitController.statusLoaded,
   });
   const { activities: filteredActivities, retryInfo } = useMemo(
     () => extractConnectionRetryInfo(props.activities),
@@ -171,6 +182,7 @@ export function HomeView(props: HomeViewProps): JSX.Element {
     retryInfo,
     terminalOpen,
     canShowDiffSidebar,
+    props.workspaceSwitch,
     toggleTerminal,
     toggleDiffSidebar,
   );
@@ -255,6 +267,7 @@ function createHomeMainContentProps(
   retryInfo: ReturnType<typeof extractConnectionRetryInfo>["retryInfo"],
   terminalOpen: boolean,
   diffOpen: boolean,
+  workspaceSwitch: WorkspaceSwitchState,
   onToggleTerminal: () => void,
   onToggleDiff: () => void,
 ): HomeViewMainContentProps {
@@ -285,6 +298,7 @@ function createHomeMainContentProps(
     isResponding: props.isResponding,
     interruptPending: props.interruptPending,
     selectedConversationLoading: props.selectedConversationLoading,
+    workspaceSwitch,
     terminalOpen,
     diffOpen,
     followUpQueueMode: props.followUpQueueMode,

@@ -388,6 +388,14 @@ pub struct FatalErrorPayload {
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
+pub struct CodexSessionIndexUpdatedPayload {
+    pub agent_environment: AgentEnvironment,
+    pub duration_ms: u64,
+    pub session_count: usize,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct TerminalOutputPayload {
     pub session_id: String,
     pub data: String,

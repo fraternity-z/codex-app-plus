@@ -43,10 +43,62 @@ import {
   upsertConversationState,
 } from "./appReducerShared";
 
+function reduceWorkspaceSwitchState(
+  state: AppState,
+  action: AppAction,
+): AppState | null {
+  switch (action.type) {
+    case "workspaceSwitch/started":
+      return {
+        ...state,
+        workspaceSwitch: {
+          switchId: action.switchId,
+          rootId: action.rootId,
+          rootPath: action.rootPath,
+          phase: "switching",
+          startedAt: action.startedAt,
+          completedAt: null,
+          durationMs: null,
+          error: null,
+        },
+      };
+    case "workspaceSwitch/completed":
+      return action.switchId !== state.workspaceSwitch.switchId ? state : {
+        ...state,
+        workspaceSwitch: {
+          ...state.workspaceSwitch,
+          phase: "ready",
+          completedAt: action.completedAt,
+          durationMs: action.durationMs,
+          error: null,
+        },
+      };
+    case "workspaceSwitch/failed":
+      return action.switchId !== state.workspaceSwitch.switchId ? state : {
+        ...state,
+        workspaceSwitch: {
+          ...state.workspaceSwitch,
+          phase: "failed",
+          completedAt: action.completedAt,
+          durationMs: action.durationMs,
+          error: action.error,
+        },
+      };
+    case "workspaceSwitch/cleared":
+      return { ...state, workspaceSwitch: INITIAL_STATE.workspaceSwitch };
+    default:
+      return null;
+  }
+}
+
 export function appReducer(state: AppState, action: AppAction): AppState {
   const nextAppUpdateState = reduceAppUpdateState(state, action);
   if (nextAppUpdateState !== null) {
     return nextAppUpdateState;
+  }
+  const nextWorkspaceSwitchState = reduceWorkspaceSwitchState(state, action);
+  if (nextWorkspaceSwitchState !== null) {
+    return nextWorkspaceSwitchState;
   }
   switch (action.type) {
     case "connection/changed": {

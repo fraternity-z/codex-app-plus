@@ -8,9 +8,14 @@ import type { ThreadSummary, TimelineEntry } from "../../../domain/types";
 import { AppStoreProvider } from "../../../state/store";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { HomeView } from "./HomeView";
-const { mockedUseWorkspaceGit, mockedUseTerminalController } = vi.hoisted(() => ({
+const {
+  mockedUseWorkspaceGit,
+  mockedUseTerminalController,
+  mockedUseWorkspaceSwitchTracker,
+} = vi.hoisted(() => ({
   mockedUseWorkspaceGit: vi.fn(),
   mockedUseTerminalController: vi.fn(),
+  mockedUseWorkspaceSwitchTracker: vi.fn(),
 }));
 vi.mock("../../terminal/ui/TerminalDock", () => ({ TerminalDock: () => null }));
 vi.mock("../../terminal/ui/TerminalPanel", () => ({ TerminalPanel: () => null }));
@@ -18,6 +23,9 @@ vi.mock("../../terminal/hooks/useTerminalController", () => ({
   useTerminalController: mockedUseTerminalController,
 }));
 vi.mock("../../git/hooks/useWorkspaceGit", () => ({ useWorkspaceGit: mockedUseWorkspaceGit }));
+vi.mock("../hooks/useWorkspaceSwitchTracker", () => ({
+  useWorkspaceSwitchTracker: mockedUseWorkspaceSwitchTracker,
+}));
 
 const DEFAULT_GIT_BRANCH_PREFIX = "codex/";
 const DEFAULT_GIT_PUSH_FORCE_WITH_LEASE = false;
@@ -121,6 +129,16 @@ function createTurnPlanActivity(overrides?: Partial<TurnPlanSnapshotEntry>): Tur
 
 function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
   mockedUseWorkspaceGit.mockReturnValue(createController());
+  mockedUseWorkspaceSwitchTracker.mockReturnValue({
+    switchId: 0,
+    rootId: null,
+    rootPath: null,
+    phase: "idle",
+    startedAt: null,
+    completedAt: null,
+    durationMs: null,
+    error: null,
+  });
   mockedUseTerminalController.mockReturnValue({
     activeTerminalId: null,
     hasWorkspace: true,
@@ -212,6 +230,16 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
         authBusy={false}
         authLoginPending={false}
         retryScheduledAt={null}
+        workspaceSwitch={{
+          switchId: 0,
+          rootId: null,
+          rootPath: null,
+          phase: "idle",
+          startedAt: null,
+          completedAt: null,
+          durationMs: null,
+          error: null,
+        }}
         settingsMenuOpen={false}
         onToggleSettingsMenu={vi.fn()}
         onDismissSettingsMenu={vi.fn()}
@@ -257,6 +285,7 @@ describe("HomeView", () => {
     expect(mockedUseWorkspaceGit).toHaveBeenCalledWith(expect.objectContaining({
       selectedRootPath: "E:/code/FPGA",
       autoRefreshEnabled: false,
+      diffStateEnabled: false,
       gitBranchPrefix: "feature/",
       gitPushForceWithLease: true,
     }));
@@ -541,6 +570,16 @@ describe("HomeView", () => {
         authBusy={false}
         authLoginPending={false}
         retryScheduledAt={null}
+        workspaceSwitch={{
+          switchId: 0,
+          rootId: null,
+          rootPath: null,
+          phase: "idle",
+          startedAt: null,
+          completedAt: null,
+          durationMs: null,
+          error: null,
+        }}
         settingsMenuOpen={false}
         onToggleSettingsMenu={vi.fn()}
         onDismissSettingsMenu={vi.fn()}

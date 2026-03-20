@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import { OfficialChevronRightIcon } from "../../shared/ui/officialIcons";
+import type { WorkspaceSwitchState } from "../../../domain/types";
 
 const WORKSPACE_MENU_LABEL = "选择工作区";
 
@@ -10,6 +11,7 @@ interface HomeWorkspaceEmptyStateProps {
   readonly selectedRootId: string | null;
   readonly selectedRootName: string;
   readonly selectedRootPath: string | null;
+  readonly switchState: WorkspaceSwitchState;
   readonly onSelectRoot: (rootId: string) => void;
 }
 
@@ -54,7 +56,8 @@ export function HomeWorkspaceEmptyState(props: HomeWorkspaceEmptyStateProps): JS
   const selectorClassName = props.selectedRootPath === null
     ? "workspace-selector workspace-selector-placeholder"
     : "workspace-selector";
-  const title = props.selectedRootPath === null ? "Get started" : "Current workspace";
+  const title = resolveEmptyStateTitle(props.selectedRootPath, props.switchState.phase);
+  const description = resolveEmptyStateDescription(props);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   useToolbarMenuDismissal(menuOpen, containerRef, closeMenu);
@@ -75,6 +78,7 @@ export function HomeWorkspaceEmptyState(props: HomeWorkspaceEmptyStateProps): JS
     <main className="main-canvas">
       <div className="empty-state" aria-label="工作区空状态">
         <h2 className="empty-title">{title}</h2>
+        {description === null ? null : <p className="empty-copy">{description}</p>}
         <div className="workspace-selector-shell" ref={containerRef}>
           <button
             type="button"
@@ -99,4 +103,32 @@ export function HomeWorkspaceEmptyState(props: HomeWorkspaceEmptyStateProps): JS
       </div>
     </main>
   );
+}
+
+function resolveEmptyStateTitle(
+  selectedRootPath: string | null,
+  phase: WorkspaceSwitchState["phase"],
+): string {
+  if (selectedRootPath === null) {
+    return "Get started";
+  }
+  if (phase === "switching") {
+    return "切换工作区中…";
+  }
+  if (phase === "failed") {
+    return "工作区加载失败";
+  }
+  return "Current workspace";
+}
+
+function resolveEmptyStateDescription(
+  props: HomeWorkspaceEmptyStateProps,
+): string | null {
+  if (props.switchState.phase === "switching" && props.selectedRootPath !== null) {
+    return `正在加载 ${props.selectedRootName} 的会话与仓库状态…`;
+  }
+  if (props.switchState.phase === "failed") {
+    return props.switchState.error;
+  }
+  return props.selectedRootPath;
 }

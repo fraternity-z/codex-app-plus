@@ -25,6 +25,7 @@ export interface HomeScreenState {
   readonly inputText: AppState["inputText"];
   readonly rateLimits: AppState["rateLimits"];
   readonly retryScheduledAt: AppState["retryScheduledAt"];
+  readonly workspaceSwitch: AppState["workspaceSwitch"];
 }
 
 export interface SettingsScreenState {
@@ -83,6 +84,7 @@ function selectHomeScreenState(state: AppState): HomeScreenState {
     inputText: state.inputText,
     rateLimits: state.rateLimits,
     retryScheduledAt: state.retryScheduledAt,
+    workspaceSwitch: state.workspaceSwitch,
   };
 }
 
@@ -101,7 +103,8 @@ function isHomeScreenStateEqual(left: HomeScreenState, right: HomeScreenState): 
     && left.initialized === right.initialized
     && left.inputText === right.inputText
     && Object.is(left.rateLimits, right.rateLimits)
-    && left.retryScheduledAt === right.retryScheduledAt;
+    && left.retryScheduledAt === right.retryScheduledAt
+    && Object.is(left.workspaceSwitch, right.workspaceSwitch);
 }
 
 function selectSettingsScreenState(state: AppState): SettingsScreenState {

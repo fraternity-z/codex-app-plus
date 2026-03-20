@@ -126,6 +126,23 @@ describe("useWorkspaceGit", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
+  it("does not preload per-file diffs while diff state is disabled", async () => {
+    const snapshot = createSnapshot({
+      unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }],
+    });
+    const getStatusSnapshot = vi.fn().mockResolvedValue(snapshot);
+    const getDiff = vi.fn().mockResolvedValue(createDiff("src/App.tsx"));
+    const hostBridge = createHostBridge(getStatusSnapshot, getDiff);
+
+    const { result } = renderHook(() => useWorkspaceGit(
+      createGitOptions(hostBridge, { diffStateEnabled: false }),
+    ));
+
+    await waitFor(() => expect(result.current.statusLoaded).toBe(true));
+
+    expect(getDiff).not.toHaveBeenCalled();
+  });
+
   it("coalesces focus and visibility refreshes when auto refresh is enabled", async () => {
     const snapshot = createSnapshot({ unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }] });
     const getStatusSnapshot = vi.fn().mockResolvedValue(snapshot);

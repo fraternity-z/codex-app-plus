@@ -11,6 +11,7 @@ import type {
   ThreadSummary,
   TimelineEntry,
   UiBanner,
+  WorkspaceSwitchState,
 } from "../../../domain/types";
 import type {
   CollaborationPreset,
@@ -69,6 +70,7 @@ export interface HomeViewMainContentProps {
   readonly isResponding: boolean;
   readonly interruptPending: boolean;
   readonly selectedConversationLoading: boolean;
+  readonly workspaceSwitch: WorkspaceSwitchState;
   readonly terminalOpen: boolean;
   readonly diffOpen: boolean;
   readonly followUpQueueMode: FollowUpMode;
@@ -133,6 +135,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
   const conversationActive = props.selectedConversationLoading
     || props.selectedThread !== null
     || props.activities.length > 0;
+  const workspaceSwitching = props.workspaceSwitch.phase === "switching";
   const placeholder = props.selectedConversationLoading
     ? { title: "Loading thread", body: "Historical turns and items are being restored." }
     : props.selectedThread !== null
@@ -196,6 +199,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
         selectedThreadTitle={props.selectedThread?.title ?? null}
         terminalOpen={props.terminalOpen}
         diffOpen={props.diffOpen}
+        workspaceSwitching={workspaceSwitching}
         onSelectWorkspaceOpener={props.onSelectWorkspaceOpener}
         onToggleDiff={props.onToggleDiff}
         onToggleTerminal={props.onToggleTerminal}
@@ -227,6 +231,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           selectedRootId={props.selectedRootId}
           selectedRootName={props.selectedRootName}
           selectedRootPath={props.selectedRootPath}
+          switchState={props.workspaceSwitch}
           onSelectRoot={props.onSelectRoot}
         />
       )}

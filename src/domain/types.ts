@@ -89,6 +89,8 @@ export interface WindowsSandboxSetupState {
   readonly error: string | null;
 }
 
+export type WorkspaceSwitchPhase = "idle" | "switching" | "ready" | "failed";
+
 export interface UiBanner {
   readonly id: string;
   readonly level: NoticeLevel;
@@ -118,6 +120,17 @@ export interface ComposerUiState {
   readonly draftCollaborationPreset: CollaborationPreset;
 }
 
+export interface WorkspaceSwitchState {
+  readonly switchId: number;
+  readonly rootId: string | null;
+  readonly rootPath: string | null;
+  readonly phase: WorkspaceSwitchPhase;
+  readonly startedAt: number | null;
+  readonly completedAt: number | null;
+  readonly durationMs: number | null;
+  readonly error: string | null;
+}
+
 export interface AppState {
   readonly connectionStatus: ConnectionStatus;
   readonly fatalError: string | null;
@@ -141,6 +154,7 @@ export interface AppState {
   readonly authLogin: AuthLoginState;
   readonly tokenRefresh: TokenRefreshState;
   readonly windowsSandboxSetup: WindowsSandboxSetupState;
+  readonly workspaceSwitch: WorkspaceSwitchState;
   readonly realtimeByThreadId: Readonly<Record<string, RealtimeState>>;
   readonly fuzzySearchSessionsById: Readonly<Record<string, FuzzySearchSessionState>>;
   readonly banners: ReadonlyArray<UiBanner>;
@@ -221,6 +235,10 @@ export type AppAction =
   | { type: "initialized/changed"; ready: boolean }
   | { type: "retry/scheduled"; at: number | null }
   | { type: "input/changed"; value: string }
+  | { type: "workspaceSwitch/started"; switchId: number; rootId: string; rootPath: string; startedAt: number }
+  | { type: "workspaceSwitch/completed"; switchId: number; completedAt: number; durationMs: number }
+  | { type: "workspaceSwitch/failed"; switchId: number; completedAt: number; durationMs: number; error: string }
+  | { type: "workspaceSwitch/cleared" }
   | { type: "composer/threadCollaborationPresetSelected"; conversationId: string; preset: CollaborationPreset }
   | { type: "composer/draftCollaborationPresetSelected"; preset: CollaborationPreset }
   | { type: "composer/draftCollaborationPresetTransferred"; conversationId: string }
@@ -258,6 +276,16 @@ export const INITIAL_STATE: AppState = {
   composerUi: {
     threadCollaborationPresets: {},
     draftCollaborationPreset: INITIAL_DRAFT_COLLABORATION_PRESET,
+  },
+  workspaceSwitch: {
+    switchId: 0,
+    rootId: null,
+    rootPath: null,
+    phase: "idle",
+    startedAt: null,
+    completedAt: null,
+    durationMs: null,
+    error: null,
   },
   bootstrapBusy: false,
   appUpdate: INITIAL_APP_UPDATE_STATE,

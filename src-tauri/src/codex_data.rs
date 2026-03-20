@@ -1,21 +1,22 @@
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-
+use std::time::Instant;
 use serde_json::Value;
-
+use tauri::AppHandle;
 use crate::agent_environment::resolve_codex_home_relative_path;
 use crate::codex_session_text::summarize_user_message;
 use crate::error::{AppError, AppResult};
+use crate::events::emit_codex_session_index_updated;
 use crate::models::{
-    AgentEnvironment, CodexSessionMessage, CodexSessionReadInput, CodexSessionReadOutput,
-    CodexSessionSummary, DeleteCodexSessionInput,
+    AgentEnvironment, CodexSessionIndexUpdatedPayload, CodexSessionMessage,
+    CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSummary,
+    DeleteCodexSessionInput,
 };
 
 mod index;
 #[cfg(test)]
 mod tests;
-
 const SUMMARY_TAIL_BYTES: u64 = 64 * 1024;
 
 struct SessionHeader {
@@ -24,11 +25,13 @@ struct SessionHeader {
     title: Option<String>,
 }
 
-pub fn list_codex_sessions(
-    agent_environment: AgentEnvironment,
-) -> AppResult<Vec<CodexSessionSummary>> {
+pub fn list_codex_sessions(app: AppHandle, agent_environment: AgentEnvironment) -> AppResult<Vec<CodexSessionSummary>> {
     let root = codex_sessions_root(agent_environment)?;
-    index::list_session_summaries(&root, agent_environment)
+    let sessions = index::list_cached_session_summaries(&root, agent_environment)?;
+    if index::session_index_needs_refresh(&root, agent_environment)? {
+        spawn_session_index_refresh(app, root, agent_environment);
+    }
+    Ok(sessions)
 }
 
 pub fn read_codex_session(input: CodexSessionReadInput) -> AppResult<CodexSessionReadOutput> {
@@ -61,6 +64,26 @@ fn validate_thread_id(thread_id: &str) -> AppResult<()> {
 
 fn codex_sessions_root(agent_environment: AgentEnvironment) -> AppResult<PathBuf> {
     Ok(resolve_codex_home_relative_path(agent_environment, ".codex/sessions")?.host_path)
+}
+fn spawn_session_index_refresh(app: AppHandle, root: PathBuf, agent_environment: AgentEnvironment) {
+    std::thread::spawn(move || {
+        let started_at = Instant::now();
+        match index::list_session_summaries(&root, agent_environment) {
+            Ok(sessions) => {
+                let payload = CodexSessionIndexUpdatedPayload {
+                    agent_environment,
+                    duration_ms: started_at.elapsed().as_millis() as u64,
+                    session_count: sessions.len(),
+                };
+                if let Err(error) = emit_codex_session_index_updated(&app, payload) {
+                    eprintln!("emit codex-session-index-updated failed: {error}");
+                }
+            }
+            Err(error) => {
+                eprintln!("refresh codex session index failed: {error}");
+            }
+        }
+    });
 }
 
 fn collect_session_files(root: &Path, files: &mut Vec<PathBuf>) -> AppResult<()> {

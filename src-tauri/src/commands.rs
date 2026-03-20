@@ -241,9 +241,10 @@ pub fn app_import_official_data(input: ImportOfficialDataInput) -> Result<(), St
 
 #[tauri::command]
 pub fn app_list_codex_sessions(
+    app: AppHandle,
     input: ListCodexSessionsInput,
 ) -> Result<Vec<CodexSessionSummary>, String> {
-    to_result(list_codex_sessions(input.agent_environment))
+    to_result(list_codex_sessions(app, input.agent_environment))
 }
 
 #[tauri::command]

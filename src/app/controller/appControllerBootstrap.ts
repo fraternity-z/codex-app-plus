@@ -16,7 +16,7 @@ export function createAppServerStartInput(agentEnvironment: AgentEnvironment): {
   return { agentEnvironment };
 }
 
-async function loadConversationCatalog(
+export async function loadConversationCatalog(
   client: ProtocolClient,
   hostBridge: HostBridge,
   dispatch: Dispatch,

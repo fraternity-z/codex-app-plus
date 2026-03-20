@@ -3,7 +3,7 @@ import type { ConversationState } from "../../../domain/conversation";
 import type { AppState, FuzzySearchSessionState } from "../../../domain/types";
 import type { ThreadSummary } from "../../../domain/timeline";
 import { isComposerFuzzySessionId } from "../../composer/service/composerCommandBridge";
-import { listThreadsForWorkspace } from "../../workspace/model/workspaceThread";
+import { listThreadsForWorkspace, threadBelongsToWorkspace } from "../../workspace/model/workspaceThread";
 import { isConversationStreaming, mapConversationToThreadSummary } from "./conversationSelectors";
 
 const EMPTY_THREADS: ReadonlyArray<ThreadSummary> = [];
@@ -51,6 +51,16 @@ function collectVisibleConversations(state: AppState, agentEnvironment: AgentEnv
   return next;
 }
 
+function collectWorkspaceConversations(
+  state: AppState,
+  agentEnvironment: AgentEnvironment,
+  workspacePath: string | null,
+): Array<ConversationState> {
+  return collectVisibleConversations(state, agentEnvironment).filter((conversation) => (
+    threadBelongsToWorkspace(conversation.cwd, workspacePath)
+  ));
+}
+
 export function createThreadSummaryMemo(): (conversation: ConversationState) => ThreadSummary {
   const cache = new Map<string, ThreadSummaryCacheEntry>();
 
@@ -95,14 +105,20 @@ export function createWorkspaceThreadsSelector(
   workspacePath: string | null,
 ): (state: AppState) => ReadonlyArray<ThreadSummary> {
   const mapConversationSummary = createThreadSummaryMemo();
+  let previousSummaries = EMPTY_THREADS;
   let previousThreads = EMPTY_THREADS;
 
   return (state) => {
     const summaries = collectVisibleConversations(state, agentEnvironment).map(mapConversationSummary);
-    const nextThreads = listThreadsForWorkspace(summaries, workspacePath);
-    if (areArraysShallowEqual(previousThreads, nextThreads)) {
+    if (areArraysShallowEqual(previousSummaries, summaries)) {
       return previousThreads;
     }
+    const nextThreads = listThreadsForWorkspace(summaries, workspacePath);
+    if (areArraysShallowEqual(previousThreads, nextThreads)) {
+      previousSummaries = summaries;
+      return previousThreads;
+    }
+    previousSummaries = summaries;
     previousThreads = nextThreads;
     return nextThreads;
   };
@@ -110,9 +126,10 @@ export function createWorkspaceThreadsSelector(
 
 export function createQueuedConversationIdSelector(
   agentEnvironment: AgentEnvironment,
+  workspacePath: string | null,
 ): (state: AppState) => string | null {
   return (state) => {
-    for (const conversation of collectVisibleConversations(state, agentEnvironment)) {
+    for (const conversation of collectWorkspaceConversations(state, agentEnvironment, workspacePath)) {
       if (conversation.queuedFollowUps.length > 0 && isConversationStreaming(conversation) === false) {
         return conversation.id;
       }

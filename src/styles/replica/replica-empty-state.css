@@ -15,6 +15,14 @@
   color: var(--text-main);
 }
 
+.empty-copy {
+  margin: 0;
+  max-width: min(560px, 80vw);
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
 .workspace-selector {
   height: 44px;
   border: 1px solid var(--border-light);

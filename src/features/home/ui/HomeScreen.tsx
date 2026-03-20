@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { startTransition, useCallback, useMemo } from "react";
 import type { HostBridge } from "../../../bridge/types";
 import type { ResolvedTheme } from "../../../domain/theme";
 import { useI18n } from "../../../i18n";
@@ -97,6 +97,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       authBusy={state.bootstrapBusy || state.authLoginPending}
       authLoginPending={state.authLoginPending}
       retryScheduledAt={state.retryScheduledAt}
+      workspaceSwitch={state.workspaceSwitch}
       settingsMenuOpen={props.settingsMenuOpen}
       onToggleSettingsMenu={props.onToggleSettingsMenu}
       onDismissSettingsMenu={props.onDismissSettingsMenu}
@@ -104,7 +105,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       onOpenSkills={props.onOpenSkills}
       onSelectWorkspaceOpener={props.preferences.setWorkspaceOpener}
       onSelectComposerPermissionLevel={props.preferences.setComposerPermissionLevel}
-      onSelectRoot={props.workspace.selectRoot}
+      onSelectRoot={actions.selectRoot}
       onSelectThread={conversation.selectThread}
       onSelectCollaborationPreset={conversation.selectCollaborationPreset}
       onInputChange={props.controller.setInput}
@@ -170,6 +171,12 @@ function useHomeScreenActions(args: {
     }
   }, [args.workspace, notifyError, t]);
 
+  const selectRoot = useCallback((rootId: string) => {
+    startTransition(() => {
+      args.workspace.selectRoot(rootId);
+    });
+  }, [args.workspace]);
+
   const createWorkspaceThread = useCallback(async () => {
     try {
       await args.conversation.createThread();
@@ -219,6 +226,7 @@ function useHomeScreenActions(args: {
     createWorkspaceThread,
     dismissBanner,
     persistComposerSelection,
+    selectRoot,
     sendWorkspaceTurn,
     setMultiAgentEnabled,
   };

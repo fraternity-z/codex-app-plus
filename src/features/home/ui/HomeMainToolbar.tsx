@@ -22,6 +22,7 @@ interface HomeMainToolbarProps {
   readonly selectedThreadTitle: string | null;
   readonly terminalOpen: boolean;
   readonly diffOpen: boolean;
+  readonly workspaceSwitching: boolean;
   readonly gitController: WorkspaceGitController;
   readonly workspaceOpener: WorkspaceOpener;
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
@@ -78,7 +79,11 @@ function truncateToolbarTitle(value: string): string {
 export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
   const title = resolveTitle(props);
   const displayTitle = truncateToolbarTitle(title);
-  const subtitle = props.conversationActive && props.selectedRootPath !== null ? props.selectedRootName : null;
+  const subtitle = props.conversationActive && props.selectedRootPath !== null
+    ? props.workspaceSwitching
+      ? `${props.selectedRootName} · 切换中…`
+      : props.selectedRootName
+    : null;
   const terminalLabel = props.terminalOpen ? HIDE_TERMINAL_LABEL : SHOW_TERMINAL_LABEL;
   const diffLabel = props.diffOpen ? HIDE_DIFF_LABEL : SHOW_DIFF_LABEL;
   const toolbarClassName = props.conversationActive ? "main-toolbar main-toolbar-conversation" : "main-toolbar";
@@ -101,7 +106,7 @@ export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
         <div className="toolbar-icon-row" aria-label={TOOLBAR_ACTIONS_LABEL}>
           <ToolbarIconButton
             active={props.diffOpen}
-            disabled={props.selectedRootPath === null}
+            disabled={props.selectedRootPath === null || props.workspaceSwitching}
             label={diffLabel}
             onClick={props.onToggleDiff}
           >

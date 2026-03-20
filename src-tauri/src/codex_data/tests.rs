@@ -1,10 +1,20 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, MutexGuard, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::models::AgentEnvironment;
 
 use super::{delete_session_by_id, index, infer_name_from_path, read_session_summary};
+
+static SESSION_INDEX_TEST_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+
+fn lock_session_index_tests() -> MutexGuard<'static, ()> {
+    SESSION_INDEX_TEST_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .expect("lock session index tests")
+}
 
 fn create_temp_session_file(contents: &str) -> PathBuf {
     let suffix = SystemTime::now()
@@ -106,6 +116,7 @@ fn ignores_developer_messages_when_picking_session_title() {
 
 #[test]
 fn list_session_summaries_refreshes_changed_file() {
+    let _guard = lock_session_index_tests();
     let root = create_temp_session_root();
     let relative_path = "2026/03/rollout-thread-cache.jsonl";
     write_session_file(
@@ -136,7 +147,38 @@ fn list_session_summaries_refreshes_changed_file() {
 }
 
 #[test]
+fn cached_session_summaries_return_immediately_before_refresh() {
+    let _guard = lock_session_index_tests();
+    let root = create_temp_session_root();
+    let relative_path = "2026/03/rollout-thread-cached.jsonl";
+    write_session_file(
+        &root,
+        relative_path,
+        &build_session_contents("thread-cached", "Cached title", "2026-03-01T10:09:59Z"),
+    );
+
+    let _ = index::list_session_summaries(&root, AgentEnvironment::WindowsNative)
+        .expect("prime session index");
+    write_session_file(
+        &root,
+        relative_path,
+        &build_session_contents("thread-cached", "Updated title", "2026-03-01T11:00:00Z"),
+    );
+
+    let cached = index::list_cached_session_summaries(&root, AgentEnvironment::WindowsNative)
+        .expect("read cached session summaries");
+
+    assert_eq!(cached.len(), 1);
+    assert_eq!(cached[0].title, "Cached title");
+    assert!(index::session_index_needs_refresh(&root, AgentEnvironment::WindowsNative)
+        .expect("detect stale session index"));
+
+    fs::remove_dir_all(root).expect("remove temp session root");
+}
+
+#[test]
 fn find_session_path_uses_indexed_lookup() {
+    let _guard = lock_session_index_tests();
     let root = create_temp_session_root();
     let path = write_session_file(
         &root,
@@ -156,6 +198,7 @@ fn find_session_path_uses_indexed_lookup() {
 
 #[test]
 fn deletes_session_file_and_prunes_empty_directories() {
+    let _guard = lock_session_index_tests();
     let root = create_temp_session_root();
     let path = write_session_file(
         &root,

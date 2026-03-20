@@ -5,6 +5,7 @@ import type { HostBridge } from "../../bridge/types";
 import type { ConversationState } from "../../domain/conversation";
 import type { RequestId } from "../../protocol/generated/RequestId";
 import { AppStoreProvider, useAppDispatch, useAppSelector } from "../../state/store";
+import { loadThreadCatalog } from "../../features/workspace/model/threadCatalog";
 
 const DEFAULT_AGENT_ENVIRONMENT = "windowsNative" as const;
 
@@ -339,6 +340,38 @@ describe("useAppController auth helpers", () => {
 
     await waitFor(() => {
       expect(protocolState.startAppServer).toHaveBeenCalledWith({ agentEnvironment: "wsl" });
+    });
+  });
+
+  it("reloads the conversation catalog after the session index refresh event", async () => {
+    type SessionIndexHandler = (payload: {
+      readonly agentEnvironment: "windowsNative" | "wsl";
+      readonly durationMs: number;
+      readonly sessionCount: number;
+    }) => void;
+    const sessionIndexHandlers: Array<SessionIndexHandler> = [];
+    const hostBridge = createHostBridge();
+    vi.mocked(hostBridge.subscribe).mockImplementation(async (eventName, handler) => {
+      if (eventName === "codex-session-index-updated") {
+        sessionIndexHandlers.push(handler as SessionIndexHandler);
+      }
+      return () => undefined;
+    });
+    const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.initialized).toBe(true);
+    });
+    vi.mocked(loadThreadCatalog).mockClear();
+
+    const emitSessionIndexUpdate = sessionIndexHandlers[0];
+    if (emitSessionIndexUpdate === undefined) {
+      throw new Error("sessionIndexHandler 未注册");
+    }
+    emitSessionIndexUpdate({ agentEnvironment: "windowsNative", durationMs: 12, sessionCount: 3 });
+
+    await waitFor(() => {
+      expect(loadThreadCatalog).toHaveBeenCalledTimes(1);
     });
   });
 

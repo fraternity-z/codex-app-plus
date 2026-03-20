@@ -13,6 +13,7 @@ import { useAppControllerRuntimeState } from "./appControllerState";
 import { useAppUpdater } from "./useAppUpdater";
 import {
   createAppServerStartInput,
+  loadConversationCatalog,
   loadBootstrapSnapshot,
   startOrReuseAppServer,
 } from "./appControllerBootstrap";
@@ -58,6 +59,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
   const settledRequestIdsRef = useRef(new Set<string>());
   const previousAgentEnvironmentRef = useRef(agentEnvironment);
   const agentEnvironmentRef = useRef(agentEnvironment);
+  const sessionIndexReloadInFlightRef = useRef(false);
 
   if (textDeltaQueueRef.current === null) {
     textDeltaQueueRef.current = new FrameTextDeltaQueue({ onFlush: (entries) => dispatch({ type: "conversation/textDeltasFlushed", entries }) });
@@ -232,6 +234,25 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
     }
   }, [agentEnvironment, clearRetry, client, dispatch, scheduleRetry]);
 
+  const refreshConversationCatalog = useCallback(async () => {
+    if (clientRef.current === null || sessionIndexReloadInFlightRef.current || bootingRef.current) {
+      return;
+    }
+    sessionIndexReloadInFlightRef.current = true;
+    try {
+      await loadConversationCatalog(
+        clientRef.current,
+        hostBridge,
+        dispatch,
+        agentEnvironmentRef.current,
+      );
+    } catch (error) {
+      console.error("刷新工作区会话目录失败", error);
+    } finally {
+      sessionIndexReloadInFlightRef.current = false;
+    }
+  }, [dispatch, hostBridge]);
+
   retryHandlerRef.current = () => void bootstrap(true);
 
   useEffect(() => {
@@ -245,6 +266,30 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
       }
     };
   }, [client, clearRetry]);
+
+  useEffect(() => {
+    let disposed = false;
+    let detach: (() => void) | null = null;
+    void hostBridge.subscribe("codex-session-index-updated", (payload) => {
+      if (payload.agentEnvironment !== agentEnvironmentRef.current) {
+        return;
+      }
+      console.info("codex_session_index_updated", payload);
+      void refreshConversationCatalog();
+    }).then((unlisten) => {
+      if (disposed) {
+        unlisten();
+        return;
+      }
+      detach = unlisten;
+    }).catch((error) => {
+      console.error("订阅 session 索引刷新事件失败", error);
+    });
+    return () => {
+      disposed = true;
+      detach?.();
+    };
+  }, [hostBridge, refreshConversationCatalog]);
 
   useEffect(() => {
     if (windowsSandboxResetTimerRef.current !== null) {

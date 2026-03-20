@@ -126,18 +126,19 @@ function renderConversation(
     { name: "default", mode: "default", model: "gpt-5.2", reasoningEffort: null },
     { name: "plan", mode: "plan", model: "gpt-5.2", reasoningEffort: "medium" },
   ] as const,
+  selectedRootPath = "E:/code/FPGA",
 ) {
-  return renderHook(() => {
+  return renderHook((props: { readonly rootPath: string | null }) => {
       const store = useAppStore();
       const conversation = useWorkspaceConversation({
         agentEnvironment: "windowsNative",
         hostBridge,
-        selectedRootPath: "E:/code/FPGA",
-      collaborationModes,
-      followUpQueueMode: "queue",
-    });
+        selectedRootPath: props.rootPath,
+        collaborationModes,
+        followUpQueueMode: "queue",
+      });
     return { store, conversation };
-  }, { wrapper: Wrapper });
+  }, { initialProps: { rootPath: selectedRootPath }, wrapper: Wrapper });
 }
 
 function createNotificationContext(dispatch: ReturnType<typeof useAppStore>["dispatch"]) {
@@ -165,6 +166,31 @@ describe("useWorkspaceConversation", () => {
     expect(result.current.conversation.selectedThreadId).toBeNull();
     expect(result.current.conversation.selectedThread).toBeNull();
     expect(result.current.conversation.workspaceThreads).toHaveLength(0);
+  });
+
+  it("does not keep a selected thread from another workspace active", async () => {
+    const request = vi.fn(async () => ({ requestId: "noop", result: {} }));
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({
+        type: "conversation/upserted",
+        conversation: createConversationFromThread(createThread({ id: "thread-local", cwd: "E:/code/FPGA" }), { resumeState: "resumed" }),
+      });
+      result.current.store.dispatch({
+        type: "conversation/upserted",
+        conversation: createConversationFromThread(createThread({ id: "thread-remote", cwd: "E:/code/other-workspace" }), { resumeState: "resumed" }),
+      });
+      result.current.conversation.selectThread("thread-remote");
+    });
+
+    await waitFor(() => {
+      expect(result.current.conversation.selectedThreadId).toBeNull();
+      expect(result.current.conversation.selectedThread).toBeNull();
+      expect(result.current.conversation.activities).toEqual([]);
+      expect(result.current.conversation.workspaceThreads.map((thread) => thread.id)).toEqual(["thread-local"]);
+    });
   });
 
   it("filters composer-owned fuzzy search sessions from timeline activities", () => {
@@ -237,6 +263,28 @@ describe("useWorkspaceConversation", () => {
 
     expect(result.current.conversation.draftActive).toBe(false);
     expect(result.current.conversation.selectedThreadId).toBe("thread-1");
+  });
+
+  it("hides a selected thread when switching to another workspace", () => {
+    const request = vi.fn(async () => ({ requestId: "noop", result: {} }));
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result, rerender } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({
+        type: "conversation/upserted",
+        conversation: createConversationFromThread(createThread(), { resumeState: "resumed" }),
+      });
+      result.current.conversation.selectThread("thread-1");
+    });
+
+    expect(result.current.conversation.selectedThreadId).toBe("thread-1");
+
+    rerender({ rootPath: "E:/code/another-workspace" });
+
+    expect(result.current.conversation.selectedThreadId).toBeNull();
+    expect(result.current.conversation.selectedThread).toBeNull();
+    expect(result.current.conversation.workspaceThreads).toHaveLength(0);
   });
 
   it("keeps collaboration presets isolated between threads", () => {

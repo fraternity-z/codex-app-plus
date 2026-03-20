@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { DEFAULT_COLLABORATION_PRESET } from "../../../domain/timeline";
 import type { ThreadSummary } from "../../../domain/timeline";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
@@ -10,6 +10,7 @@ import {
   createThreadSummaryMemo,
   createWorkspaceThreadsSelector,
 } from "../model/workspaceConversationSelectors";
+import { threadBelongsToWorkspace } from "../../workspace/model/workspaceThread";
 import { useAppDispatch, useAppSelector, useAppStoreApi } from "../../../state/store";
 import { useWorkspaceConversationController } from "./useWorkspaceConversationController";
 import type { UseWorkspaceConversationOptions, WorkspaceConversationController } from "./workspaceConversationTypes";
@@ -29,8 +30,8 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
   );
   const fuzzySessionsSelector = useMemo(() => createNonComposerFuzzySessionsSelector(), []);
   const queuedConversationIdSelector = useMemo(
-    () => createQueuedConversationIdSelector(options.agentEnvironment),
-    [options.agentEnvironment],
+    () => createQueuedConversationIdSelector(options.agentEnvironment, options.selectedRootPath),
+    [options.agentEnvironment, options.selectedRootPath],
   );
   const selectedConversationSelector = useMemo(
     () => (currentState: ReturnType<typeof store.getState>) => {
@@ -38,12 +39,16 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
         return null;
       }
       const conversation = currentState.conversationsById[currentState.selectedConversationId] ?? null;
-      return conversation?.agentEnvironment === options.agentEnvironment ? conversation : null;
+      if (conversation?.agentEnvironment !== options.agentEnvironment) {
+        return null;
+      }
+      return threadBelongsToWorkspace(conversation.cwd, options.selectedRootPath) ? conversation : null;
     },
-    [options.agentEnvironment, store],
+    [options.agentEnvironment, options.selectedRootPath, store],
   );
   const workspaceThreads = useAppSelector(workspaceThreadsSelector);
   const selectedConversation = useAppSelector(selectedConversationSelector);
+  const selectedConversationId = useAppSelector((currentState) => currentState.selectedConversationId);
   const selectedThread = useMemo(
     () => (selectedConversation === null ? null : mapThreadSummary(selectedConversation)),
     [mapThreadSummary, selectedConversation],
@@ -97,6 +102,28 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
   ), [selectedConversation]);
   const isResponding = hasInProgressTurn(selectedConversation) || selectedConversation?.status === "active";
   const interruptPending = activeTurnId !== null && selectedConversation?.interruptRequestedTurnId === activeTurnId;
+
+  useEffect(() => {
+    if (selectedConversation !== null || selectedConversationId === null) {
+      return;
+    }
+    const current = store.getState().conversationsById[selectedConversationId] ?? null;
+    if (current?.agentEnvironment !== options.agentEnvironment) {
+      return;
+    }
+    if (threadBelongsToWorkspace(current.cwd, options.selectedRootPath)) {
+      return;
+    }
+    dispatch({ type: "conversation/selected", conversationId: null });
+  }, [
+    dispatch,
+    options.agentEnvironment,
+    options.selectedRootPath,
+    selectedConversation,
+    selectedConversationId,
+    store,
+  ]);
+
   const controllerActions = useWorkspaceConversationController({
     options,
     dispatch,

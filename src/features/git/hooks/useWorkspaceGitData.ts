@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useLayoutEffect } from "react";
 import type { GitBranchRef, GitStatusSnapshotOutput, HostBridge } from "../../../bridge/types";
 import type { WorkspaceGitState } from "./useWorkspaceGitState";
 import { useWorkspaceGitDiff } from "./useWorkspaceGitDiff";
@@ -31,14 +31,14 @@ function toStatus(
 
 export function useWorkspaceGitData(options: UseWorkspaceGitDataOptions) {
   const { state, selectedRootPath, diffStateEnabled, hostBridge } = options;
-  const diffControls = useWorkspaceGitDiff(options);
+  const { ensureDiff, selectDiff, syncSelectedDiff } = useWorkspaceGitDiff(options);
 
   const refreshSnapshot = useRefreshSnapshot({
-    diffControls,
     diffStateEnabled,
     hostBridge,
     selectedRootPath,
     state,
+    syncSelectedDiff,
   });
   const refresh = useCallback(async () => {
     await refreshSnapshot("incremental");
@@ -46,7 +46,7 @@ export function useWorkspaceGitData(options: UseWorkspaceGitDataOptions) {
   const ensureBranchRefs = useEnsureBranchRefs({ hostBridge, selectedRootPath, state });
   const ensureRemoteUrl = useEnsureRemoteUrl({ hostBridge, selectedRootPath, state });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const previousRootPath = state.previousRootRef.current;
     state.previousRootRef.current = selectedRootPath;
     if (selectedRootPath === null) {
@@ -69,88 +69,131 @@ export function useWorkspaceGitData(options: UseWorkspaceGitDataOptions) {
     refresh,
     ensureBranchRefs,
     ensureRemoteUrl,
-    ensureDiff: diffControls.ensureDiff,
-    selectDiff: diffControls.selectDiff,
+    ensureDiff,
+    selectDiff,
   };
 }
 
 function useRefreshSnapshot(options: {
-  readonly diffControls: ReturnType<typeof useWorkspaceGitDiff>;
   readonly diffStateEnabled: boolean;
   readonly hostBridge: HostBridge;
   readonly selectedRootPath: string | null;
   readonly state: WorkspaceGitState;
+  readonly syncSelectedDiff: ReturnType<typeof useWorkspaceGitDiff>["syncSelectedDiff"];
 }) {
-  const { diffControls, diffStateEnabled, hostBridge, selectedRootPath, state } = options;
+  const { diffStateEnabled, hostBridge, selectedRootPath, state, syncSelectedDiff } = options;
+  const {
+    branchRefsLoadedRef,
+    branchRefsRef,
+    clearTransientState,
+    diffCacheRef,
+    previousRootRef,
+    remoteUrlLoadedRef,
+    remoteUrlRef,
+    requestIdRef,
+    resetBranchRefsState,
+    resetRemoteUrlState,
+    resetRepositoryState,
+    selectedBranchRef,
+    setError,
+    setLoading,
+    setSelectedBranch,
+    snapshotRef,
+    writeDiffCache,
+    writeDiffTarget,
+    writeLoadingDiffKeys,
+    writeSnapshot,
+    writeStaleDiffKeys,
+  } = state;
 
   return useCallback(async (mode: RefreshMode) => {
     if (selectedRootPath === null) {
-      state.clearTransientState();
-      state.previousRootRef.current = null;
+      clearTransientState();
+      previousRootRef.current = null;
       return;
     }
 
     const repoPath = selectedRootPath;
-    const requestId = state.requestIdRef.current + 1;
-    state.requestIdRef.current = requestId;
-    state.setLoading(true);
-    state.setError(null);
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    setLoading(true);
+    setError(null);
 
     try {
       const nextSnapshot = await hostBridge.git.getStatusSnapshot({ repoPath });
-      if (requestId !== state.requestIdRef.current) {
+      if (requestId !== requestIdRef.current) {
         return;
       }
 
       if (!nextSnapshot.isRepository) {
-        state.resetBranchRefsState();
+        resetBranchRefsState();
       }
-      syncRemoteMetadata(nextSnapshot, state.snapshotRef.current, state.resetRemoteUrlState);
-      state.writeSnapshot(nextSnapshot);
+      syncRemoteMetadata(nextSnapshot, snapshotRef.current, resetRemoteUrlState);
+      writeSnapshot(nextSnapshot);
 
       const nextStatus = toStatus(
         nextSnapshot,
-        state.branchRefsRef.current,
-        state.branchRefsLoadedRef.current,
-        state.remoteUrlRef.current,
-        state.remoteUrlLoadedRef.current,
+        branchRefsRef.current,
+        branchRefsLoadedRef.current,
+        remoteUrlRef.current,
+        remoteUrlLoadedRef.current,
       );
       if (nextStatus === null) {
         return;
       }
 
-      state.setSelectedBranch(pickBranchName(nextStatus, state.selectedBranchRef.current));
+      setSelectedBranch(pickBranchName(nextStatus, selectedBranchRef.current));
       if (!diffStateEnabled) {
-        state.writeDiffCache({});
-        state.writeDiffTarget(null);
-        state.writeLoadingDiffKeys([]);
-        state.writeStaleDiffKeys([]);
+        writeDiffCache({});
+        writeDiffTarget(null);
+        writeLoadingDiffKeys([]);
+        writeStaleDiffKeys([]);
         return;
       }
 
-      const nextCache = pruneDiffCache(state.diffCacheRef.current, nextStatus);
-      state.writeDiffCache(nextCache);
-      state.writeStaleDiffKeys(createStaleDiffKeys(nextStatus));
-      await diffControls.syncSelectedDiff({ repoPath, requestId, nextCache, nextStatus });
+      const nextCache = pruneDiffCache(diffCacheRef.current, nextStatus);
+      writeDiffCache(nextCache);
+      writeStaleDiffKeys(createStaleDiffKeys(nextStatus));
+      await syncSelectedDiff({ repoPath, requestId, nextCache, nextStatus });
     } catch (reason) {
-      if (requestId !== state.requestIdRef.current) {
+      if (requestId !== requestIdRef.current) {
         return;
       }
       if (mode === "initial") {
-        state.resetRepositoryState();
+        resetRepositoryState();
       }
-      state.setError(String(reason));
+      setError(String(reason));
     } finally {
-      if (requestId === state.requestIdRef.current) {
-        state.setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
       }
     }
   }, [
-    diffControls,
     diffStateEnabled,
+    clearTransientState,
+    branchRefsLoadedRef,
+    branchRefsRef,
+    diffCacheRef,
     hostBridge.git,
+    previousRootRef,
+    remoteUrlLoadedRef,
+    remoteUrlRef,
+    requestIdRef,
+    resetBranchRefsState,
+    resetRemoteUrlState,
+    resetRepositoryState,
     selectedRootPath,
-    state,
+    selectedBranchRef,
+    setError,
+    setLoading,
+    setSelectedBranch,
+    snapshotRef,
+    syncSelectedDiff,
+    writeDiffCache,
+    writeDiffTarget,
+    writeLoadingDiffKeys,
+    writeSnapshot,
+    writeStaleDiffKeys,
   ]);
 }
 
@@ -160,44 +203,75 @@ function useEnsureBranchRefs(options: {
   readonly state: WorkspaceGitState;
 }) {
   const { hostBridge, selectedRootPath, state } = options;
+  const {
+    branchRefsLoadedRef,
+    branchRefsLoading,
+    branchRefsRequestIdRef,
+    remoteUrlLoadedRef,
+    remoteUrlRef,
+    selectedBranchRef,
+    selectedRootRef,
+    setBranchRefsLoading,
+    setNotice,
+    setSelectedBranch,
+    snapshotRef,
+    writeBranchRefs,
+    writeBranchRefsLoaded,
+  } = state;
 
   return useCallback(async () => {
-    const currentSnapshot = state.snapshotRef.current;
+    const currentSnapshot = snapshotRef.current;
     if (
       selectedRootPath === null
       || currentSnapshot === null
       || !currentSnapshot.isRepository
-      || state.branchRefsLoadedRef.current
-      || state.branchRefsLoading
+      || branchRefsLoadedRef.current
+      || branchRefsLoading
     ) {
       return;
     }
 
     const repoPath = selectedRootPath;
-    const requestId = state.branchRefsRequestIdRef.current + 1;
-    state.branchRefsRequestIdRef.current = requestId;
-    state.setBranchRefsLoading(true);
+    const requestId = branchRefsRequestIdRef.current + 1;
+    branchRefsRequestIdRef.current = requestId;
+    setBranchRefsLoading(true);
     try {
       const nextBranchRefs = await hostBridge.git.getBranchRefs({ repoPath });
-      if (requestId !== state.branchRefsRequestIdRef.current || state.selectedRootRef.current !== repoPath) {
+      if (requestId !== branchRefsRequestIdRef.current || selectedRootRef.current !== repoPath) {
         return;
       }
-      state.writeBranchRefs(nextBranchRefs);
-      state.writeBranchRefsLoaded(true);
-      state.setSelectedBranch(pickBranchName(
-        toStatus(currentSnapshot, nextBranchRefs, true, state.remoteUrlRef.current, state.remoteUrlLoadedRef.current),
-        state.selectedBranchRef.current,
+      writeBranchRefs(nextBranchRefs);
+      writeBranchRefsLoaded(true);
+      setSelectedBranch(pickBranchName(
+        toStatus(currentSnapshot, nextBranchRefs, true, remoteUrlRef.current, remoteUrlLoadedRef.current),
+        selectedBranchRef.current,
       ));
     } catch (reason) {
-      if (requestId === state.branchRefsRequestIdRef.current && state.selectedRootRef.current === repoPath) {
-        state.setNotice({ kind: "error", text: formatActionError("加载分支", reason) });
+      if (requestId === branchRefsRequestIdRef.current && selectedRootRef.current === repoPath) {
+        setNotice({ kind: "error", text: formatActionError("加载分支", reason) });
       }
     } finally {
-      if (requestId === state.branchRefsRequestIdRef.current && state.selectedRootRef.current === repoPath) {
-        state.setBranchRefsLoading(false);
+      if (requestId === branchRefsRequestIdRef.current && selectedRootRef.current === repoPath) {
+        setBranchRefsLoading(false);
       }
     }
-  }, [hostBridge.git, selectedRootPath, state]);
+  }, [
+    branchRefsLoadedRef,
+    branchRefsLoading,
+    branchRefsRequestIdRef,
+    hostBridge.git,
+    remoteUrlLoadedRef,
+    remoteUrlRef,
+    selectedBranchRef,
+    selectedRootPath,
+    selectedRootRef,
+    setBranchRefsLoading,
+    setNotice,
+    setSelectedBranch,
+    snapshotRef,
+    writeBranchRefs,
+    writeBranchRefsLoaded,
+  ]);
 }
 
 function useEnsureRemoteUrl(options: {
@@ -206,47 +280,72 @@ function useEnsureRemoteUrl(options: {
   readonly state: WorkspaceGitState;
 }) {
   const { hostBridge, selectedRootPath, state } = options;
+  const {
+    remoteUrlLoadedRef,
+    remoteUrlLoading,
+    remoteUrlRequestIdRef,
+    resetRemoteUrlState,
+    selectedRootRef,
+    setNotice,
+    setRemoteUrlLoading,
+    snapshotRef,
+    writeRemoteUrl,
+    writeRemoteUrlLoaded,
+  } = state;
 
   return useCallback(async () => {
-    const currentSnapshot = state.snapshotRef.current;
+    const currentSnapshot = snapshotRef.current;
     if (
       selectedRootPath === null
       || currentSnapshot === null
       || !currentSnapshot.isRepository
-      || state.remoteUrlLoading
-      || state.remoteUrlLoadedRef.current
+      || remoteUrlLoading
+      || remoteUrlLoadedRef.current
     ) {
       return;
     }
     if (currentSnapshot.remoteName === null) {
-      state.resetRemoteUrlState(true);
+      resetRemoteUrlState(true);
       return;
     }
 
     const repoPath = selectedRootPath;
-    const requestId = state.remoteUrlRequestIdRef.current + 1;
-    state.remoteUrlRequestIdRef.current = requestId;
-    state.setRemoteUrlLoading(true);
+    const requestId = remoteUrlRequestIdRef.current + 1;
+    remoteUrlRequestIdRef.current = requestId;
+    setRemoteUrlLoading(true);
     try {
       const nextRemoteUrl = await hostBridge.git.getRemoteUrl({
         repoPath,
         remoteName: currentSnapshot.remoteName,
       });
-      if (requestId !== state.remoteUrlRequestIdRef.current || state.selectedRootRef.current !== repoPath) {
+      if (requestId !== remoteUrlRequestIdRef.current || selectedRootRef.current !== repoPath) {
         return;
       }
-      state.writeRemoteUrl(nextRemoteUrl);
-      state.writeRemoteUrlLoaded(true);
+      writeRemoteUrl(nextRemoteUrl);
+      writeRemoteUrlLoaded(true);
     } catch (reason) {
-      if (requestId === state.remoteUrlRequestIdRef.current && state.selectedRootRef.current === repoPath) {
-        state.setNotice({ kind: "error", text: formatActionError("加载远端地址", reason) });
+      if (requestId === remoteUrlRequestIdRef.current && selectedRootRef.current === repoPath) {
+        setNotice({ kind: "error", text: formatActionError("加载远端地址", reason) });
       }
     } finally {
-      if (requestId === state.remoteUrlRequestIdRef.current && state.selectedRootRef.current === repoPath) {
-        state.setRemoteUrlLoading(false);
+      if (requestId === remoteUrlRequestIdRef.current && selectedRootRef.current === repoPath) {
+        setRemoteUrlLoading(false);
       }
     }
-  }, [hostBridge.git, selectedRootPath, state]);
+  }, [
+    hostBridge.git,
+    remoteUrlLoadedRef,
+    remoteUrlLoading,
+    remoteUrlRequestIdRef,
+    resetRemoteUrlState,
+    selectedRootPath,
+    selectedRootRef,
+    setNotice,
+    setRemoteUrlLoading,
+    snapshotRef,
+    writeRemoteUrl,
+    writeRemoteUrlLoaded,
+  ]);
 }
 
 function syncRemoteMetadata(

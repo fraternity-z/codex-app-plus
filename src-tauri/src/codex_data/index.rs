@@ -12,7 +12,7 @@ use crate::models::{AgentEnvironment, CodexSessionSummary};
 const SESSION_INDEX_VERSION: u32 = 1;
 const SESSION_INDEX_DIR: &str = "session-index";
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct SessionFileSignature {
     file_size: u64,
     modified_at_ms: u64,
@@ -84,18 +84,29 @@ impl SessionIndexCache {
     }
 }
 
+pub(crate) fn list_cached_session_summaries(
+    root: &Path,
+    agent_environment: AgentEnvironment,
+) -> AppResult<Vec<CodexSessionSummary>> {
+    let cache = load_session_index(root, agent_environment)?;
+    Ok(map_sorted_session_summaries(&cache, agent_environment))
+}
+
 pub(crate) fn list_session_summaries(
     root: &Path,
     agent_environment: AgentEnvironment,
 ) -> AppResult<Vec<CodexSessionSummary>> {
     let cache = refresh_session_index(root, agent_environment)?;
-    let mut sessions = cache
-        .entries
-        .iter()
-        .map(|entry| entry.to_summary(agent_environment))
-        .collect::<Vec<_>>();
-    sessions.sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
-    Ok(sessions)
+    Ok(map_sorted_session_summaries(&cache, agent_environment))
+}
+
+pub(crate) fn session_index_needs_refresh(
+    root: &Path,
+    agent_environment: AgentEnvironment,
+) -> AppResult<bool> {
+    let cache = load_session_index(root, agent_environment)?;
+    let signatures = collect_current_signatures(root)?;
+    Ok(cache_matches_signatures(&cache, &signatures) == false)
 }
 
 pub(crate) fn find_session_path(
@@ -176,6 +187,43 @@ fn refresh_session_index(
     };
     save_session_index(&cache, agent_environment)?;
     Ok(cache)
+}
+
+fn collect_current_signatures(root: &Path) -> AppResult<HashMap<String, SessionFileSignature>> {
+    let mut files = Vec::new();
+    super::collect_session_files(root, &mut files)?;
+    let mut signatures = HashMap::with_capacity(files.len());
+    for file in files {
+        signatures.insert(path_key(&file), read_file_signature(&file)?);
+    }
+    Ok(signatures)
+}
+
+fn cache_matches_signatures(
+    cache: &SessionIndexCache,
+    signatures: &HashMap<String, SessionFileSignature>,
+) -> bool {
+    if cache.entries.len() != signatures.len() {
+        return false;
+    }
+    cache.entries.iter().all(|entry| {
+        signatures
+            .get(&entry.path)
+            .is_some_and(|signature| entry.matches_signature(signature))
+    })
+}
+
+fn map_sorted_session_summaries(
+    cache: &SessionIndexCache,
+    agent_environment: AgentEnvironment,
+) -> Vec<CodexSessionSummary> {
+    let mut sessions = cache
+        .entries
+        .iter()
+        .map(|entry| entry.to_summary(agent_environment))
+        .collect::<Vec<_>>();
+    sessions.sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
+    sessions
 }
 
 fn load_session_index(
