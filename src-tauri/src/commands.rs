@@ -116,6 +116,11 @@ pub fn app_set_window_theme(window: tauri::WebviewWindow, theme: String) -> Resu
 }
 
 #[tauri::command]
+pub fn app_start_window_dragging(window: tauri::WebviewWindow) -> Result<(), String> {
+    to_result(window.start_dragging().map_err(AppError::from))
+}
+
+#[tauri::command]
 pub fn app_control_window(
     window: tauri::WebviewWindow,
     action: WindowChromeAction,

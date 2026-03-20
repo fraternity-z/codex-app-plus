@@ -1,9 +1,10 @@
-import { useCallback, useState } from "react";
+import { type MouseEvent, useCallback, useState } from "react";
 import type { HostBridge } from "../../bridge/types";
 import { OfficialCloseIcon, OfficialCodexMarkIcon } from "../../features/shared/ui/officialIcons";
 import appIconUrl from "../../../src-tauri/icons/32x32.png";
 
 const APP_TITLE = "Codex App Plus";
+const WINDOW_CONTROL_SELECTOR = "[data-window-control='true']";
 
 interface WindowTitlebarProps {
   readonly hostBridge: HostBridge;
@@ -29,12 +30,16 @@ function ChromeButton(props: {
       type="button"
       className={props.className ?? "window-titlebar-button"}
       aria-label={props.ariaLabel}
-      data-tauri-drag-region="false"
+      data-window-control="true"
       onClick={props.onClick}
     >
       {props.children}
     </button>
   );
+}
+
+function isWindowControlTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest(WINDOW_CONTROL_SELECTOR) !== null;
 }
 
 function MinimizeIcon(): JSX.Element {
@@ -55,6 +60,11 @@ function MaximizeIcon(): JSX.Element {
 
 export function WindowTitlebar(props: WindowTitlebarProps): JSX.Element | null {
   const [iconFailed, setIconFailed] = useState(false);
+  const startWindowDragging = useCallback(() => {
+    void props.hostBridge.app.startWindowDragging().catch((error: unknown) => {
+      console.error("窗口拖拽启动失败", error);
+    });
+  }, [props.hostBridge.app]);
   const sendWindowAction = useCallback(
     (action: "minimize" | "toggleMaximize" | "close") => {
       void props.hostBridge.app.controlWindow(action).catch((error: unknown) => {
@@ -63,14 +73,26 @@ export function WindowTitlebar(props: WindowTitlebarProps): JSX.Element | null {
     },
     [props.hostBridge.app]
   );
+  const handleTitlebarMouseDown = useCallback((event: MouseEvent<HTMLElement>) => {
+    if (event.button !== 0 || event.detail > 1 || isWindowControlTarget(event.target)) {
+      return;
+    }
+    startWindowDragging();
+  }, [startWindowDragging]);
+  const handleTitlebarDoubleClick = useCallback((event: MouseEvent<HTMLElement>) => {
+    if (isWindowControlTarget(event.target)) {
+      return;
+    }
+    sendWindowAction("toggleMaximize");
+  }, [sendWindowAction]);
 
   if (!isWindowsPlatform()) {
     return null;
   }
 
   return (
-    <header className="window-titlebar" data-tauri-drag-region onDoubleClick={() => sendWindowAction("toggleMaximize")}>
-      <div className="window-titlebar-brand" data-tauri-drag-region>
+    <header className="window-titlebar" onMouseDown={handleTitlebarMouseDown} onDoubleClick={handleTitlebarDoubleClick}>
+      <div className="window-titlebar-brand">
         {iconFailed ? (
           <OfficialCodexMarkIcon className="window-titlebar-logo" />
         ) : (
@@ -83,7 +105,8 @@ export function WindowTitlebar(props: WindowTitlebarProps): JSX.Element | null {
         )}
         <span className="window-titlebar-title">{APP_TITLE}</span>
       </div>
-      <div className="window-titlebar-controls" data-tauri-drag-region="false">
+      <div className="window-titlebar-drag-spacer" aria-hidden="true" />
+      <div className="window-titlebar-controls" data-window-control="true">
         <ChromeButton ariaLabel="最小化窗口" onClick={() => sendWindowAction("minimize")}>
           <MinimizeIcon />
         </ChromeButton>

@@ -70,6 +70,7 @@ function createHostBridge(): HostBridge {
   return {
     app: {
       setWindowTheme: vi.fn().mockResolvedValue(undefined),
+      startWindowDragging: vi.fn().mockResolvedValue(undefined),
       controlWindow: vi.fn().mockResolvedValue(undefined),
       openExternal: vi.fn().mockResolvedValue(undefined),
       openWorkspace: vi.fn().mockResolvedValue(undefined),

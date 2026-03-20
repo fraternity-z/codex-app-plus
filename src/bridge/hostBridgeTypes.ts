@@ -74,6 +74,7 @@ export interface HostBridge {
   };
   readonly app: {
     setWindowTheme(theme: WindowTheme): Promise<void>;
+    startWindowDragging(): Promise<void>;
     controlWindow(action: WindowChromeAction): Promise<void>;
     openExternal(url: string): Promise<void>;
     openWorkspace(input: OpenWorkspaceInput): Promise<void>;

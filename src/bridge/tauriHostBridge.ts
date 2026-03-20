@@ -100,6 +100,8 @@ export function createTauriHostBridge(): HostBridge {
         invoke("app_set_window_theme", {
           theme
         }),
+      startWindowDragging: () =>
+        invoke("app_start_window_dragging"),
       controlWindow: (action) =>
         invoke("app_control_window", {
           action

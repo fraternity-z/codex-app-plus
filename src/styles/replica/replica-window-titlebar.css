@@ -19,6 +19,11 @@
   color: var(--text-main);
 }
 
+.window-titlebar-drag-spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .window-titlebar-logo {
   width: 18px;
   height: 18px;
