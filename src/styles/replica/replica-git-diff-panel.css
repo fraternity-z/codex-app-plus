@@ -1,6 +1,7 @@
 .replica-app {
   --replica-diff-sidebar-width: clamp(440px, 34vw, 620px);
-  --replica-code-font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", "Source Code Pro", "SFMono-Regular", Consolas, monospace;
+  --replica-code-font-family: var(--app-code-font-family);
+  --replica-code-font-size: var(--app-code-font-size);
 }
 
 .replica-app-with-diff-sidebar {
@@ -268,7 +269,7 @@
 .workspace-diff-raw-content {
   color: #1f2328;
   font-family: var(--replica-code-font-family);
-  font-size: 13px;
+  font-size: var(--replica-code-font-size);
   line-height: 1.8;
   letter-spacing: 0.01em;
   font-feature-settings: "calt" 1, "liga" 1;

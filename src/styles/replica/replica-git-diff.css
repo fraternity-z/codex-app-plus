@@ -284,8 +284,8 @@
   align-items: stretch;
   min-width: 100%;
   color: #232323;
-  font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 12px;
+  font-family: var(--app-code-font-family);
+  font-size: var(--app-code-font-size);
   line-height: 1.7;
 }
 
@@ -344,8 +344,8 @@
   margin: 0;
   padding: 12px 16px 16px;
   color: #242424;
-  font-family: Consolas, "Cascadia Mono", monospace;
-  font-size: 12px;
+  font-family: var(--app-code-font-family);
+  font-size: var(--app-code-font-size);
   line-height: 1.7;
   white-space: pre;
 }

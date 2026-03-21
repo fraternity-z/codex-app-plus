@@ -50,7 +50,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   line-height: 1.5;
 }
 
@@ -59,7 +59,7 @@
 }
 
 .home-connection-toast-countdown {
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   color: rgba(248, 250, 252, 0.8);
 }
 
@@ -67,7 +67,7 @@
   border: none;
   border-radius: 999px;
   padding: 8px 16px;
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   font-weight: 600;
   color: var(--text-inverse);
   background: var(--surface-canvas);
@@ -199,7 +199,7 @@
 
 .home-chat-thinking-label {
   color: var(--home-text-soft);
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   font-weight: 500;
   line-height: 1.4;
   background-image: linear-gradient(110deg, var(--home-text-soft) 25%, var(--home-border) 50%, var(--home-text-soft) 75%);
@@ -229,12 +229,12 @@
 }
 
 .home-chat-markdown-user {
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   line-height: 1.5;
 }
 
 .home-chat-markdown-assistant {
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   line-height: 1.6;
 }
 
@@ -272,7 +272,7 @@
 .home-plan-draft-label {
   margin-bottom: 12px;
   color: var(--text-soft);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   font-weight: 600;
 }
 
@@ -293,15 +293,15 @@
 }
 
 .home-chat-markdown h1 {
-  font-size: 18px;
+  font-size: var(--app-ui-font-size-3xl);
 }
 
 .home-chat-markdown h2 {
-  font-size: 16px;
+  font-size: var(--app-ui-font-size-xl);
 }
 
 .home-chat-markdown h3 {
-  font-size: 15px;
+  font-size: var(--app-ui-font-size-lg);
 }
 
 .home-chat-markdown p {
@@ -360,8 +360,8 @@
   border-radius: 7px;
   background: var(--code-inline-bg);
   color: var(--home-text);
-  font-family: Consolas, "Cascadia Code", monospace;
-  font-size: 0.86em;
+  font-family: var(--app-code-font-family);
+  font-size: calc(var(--app-code-font-size) - 1px);
 }
 
 .home-chat-markdown pre {
@@ -392,14 +392,14 @@
 
 .home-chat-placeholder-title {
   color: var(--text-main);
-  font-size: 15px;
+  font-size: var(--app-ui-font-size-lg);
   font-weight: 600;
 }
 
 .home-chat-placeholder-body {
   margin-top: 6px;
   color: var(--home-text-muted);
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   line-height: 1.6;
 }
 

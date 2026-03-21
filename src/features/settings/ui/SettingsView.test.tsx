@@ -25,6 +25,12 @@ function createPreferencesController(): AppPreferencesController {
     setComposerDefaultSandboxMode: vi.fn(),
     setComposerFullApprovalPolicy: vi.fn(),
     setComposerFullSandboxMode: vi.fn(),
+    setUiFontFamily: vi.fn(),
+    setUiFontSize: vi.fn(),
+    setCodeFontFamily: vi.fn(),
+    setCodeFontSize: vi.fn(),
+    setTerminalFontFamily: vi.fn(),
+    setTerminalFontSize: vi.fn(),
     setGitBranchPrefix: vi.fn(),
     setGitPushForceWithLease: vi.fn(),
   };
@@ -95,5 +101,22 @@ describe("SettingsView", () => {
     });
 
     expect(screen.getByText("Composer 权限默认值")).toBeInTheDocument();
+  });
+
+  it("moves app updates out of the general section", () => {
+    render(<SettingsView {...createBaseProps()} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.queryByText("应用更新")).toBeNull();
+  });
+
+  it("renders app updates in the about section", () => {
+    render(<SettingsView {...createBaseProps({ section: "about" })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.getByRole("heading", { name: "关于" })).toBeInTheDocument();
+    expect(screen.getByText("应用更新")).toBeInTheDocument();
   });
 });

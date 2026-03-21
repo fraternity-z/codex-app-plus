@@ -52,14 +52,14 @@
 .home-banner-title {
   display: block;
   color: var(--text-main);
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   line-height: 1.5;
 }
 
 .home-banner-detail {
   margin: 4px 0 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
@@ -169,7 +169,7 @@
   justify-content: space-between;
   margin-bottom: 8px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
 }
 
 .conversation-composer {

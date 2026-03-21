@@ -32,14 +32,14 @@
 
 .plan-request-title {
   color: #111827;
-  font-size: 18px;
+  font-size: var(--app-ui-font-size-3xl);
   font-weight: 700;
 }
 
 .plan-request-subtitle {
   margin-top: 6px;
   color: #667085;
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
 }
 
 .plan-request-body {
@@ -57,7 +57,7 @@
 
 .plan-request-question-header {
   color: #667085;
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   font-weight: 600;
 }
 
@@ -82,7 +82,7 @@
 
 .plan-request-option-index {
   color: #667085;
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   font-weight: 600;
 }
 
@@ -93,12 +93,12 @@
 }
 
 .plan-request-option-copy strong {
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
 }
 
 .plan-request-option-copy small {
   color: #667085;
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
 }
 
 .plan-request-notes {
@@ -224,7 +224,7 @@
   background: rgba(255, 255, 255, 0.78);
   backdrop-filter: blur(4px);
   color: #2f2f2f;
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   font-weight: 500;
 }
 .composer-reload-spinner {
@@ -263,7 +263,7 @@
   background: transparent;
   color: var(--text-main);
   padding: 14px 15px 8px;
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   line-height: var(--composer-input-line-height);
 }
 .composer-input::placeholder {
@@ -365,7 +365,7 @@
   display: block;
 }
 .composer-chip {
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   gap: 4px;
   border: 0;
   background: transparent;
@@ -398,7 +398,7 @@
   align-items: center;
   gap: 6px;
   padding: 0 10px;
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
@@ -442,7 +442,7 @@
 .composer-select-menu-title {
   padding: 4px 10px 8px;
   color: #8a8a8a;
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
 }
 .composer-select-menu-item {
   width: 100%;
@@ -455,7 +455,7 @@
   justify-content: space-between;
   padding: 0 10px;
   color: #2f2f2f;
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   text-align: left;
   cursor: pointer;
 }
@@ -503,7 +503,7 @@
   justify-content: space-between;
   padding: 0 10px;
   color: #2f2f2f;
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   text-align: left;
   cursor: pointer;
 }
@@ -530,7 +530,7 @@
   border-radius: 999px;
   background: #f3f3f3;
   color: #6f6f6f;
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   display: inline-flex;
   align-items: center;
   justify-content: center;

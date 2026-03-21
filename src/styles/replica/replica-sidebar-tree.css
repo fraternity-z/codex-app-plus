@@ -4,7 +4,7 @@
   border-radius: 10px;
   background: #f6f6f6;
   color: #5f5f5f;
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   line-height: 1.4;
 }
 
@@ -102,7 +102,7 @@
 .workspace-thread-title {
   min-width: 0;
   flex: 1 1 auto;
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -116,7 +116,7 @@
   border-radius: 999px;
   background: var(--surface-panel-muted);
   color: var(--text-soft);
-  font-size: 9px;
+  font-size: var(--app-ui-font-size-micro);
   line-height: 16px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -125,7 +125,7 @@
 
 .workspace-thread-meta,
 .workspace-thread-empty {
-  font-size: 10px;
+  font-size: var(--app-ui-font-size-caption);
   color: var(--text-muted);
 }
 
@@ -147,7 +147,7 @@
   border: 0;
   background: transparent;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--app-ui-font-size-compact);
   text-align: left;
 }
 
@@ -194,7 +194,7 @@
   border-radius: 8px;
   background: transparent;
   color: var(--text-soft);
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   text-align: left;
 }
 

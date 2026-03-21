@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef } from "react";
 import type { MutableRefObject } from "react";
 import type { EmbeddedTerminalShell, HostBridge } from "../../../bridge/types";
 import type { ResolvedTheme } from "../../../domain/theme";
+import { readTerminalFontSettingsFromDocument } from "../../settings/model/fontCssVars";
 
 const DEFAULT_COLUMNS = 120;
 const DEFAULT_ROWS = 32;
@@ -124,12 +125,13 @@ function createTerminalTheme(theme: ResolvedTheme): ITheme {
 function createTerminalInstance(
   theme: ResolvedTheme,
 ): { readonly terminal: Terminal; readonly fitAddon: FitAddon } {
+  const terminalFonts = readTerminalFontSettingsFromDocument();
   const terminal = new Terminal({
     allowTransparency: false,
     convertEol: true,
     cursorBlink: true,
-    fontFamily: 'Consolas, "Cascadia Mono", "Courier New", monospace',
-    fontSize: 13,
+    fontFamily: terminalFonts.fontFamily,
+    fontSize: terminalFonts.fontSize,
     scrollback: 5000,
     theme: createTerminalTheme(theme),
   });

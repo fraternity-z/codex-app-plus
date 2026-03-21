@@ -19,8 +19,28 @@
 @import "./replica/replica-conversation-home-trace.css";
 
 :root {
+  --app-ui-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Microsoft YaHei UI", sans-serif;
+  --app-ui-font-size: 14px;
+  --app-ui-font-size-micro: max(calc(var(--app-ui-font-size) - 5px), 9px);
+  --app-ui-font-size-caption: max(calc(var(--app-ui-font-size) - 4px), 10px);
+  --app-ui-font-size-compact: max(calc(var(--app-ui-font-size) - 3px), 11px);
+  --app-ui-font-size-sm: calc(var(--app-ui-font-size) - 2px);
+  --app-ui-font-size-md: calc(var(--app-ui-font-size) - 1px);
+  --app-ui-font-size-base: var(--app-ui-font-size);
+  --app-ui-font-size-lg: calc(var(--app-ui-font-size) + 1px);
+  --app-ui-font-size-xl: calc(var(--app-ui-font-size) + 2px);
+  --app-ui-font-size-2xl: calc(var(--app-ui-font-size) + 3px);
+  --app-ui-font-size-3xl: calc(var(--app-ui-font-size) + 4px);
+  --app-ui-font-size-display: calc(var(--app-ui-font-size) + 12px);
+  --app-ui-font-size-hero: calc(var(--app-ui-font-size) + 20px);
+  --app-code-font-family: Consolas, "Cascadia Mono", "Cascadia Code", "Courier New", monospace;
+  --app-code-font-size: 13px;
+  --app-terminal-font-family: var(--app-code-font-family);
+  --app-terminal-font-size: 13px;
+  --replica-code-font-family: var(--app-code-font-family);
+  --replica-code-font-size: var(--app-code-font-size);
   color-scheme: light;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Microsoft YaHei UI", sans-serif;
+  font-family: var(--app-ui-font-family);
   --bg-main: #f5f7fb;
   --surface-canvas: #ffffff;
   --surface-panel: #ffffff;
@@ -109,6 +129,7 @@ html[data-theme="dark"] {
 
 html {
   background: var(--bg-main);
+  font-size: var(--app-ui-font-size);
 }
 
 * {
@@ -141,9 +162,18 @@ body {
   margin: 0;
   background: var(--bg-main);
   color: var(--text-main);
+  font-family: var(--app-ui-font-family);
+  font-size: var(--app-ui-font-size);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--app-code-font-family);
 }
 
 #root {
@@ -206,6 +236,8 @@ textarea,
 }
 
 button,
+input,
+select,
 textarea {
   font: inherit;
 }

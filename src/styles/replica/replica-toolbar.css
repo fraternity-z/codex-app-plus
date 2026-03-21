@@ -48,7 +48,7 @@
 
 .toolbar-split-main-text {
   display: inline-block;
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   line-height: 1;
   white-space: nowrap;
 }
@@ -121,7 +121,7 @@
 .toolbar-menu-title {
   padding: 8px 10px 6px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   line-height: 1.4;
 }
 
@@ -198,7 +198,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   line-height: 1;
 }
 

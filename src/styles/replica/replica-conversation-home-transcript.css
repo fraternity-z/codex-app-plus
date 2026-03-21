@@ -9,7 +9,7 @@
 .home-assistant-transcript-line {
   margin: 0;
   color: var(--text-soft);
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   line-height: 1.6;
   white-space: pre-wrap;
 }
@@ -63,7 +63,7 @@
 
 .home-assistant-transcript-reasoning-body-markdown {
   color: var(--text-soft);
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   line-height: 1.6;
   white-space: pre-wrap;
 }
@@ -150,7 +150,7 @@
 .home-assistant-transcript-detail-label,
 .home-assistant-transcript-detail-footer-status {
   color: var(--text-main);
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
 }
 
 .home-assistant-transcript-detail-label {
@@ -161,7 +161,7 @@
 .home-assistant-transcript-detail-footer-meta {
   min-width: 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   line-height: 1.4;
 }
 
@@ -205,8 +205,8 @@
   width: max-content;
   color: var(--text-main);
   white-space: pre;
-  font-family: Consolas, "Cascadia Code", monospace;
-  font-size: 12px;
+  font-family: var(--app-code-font-family);
+  font-size: var(--app-code-font-size);
   line-height: 1.55;
 }
 
@@ -274,7 +274,7 @@
 .home-assistant-transcript-file-diff-empty {
   padding: 18px 16px;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
 }
 
 .home-turn-diff-summary {
@@ -294,7 +294,7 @@
 .home-turn-diff-summary-title {
   min-width: 0;
   color: var(--text-main);
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   font-weight: 600;
 }
 
@@ -325,12 +325,12 @@
   color: var(--text-main);
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
 }
 
 .home-turn-diff-summary-empty {
   margin: 0;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   line-height: 1.6;
 }

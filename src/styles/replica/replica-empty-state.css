@@ -9,7 +9,7 @@
 
 .empty-title {
   margin: 0;
-  font-size: 34px;
+  font-size: var(--app-ui-font-size-hero);
   line-height: 1.1;
   font-weight: 600;
   color: var(--text-main);
@@ -19,7 +19,7 @@
   margin: 0;
   max-width: min(560px, 80vw);
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: var(--app-ui-font-size-lg);
   line-height: 1.6;
 }
 
@@ -63,7 +63,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-main);
-  font-size: 18px;
+  font-size: var(--app-ui-font-size-3xl);
   font-weight: 600;
 }
 
@@ -161,7 +161,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   font-weight: 600;
 }
 
@@ -170,7 +170,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
 }
 
 .workspace-selector-item-indicator {
@@ -217,7 +217,7 @@
   border-radius: 999px;
   background: #eef2ff;
   color: #4338ca;
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   font-weight: 600;
   line-height: 1;
   padding: 8px 10px;
@@ -226,7 +226,7 @@
 .auth-choice-title {
   margin: 0;
   color: #111827;
-  font-size: 34px;
+  font-size: var(--app-ui-font-size-hero);
   line-height: 1.1;
   font-weight: 700;
 }
@@ -234,7 +234,7 @@
 .auth-choice-subtitle {
   margin: 0;
   color: #4b5563;
-  font-size: 15px;
+  font-size: var(--app-ui-font-size-lg);
   line-height: 1.6;
 }
 
@@ -251,7 +251,7 @@
   border: 1px solid #d1d5db;
   background: #ffffff;
   color: #111827;
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -278,7 +278,7 @@
 
 @media (max-width: 1080px) {
   .empty-title {
-    font-size: 30px;
+    font-size: var(--app-ui-font-size-display);
   }
 
   .workspace-selector {
@@ -287,7 +287,7 @@
   }
 
   .workspace-selector-label {
-    font-size: 16px;
+    font-size: var(--app-ui-font-size-xl);
   }
 
   .workspace-selector-menu {
@@ -300,6 +300,6 @@
   }
 
   .auth-choice-title {
-    font-size: 28px;
+    font-size: calc(var(--app-ui-font-size) + 14px);
   }
 }

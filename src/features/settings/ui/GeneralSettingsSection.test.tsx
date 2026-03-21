@@ -1,10 +1,17 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
-import { INITIAL_APP_UPDATE_STATE } from "../../../domain/appUpdate";
 import { type Locale } from "../../../i18n";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { DEFAULT_APP_PREFERENCES } from "../hooks/useAppPreferences";
+import {
+  clampCodeFontSize,
+  clampTerminalFontSize,
+  clampUiFontSize,
+  normalizeCodeFontFamily,
+  normalizeTerminalFontFamily,
+  normalizeUiFontFamily,
+} from "../model/fontPreferences";
 import { GeneralSettingsSection } from "./GeneralSettingsSection";
 
 function renderSection(locale: Locale = "zh-CN"): void {
@@ -13,7 +20,6 @@ function renderSection(locale: Locale = "zh-CN"): void {
 
     return (
       <GeneralSettingsSection
-        appUpdate={INITIAL_APP_UPDATE_STATE}
         preferences={{
           ...preferences,
           setAgentEnvironment: (agentEnvironment) => setPreferences((current) => ({ ...current, agentEnvironment })),
@@ -40,13 +46,29 @@ function renderSection(locale: Locale = "zh-CN"): void {
             setPreferences((current) => ({ ...current, composerFullApprovalPolicy })),
           setComposerFullSandboxMode: (composerFullSandboxMode) =>
             setPreferences((current) => ({ ...current, composerFullSandboxMode })),
+          setUiFontFamily: (uiFontFamily) =>
+            setPreferences((current) => ({ ...current, uiFontFamily: normalizeUiFontFamily(uiFontFamily) })),
+          setUiFontSize: (uiFontSize) =>
+            setPreferences((current) => ({ ...current, uiFontSize: clampUiFontSize(uiFontSize) })),
+          setCodeFontFamily: (codeFontFamily) =>
+            setPreferences((current) => ({ ...current, codeFontFamily: normalizeCodeFontFamily(codeFontFamily) })),
+          setCodeFontSize: (codeFontSize) =>
+            setPreferences((current) => ({ ...current, codeFontSize: clampCodeFontSize(codeFontSize) })),
+          setTerminalFontFamily: (terminalFontFamily) =>
+            setPreferences((current) => ({
+              ...current,
+              terminalFontFamily: normalizeTerminalFontFamily(terminalFontFamily),
+            })),
+          setTerminalFontSize: (terminalFontSize) =>
+            setPreferences((current) => ({
+              ...current,
+              terminalFontSize: clampTerminalFontSize(terminalFontSize),
+            })),
           setGitBranchPrefix: (gitBranchPrefix) =>
             setPreferences((current) => ({ ...current, gitBranchPrefix })),
           setGitPushForceWithLease: (gitPushForceWithLease) =>
             setPreferences((current) => ({ ...current, gitPushForceWithLease }))
         }}
-        onCheckForAppUpdate={async () => undefined}
-        onInstallAppUpdate={async () => undefined}
       />
     );
   }
@@ -123,11 +145,42 @@ describe("GeneralSettingsSection", () => {
     expect(toggle).toHaveAttribute("aria-checked", "false");
   });
 
+  it("commits custom font families on blur", () => {
+    renderSection();
+
+    const uiFontInput = screen.getByRole("textbox", { name: "UI 字体" });
+    const codeFontInput = screen.getByRole("textbox", { name: "代码字体" });
+
+    fireEvent.change(uiFontInput, { target: { value: "IBM Plex Sans" } });
+    fireEvent.blur(uiFontInput);
+    fireEvent.change(codeFontInput, { target: { value: "JetBrains Mono" } });
+    fireEvent.blur(codeFontInput);
+
+    expect(uiFontInput).toHaveValue("IBM Plex Sans");
+    expect(codeFontInput).toHaveValue("JetBrains Mono");
+  });
+
+  it("clamps font sizes after blur", () => {
+    renderSection();
+
+    const uiFontSizeInput = screen.getByRole("spinbutton", { name: "UI 字号" });
+    const terminalFontSizeInput = screen.getByRole("spinbutton", { name: "终端字号" });
+
+    fireEvent.change(uiFontSizeInput, { target: { value: "4" } });
+    fireEvent.blur(uiFontSizeInput);
+    fireEvent.change(terminalFontSizeInput, { target: { value: "99" } });
+    fireEvent.blur(terminalFontSizeInput);
+
+    expect(uiFontSizeInput).toHaveValue(12);
+    expect(terminalFontSizeInput).toHaveValue(20);
+  });
+
   it("renders English copy when locale is en-US", () => {
     renderSection("en-US");
 
     expect(screen.getByText("Theme")).toBeInTheDocument();
     expect(screen.getByText("Defaults to the system color scheme, but you can lock the app to light or dark.")).toBeInTheDocument();
+    expect(screen.getByText("Display fonts")).toBeInTheDocument();
     expect(screen.getByText("Interface language")).toBeInTheDocument();
     expect(screen.getByText("Defaults to the system language, keeps your manual choice once changed, and updates migrated screens immediately.")).toBeInTheDocument();
     expect(screen.getByText("Force UTF-8 for the embedded terminal")).toBeInTheDocument();

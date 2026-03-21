@@ -27,6 +27,12 @@ function renderSection(): void {
           setComposerDefaultSandboxMode: () => undefined,
           setComposerFullApprovalPolicy: () => undefined,
           setComposerFullSandboxMode: () => undefined,
+          setUiFontFamily: () => undefined,
+          setUiFontSize: () => undefined,
+          setCodeFontFamily: () => undefined,
+          setCodeFontSize: () => undefined,
+          setTerminalFontFamily: () => undefined,
+          setTerminalFontSize: () => undefined,
           setGitBranchPrefix: (gitBranchPrefix) =>
             setPreferences((current) => ({ ...current, gitBranchPrefix })),
           setGitPushForceWithLease: (gitPushForceWithLease) =>

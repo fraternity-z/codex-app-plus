@@ -5,6 +5,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import type { EmbeddedTerminalShell, HostBridge } from "../../../bridge/types";
 import type { ResolvedTheme } from "../../../domain/theme";
+import { readTerminalFontSettingsFromDocument } from "../../settings/model/fontCssVars";
 import type { TerminalStatus } from "../model/terminalRuntime";
 
 const MAX_BUFFER_CHARS = 200_000;
@@ -316,10 +317,11 @@ export function useTerminalSession(options: UseTerminalSessionOptions): Terminal
     if (terminalRef.current !== null || containerElementRef.current === null) {
       return;
     }
+    const terminalFonts = readTerminalFontSettingsFromDocument();
     const terminal = new Terminal({
       cursorBlink: true,
-      fontSize: 12,
-      fontFamily: 'Consolas, "Cascadia Mono", "Courier New", monospace',
+      fontSize: terminalFonts.fontSize,
+      fontFamily: terminalFonts.fontFamily,
       allowTransparency: false,
       theme: createTerminalAppearance(resolvedTheme),
       scrollback: 5000,

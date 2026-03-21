@@ -34,6 +34,12 @@ function createPreferencesController(
       setPreferences((current) => ({ ...current, composerFullApprovalPolicy })),
     setComposerFullSandboxMode: (composerFullSandboxMode) =>
       setPreferences((current) => ({ ...current, composerFullSandboxMode })),
+    setUiFontFamily: vi.fn(),
+    setUiFontSize: vi.fn(),
+    setCodeFontFamily: vi.fn(),
+    setCodeFontSize: vi.fn(),
+    setTerminalFontFamily: vi.fn(),
+    setTerminalFontSize: vi.fn(),
     setGitBranchPrefix: vi.fn(),
     setGitPushForceWithLease: vi.fn(),
   };

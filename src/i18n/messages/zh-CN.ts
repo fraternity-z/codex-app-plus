@@ -36,6 +36,7 @@ export const zhCN = {
       environment: "环境",
       worktree: "工作树",
       archived: "已归档线程",
+      about: "关于",
     },
     placeholder: {
       message: "该页面仍保留官方布局占位，后续可接入真实设置数据。",
@@ -94,6 +95,43 @@ export const zhCN = {
           auto: "自动检测（跟随系统）",
           zhCN: "中文（中国）",
           enUS: "English (US)",
+        },
+      },
+      display: {
+        title: "显示字体",
+        note: "这些设置仅保存在应用本地。UI 字号主要影响基础文本与输入控件；代码区和终端使用各自的独立字体设置。",
+        uiFontFamily: {
+          label: "UI 字体",
+          description: "用于应用界面常规文本的字体栈。",
+          note: "留空会恢复默认的系统字体栈。",
+          placeholder: "例如：Inter, \"Segoe UI\", sans-serif",
+        },
+        uiFontSize: {
+          label: "UI 字号",
+          description: "调整应用常规文本与输入控件的基础字号。",
+          note: "允许范围 {min}-{max}px，默认 {default}px。",
+        },
+        codeFontFamily: {
+          label: "代码字体",
+          description: "用于消息代码块、Diff、追踪详情等 monospace 区域。",
+          note: "留空会恢复默认的等宽字体栈。",
+          placeholder: "例如：JetBrains Mono, Consolas, monospace",
+        },
+        codeFontSize: {
+          label: "代码字号",
+          description: "调整代码块、Diff 和原始文本内容的字号。",
+          note: "允许范围 {min}-{max}px，默认 {default}px。",
+        },
+        terminalFontFamily: {
+          label: "终端字体",
+          description: "用于内置终端 xterm 会话的字体栈。",
+          note: "修改后会作用于新创建或重新打开的终端会话。",
+          placeholder: "例如：Cascadia Mono, Fira Code, monospace",
+        },
+        terminalFontSize: {
+          label: "终端字号",
+          description: "调整内置终端字符渲染大小。",
+          note: "允许范围 {min}-{max}px，默认 {default}px。",
         },
       },
       threadDetailLevel: {
@@ -182,6 +220,10 @@ export const zhCN = {
         progressUnknown: "已下载 {downloaded}",
         notesLabel: "版本说明",
       },
+    },
+    about: {
+      title: "关于",
+      subtitle: "查看当前桌面端版本信息，并在这里检查和安装新版本。",
     },
     git: {
       title: "Git",

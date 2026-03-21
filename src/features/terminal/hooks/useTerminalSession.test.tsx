@@ -1,7 +1,11 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../../bridge/types";
 import { useTerminalSession } from "./useTerminalSession";
+
+const { capturedTerminalOptions } = vi.hoisted(() => ({
+  capturedTerminalOptions: [] as Array<Record<string, unknown>>,
+}));
 
 vi.mock("@xterm/addon-fit", () => ({
   FitAddon: class FitAddon {
@@ -11,6 +15,9 @@ vi.mock("@xterm/addon-fit", () => ({
 
 vi.mock("@xterm/xterm", () => ({
   Terminal: class Terminal {
+    constructor(options: Record<string, unknown>) {
+      capturedTerminalOptions.push(options);
+    }
     cols = 120;
     rows = 32;
     loadAddon(): void {}
@@ -56,6 +63,43 @@ function createHostBridge(overrides: Partial<HostBridge> = {}): HostBridge {
 }
 
 describe("useTerminalSession", () => {
+  beforeEach(() => {
+    capturedTerminalOptions.length = 0;
+    document.documentElement.style.removeProperty("--app-terminal-font-family");
+    document.documentElement.style.removeProperty("--app-terminal-font-size");
+  });
+
+  it("uses the configured terminal font settings when opening xterm", async () => {
+    document.documentElement.style.setProperty("--app-terminal-font-family", "Fira Code");
+    document.documentElement.style.setProperty("--app-terminal-font-size", "16px");
+    const hostBridge = createHostBridge();
+
+    const { result } = renderHook(() =>
+      useTerminalSession({
+        activeRootKey: "root-1",
+        activeRootPath: "E:/code/codex-app-plus",
+        activeTerminalId: "terminal-1",
+        focusRequestVersion: 0,
+        hostBridge,
+        isVisible: true,
+        shell: "powerShell",
+        enforceUtf8: true,
+        resolvedTheme: "dark",
+      }),
+    );
+
+    await act(async () => {
+      result.current.containerRef(document.createElement("div"));
+    });
+
+    expect(capturedTerminalOptions.at(-1)).toEqual(
+      expect.objectContaining({
+        fontFamily: "Fira Code",
+        fontSize: 16,
+      }),
+    );
+  });
+
   it("does not create a session while the terminal is hidden", async () => {
     const hostBridge = createHostBridge();
     const { result } = renderHook(() =>

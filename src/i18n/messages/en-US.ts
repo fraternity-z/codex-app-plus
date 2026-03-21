@@ -37,6 +37,7 @@ export const enUS = {
       environment: "Environment",
       worktree: "Worktree",
       archived: "Archived Threads",
+      about: "About",
     },
     placeholder: {
       message: "This page still uses the official placeholder layout and can be wired to real settings data later.",
@@ -95,6 +96,43 @@ export const enUS = {
           auto: "Automatic (System)",
           zhCN: "Chinese (China)",
           enUS: "English (US)",
+        },
+      },
+      display: {
+        title: "Display fonts",
+        note: "These settings stay local to the app. UI font size mainly affects base text and form controls, while code areas and the terminal use their own font settings.",
+        uiFontFamily: {
+          label: "UI font",
+          description: "Font stack used for regular app interface text.",
+          note: "Leave it blank to restore the default system stack.",
+          placeholder: "For example: Inter, \"Segoe UI\", sans-serif",
+        },
+        uiFontSize: {
+          label: "UI font size",
+          description: "Adjusts the base font size for app text and form controls.",
+          note: "Allowed range: {min}-{max}px. Default: {default}px.",
+        },
+        codeFontFamily: {
+          label: "Code font",
+          description: "Font stack used for message code blocks, diffs, and trace details.",
+          note: "Leave it blank to restore the default monospace stack.",
+          placeholder: "For example: JetBrains Mono, Consolas, monospace",
+        },
+        codeFontSize: {
+          label: "Code font size",
+          description: "Adjusts code blocks, diffs, and raw text content.",
+          note: "Allowed range: {min}-{max}px. Default: {default}px.",
+        },
+        terminalFontFamily: {
+          label: "Terminal font",
+          description: "Font stack used by the built-in xterm sessions.",
+          note: "Changes apply to newly created or reopened terminal sessions.",
+          placeholder: "For example: Cascadia Mono, Fira Code, monospace",
+        },
+        terminalFontSize: {
+          label: "Terminal font size",
+          description: "Adjusts character rendering size in the built-in terminal.",
+          note: "Allowed range: {min}-{max}px. Default: {default}px.",
         },
       },
       threadDetailLevel: {
@@ -183,6 +221,10 @@ export const enUS = {
         progressUnknown: "Downloaded {downloaded}",
         notesLabel: "Release notes",
       },
+    },
+    about: {
+      title: "About",
+      subtitle: "View the current desktop app version and check for or install updates here.",
     },
     git: {
       title: "Git",

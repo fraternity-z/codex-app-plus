@@ -72,7 +72,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
 }
 
 .terminal-tab-close,
@@ -123,7 +123,7 @@
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
 }
 
 .terminal-shell {
@@ -158,7 +158,7 @@
   border-radius: 10px;
   background: var(--surface-panel);
   color: var(--text-soft);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   text-align: center;
   pointer-events: auto;
 }
@@ -170,7 +170,7 @@
   padding: 0 12px;
   background: var(--surface-hover);
   color: var(--text-main);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   cursor: pointer;
 }
 
@@ -203,12 +203,12 @@
 .terminal-title-main {
   font-weight: 600;
   color: var(--text-main);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
 }
 
 .terminal-title-sub {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
 }
 
 .terminal-status {
@@ -217,7 +217,7 @@
   height: 20px;
   padding: 0 8px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--app-ui-font-size-compact);
   color: var(--text-soft);
   background: var(--surface-panel-soft);
 }
@@ -251,7 +251,7 @@
   padding: 0 10px;
   background: var(--surface-panel);
   color: var(--text-soft);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   cursor: pointer;
 }
 
@@ -294,7 +294,7 @@
 .terminal-error {
   padding: 8px 12px 0;
   color: var(--error-fg);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
 }
 
 .terminal-surface {

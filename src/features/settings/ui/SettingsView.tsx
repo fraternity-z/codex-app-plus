@@ -22,6 +22,7 @@ import "../../../styles/replica/replica-settings-extra.css";
 import "../../../styles/replica/replica-settings-layout.css";
 import { useI18n, type MessageKey } from "../../../i18n";
 import { McpSettingsPanel } from "../../mcp/ui/McpSettingsPanel";
+import { AboutSettingsSection } from "./AboutSettingsSection";
 import { ComposerPermissionDefaultsCard } from "./ComposerPermissionDefaultsCard";
 import { ConfigSettingsSection } from "./ConfigSettingsSection";
 import { GeneralSettingsSection } from "./GeneralSettingsSection";
@@ -41,7 +42,8 @@ export type SettingsSection =
   | "git"
   | "environment"
   | "worktree"
-  | "archived";
+  | "archived"
+  | "about";
 
 export interface SettingsViewProps {
   readonly appUpdate: AppUpdateState;
@@ -97,6 +99,7 @@ const NAV_ITEM_DEFINITIONS: ReadonlyArray<{
   { key: "environment", labelKey: "settings.nav.environment", icon: "◍" },
   { key: "worktree", labelKey: "settings.nav.worktree", icon: "▣" },
   { key: "archived", labelKey: "settings.nav.archived", icon: "▥" },
+  { key: "about", labelKey: "settings.nav.about", icon: "ⓘ" },
 ];
 function createNavItems(t: (key: MessageKey) => string): ReadonlyArray<NavItem> {
   return NAV_ITEM_DEFINITIONS.map((item) => ({
@@ -139,14 +142,7 @@ function SettingsContent(props: SettingsViewProps): JSX.Element {
   const sectionTitle = createNavItems(t).find((item) => item.key === props.section)?.label ?? t("settings.nav.general");
 
   if (props.section === "general") {
-    return (
-      <GeneralSettingsSection
-        appUpdate={props.appUpdate}
-        preferences={props.preferences}
-        onCheckForAppUpdate={props.checkForAppUpdate}
-        onInstallAppUpdate={props.installAppUpdate}
-      />
-    );
+    return <GeneralSettingsSection preferences={props.preferences} />;
   }
   if (props.section === "config") {
     return (
@@ -196,6 +192,15 @@ function SettingsContent(props: SettingsViewProps): JSX.Element {
   }
   if (props.section === "archived") {
     return <ArchivedThreadsSettingsSection listArchivedThreads={props.listArchivedThreads} unarchiveThread={props.unarchiveThread} />;
+  }
+  if (props.section === "about") {
+    return (
+      <AboutSettingsSection
+        appUpdate={props.appUpdate}
+        onCheckForAppUpdate={props.checkForAppUpdate}
+        onInstallAppUpdate={props.installAppUpdate}
+      />
+    );
   }
   if (props.section === "git") {
     return <GitSettingsSection preferences={props.preferences} />;

@@ -6,6 +6,7 @@ import { AppScreenContent, type AppScreen } from "./ui/AppScreenContent";
 import { useDismissStartupScreen } from "./startupScreen";
 import { useResolvedTheme } from "./useResolvedTheme";
 import { useWindowTheme } from "./useWindowTheme";
+import { useAppFontVariables } from "./useAppFontVariables";
 import { I18nProvider } from "../i18n";
 import { useAppPreferences } from "../features/settings/hooks/useAppPreferences";
 import type { SettingsSection } from "../features/settings/ui/SettingsView";
@@ -28,6 +29,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const authBusy = bootstrapState.bootstrapBusy || bootstrapState.authLoginPending;
   const shouldShowAuthChoice = bootstrapState.authStatus === "needs_login" && screen === "home";
 
+  useAppFontVariables(preferences);
   useWindowTheme(hostBridge, resolvedTheme);
   useDismissStartupScreen(
     bootstrapState.fatalError !== null || (bootstrapState.initialized && !bootstrapState.bootstrapBusy),

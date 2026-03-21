@@ -5,6 +5,11 @@ import {
   DEFAULT_APP_PREFERENCES,
   useAppPreferences
 } from "./useAppPreferences";
+import {
+  CODE_FONT_SIZE_MAX,
+  TERMINAL_FONT_SIZE_MAX,
+  UI_FONT_SIZE_MIN,
+} from "../model/fontPreferences";
 
 describe("useAppPreferences", () => {
   beforeEach(() => {
@@ -26,6 +31,12 @@ describe("useAppPreferences", () => {
     expect(result.current.composerDefaultSandboxMode).toBe(DEFAULT_APP_PREFERENCES.composerDefaultSandboxMode);
     expect(result.current.composerFullApprovalPolicy).toBe(DEFAULT_APP_PREFERENCES.composerFullApprovalPolicy);
     expect(result.current.composerFullSandboxMode).toBe(DEFAULT_APP_PREFERENCES.composerFullSandboxMode);
+    expect(result.current.uiFontFamily).toBe(DEFAULT_APP_PREFERENCES.uiFontFamily);
+    expect(result.current.uiFontSize).toBe(DEFAULT_APP_PREFERENCES.uiFontSize);
+    expect(result.current.codeFontFamily).toBe(DEFAULT_APP_PREFERENCES.codeFontFamily);
+    expect(result.current.codeFontSize).toBe(DEFAULT_APP_PREFERENCES.codeFontSize);
+    expect(result.current.terminalFontFamily).toBe(DEFAULT_APP_PREFERENCES.terminalFontFamily);
+    expect(result.current.terminalFontSize).toBe(DEFAULT_APP_PREFERENCES.terminalFontSize);
     expect(result.current.gitBranchPrefix).toBe(DEFAULT_APP_PREFERENCES.gitBranchPrefix);
     expect(result.current.gitPushForceWithLease).toBe(DEFAULT_APP_PREFERENCES.gitPushForceWithLease);
   });
@@ -46,6 +57,12 @@ describe("useAppPreferences", () => {
       first.result.current.setComposerDefaultSandboxMode("read-only");
       first.result.current.setComposerFullApprovalPolicy("untrusted");
       first.result.current.setComposerFullSandboxMode("workspace-write");
+      first.result.current.setUiFontFamily("IBM Plex Sans");
+      first.result.current.setUiFontSize(15);
+      first.result.current.setCodeFontFamily("JetBrains Mono");
+      first.result.current.setCodeFontSize(14);
+      first.result.current.setTerminalFontFamily("Fira Code");
+      first.result.current.setTerminalFontSize(16);
       first.result.current.setGitBranchPrefix("feature/");
       first.result.current.setGitPushForceWithLease(true);
     });
@@ -70,6 +87,12 @@ describe("useAppPreferences", () => {
     expect(second.result.current.composerDefaultSandboxMode).toBe("read-only");
     expect(second.result.current.composerFullApprovalPolicy).toBe("untrusted");
     expect(second.result.current.composerFullSandboxMode).toBe("workspace-write");
+    expect(second.result.current.uiFontFamily).toBe("IBM Plex Sans");
+    expect(second.result.current.uiFontSize).toBe(15);
+    expect(second.result.current.codeFontFamily).toBe("JetBrains Mono");
+    expect(second.result.current.codeFontSize).toBe(14);
+    expect(second.result.current.terminalFontFamily).toBe("Fira Code");
+    expect(second.result.current.terminalFontSize).toBe(16);
     expect(second.result.current.gitBranchPrefix).toBe("feature/");
     expect(second.result.current.gitPushForceWithLease).toBe(true);
   });
@@ -119,6 +142,12 @@ describe("useAppPreferences", () => {
         composerDefaultSandboxMode: "sandboxed",
         composerFullApprovalPolicy: "allow",
         composerFullSandboxMode: "danger",
+        uiFontFamily: "",
+        uiFontSize: 1,
+        codeFontFamily: 42,
+        codeFontSize: 99,
+        terminalFontFamily: null,
+        terminalFontSize: 999,
         gitBranchPrefix: 123,
         gitPushForceWithLease: "yes"
       })
@@ -138,6 +167,12 @@ describe("useAppPreferences", () => {
     expect(result.current.composerDefaultSandboxMode).toBe(DEFAULT_APP_PREFERENCES.composerDefaultSandboxMode);
     expect(result.current.composerFullApprovalPolicy).toBe(DEFAULT_APP_PREFERENCES.composerFullApprovalPolicy);
     expect(result.current.composerFullSandboxMode).toBe(DEFAULT_APP_PREFERENCES.composerFullSandboxMode);
+    expect(result.current.uiFontFamily).toBe(DEFAULT_APP_PREFERENCES.uiFontFamily);
+    expect(result.current.uiFontSize).toBe(UI_FONT_SIZE_MIN);
+    expect(result.current.codeFontFamily).toBe(DEFAULT_APP_PREFERENCES.codeFontFamily);
+    expect(result.current.codeFontSize).toBe(CODE_FONT_SIZE_MAX);
+    expect(result.current.terminalFontFamily).toBe(DEFAULT_APP_PREFERENCES.terminalFontFamily);
+    expect(result.current.terminalFontSize).toBe(TERMINAL_FONT_SIZE_MAX);
     expect(result.current.gitBranchPrefix).toBe(DEFAULT_APP_PREFERENCES.gitBranchPrefix);
     expect(result.current.gitPushForceWithLease).toBe(DEFAULT_APP_PREFERENCES.gitPushForceWithLease);
   });

@@ -65,14 +65,14 @@
   border-radius: 999px;
   background: #eef2ff;
   color: #3652b3;
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
 }
 
 .home-entry-card-meta,
 .home-trace-caption,
 .home-request-copy {
   color: #5f6b7d;
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   line-height: 1.5;
 }
 
@@ -85,14 +85,14 @@
 
 .home-thinking-label {
   color: #334155;
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   font-weight: 600;
 }
 
 .home-thinking-summary {
   margin: 0;
   color: #5f6b7d;
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   line-height: 1.55;
   white-space: pre-wrap;
 }
@@ -129,14 +129,14 @@
 
 .home-trace-entry-title {
   color: #334155;
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   font-weight: 600;
 }
 
 .home-trace-entry-meta,
 .home-trace-entry-status {
   color: #7a8699;
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
 }
 
 .home-trace-entry-body {
@@ -156,8 +156,8 @@
   background: #f8fafc;
   white-space: pre-wrap;
   word-break: break-word;
-  font-family: Consolas, "Cascadia Code", monospace;
-  font-size: 12px;
+  font-family: var(--app-code-font-family);
+  font-size: var(--app-code-font-size);
   line-height: 1.55;
 }
 
@@ -187,13 +187,13 @@
 .home-trace-summary-item span {
   display: block;
   color: #7a8699;
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
 }
 
 .home-trace-summary-item p {
   margin: 6px 0 0;
   color: #1f2937;
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   line-height: 1.55;
   word-break: break-word;
 }
@@ -222,7 +222,7 @@
   border: 1px solid #d7dce7;
   border-radius: 12px;
   padding: 0 12px;
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
 }
 
 .home-request-actions {
@@ -294,13 +294,13 @@
 }
 
 .home-turn-plan-title {
-  font-size: 14px;
+  font-size: var(--app-ui-font-size-base);
   font-weight: 600;
 }
 
 .home-turn-plan-progress {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--app-ui-font-size-compact);
 }
 
 .home-turn-plan-handle-icon {
@@ -331,7 +331,7 @@
 .home-turn-plan-explanation {
   margin: 0;
   color: var(--text-soft);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   line-height: 1.55;
 }
 
@@ -339,7 +339,7 @@
   display: flex;
   justify-content: space-between;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--app-ui-font-size-compact);
   padding-bottom: 1px;
 }
 
@@ -373,13 +373,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--app-ui-font-size-compact);
   font-weight: 600;
 }
 
 .home-turn-plan-text {
   color: var(--text-main);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   line-height: 1.55;
 }
 
@@ -387,7 +387,7 @@
   padding: 0 8px;
   min-height: 20px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--app-ui-font-size-compact);
   display: inline-flex;
   align-items: center;
   border: 1px solid var(--border-light);
@@ -423,6 +423,6 @@
   border-radius: 12px;
   background: var(--surface-panel-muted);
   color: var(--text-soft);
-  font-size: 12px;
+  font-size: var(--app-ui-font-size-sm);
   text-align: center;
 }

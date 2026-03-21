@@ -38,7 +38,7 @@
 }
 
 .window-titlebar-title {
-  font-size: 13px;
+  font-size: var(--app-ui-font-size-md);
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
