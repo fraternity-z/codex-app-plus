@@ -49,6 +49,9 @@ function safeParseAuth(draft: CodexProviderDraft): Record<string, unknown> {
 }
 
 function safeParseConfig(draft: CodexProviderDraft): Record<string, unknown> {
+  if (draft.configTomlText.trim().length === 0) {
+    return {};
+  }
   try {
     return parseConfigTomlText(draft.configTomlText);
   } catch {
@@ -109,6 +112,13 @@ export function CodexProviderDialog(props: CodexProviderDialogProps): JSX.Elemen
   ) => {
     setDraft((current) => {
       const nextDraft = { ...current.draft, [key]: value };
+      if (nextDraft.providerKey.trim().length === 0) {
+        return {
+          draft: nextDraft,
+          lastValidAuth: current.lastValidAuth,
+          lastValidConfig: current.lastValidConfig,
+        };
+      }
       const configTomlText = updateConfigTomlWithBasics(current.lastValidConfig, {
         providerKey: nextDraft.providerKey,
         providerName: nextDraft.name,
@@ -200,7 +210,7 @@ export function CodexProviderDialog(props: CodexProviderDialogProps): JSX.Elemen
             </label>
             <label className="mcp-form-field">
               <span className="mcp-form-label">{t("settings.config.providerDialog.providerKeyLabel")}</span>
-              <input aria-label={t("settings.config.providerDialog.providerKeyLabel")} className="mcp-form-input" value={state.draft.providerKey} onChange={(event) => handleBasicFieldChange("providerKey", event.target.value)} />
+              <input aria-label={t("settings.config.providerDialog.providerKeyLabel")} className="mcp-form-input" placeholder={t("settings.config.providerDialog.providerKeyPlaceholder")} value={state.draft.providerKey} onChange={(event) => handleBasicFieldChange("providerKey", event.target.value)} />
               {errors.providerKey ? <span className="mcp-form-error">{errors.providerKey}</span> : null}
             </label>
             <label className="mcp-form-field">

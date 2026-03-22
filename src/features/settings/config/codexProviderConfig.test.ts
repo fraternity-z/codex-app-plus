@@ -12,6 +12,13 @@ import {
 } from "./codexProviderConfig";
 
 describe("codexProviderConfig", () => {
+  it("starts new provider drafts with an empty custom provider key", () => {
+    const draft = createEmptyCodexProviderDraft();
+
+    expect(draft.providerKey).toBe("");
+    expect(draft.configTomlText).toBe("");
+  });
+
   it("builds provider-only auth/config content", () => {
     const authText = createAuthJsonText("secret-1");
     const configText = createConfigTomlText({
@@ -96,5 +103,19 @@ describe("codexProviderConfig", () => {
     expect(validateCodexProviderDraft(draft, []).authJsonText).toBeTruthy();
     expect(validateCodexProviderDraft(draft, []).configTomlText).toBeTruthy();
     expect(readCurrentCodexProviderKey({ config: { model_provider: "right_code" } })).toBe("right_code");
+  });
+
+  it("rejects reserved built-in provider ids", () => {
+    const draft = {
+      ...createEmptyCodexProviderDraft(),
+      name: "Right Code",
+      providerKey: "openai",
+      apiKey: "secret-1",
+      baseUrl: "https://right.codes/codex/v1",
+      authJsonText: createAuthJsonText("secret-1"),
+      configTomlText: "",
+    };
+
+    expect(validateCodexProviderDraft(draft, []).providerKey).toContain("openai-custom");
   });
 });

@@ -6,9 +6,10 @@ import type {
 
 const DEFAULT_API_KEY = "";
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
-const DEFAULT_PROVIDER_KEY = "openai";
+const DEFAULT_PROVIDER_KEY = "";
 const DEFAULT_REQUIRES_OPENAI_AUTH = true;
 const DEFAULT_WIRE_API = "responses";
+const RESERVED_PROVIDER_KEYS = new Set(["openai", "ollama", "lmstudio"]);
 
 type JsonObject = Record<string, unknown>;
 type TomlObject = Record<string, unknown>;
@@ -71,6 +72,9 @@ export function createAuthJsonText(apiKey: string): string {
 }
 
 export function createConfigTomlText(input: ConfigTomlBasicsInput): string {
+  if (!shouldGenerateProviderPatch(input.providerKey)) {
+    return "";
+  }
   return toToml(buildProviderPatch({}, input));
 }
 
@@ -125,6 +129,9 @@ export function updateConfigTomlWithBasics(
   configObject: TomlObject,
   input: ConfigTomlBasicsInput,
 ): string {
+  if (!shouldGenerateProviderPatch(input.providerKey)) {
+    return toToml(configObject);
+  }
   return toToml(buildProviderPatch(configObject, input));
 }
 
@@ -133,12 +140,18 @@ export function validateCodexProviderDraft(
   providers: ReadonlyArray<CodexProviderRecord>,
 ): CodexProviderValidationErrors {
   const errors: CodexProviderValidationErrors = {};
+  const providerKey = draft.providerKey.trim();
   if (draft.name.trim().length === 0) errors.name = "名称不能为空";
-  if (draft.providerKey.trim().length === 0) errors.providerKey = "providerKey 不能为空";
+  if (providerKey.length === 0) {
+    errors.providerKey = "providerKey 不能为空";
+  } else if (isReservedProviderKey(providerKey)) {
+    errors.providerKey = `providerKey 不能使用内置提供商 ID：${providerKey}；请改用例如 openai-custom`;
+  }
   if (draft.apiKey.trim().length === 0) errors.apiKey = "API Key 不能为空";
   if (draft.baseUrl.trim().length === 0) errors.baseUrl = "Base URL 不能为空";
 
-  const duplicated = providers.some((provider) => provider.providerKey === draft.providerKey.trim() && provider.id !== draft.id);
+  const duplicated = errors.providerKey === undefined
+    && providers.some((provider) => provider.providerKey === providerKey && provider.id !== draft.id);
   if (duplicated) {
     errors.providerKey = "providerKey 已存在";
   }
@@ -151,17 +164,19 @@ export function validateCodexProviderDraft(
     errors.authJsonText = toErrorMessage(error);
   }
 
-  try {
-    const fields = extractCodexConfigFields(draft.configTomlText);
-    if (fields.providerKey !== draft.providerKey.trim()) {
-      errors.configTomlText = "config.toml 与 providerKey 字段不一致";
-    } else if (fields.baseUrl !== draft.baseUrl.trim()) {
-      errors.configTomlText = "config.toml 与 Base URL 字段不一致";
-    } else if (draft.name.trim().length > 0 && fields.providerName !== draft.name.trim()) {
-      errors.configTomlText = "config.toml 与名称字段不一致";
+  if (shouldValidateGeneratedConfig(draft)) {
+    try {
+      const fields = extractCodexConfigFields(draft.configTomlText);
+      if (fields.providerKey !== providerKey) {
+        errors.configTomlText = "config.toml 与 providerKey 字段不一致";
+      } else if (fields.baseUrl !== draft.baseUrl.trim()) {
+        errors.configTomlText = "config.toml 与 Base URL 字段不一致";
+      } else if (draft.name.trim().length > 0 && fields.providerName !== draft.name.trim()) {
+        errors.configTomlText = "config.toml 与名称字段不一致";
+      }
+    } catch (error) {
+      errors.configTomlText = toErrorMessage(error);
     }
-  } catch (error) {
-    errors.configTomlText = toErrorMessage(error);
   }
 
   return errors;
@@ -206,6 +221,21 @@ function buildProviderPatch(source: TomlObject, input: ConfigTomlBasicsInput): T
       },
     },
   };
+}
+
+function shouldGenerateProviderPatch(providerKey: string): boolean {
+  const normalized = providerKey.trim();
+  return normalized.length > 0 && !isReservedProviderKey(normalized);
+}
+
+function shouldValidateGeneratedConfig(draft: CodexProviderDraft): boolean {
+  return shouldGenerateProviderPatch(draft.providerKey)
+    && draft.baseUrl.trim().length > 0
+    && draft.configTomlText.trim().length > 0;
+}
+
+function isReservedProviderKey(providerKey: string): boolean {
+  return RESERVED_PROVIDER_KEYS.has(providerKey.trim());
 }
 
 function findSourceProviderConfig(source: TomlObject, providerKey: string): JsonObject {

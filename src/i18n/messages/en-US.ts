@@ -311,6 +311,7 @@ export const enUS = {
         closeAction: "Close",
         nameLabel: "Name",
         providerKeyLabel: "providerKey",
+        providerKeyPlaceholder: "For example: openai-custom",
         apiKeyLabel: "API Key",
         baseUrlLabel: "Base URL",
         authLabel: "auth.json",

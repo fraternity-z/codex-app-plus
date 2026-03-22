@@ -106,10 +106,11 @@ describe("ConfigSettingsSection", () => {
     const { container } = renderSection(createBaseProps());
 
     openAddProviderDialog(container);
-    const { nameInput, apiKeyInput, authTextarea } = getDialogInputs(container);
+    const { nameInput, providerKeyInput, apiKeyInput, authTextarea } = getDialogInputs(container);
     const dialogButtons = container.querySelectorAll<HTMLButtonElement>(".mcp-form-actions button");
 
     fireEvent.change(nameInput, { target: { value: "Right Code" } });
+    fireEvent.change(providerKeyInput, { target: { value: "right_code" } });
     fireEvent.change(apiKeyInput, { target: { value: "secret-1" } });
     fireEvent.change(authTextarea, { target: { value: "{bad json}" } });
 
@@ -169,6 +170,22 @@ describe("ConfigSettingsSection", () => {
     openAddProviderDialog(container);
 
     expect(container.querySelectorAll(".codex-provider-form input")).toHaveLength(4);
+  });
+
+  it("starts providerKey empty and blocks reserved built-in ids", async () => {
+    const { container } = renderSection(createBaseProps());
+
+    openAddProviderDialog(container);
+    const { providerKeyInput } = getDialogInputs(container);
+    const dialogButtons = container.querySelectorAll<HTMLButtonElement>(".mcp-form-actions button");
+
+    expect(providerKeyInput.value).toBe("");
+    expect(providerKeyInput).toHaveAttribute("placeholder", "例如：openai-custom");
+
+    fireEvent.change(providerKeyInput, { target: { value: "openai" } });
+
+    expect(await screen.findByText(/openai-custom/)).toBeInTheDocument();
+    expect(dialogButtons[1]).toBeDisabled();
   });
 
   it("renders English copy when locale is en-US", async () => {

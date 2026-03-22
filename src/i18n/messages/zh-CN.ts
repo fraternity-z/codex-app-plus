@@ -310,6 +310,7 @@ export const zhCN = {
         closeAction: "关闭",
         nameLabel: "名称",
         providerKeyLabel: "providerKey",
+        providerKeyPlaceholder: "例如：openai-custom",
         apiKeyLabel: "API Key",
         baseUrlLabel: "Base URL",
         authLabel: "auth.json",
