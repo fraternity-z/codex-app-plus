@@ -65,13 +65,13 @@ function createHostBridge(overrides: Partial<HostBridge> = {}): HostBridge {
 describe("useTerminalSession", () => {
   beforeEach(() => {
     capturedTerminalOptions.length = 0;
-    document.documentElement.style.removeProperty("--app-terminal-font-family");
-    document.documentElement.style.removeProperty("--app-terminal-font-size");
+    document.documentElement.style.removeProperty("--app-code-font-family");
+    document.documentElement.style.removeProperty("--app-code-font-size");
   });
 
   it("uses the configured terminal font settings when opening xterm", async () => {
-    document.documentElement.style.setProperty("--app-terminal-font-family", "Fira Code");
-    document.documentElement.style.setProperty("--app-terminal-font-size", "16px");
+    document.documentElement.style.setProperty("--app-code-font-family", "Fira Code");
+    document.documentElement.style.setProperty("--app-code-font-size", "16px");
     const hostBridge = createHostBridge();
 
     const { result } = renderHook(() =>

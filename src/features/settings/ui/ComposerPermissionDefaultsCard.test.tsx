@@ -38,8 +38,6 @@ function createPreferencesController(
     setUiFontSize: vi.fn(),
     setCodeFontFamily: vi.fn(),
     setCodeFontSize: vi.fn(),
-    setTerminalFontFamily: vi.fn(),
-    setTerminalFontSize: vi.fn(),
     setGitBranchPrefix: vi.fn(),
     setGitPushForceWithLease: vi.fn(),
   };

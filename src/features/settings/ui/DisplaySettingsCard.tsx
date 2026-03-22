@@ -6,9 +6,6 @@ import {
   CODE_FONT_SIZE_DEFAULT,
   CODE_FONT_SIZE_MAX,
   CODE_FONT_SIZE_MIN,
-  TERMINAL_FONT_SIZE_DEFAULT,
-  TERMINAL_FONT_SIZE_MAX,
-  TERMINAL_FONT_SIZE_MIN,
   UI_FONT_SIZE_DEFAULT,
   UI_FONT_SIZE_MAX,
   UI_FONT_SIZE_MIN,
@@ -189,27 +186,6 @@ export function DisplaySettingsCard(
         maximum={CODE_FONT_SIZE_MAX}
         value={props.preferences.codeFontSize}
         onCommit={props.preferences.setCodeFontSize}
-      />
-      <FontFamilyRow
-        label={t("settings.general.display.terminalFontFamily.label")}
-        description={t("settings.general.display.terminalFontFamily.description")}
-        note={t("settings.general.display.terminalFontFamily.note")}
-        placeholder={t("settings.general.display.terminalFontFamily.placeholder")}
-        value={props.preferences.terminalFontFamily}
-        onCommit={props.preferences.setTerminalFontFamily}
-      />
-      <FontSizeRow
-        label={t("settings.general.display.terminalFontSize.label")}
-        description={t("settings.general.display.terminalFontSize.description")}
-        note={t("settings.general.display.terminalFontSize.note", {
-          default: TERMINAL_FONT_SIZE_DEFAULT,
-          max: TERMINAL_FONT_SIZE_MAX,
-          min: TERMINAL_FONT_SIZE_MIN,
-        })}
-        minimum={TERMINAL_FONT_SIZE_MIN}
-        maximum={TERMINAL_FONT_SIZE_MAX}
-        value={props.preferences.terminalFontSize}
-        onCommit={props.preferences.setTerminalFontSize}
       />
     </section>
   );

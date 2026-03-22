@@ -3,11 +3,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   APP_PREFERENCES_STORAGE_KEY,
   DEFAULT_APP_PREFERENCES,
-  useAppPreferences
+  useAppPreferences,
 } from "./useAppPreferences";
 import {
   CODE_FONT_SIZE_MAX,
-  TERMINAL_FONT_SIZE_MAX,
   UI_FONT_SIZE_MIN,
 } from "../model/fontPreferences";
 
@@ -35,8 +34,6 @@ describe("useAppPreferences", () => {
     expect(result.current.uiFontSize).toBe(DEFAULT_APP_PREFERENCES.uiFontSize);
     expect(result.current.codeFontFamily).toBe(DEFAULT_APP_PREFERENCES.codeFontFamily);
     expect(result.current.codeFontSize).toBe(DEFAULT_APP_PREFERENCES.codeFontSize);
-    expect(result.current.terminalFontFamily).toBe(DEFAULT_APP_PREFERENCES.terminalFontFamily);
-    expect(result.current.terminalFontSize).toBe(DEFAULT_APP_PREFERENCES.terminalFontSize);
     expect(result.current.gitBranchPrefix).toBe(DEFAULT_APP_PREFERENCES.gitBranchPrefix);
     expect(result.current.gitPushForceWithLease).toBe(DEFAULT_APP_PREFERENCES.gitPushForceWithLease);
   });
@@ -61,8 +58,6 @@ describe("useAppPreferences", () => {
       first.result.current.setUiFontSize(15);
       first.result.current.setCodeFontFamily("JetBrains Mono");
       first.result.current.setCodeFontSize(14);
-      first.result.current.setTerminalFontFamily("Fira Code");
-      first.result.current.setTerminalFontSize(16);
       first.result.current.setGitBranchPrefix("feature/");
       first.result.current.setGitPushForceWithLease(true);
     });
@@ -91,8 +86,6 @@ describe("useAppPreferences", () => {
     expect(second.result.current.uiFontSize).toBe(15);
     expect(second.result.current.codeFontFamily).toBe("JetBrains Mono");
     expect(second.result.current.codeFontSize).toBe(14);
-    expect(second.result.current.terminalFontFamily).toBe("Fira Code");
-    expect(second.result.current.terminalFontSize).toBe(16);
     expect(second.result.current.gitBranchPrefix).toBe("feature/");
     expect(second.result.current.gitPushForceWithLease).toBe(true);
   });
@@ -102,8 +95,8 @@ describe("useAppPreferences", () => {
       APP_PREFERENCES_STORAGE_KEY,
       JSON.stringify({
         ...DEFAULT_APP_PREFERENCES,
-        uiLanguage: "zh-CN"
-      })
+        uiLanguage: "zh-CN",
+      }),
     );
 
     const { result } = renderHook(() => useAppPreferences());
@@ -117,8 +110,8 @@ describe("useAppPreferences", () => {
       JSON.stringify({
         ...DEFAULT_APP_PREFERENCES,
         uiLanguage: "zh-CN",
-        uiLanguageExplicit: true
-      })
+        uiLanguageExplicit: true,
+      }),
     );
 
     const { result } = renderHook(() => useAppPreferences());
@@ -149,8 +142,8 @@ describe("useAppPreferences", () => {
         terminalFontFamily: null,
         terminalFontSize: 999,
         gitBranchPrefix: 123,
-        gitPushForceWithLease: "yes"
-      })
+        gitPushForceWithLease: "yes",
+      }),
     );
 
     const { result } = renderHook(() => useAppPreferences());
@@ -171,10 +164,48 @@ describe("useAppPreferences", () => {
     expect(result.current.uiFontSize).toBe(UI_FONT_SIZE_MIN);
     expect(result.current.codeFontFamily).toBe(DEFAULT_APP_PREFERENCES.codeFontFamily);
     expect(result.current.codeFontSize).toBe(CODE_FONT_SIZE_MAX);
-    expect(result.current.terminalFontFamily).toBe(DEFAULT_APP_PREFERENCES.terminalFontFamily);
-    expect(result.current.terminalFontSize).toBe(TERMINAL_FONT_SIZE_MAX);
     expect(result.current.gitBranchPrefix).toBe(DEFAULT_APP_PREFERENCES.gitBranchPrefix);
     expect(result.current.gitPushForceWithLease).toBe(DEFAULT_APP_PREFERENCES.gitPushForceWithLease);
+  });
+
+  it("prefers stored code font values over legacy terminal font values", () => {
+    window.localStorage.setItem(
+      APP_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        ...DEFAULT_APP_PREFERENCES,
+        codeFontFamily: "JetBrains Mono",
+        codeFontSize: 14,
+        terminalFontFamily: "Fira Code",
+        terminalFontSize: 16,
+      }),
+    );
+
+    const { result } = renderHook(() => useAppPreferences());
+
+    expect(result.current.codeFontFamily).toBe("JetBrains Mono");
+    expect(result.current.codeFontSize).toBe(14);
+  });
+
+  it("does not serialize legacy terminal font fields", async () => {
+    const { result } = renderHook(() => useAppPreferences());
+
+    act(() => {
+      result.current.setCodeFontFamily("JetBrains Mono");
+      result.current.setCodeFontSize(15);
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem(APP_PREFERENCES_STORAGE_KEY)).not.toBeNull();
+    });
+
+    const stored = JSON.parse(
+      window.localStorage.getItem(APP_PREFERENCES_STORAGE_KEY) ?? "{}",
+    ) as Record<string, unknown>;
+
+    expect(stored.codeFontFamily).toBe("JetBrains Mono");
+    expect(stored.codeFontSize).toBe(15);
+    expect(stored).not.toHaveProperty("terminalFontFamily");
+    expect(stored).not.toHaveProperty("terminalFontSize");
   });
 
   it("migrates legacy access-mode fields into approval and sandbox settings", () => {
@@ -194,8 +225,8 @@ describe("useAppPreferences", () => {
         gitBranchPrefix: DEFAULT_APP_PREFERENCES.gitBranchPrefix,
         gitPushForceWithLease: DEFAULT_APP_PREFERENCES.gitPushForceWithLease,
         composerDefaultAccessMode: "read-only",
-        composerFullAccessMode: "current"
-      })
+        composerFullAccessMode: "current",
+      }),
     );
 
     const { result } = renderHook(() => useAppPreferences());

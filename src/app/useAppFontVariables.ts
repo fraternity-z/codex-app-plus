@@ -4,12 +4,7 @@ import { applyAppFontVariables } from "../features/settings/model/fontCssVars";
 
 type AppFontPreferences = Pick<
   AppPreferences,
-  | "uiFontFamily"
-  | "uiFontSize"
-  | "codeFontFamily"
-  | "codeFontSize"
-  | "terminalFontFamily"
-  | "terminalFontSize"
+  "uiFontFamily" | "uiFontSize" | "codeFontFamily" | "codeFontSize"
 >;
 
 export function useAppFontVariables(preferences: AppFontPreferences): void {

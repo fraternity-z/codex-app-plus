@@ -29,8 +29,6 @@ function createPreferencesController(): AppPreferencesController {
     setUiFontSize: vi.fn(),
     setCodeFontFamily: vi.fn(),
     setCodeFontSize: vi.fn(),
-    setTerminalFontFamily: vi.fn(),
-    setTerminalFontSize: vi.fn(),
     setGitBranchPrefix: vi.fn(),
     setGitPushForceWithLease: vi.fn(),
   };
@@ -88,6 +86,15 @@ function createBaseProps(
 }
 
 describe("SettingsView", () => {
+  it("renders appearance settings in the appearance section", () => {
+    render(<SettingsView {...createBaseProps({ section: "appearance" })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.getByRole("heading", { name: "外观" })).toBeInTheDocument();
+    expect(screen.getByText("字体")).toBeInTheDocument();
+  });
+
   it("does not render composer permission defaults in the general section", () => {
     render(<SettingsView {...createBaseProps()} />, {
       wrapper: createI18nWrapper("zh-CN"),

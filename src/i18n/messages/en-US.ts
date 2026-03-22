@@ -30,6 +30,7 @@ export const enUS = {
     },
     nav: {
       general: "General",
+      appearance: "Appearance",
       config: "Config",
       personalization: "Personalization",
       mcp: "MCP Services",
@@ -41,6 +42,9 @@ export const enUS = {
     },
     placeholder: {
       message: "This page still uses the official placeholder layout and can be wired to real settings data later.",
+    },
+    appearance: {
+      title: "Appearance",
     },
     general: {
       title: "General",
@@ -99,8 +103,8 @@ export const enUS = {
         },
       },
       display: {
-        title: "Display fonts",
-        note: "These settings stay local to the app. UI font size mainly affects base text and form controls, while code areas and the terminal use their own font settings.",
+        title: "Fonts",
+        note: "These settings stay local to the app. UI font size mainly affects base text and form controls, while code font settings also drive code areas, diffs, and the built-in terminal.",
         uiFontFamily: {
           label: "UI font",
           description: "Font stack used for regular app interface text.",
@@ -114,24 +118,13 @@ export const enUS = {
         },
         codeFontFamily: {
           label: "Code font",
-          description: "Font stack used for message code blocks, diffs, and trace details.",
+          description: "Font stack used for message code blocks, diffs, trace details, and the built-in terminal.",
           note: "Leave it blank to restore the default monospace stack.",
           placeholder: "For example: JetBrains Mono, Consolas, monospace",
         },
         codeFontSize: {
           label: "Code font size",
-          description: "Adjusts code blocks, diffs, and raw text content.",
-          note: "Allowed range: {min}-{max}px. Default: {default}px.",
-        },
-        terminalFontFamily: {
-          label: "Terminal font",
-          description: "Font stack used by the built-in xterm sessions.",
-          note: "Changes apply to newly created or reopened terminal sessions.",
-          placeholder: "For example: Cascadia Mono, Fira Code, monospace",
-        },
-        terminalFontSize: {
-          label: "Terminal font size",
-          description: "Adjusts character rendering size in the built-in terminal.",
+          description: "Adjusts code blocks, diffs, raw text content, and the built-in terminal.",
           note: "Allowed range: {min}-{max}px. Default: {default}px.",
         },
       },

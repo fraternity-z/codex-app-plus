@@ -31,8 +31,6 @@ function renderSection(): void {
           setUiFontSize: () => undefined,
           setCodeFontFamily: () => undefined,
           setCodeFontSize: () => undefined,
-          setTerminalFontFamily: () => undefined,
-          setTerminalFontSize: () => undefined,
           setGitBranchPrefix: (gitBranchPrefix) =>
             setPreferences((current) => ({ ...current, gitBranchPrefix })),
           setGitPushForceWithLease: (gitPushForceWithLease) =>

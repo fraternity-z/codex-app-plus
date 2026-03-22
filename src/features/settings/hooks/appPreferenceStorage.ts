@@ -19,16 +19,12 @@ import type { UiLanguage } from "../../../i18n";
 import type { SandboxMode } from "../../../protocol/generated/v2/SandboxMode";
 import {
   clampCodeFontSize,
-  clampTerminalFontSize,
   clampUiFontSize,
   CODE_FONT_SIZE_DEFAULT,
   DEFAULT_CODE_FONT_FAMILY,
-  DEFAULT_TERMINAL_FONT_FAMILY,
   DEFAULT_UI_FONT_FAMILY,
   normalizeCodeFontFamily,
-  normalizeTerminalFontFamily,
   normalizeUiFontFamily,
-  TERMINAL_FONT_SIZE_DEFAULT,
   UI_FONT_SIZE_DEFAULT,
 } from "../model/fontPreferences";
 import type { AppPreferences, ThreadDetailLevel } from "./useAppPreferences";
@@ -95,8 +91,6 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   uiFontSize: UI_FONT_SIZE_DEFAULT,
   codeFontFamily: DEFAULT_CODE_FONT_FAMILY,
   codeFontSize: CODE_FONT_SIZE_DEFAULT,
-  terminalFontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
-  terminalFontSize: TERMINAL_FONT_SIZE_DEFAULT,
   gitBranchPrefix: DEFAULT_GIT_BRANCH_PREFIX,
   gitPushForceWithLease: false,
 };
@@ -268,11 +262,6 @@ function sanitizeStoredPreferences(value: unknown): AppPreferences {
       typeof record.codeFontSize === "number"
         ? clampCodeFontSize(record.codeFontSize)
         : DEFAULT_APP_PREFERENCES.codeFontSize,
-    terminalFontFamily: normalizeTerminalFontFamily(record.terminalFontFamily),
-    terminalFontSize:
-      typeof record.terminalFontSize === "number"
-        ? clampTerminalFontSize(record.terminalFontSize)
-        : DEFAULT_APP_PREFERENCES.terminalFontSize,
     gitBranchPrefix: sanitizeGitBranchPrefix(record.gitBranchPrefix),
     gitPushForceWithLease:
       typeof record.gitPushForceWithLease === "boolean"

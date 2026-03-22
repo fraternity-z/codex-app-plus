@@ -29,6 +29,7 @@ export const zhCN = {
     },
     nav: {
       general: "常规",
+      appearance: "外观",
       config: "配置",
       personalization: "个性化",
       mcp: "MCP 服务",
@@ -40,6 +41,9 @@ export const zhCN = {
     },
     placeholder: {
       message: "该页面仍保留官方布局占位，后续可接入真实设置数据。",
+    },
+    appearance: {
+      title: "外观",
     },
     general: {
       title: "常规",
@@ -98,8 +102,8 @@ export const zhCN = {
         },
       },
       display: {
-        title: "显示字体",
-        note: "这些设置仅保存在应用本地。UI 字号主要影响基础文本与输入控件；代码区和终端使用各自的独立字体设置。",
+        title: "字体",
+        note: "这些设置仅保存在应用本地。UI 字号主要影响基础文本与输入控件；代码字体和字号会同时作用于代码区、Diff 与内置终端。",
         uiFontFamily: {
           label: "UI 字体",
           description: "用于应用界面常规文本的字体栈。",
@@ -113,24 +117,13 @@ export const zhCN = {
         },
         codeFontFamily: {
           label: "代码字体",
-          description: "用于消息代码块、Diff、追踪详情等 monospace 区域。",
+          description: "用于消息代码块、Diff、追踪详情以及内置终端的等宽字体栈。",
           note: "留空会恢复默认的等宽字体栈。",
           placeholder: "例如：JetBrains Mono, Consolas, monospace",
         },
         codeFontSize: {
           label: "代码字号",
-          description: "调整代码块、Diff 和原始文本内容的字号。",
-          note: "允许范围 {min}-{max}px，默认 {default}px。",
-        },
-        terminalFontFamily: {
-          label: "终端字体",
-          description: "用于内置终端 xterm 会话的字体栈。",
-          note: "修改后会作用于新创建或重新打开的终端会话。",
-          placeholder: "例如：Cascadia Mono, Fira Code, monospace",
-        },
-        terminalFontSize: {
-          label: "终端字号",
-          description: "调整内置终端字符渲染大小。",
+          description: "调整代码块、Diff、原始文本内容以及内置终端的字号。",
           note: "允许范围 {min}-{max}px，默认 {default}px。",
         },
       },

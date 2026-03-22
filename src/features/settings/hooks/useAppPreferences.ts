@@ -15,10 +15,8 @@ import type { UiLanguage } from "../../../i18n";
 import type { SandboxMode } from "../../../protocol/generated/v2/SandboxMode";
 import {
   clampCodeFontSize,
-  clampTerminalFontSize,
   clampUiFontSize,
   normalizeCodeFontFamily,
-  normalizeTerminalFontFamily,
   normalizeUiFontFamily,
 } from "../model/fontPreferences";
 import {
@@ -50,8 +48,6 @@ export interface AppPreferences {
   readonly uiFontSize: number;
   readonly codeFontFamily: string;
   readonly codeFontSize: number;
-  readonly terminalFontFamily: string;
-  readonly terminalFontSize: number;
   readonly gitBranchPrefix: string;
   readonly gitPushForceWithLease: boolean;
 }
@@ -75,8 +71,6 @@ export interface AppPreferencesController extends AppPreferences {
   setUiFontSize: (fontSize: number) => void;
   setCodeFontFamily: (fontFamily: string) => void;
   setCodeFontSize: (fontSize: number) => void;
-  setTerminalFontFamily: (fontFamily: string) => void;
-  setTerminalFontSize: (fontSize: number) => void;
   setGitBranchPrefix: (prefix: string) => void;
   setGitPushForceWithLease: (enabled: boolean) => void;
 }
@@ -127,16 +121,6 @@ export function useAppPreferences(): AppPreferencesController {
   const setUiFontSize = usePreferenceSetter(setPreferences, "uiFontSize", clampUiFontSize);
   const setCodeFontFamily = usePreferenceSetter(setPreferences, "codeFontFamily", normalizeCodeFontFamily);
   const setCodeFontSize = usePreferenceSetter(setPreferences, "codeFontSize", clampCodeFontSize);
-  const setTerminalFontFamily = usePreferenceSetter(
-    setPreferences,
-    "terminalFontFamily",
-    normalizeTerminalFontFamily,
-  );
-  const setTerminalFontSize = usePreferenceSetter(
-    setPreferences,
-    "terminalFontSize",
-    clampTerminalFontSize,
-  );
   const setGitBranchPrefix = usePreferenceSetter(
     setPreferences,
     "gitBranchPrefix",
@@ -165,8 +149,6 @@ export function useAppPreferences(): AppPreferencesController {
       setUiFontSize,
       setCodeFontFamily,
       setCodeFontSize,
-      setTerminalFontFamily,
-      setTerminalFontSize,
       setGitBranchPrefix,
       setGitPushForceWithLease
     }),
@@ -186,8 +168,6 @@ export function useAppPreferences(): AppPreferencesController {
       setUiFontSize,
       setCodeFontFamily,
       setCodeFontSize,
-      setTerminalFontFamily,
-      setTerminalFontSize,
       setGitBranchPrefix,
       setGitPushForceWithLease,
       setThemeMode,

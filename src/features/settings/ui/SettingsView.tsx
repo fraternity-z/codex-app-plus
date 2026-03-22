@@ -23,6 +23,7 @@ import "../../../styles/replica/replica-settings-layout.css";
 import { useI18n, type MessageKey } from "../../../i18n";
 import { McpSettingsPanel } from "../../mcp/ui/McpSettingsPanel";
 import { AboutSettingsSection } from "./AboutSettingsSection";
+import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
 import { ComposerPermissionDefaultsCard } from "./ComposerPermissionDefaultsCard";
 import { ConfigSettingsSection } from "./ConfigSettingsSection";
 import { GeneralSettingsSection } from "./GeneralSettingsSection";
@@ -36,6 +37,7 @@ import {
 } from "./SettingsStaticSections";
 export type SettingsSection =
   | "general"
+  | "appearance"
   | "config"
   | "personalization"
   | "mcp"
@@ -93,6 +95,7 @@ const NAV_ITEM_DEFINITIONS: ReadonlyArray<{
   readonly labelKey: MessageKey;
 }> = [
   { key: "general", labelKey: "settings.nav.general", icon: "●" },
+  { key: "appearance", labelKey: "settings.nav.appearance", icon: "◐" },
   { key: "config", labelKey: "settings.nav.config", icon: "⚙" },
   { key: "personalization", labelKey: "settings.nav.personalization", icon: "◌" },
   { key: "mcp", labelKey: "settings.nav.mcp", icon: "✣" },
@@ -144,6 +147,9 @@ function SettingsContent(props: SettingsViewProps): JSX.Element {
 
   if (props.section === "general") {
     return <GeneralSettingsSection preferences={props.preferences} />;
+  }
+  if (props.section === "appearance") {
+    return <AppearanceSettingsSection preferences={props.preferences} />;
   }
   if (props.section === "config") {
     return (
