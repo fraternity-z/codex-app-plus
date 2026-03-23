@@ -145,17 +145,18 @@ fn resolve_binary_in_directory(
     command_name: &str,
     extensions: &[OsString],
 ) -> Option<PathBuf> {
-    let plain_candidate = directory.join(command_name);
-    if plain_candidate.is_file() {
-        return Some(plain_candidate);
-    }
-
     for extension in extensions {
         let candidate = directory.join(format!("{command_name}{}", extension.to_string_lossy()));
         if candidate.is_file() {
             return Some(candidate);
         }
     }
+
+    let plain_candidate = directory.join(command_name);
+    if plain_candidate.is_file() {
+        return Some(plain_candidate);
+    }
+
     None
 }
 

@@ -23,9 +23,11 @@ fn builds_cmd_shell_command_for_code_cmd_on_path() {
     let root = unique_temp_dir("codex-app-plus", "vscode-path");
     let path_directory = root.join("bin");
     let workspace_path = root.join("workspace");
+    let shell_script_path = path_directory.join("code");
     let script_path = path_directory.join("code.cmd");
     fs::create_dir_all(&path_directory).unwrap();
     fs::create_dir_all(&workspace_path).unwrap();
+    fs::write(&shell_script_path, "#!/usr/bin/env sh\n").unwrap();
     fs::write(&script_path, "@echo off\r\n").unwrap();
 
     let spec = build_vscode_command_for_locations(
