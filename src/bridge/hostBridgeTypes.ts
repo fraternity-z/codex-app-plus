@@ -25,6 +25,8 @@ import type {
   RpcNotifyInput,
   RpcRequestInput,
   RpcRequestOutput,
+  RememberCommandApprovalRuleInput,
+  RememberCommandApprovalRuleOutput,
   ServerRequestResolveInput,
   ShowContextMenuInput,
   ShowNotificationInput,
@@ -103,6 +105,9 @@ export interface HostBridge {
     listCodexSessions(input: ListCodexSessionsInput): Promise<ReadonlyArray<CodexSessionSummaryOutput>>;
     readCodexSession(input: CodexSessionReadInput): Promise<CodexSessionReadOutput>;
     deleteCodexSession(input: DeleteCodexSessionInput): Promise<void>;
+    rememberCommandApprovalRule(
+      input: RememberCommandApprovalRuleInput
+    ): Promise<RememberCommandApprovalRuleOutput>;
   };
   readonly git: {
     getStatusSnapshot(input: GitRepoInput): Promise<GitStatusSnapshotOutput>;

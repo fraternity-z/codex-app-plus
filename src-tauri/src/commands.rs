@@ -1,5 +1,6 @@
 use tauri::{AppHandle, Emitter, State};
 
+use crate::app_approval_rules::remember_command_approval_rule;
 use crate::app_support::{
     clear_chatgpt_auth_state, import_official_data, open_codex_config_toml,
     read_chatgpt_auth_tokens, read_global_agent_instructions, write_chatgpt_auth_tokens,
@@ -20,18 +21,17 @@ use crate::models::{
     CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSummary, DeleteCodexProviderInput,
     DeleteCodexSessionInput, GetCodexAuthModeStateInput, GlobalAgentInstructionsOutput,
     ImportOfficialDataInput, ListCodexSessionsInput, OpenCodexConfigTomlInput, OpenWorkspaceInput,
-    ReadGlobalAgentInstructionsInput, RpcCancelInput, RpcNotifyInput, RpcRequestInput,
+    ReadGlobalAgentInstructionsInput, RememberCommandApprovalRuleInput,
+    RememberCommandApprovalRuleOutput, RpcCancelInput, RpcNotifyInput, RpcRequestInput,
     RpcRequestOutput, ServerRequestResolveInput, ShowContextMenuInput, ShowNotificationInput,
-    TerminalCloseInput, TerminalCreateInput, TerminalCreateOutput, TerminalResizeInput,
-    TerminalWriteInput, UpdateChatgptAuthTokensInput, UpdateGlobalAgentInstructionsInput,
-    UpsertCodexProviderInput, WindowChromeAction,
+    UpdateChatgptAuthTokensInput, UpdateGlobalAgentInstructionsInput, UpsertCodexProviderInput,
+    WindowChromeAction,
 };
 use crate::process_manager::ProcessManager;
-use crate::terminal_manager::TerminalManager;
 use crate::window_theme::{apply_window_theme, WindowTheme};
 use crate::workspace_launcher::open_workspace;
 
-fn to_result<T>(result: AppResult<T>) -> Result<T, String> {
+pub(crate) fn to_result<T>(result: AppResult<T>) -> Result<T, String> {
     result.map_err(|error| error.to_string())
 }
 
@@ -265,34 +265,8 @@ pub fn app_delete_codex_session(input: DeleteCodexSessionInput) -> Result<(), St
 }
 
 #[tauri::command]
-pub fn terminal_create_session(
-    app: AppHandle,
-    state: State<'_, TerminalManager>,
-    input: TerminalCreateInput,
-) -> Result<TerminalCreateOutput, String> {
-    to_result(state.create_session(app, input))
-}
-
-#[tauri::command]
-pub fn terminal_write(
-    state: State<'_, TerminalManager>,
-    input: TerminalWriteInput,
-) -> Result<(), String> {
-    to_result(state.write(input))
-}
-
-#[tauri::command]
-pub fn terminal_resize(
-    state: State<'_, TerminalManager>,
-    input: TerminalResizeInput,
-) -> Result<(), String> {
-    to_result(state.resize(input))
-}
-
-#[tauri::command]
-pub fn terminal_close_session(
-    state: State<'_, TerminalManager>,
-    input: TerminalCloseInput,
-) -> Result<(), String> {
-    to_result(state.close(input))
+pub fn app_remember_command_approval_rule(
+    input: RememberCommandApprovalRuleInput,
+) -> Result<RememberCommandApprovalRuleOutput, String> {
+    to_result(remember_command_approval_rule(input))
 }

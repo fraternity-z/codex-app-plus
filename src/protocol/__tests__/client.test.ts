@@ -97,7 +97,10 @@ function createHostBridge(): HostBridge {
       importOfficialData: vi.fn().mockResolvedValue(undefined),
       listCodexSessions: vi.fn().mockResolvedValue([]),
       readCodexSession: vi.fn().mockResolvedValue({ threadId: "1", messages: [] }),
-      deleteCodexSession: vi.fn().mockResolvedValue(undefined)
+      deleteCodexSession: vi.fn().mockResolvedValue(undefined),
+      rememberCommandApprovalRule: vi.fn().mockResolvedValue({
+        rulesPath: "C:/Users/Administrator/.codex/rules/default.rules"
+      })
     },
     git: {
       getStatusSnapshot: vi.fn(),

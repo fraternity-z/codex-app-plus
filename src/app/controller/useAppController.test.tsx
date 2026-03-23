@@ -139,6 +139,9 @@ function createHostBridge(overrides?: Partial<HostBridge["app"]>): HostBridge {
       listCodexSessions: vi.fn().mockResolvedValue([]),
       readCodexSession: vi.fn(),
       deleteCodexSession: vi.fn().mockResolvedValue(undefined),
+      rememberCommandApprovalRule: vi.fn().mockResolvedValue({
+        rulesPath: "C:/Users/Administrator/.codex/rules/default.rules",
+      }),
       ...overrides,
     },
     appServer: {
@@ -565,7 +568,7 @@ describe("useAppController server request lifecycle", () => {
     });
   });
 
-  it("passes through execpolicy amendments for command approvals", async () => {
+  it("persists remember-command approvals before accepting the request", async () => {
     const hostBridge = createHostBridge();
     const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
 
@@ -606,13 +609,74 @@ describe("useAppController server request lifecycle", () => {
       });
     });
 
-    expect(protocolState.resolveServerRequest).toHaveBeenCalledWith("9", {
-      decision: {
-        acceptWithExecpolicyAmendment: {
-          execpolicy_amendment: ["allow read-only scans"],
-        },
-      },
+    expect(hostBridge.app.rememberCommandApprovalRule).toHaveBeenCalledWith({
+      agentEnvironment: DEFAULT_AGENT_ENVIRONMENT,
+      command: ["allow read-only scans"],
     });
+    expect(protocolState.resolveServerRequest).toHaveBeenCalledWith("9", {
+      decision: "accept",
+    });
+  });
+
+  it("auto-accepts later command approvals that match a remembered prefix", async () => {
+    const hostBridge = createHostBridge();
+    const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.initialized).toBe(true);
+    });
+
+    act(() => {
+      protocolState.handlers?.onServerRequest("9", "item/commandExecution/requestApproval", {
+        threadId: "thread-1",
+        turnId: "turn-1",
+        itemId: "item-1",
+        command: "Get-ChildItem src",
+        cwd: "E:/code/codex-app-plus",
+        availableDecisions: [{
+          acceptWithExecpolicyAmendment: {
+            execpolicy_amendment: ["Get-ChildItem"],
+          },
+        }, "decline"],
+        proposedExecpolicyAmendment: ["Get-ChildItem"],
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.pendingRequestsById["9"]).toBeDefined();
+    });
+
+    await act(async () => {
+      await result.current.controller.resolveServerRequest({
+        kind: "commandApproval",
+        requestId: "9",
+        decision: {
+          acceptWithExecpolicyAmendment: {
+            execpolicy_amendment: ["Get-ChildItem"],
+          },
+        },
+      });
+    });
+
+    protocolState.resolveServerRequest.mockClear();
+
+    act(() => {
+      protocolState.handlers?.onServerRequest("10", "item/commandExecution/requestApproval", {
+        threadId: "thread-1",
+        turnId: "turn-2",
+        itemId: "item-2",
+        command: "Get-ChildItem src/features -Force",
+        cwd: "E:/code/codex-app-plus",
+        availableDecisions: ["accept", "decline"],
+      });
+    });
+
+    await waitFor(() => {
+      expect(protocolState.resolveServerRequest).toHaveBeenCalledWith("10", {
+        decision: "accept",
+      });
+    });
+    expect(result.current.pendingRequestsById["10"]).toBeUndefined();
   });
 
   it("clears stale pending requests and token refresh state after disconnect", async () => {

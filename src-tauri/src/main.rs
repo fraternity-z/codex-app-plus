@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod agent_environment;
+mod app_approval_rules;
 mod app_server_io;
 mod app_server_stderr;
 mod app_support;
@@ -18,6 +19,8 @@ mod models;
 mod process_manager;
 mod process_supervisor;
 mod rpc_transport;
+mod rules;
+mod terminal_commands;
 mod terminal_manager;
 mod window_theme;
 mod windows_child_process;
@@ -30,11 +33,11 @@ use commands::{
     app_delete_codex_session, app_get_codex_auth_mode_state, app_import_official_data,
     app_list_codex_providers, app_list_codex_sessions, app_open_codex_config_toml,
     app_open_external, app_open_workspace, app_read_chatgpt_auth_tokens, app_read_codex_session,
-    app_read_global_agent_instructions, app_server_restart, app_server_start, app_server_stop,
-    app_set_window_theme, app_show_context_menu, app_show_notification, app_start_window_dragging,
-    app_upsert_codex_provider, app_write_chatgpt_auth_tokens, app_write_global_agent_instructions,
-    rpc_cancel, rpc_notify, rpc_request, server_request_resolve, terminal_close_session,
-    terminal_create_session, terminal_resize, terminal_write,
+    app_read_global_agent_instructions, app_remember_command_approval_rule, app_server_restart,
+    app_server_start, app_server_stop, app_set_window_theme, app_show_context_menu,
+    app_show_notification, app_start_window_dragging, app_upsert_codex_provider,
+    app_write_chatgpt_auth_tokens, app_write_global_agent_instructions, rpc_cancel, rpc_notify,
+    rpc_request, server_request_resolve,
 };
 use git::commands::{
     git_checkout, git_commit, git_discard_paths, git_fetch, git_get_branch_refs, git_get_diff,
@@ -44,6 +47,9 @@ use git::commands::{
 use git::runtime::GitRuntimeState;
 use process_manager::ProcessManager;
 use tauri::{Manager, RunEvent};
+use terminal_commands::{
+    terminal_close_session, terminal_create_session, terminal_resize, terminal_write,
+};
 use terminal_manager::TerminalManager;
 
 fn main() {
@@ -96,6 +102,7 @@ fn main() {
             app_list_codex_sessions,
             app_read_codex_session,
             app_delete_codex_session,
+            app_remember_command_approval_rule,
             git_get_status_snapshot,
             git_get_branch_refs,
             git_get_remote_url,

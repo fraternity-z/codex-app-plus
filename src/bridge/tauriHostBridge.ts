@@ -45,6 +45,7 @@ import type {
   RpcNotifyInput,
   RpcRequestInput,
   RpcRequestOutput,
+  RememberCommandApprovalRuleOutput,
   ServerRequestResolveInput,
   ShowContextMenuInput,
   ShowNotificationInput,
@@ -182,6 +183,10 @@ export function createTauriHostBridge(): HostBridge {
         }),
       deleteCodexSession: (input: DeleteCodexSessionInput) =>
         invoke("app_delete_codex_session", {
+          input
+        }),
+      rememberCommandApprovalRule: (input) =>
+        invoke<RememberCommandApprovalRuleOutput>("app_remember_command_approval_rule", {
           input
         })
     },

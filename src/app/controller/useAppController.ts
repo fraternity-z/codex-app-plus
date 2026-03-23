@@ -11,6 +11,7 @@ import { ProtocolClient } from "../../protocol/client";
 import { useAppDispatch } from "../../state/store";
 import { useAppControllerRuntimeState } from "./appControllerState";
 import { useAppUpdater } from "./useAppUpdater";
+import type { CommandApprovalAllowlist } from "../../features/shared/utils/commandApprovalRules";
 import {
   createAppServerStartInput,
   loadConversationCatalog,
@@ -23,6 +24,7 @@ import {
   incrementThreadElicitation,
   reportServerRequestError,
 } from "./appControllerServerRequests";
+import { tryAutoApproveCommandRequest } from "./commandApprovalController";
 import {
   createInitializeParams,
   RETRY_DELAY_MS,
@@ -60,6 +62,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
   const previousAgentEnvironmentRef = useRef(agentEnvironment);
   const agentEnvironmentRef = useRef(agentEnvironment);
   const sessionIndexReloadInFlightRef = useRef(false);
+  const approvalAllowlistRef = useRef<CommandApprovalAllowlist>({});
 
   if (textDeltaQueueRef.current === null) {
     textDeltaQueueRef.current = new FrameTextDeltaQueue({ onFlush: (entries) => dispatch({ type: "conversation/textDeltasFlushed", entries }) });
@@ -195,6 +198,22 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
               }
             }
           })();
+          return;
+        }
+        if (request.kind === "commandApproval" && clientRef.current !== null) {
+          void tryAutoApproveCommandRequest({
+            agentEnvironment: agentEnvironmentRef.current,
+            allowlistRef: approvalAllowlistRef,
+            client: clientRef.current,
+            dispatch,
+            request,
+          }).then((handled) => {
+            if (handled) {
+              return;
+            }
+            dispatch({ type: "serverRequest/received", request });
+            trackThreadRequest(request);
+          });
           return;
         }
         dispatch({ type: "serverRequest/received", request });
@@ -337,6 +356,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
 
   const controllerActions = useAppControllerActions({
     agentEnvironment,
+    allowlistRef: approvalAllowlistRef,
     bootstrap,
     client,
     dispatch,

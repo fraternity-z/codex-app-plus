@@ -317,6 +317,19 @@ pub struct OpenWorkspaceInput {
     pub opener: WorkspaceOpener,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RememberCommandApprovalRuleInput {
+    pub agent_environment: AgentEnvironment,
+    pub command: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RememberCommandApprovalRuleOutput {
+    pub rules_path: String,
+}
+
 #[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum EmbeddedTerminalShell {

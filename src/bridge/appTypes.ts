@@ -195,3 +195,12 @@ export interface OpenWorkspaceInput {
   readonly path: string;
   readonly opener: WorkspaceOpener;
 }
+
+export interface RememberCommandApprovalRuleInput {
+  readonly agentEnvironment: AgentEnvironment;
+  readonly command: ReadonlyArray<string>;
+}
+
+export interface RememberCommandApprovalRuleOutput {
+  readonly rulesPath: string;
+}

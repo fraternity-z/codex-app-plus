@@ -14,6 +14,8 @@ import { readUserConfigWriteTarget } from "../../features/settings/config/config
 import { createConversationFromThread } from "../../features/conversation/model/conversationState";
 import { startWindowsSandboxSetupRequest } from "../../features/settings/sandbox/windowsSandboxSetup";
 import { ProtocolClient } from "../../protocol/client";
+import type { CommandApprovalAllowlist } from "../../features/shared/utils/commandApprovalRules";
+import { resolveRememberedCommandApproval } from "./commandApprovalController";
 import { createServerRequestPayload } from "./serverRequests";
 import { listArchivedThreads as listArchivedThreadsForEnvironment } from "./appControllerBootstrap";
 import {
@@ -45,6 +47,7 @@ type Dispatch = (action: import("../../domain/types").AppAction) => void;
 
 interface UseAppControllerActionsArgs {
   readonly agentEnvironment: "windowsNative" | "wsl";
+  readonly allowlistRef: MutableRefObject<CommandApprovalAllowlist>;
   readonly bootstrap: (forceRestart: boolean) => Promise<void>;
   readonly client: ProtocolClient;
   readonly dispatch: Dispatch;
@@ -58,6 +61,7 @@ type AppControllerActions = Omit<AppController, "retryConnection" | "setInput" |
 
 export function useAppControllerActions({
   agentEnvironment,
+  allowlistRef,
   bootstrap,
   client,
   dispatch,
@@ -179,11 +183,25 @@ export function useAppControllerActions({
           chatgptPlanType: resolution.result.chatgptPlanType,
         });
       }
+      if (resolution.kind === "commandApproval" && request.kind === "commandApproval") {
+        const handled = await resolveRememberedCommandApproval({
+          agentEnvironment,
+          allowlistRef,
+          client,
+          dispatch,
+          hostBridge,
+          request,
+          resolution,
+        });
+        if (handled) {
+          return;
+        }
+      }
       await client.resolveServerRequest(request.rpcId, createServerRequestPayload(resolution));
     } catch (error) {
       reportServerRequestError(dispatch, request, "Failed to submit request response", error);
     }
-  }, [client, dispatch, hostBridge.app, pendingRequestsRef]);
+  }, [agentEnvironment, allowlistRef, client, dispatch, hostBridge, pendingRequestsRef]);
 
   return {
     archiveThread,
