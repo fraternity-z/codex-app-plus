@@ -17,7 +17,6 @@ import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
-import type { WindowsSandboxSetupMode } from "../../../protocol/generated/v2/WindowsSandboxSetupMode";
 import "../../../styles/replica/replica-settings.css";
 import "../../../styles/replica/replica-settings-extra.css";
 import "../../../styles/replica/replica-settings-layout.css";
@@ -80,7 +79,6 @@ export interface SettingsViewProps {
   unarchiveThread: (threadId: string) => Promise<void>;
   writeConfigValue: (params: ConfigValueWriteParams) => Promise<ConfigMutationResult>;
   batchWriteConfig: (params: ConfigBatchWriteParams) => Promise<ConfigMutationResult>;
-  readonly startWindowsSandboxSetup: (mode: WindowsSandboxSetupMode) => Promise<unknown>;
   checkForAppUpdate: () => Promise<void>;
   installAppUpdate: () => Promise<void>;
 }
@@ -175,9 +173,9 @@ function SettingsContent(props: SettingsViewProps): JSX.Element {
           applyCodexProvider={props.applyCodexProvider}
           getCodexAuthModeState={props.getCodexAuthModeState}
           activateCodexChatgpt={props.activateCodexChatgpt}
+          batchWriteConfig={props.batchWriteConfig}
           writeConfigValue={props.writeConfigValue}
           windowsSandboxSetup={props.windowsSandboxSetup}
-          startWindowsSandboxSetup={props.startWindowsSandboxSetup}
         />
         <ComposerPermissionDefaultsCard preferences={props.preferences} />
       </>
@@ -188,6 +186,7 @@ function SettingsContent(props: SettingsViewProps): JSX.Element {
       <PersonalizationSettingsSection
         busy={props.busy}
         configSnapshot={props.configSnapshot}
+        writeConfigValue={props.writeConfigValue}
         readGlobalAgentInstructions={props.readGlobalAgentInstructions}
         writeGlobalAgentInstructions={props.writeGlobalAgentInstructions}
       />

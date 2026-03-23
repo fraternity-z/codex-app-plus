@@ -101,7 +101,6 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     unarchiveThread: props.controller.unarchiveThread,
     writeConfigValue: props.controller.writeConfigValue,
     batchWriteConfig: props.controller.batchWriteConfig,
-    startWindowsSandboxSetup: props.controller.startWindowsSandboxSetup,
     checkForAppUpdate: props.controller.checkForAppUpdate,
     installAppUpdate: props.controller.installAppUpdate,
   };

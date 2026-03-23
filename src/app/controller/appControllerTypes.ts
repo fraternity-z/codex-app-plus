@@ -14,8 +14,6 @@ import type { SkillsRemoteReadResponse } from "../../protocol/generated/v2/Skill
 import type { SkillsRemoteWriteParams } from "../../protocol/generated/v2/SkillsRemoteWriteParams";
 import type { SkillsRemoteWriteResponse } from "../../protocol/generated/v2/SkillsRemoteWriteResponse";
 import type { McpServerStatus } from "../../protocol/generated/v2/McpServerStatus";
-import type { WindowsSandboxSetupMode } from "../../protocol/generated/v2/WindowsSandboxSetupMode";
-import type { WindowsSandboxSetupStartResponse } from "../../protocol/generated/v2/WindowsSandboxSetupStartResponse";
 import { type ConfigMutationResult, type ConfigSnapshotMutationResult, type McpRefreshResult } from "../../features/settings/config/configOperations";
 import { ProtocolClient } from "../../protocol/client";
 
@@ -31,8 +29,6 @@ export type { SkillsRemoteReadResponse } from "../../protocol/generated/v2/Skill
 export type { SkillsRemoteWriteParams } from "../../protocol/generated/v2/SkillsRemoteWriteParams";
 export type { SkillsRemoteWriteResponse } from "../../protocol/generated/v2/SkillsRemoteWriteResponse";
 export type { McpServerStatus } from "../../protocol/generated/v2/McpServerStatus";
-export type { WindowsSandboxSetupMode } from "../../protocol/generated/v2/WindowsSandboxSetupMode";
-export type { WindowsSandboxSetupStartResponse } from "../../protocol/generated/v2/WindowsSandboxSetupStartResponse";
 
 export const RETRY_DELAY_MS = 3_000;
 export const WINDOWS_SANDBOX_STATE_IDLE_RESET_MS = 120_000;
@@ -58,7 +54,6 @@ export interface AppController {
   writeSkillConfig: (params: SkillsConfigWriteParams) => Promise<SkillsConfigWriteResponse>;
   exportRemoteSkill: (params: SkillsRemoteWriteParams) => Promise<SkillsRemoteWriteResponse>;
   setMultiAgentEnabled: (enabled: boolean) => Promise<void>;
-  startWindowsSandboxSetup: (mode: WindowsSandboxSetupMode) => Promise<WindowsSandboxSetupStartResponse>;
   checkForAppUpdate: () => Promise<void>;
   installAppUpdate: () => Promise<void>;
   login: () => Promise<void>;

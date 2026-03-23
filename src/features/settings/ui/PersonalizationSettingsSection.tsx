@@ -1,15 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
-import type { Personality } from "../../../protocol/generated/Personality";
-import { useI18n, type MessageKey } from "../../../i18n";
-import { readPersonalizationConfigView } from "../config/personalizationConfig";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   GlobalAgentInstructionsOutput,
   UpdateGlobalAgentInstructionsInput
 } from "../../../bridge/types";
+import { useI18n, type MessageKey } from "../../../i18n";
+import type { Personality } from "../../../protocol/generated/Personality";
+import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
+import { readPersonalizationConfigView } from "../config/personalizationConfig";
+import { readUserConfigWriteTarget } from "../config/configWriteTarget";
+import {
+  SettingsSelectRow,
+  type SettingsSelectOption,
+} from "./SettingsSelectRow";
 
 interface PersonalizationSettingsSectionProps {
   readonly configSnapshot: unknown;
   readonly busy: boolean;
+  readonly writeConfigValue: (params: ConfigValueWriteParams) => Promise<unknown>;
   readonly readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
   readonly writeGlobalAgentInstructions: (
     input: UpdateGlobalAgentInstructionsInput
@@ -20,6 +27,8 @@ interface SaveFeedback {
   readonly kind: "idle" | "success" | "error";
   readonly message: string;
 }
+
+type Translator = ReturnType<typeof useI18n>["t"];
 
 interface GlobalInstructionsState {
   readonly path: string;
@@ -59,7 +68,13 @@ function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function InstructionsStatus(props: { readonly feedback: SaveFeedback }): JSX.Element | null {
+function StatusNote(props: {
+  readonly feedback: SaveFeedback;
+  readonly pendingMessage?: string;
+}): JSX.Element | null {
+  if (props.pendingMessage) {
+    return <p className="settings-status-note">{props.pendingMessage}</p>;
+  }
   if (props.feedback.kind === "success") {
     return <p className="settings-status-note settings-status-note-success">{props.feedback.message}</p>;
   }
@@ -69,20 +84,56 @@ function InstructionsStatus(props: { readonly feedback: SaveFeedback }): JSX.Ele
   return null;
 }
 
+function createPersonalityOptions(
+  t: Translator
+): ReadonlyArray<SettingsSelectOption<Personality>> {
+  return [
+    { value: "none", label: t(PERSONALITY_MESSAGE_KEYS.none.label) },
+    { value: "friendly", label: t(PERSONALITY_MESSAGE_KEYS.friendly.label) },
+    { value: "pragmatic", label: t(PERSONALITY_MESSAGE_KEYS.pragmatic.label) },
+  ];
+}
+
+async function writePersonalityConfigValue(
+  writeConfigValue: (params: ConfigValueWriteParams) => Promise<unknown>,
+  configSnapshot: unknown,
+  personality: Personality,
+): Promise<void> {
+  const writeTarget = readUserConfigWriteTarget(configSnapshot);
+  await writeConfigValue({
+    keyPath: "personality",
+    value: personality,
+    mergeStrategy: "replace",
+    filePath: writeTarget.filePath,
+    expectedVersion: writeTarget.expectedVersion,
+  });
+}
+
 function PersonalizationStyleCard(props: {
   readonly title: string;
   readonly description: string;
-  readonly label: string;
+  readonly value: Personality;
+  readonly options: ReadonlyArray<SettingsSelectOption<Personality>>;
+  readonly disabled: boolean;
+  readonly saving: boolean;
+  readonly feedback: SaveFeedback;
+  readonly savingLabel: string;
+  onChange: (value: Personality) => Promise<void>;
 }): JSX.Element {
   return (
     <section className="settings-card">
-      <div className="settings-row">
-        <div className="settings-row-copy">
-          <strong>{props.title}</strong>
-          <p>{props.description}</p>
-        </div>
-        <span className="settings-chip">{props.label}</span>
-      </div>
+      <SettingsSelectRow
+        label={props.title}
+        description={props.description}
+        value={props.value}
+        options={props.options}
+        disabled={props.disabled}
+        onChange={(value) => void props.onChange(value)}
+      />
+      <StatusNote
+        feedback={props.feedback}
+        pendingMessage={props.saving ? props.savingLabel : undefined}
+      />
     </section>
   );
 }
@@ -121,7 +172,7 @@ function InstructionsCard(props: {
         disabled={props.busy}
         onChange={(event) => props.onChange(event.target.value)}
       />
-      <InstructionsStatus feedback={props.feedback} />
+      <StatusNote feedback={props.feedback} />
     </section>
   );
 }
@@ -135,8 +186,63 @@ function toLoadedState(output: GlobalAgentInstructionsOutput): GlobalInstruction
   };
 }
 
+function usePersonalityEditor(props: {
+  readonly busy: boolean;
+  readonly configSnapshot: unknown;
+  readonly personality: Personality;
+  readonly t: Translator;
+  readonly writeConfigValue: (params: ConfigValueWriteParams) => Promise<unknown>;
+}) {
+  const [savedPersonality, setSavedPersonality] = useState(props.personality);
+  const [selectedPersonality, setSelectedPersonality] = useState(props.personality);
+  const [feedback, setFeedback] = useState<SaveFeedback>(EMPTY_FEEDBACK);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setSavedPersonality(props.personality);
+    setSelectedPersonality(props.personality);
+  }, [props.personality]);
+
+  const handleChange = useCallback(async (nextPersonality: Personality) => {
+    if (props.busy || saving || nextPersonality === selectedPersonality) {
+      return;
+    }
+    const previousPersonality = savedPersonality;
+    setSelectedPersonality(nextPersonality);
+    setSaving(true);
+    setFeedback(EMPTY_FEEDBACK);
+    try {
+      await writePersonalityConfigValue(
+        props.writeConfigValue,
+        props.configSnapshot,
+        nextPersonality,
+      );
+      setSavedPersonality(nextPersonality);
+      setFeedback({
+        kind: "success",
+        message: props.t("settings.personalization.styleSyncedMessage"),
+      });
+    } catch (error) {
+      setSelectedPersonality(previousPersonality);
+      setFeedback({ kind: "error", message: toErrorMessage(error) });
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    props.busy,
+    props.configSnapshot,
+    props.t,
+    props.writeConfigValue,
+    savedPersonality,
+    saving,
+    selectedPersonality,
+  ]);
+
+  return { selectedPersonality, feedback, saving, handleChange };
+}
+
 function useGlobalInstructionsEditor(props: {
-  readonly t: (key: MessageKey, params?: Record<string, string>) => string;
+  readonly t: Translator;
   readonly readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
   readonly writeGlobalAgentInstructions: (
     input: UpdateGlobalAgentInstructionsInput
@@ -186,7 +292,23 @@ export function PersonalizationSettingsSection(
     () => readPersonalizationConfigView(props.configSnapshot),
     [props.configSnapshot]
   );
-  const personalityCopy = useMemo(() => PERSONALITY_MESSAGE_KEYS[view.personality], [view.personality]);
+  const styleOptions = useMemo(() => createPersonalityOptions(t), [t]);
+  const {
+    selectedPersonality,
+    feedback: styleFeedback,
+    saving: styleSaving,
+    handleChange: handleStyleChange,
+  } = usePersonalityEditor({
+    busy: props.busy,
+    configSnapshot: props.configSnapshot,
+    personality: view.personality,
+    t,
+    writeConfigValue: props.writeConfigValue,
+  });
+  const personalityCopy = useMemo(
+    () => PERSONALITY_MESSAGE_KEYS[selectedPersonality],
+    [selectedPersonality],
+  );
   const { instructionsState, feedback, dirty, handleChange, handleSave } =
     useGlobalInstructionsEditor({
       t,
@@ -202,7 +324,13 @@ export function PersonalizationSettingsSection(
       <PersonalizationStyleCard
         title={t("settings.personalization.styleLabel")}
         description={t(personalityCopy.description)}
-        label={t(personalityCopy.label)}
+        value={selectedPersonality}
+        options={styleOptions}
+        disabled={props.busy || styleSaving}
+        saving={styleSaving}
+        feedback={styleFeedback}
+        savingLabel={t("settings.personalization.styleSaving")}
+        onChange={handleStyleChange}
       />
       <InstructionsCard
         busy={props.busy || !instructionsState.loaded}

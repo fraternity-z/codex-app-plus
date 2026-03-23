@@ -19,6 +19,7 @@ interface SettingsSelectRowProps<T extends string> {
   readonly options: ReadonlyArray<SettingsSelectOption<T>>;
   readonly onChange: (value: T) => void;
   readonly statusNote?: string;
+  readonly disabled?: boolean;
 }
 
 function findSelectedOption<T extends string>(
@@ -90,11 +91,14 @@ export function SettingsSelectRow<T extends string>(props: SettingsSelectRowProp
   useToolbarMenuDismissal(menuOpen, containerRef, closeMenu, [menuRef]);
 
   const toggleMenu = useCallback(() => {
+    if (props.disabled) {
+      return;
+    }
     if (!menuOpen) {
       updateMenuLayout();
     }
     setMenuOpen((value) => !value);
-  }, [menuOpen, updateMenuLayout]);
+  }, [menuOpen, props.disabled, updateMenuLayout]);
   const menuNode = useMemo(() => {
     if (!menuOpen || typeof document === "undefined") {
       return null;
@@ -125,9 +129,23 @@ export function SettingsSelectRow<T extends string>(props: SettingsSelectRowProp
         data-menu-placement={menuLayout.placement}
         ref={containerRef}
       >
-        <button type="button" className="settings-select-trigger" aria-haspopup="menu" aria-expanded={menuOpen} aria-label={`${props.label}：${selectedOption.label}`} onClick={toggleMenu}>
+        <button
+          type="button"
+          className="settings-select-trigger"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          aria-label={`${props.label}：${selectedOption.label}`}
+          disabled={props.disabled}
+          onClick={toggleMenu}
+        >
           <span className="settings-select-label">{selectedOption.label}</span>
-          <OfficialChevronRightIcon className={menuOpen ? "settings-select-caret settings-select-caret-open" : "settings-select-caret"} />
+          <OfficialChevronRightIcon
+            className={
+              menuOpen
+                ? "settings-select-caret settings-select-caret-open"
+                : "settings-select-caret"
+            }
+          />
         </button>
       </div>
       {menuNode}

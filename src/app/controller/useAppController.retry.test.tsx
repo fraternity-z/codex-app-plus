@@ -61,7 +61,7 @@ vi.mock("../../features/workspace/model/threadCatalog", () => ({
 
 vi.mock("../../features/settings/sandbox/windowsSandboxSetup", () => ({
   refreshConfigAfterWindowsSandboxSetup: vi.fn().mockResolvedValue(undefined),
-  startWindowsSandboxSetupRequest: vi.fn(),
+  startWindowsSandboxSetupRequest: vi.fn().mockResolvedValue({ started: true }),
 }));
 
 import { useAppController } from "./useAppController";

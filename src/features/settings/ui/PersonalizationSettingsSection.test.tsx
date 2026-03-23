@@ -14,7 +14,14 @@ function createSnapshot(overrides?: Partial<Record<string, unknown>>) {
       ...overrides
     },
     origins: {},
-    layers: []
+    layers: [
+      {
+        name: { type: "user", file: "C:/Users/Administrator/.codex/config.toml" },
+        version: "u1",
+        config: {},
+        disabledReason: null,
+      },
+    ]
   };
 }
 
@@ -39,15 +46,43 @@ describe("PersonalizationSettingsSection", () => {
     renderSection({
       configSnapshot: createSnapshot(),
       busy: false,
+      writeConfigValue: vi.fn().mockResolvedValue({}),
       readGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult()),
       writeGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult())
     });
 
     expect(await screen.findByDisplayValue("默认先给结论。")).toBeInTheDocument();
-    expect(screen.getByText("友好")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "回答风格：友好" })).toBeInTheDocument();
     expect(
       screen.getByText("当前回答风格与 Codex 全局 `personality` 配置一致：友好、自然。")
     ).toBeInTheDocument();
+  });
+
+  it("writes the selected personality back to the user config", async () => {
+    const writeConfigValue = vi.fn().mockResolvedValue({});
+
+    renderSection({
+      configSnapshot: createSnapshot(),
+      busy: false,
+      writeConfigValue,
+      readGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult()),
+      writeGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult())
+    });
+
+    await screen.findByDisplayValue("默认先给结论。");
+    fireEvent.click(screen.getByRole("button", { name: "回答风格：友好" }));
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: "务实" }));
+
+    await waitFor(() => expect(writeConfigValue).toHaveBeenCalled());
+    expect(writeConfigValue).toHaveBeenCalledWith({
+      keyPath: "personality",
+      value: "pragmatic",
+      mergeStrategy: "replace",
+      filePath: "C:/Users/Administrator/.codex/config.toml",
+      expectedVersion: "u1",
+    });
+    expect(screen.getByRole("button", { name: "回答风格：务实" })).toBeInTheDocument();
+    expect(screen.getByText("已同步到 Codex 全局 config.toml。")).toBeInTheDocument();
   });
 
   it("writes instructions back to the user AGENTS file", async () => {
@@ -56,6 +91,7 @@ describe("PersonalizationSettingsSection", () => {
     renderSection({
       configSnapshot: createSnapshot(),
       busy: false,
+      writeConfigValue: vi.fn().mockResolvedValue({}),
       readGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult()),
       writeGlobalAgentInstructions
     });
@@ -75,6 +111,7 @@ describe("PersonalizationSettingsSection", () => {
     renderSection({
       configSnapshot: createSnapshot(),
       busy: false,
+      writeConfigValue: vi.fn().mockResolvedValue({}),
       readGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult("")),
       writeGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult("补充规则"))
     });
@@ -91,12 +128,13 @@ describe("PersonalizationSettingsSection", () => {
     expect(saveButton).not.toBeDisabled();
   });
 
-  it("surfaces load and save errors instead of swallowing them", async () => {
+  it("surfaces instruction save errors instead of swallowing them", async () => {
     const writeGlobalAgentInstructions = vi.fn().mockRejectedValue(new Error("写入失败"));
 
     renderSection({
       configSnapshot: createSnapshot(),
       busy: false,
+      writeConfigValue: vi.fn().mockResolvedValue({}),
       readGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult("旧值")),
       writeGlobalAgentInstructions
     });
@@ -108,16 +146,37 @@ describe("PersonalizationSettingsSection", () => {
     expect(await screen.findByText("写入失败")).toBeInTheDocument();
   });
 
+  it("surfaces personality write errors and restores the previous selection", async () => {
+    const writeConfigValue = vi.fn().mockRejectedValue(new Error("写入 personality 失败"));
+
+    renderSection({
+      configSnapshot: createSnapshot(),
+      busy: false,
+      writeConfigValue,
+      readGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult()),
+      writeGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult())
+    });
+
+    await screen.findByDisplayValue("默认先给结论。");
+    fireEvent.click(screen.getByRole("button", { name: "回答风格：友好" }));
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: "默认" }));
+
+    expect(await screen.findByText("写入 personality 失败")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "回答风格：友好" })).toBeInTheDocument();
+  });
+
   it("renders English copy when locale is en-US", async () => {
     renderSection({
       configSnapshot: createSnapshot(),
       busy: false,
+      writeConfigValue: vi.fn().mockResolvedValue({}),
       readGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult()),
       writeGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult())
     }, "en-US");
 
     expect(await screen.findByText("Personalization")).toBeInTheDocument();
     expect(screen.getByText("Response style")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Response style：Friendly" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   });
 });

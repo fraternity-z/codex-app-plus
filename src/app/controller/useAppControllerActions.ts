@@ -12,7 +12,6 @@ import {
 } from "../../features/settings/config/configOperations";
 import { readUserConfigWriteTarget } from "../../features/settings/config/configWriteTarget";
 import { createConversationFromThread } from "../../features/conversation/model/conversationState";
-import { startWindowsSandboxSetupRequest } from "../../features/settings/sandbox/windowsSandboxSetup";
 import { ProtocolClient } from "../../protocol/client";
 import type { CommandApprovalAllowlist } from "../../features/shared/utils/commandApprovalRules";
 import { resolveRememberedCommandApproval } from "./commandApprovalController";
@@ -40,7 +39,6 @@ import type {
   SkillsRemoteReadResponse,
   SkillsRemoteWriteParams,
   SkillsRemoteWriteResponse,
-  WindowsSandboxSetupMode,
 } from "./appControllerTypes";
 
 type Dispatch = (action: import("../../domain/types").AppAction) => void;
@@ -165,10 +163,6 @@ export function useAppControllerActions({
       await bootstrap(true);
     });
   }, [bootstrap, client, configSnapshot, runBusy]);
-  const startWindowsSandboxSetup = useCallback(
-    (mode: WindowsSandboxSetupMode) => startWindowsSandboxSetupRequest(client, dispatch, mode),
-    [client, dispatch],
-  );
 
   const resolveServerRequest = useCallback(async (resolution: ServerRequestResolution) => {
     const request = pendingRequestsRef.current[resolution.requestId];
@@ -219,7 +213,6 @@ export function useAppControllerActions({
     refreshMcpData,
     resolveServerRequest,
     setMultiAgentEnabled,
-    startWindowsSandboxSetup,
     unarchiveThread,
     writeConfigValue,
     writeSkillConfig,

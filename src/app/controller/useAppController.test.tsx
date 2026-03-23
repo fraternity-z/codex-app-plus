@@ -6,6 +6,7 @@ import type { ConversationState } from "../../domain/conversation";
 import type { RequestId } from "../../protocol/generated/RequestId";
 import { AppStoreProvider, useAppDispatch, useAppSelector } from "../../state/store";
 import { loadThreadCatalog } from "../../features/workspace/model/threadCatalog";
+import { startWindowsSandboxSetupRequest } from "../../features/settings/sandbox/windowsSandboxSetup";
 
 const DEFAULT_AGENT_ENVIRONMENT = "windowsNative" as const;
 
@@ -211,8 +212,11 @@ function createConversation(id = "thread-1"): ConversationState {
   };
 }
 
-function useControllerHarness(hostBridge: HostBridge) {
-  const controller = useAppController(hostBridge, DEFAULT_AGENT_ENVIRONMENT);
+function useControllerHarness(
+  hostBridge: HostBridge,
+  agentEnvironment: "windowsNative" | "wsl" = DEFAULT_AGENT_ENVIRONMENT,
+) {
+  const controller = useAppController(hostBridge, agentEnvironment);
   const banners = useAppSelector((state) => state.banners);
   const initialized = useAppSelector((state) => state.initialized);
   const pendingRequestsById = useAppSelector((state) => state.pendingRequestsById);
@@ -229,6 +233,8 @@ describe("useAppController auth helpers", () => {
     protocolState.restartAppServer.mockClear();
     protocolState.initializeConnection.mockClear();
     protocolState.resolveServerRequest.mockClear();
+    vi.mocked(startWindowsSandboxSetupRequest).mockReset();
+    vi.mocked(startWindowsSandboxSetupRequest).mockResolvedValue({ started: true });
   });
 
   it("logs in with stored ChatGPT tokens when available", async () => {
@@ -376,6 +382,77 @@ describe("useAppController auth helpers", () => {
 
     await waitFor(() => {
       expect(loadThreadCatalog).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("auto-starts Windows Sandbox setup after config enables it in the native environment", async () => {
+    const hostBridge = createHostBridge();
+    const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.initialized).toBe(true);
+    });
+
+    act(() => {
+      result.current.dispatch({
+        type: "config/loaded",
+        config: {
+          config: { profile: null, windows: { sandbox: "unelevated" } },
+          origins: {},
+          layers: [],
+        } as never,
+      });
+    });
+
+    await waitFor(() => {
+      expect(startWindowsSandboxSetupRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        "unelevated",
+      );
+    });
+  });
+
+  it("waits to auto-start Windows Sandbox setup until switching back to Windows native", async () => {
+    const hostBridge = createHostBridge();
+    const initialProps: { readonly agentEnvironment: "windowsNative" | "wsl" } = {
+      agentEnvironment: "wsl",
+    };
+    const { result, rerender } = renderHook(
+      ({ agentEnvironment }: { readonly agentEnvironment: "windowsNative" | "wsl" }) => (
+        useControllerHarness(hostBridge, agentEnvironment)
+      ),
+      {
+        initialProps,
+        wrapper,
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.initialized).toBe(true);
+    });
+
+    act(() => {
+      result.current.dispatch({
+        type: "config/loaded",
+        config: {
+          config: { profile: null, windows: { sandbox: "unelevated" } },
+          origins: {},
+          layers: [],
+        } as never,
+      });
+    });
+
+    expect(startWindowsSandboxSetupRequest).not.toHaveBeenCalled();
+
+    rerender({ agentEnvironment: "windowsNative" });
+
+    await waitFor(() => {
+      expect(startWindowsSandboxSetupRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        "unelevated",
+      );
     });
   });
 

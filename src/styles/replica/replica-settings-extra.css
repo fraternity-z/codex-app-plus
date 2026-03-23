@@ -124,49 +124,45 @@
 }
 
 .windows-sandbox-card {
-  padding: 18px 18px 20px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 10px;
 }
 
-.windows-sandbox-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+.windows-sandbox-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: 16px;
 }
 
 .windows-sandbox-head-main {
   min-width: 0;
   display: grid;
-  gap: 10px;
+  gap: 6px;
 }
 
 .windows-sandbox-head-main strong {
-  font-size: var(--app-ui-font-size-2xl);
-  line-height: 1.35;
+  font-size: var(--app-ui-font-size-xl);
+  line-height: 1.4;
   color: #0f172a;
 }
 
 .windows-sandbox-summary-copy {
   margin: 0;
   color: #64748b;
-  font-size: var(--app-ui-font-size-md);
-  line-height: 1.7;
-}
-
-.windows-sandbox-chip {
-  flex: 0 0 auto;
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.6;
 }
 
 .windows-sandbox-meta {
-  margin-top: 16px;
-}
-
-.windows-sandbox-meta-block {
-  display: grid;
-  gap: 6px;
-  padding: 14px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 12px;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 14px;
   background: linear-gradient(180deg, #f8fafc 0%, #fdfefe 100%);
 }
 
@@ -176,79 +172,21 @@
   line-height: 1.5;
 }
 
-.windows-sandbox-meta-block strong {
-  font-size: var(--app-ui-font-size-xl);
-  color: #0f172a;
-  line-height: 1.4;
-}
-
-.windows-sandbox-meta-block p {
-  margin: 0;
-  color: #64748b;
+.windows-sandbox-meta strong {
   font-size: var(--app-ui-font-size-md);
-  line-height: 1.6;
-}
-
-.windows-sandbox-status {
-  padding: 12px 0 0;
-}
-
-.windows-sandbox-actions {
-  margin-top: 16px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-}
-
-.windows-sandbox-action {
-  min-height: 96px;
-  width: 100%;
-  border: 1px solid #dbe3f0;
-  border-radius: 16px;
-  background: #f8fafc;
   color: #0f172a;
-  padding: 14px 16px;
-  text-align: left;
-  display: grid;
-  gap: 8px;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.windows-sandbox-action:hover {
-  border-color: #bfdbfe;
-  background: #f0f7ff;
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.08);
-}
-
-.windows-sandbox-action:focus-visible {
-  outline: 2px solid #7aa2ff;
-  outline-offset: 1px;
-}
-
-.windows-sandbox-action:disabled {
-  opacity: 0.56;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.windows-sandbox-action-primary {
-  border-color: #bfdbfe;
-  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
-}
-
-.windows-sandbox-action-title {
-  font-size: 14px;
-  font-weight: 600;
   line-height: 1.5;
 }
 
-.windows-sandbox-action-copy {
+.windows-sandbox-meta p {
+  margin: 0;
   color: #64748b;
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.5;
+}
+
+.windows-sandbox-status {
+  margin: 0;
 }
 
 .settings-select-trigger {
@@ -278,6 +216,11 @@
 .settings-select-trigger:focus-visible {
   outline: 2px solid #7aa2ff;
   outline-offset: 1px;
+}
+
+.settings-select-trigger:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
 }
 
 .settings-select-label {
@@ -1134,13 +1077,9 @@
     align-items: stretch;
   }
 
-  .windows-sandbox-head {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .windows-sandbox-actions {
+  .windows-sandbox-row {
     grid-template-columns: 1fr;
+    align-items: flex-start;
   }
 
   .codex-provider-form-grid {
@@ -1233,14 +1172,13 @@ html[data-theme="dark"] .settings-dialog-close:hover {
 
 html[data-theme="dark"] .settings-head-action:focus-visible,
 html[data-theme="dark"] .settings-select-trigger:focus-visible,
-html[data-theme="dark"] .settings-action-btn:focus-visible,
-html[data-theme="dark"] .windows-sandbox-action:focus-visible {
+html[data-theme="dark"] .settings-action-btn:focus-visible {
   outline-color: var(--accent-color);
 }
 
 html[data-theme="dark"] .settings-section-head strong,
 html[data-theme="dark"] .windows-sandbox-head-main strong,
-html[data-theme="dark"] .windows-sandbox-meta-block strong,
+html[data-theme="dark"] .windows-sandbox-meta strong,
 html[data-theme="dark"] .settings-reco-text strong,
 html[data-theme="dark"] .settings-config-card .settings-row-heading,
 html[data-theme="dark"] .settings-dialog-header strong,
@@ -1260,8 +1198,7 @@ html[data-theme="dark"] .settings-note,
 html[data-theme="dark"] .settings-note code,
 html[data-theme="dark"] .windows-sandbox-summary-copy,
 html[data-theme="dark"] .windows-sandbox-meta-label,
-html[data-theme="dark"] .windows-sandbox-meta-block p,
-html[data-theme="dark"] .windows-sandbox-action-copy,
+html[data-theme="dark"] .windows-sandbox-meta p,
 html[data-theme="dark"] .settings-inline-action,
 html[data-theme="dark"] .settings-reco-text strong span,
 html[data-theme="dark"] .settings-reco-text p,
@@ -1298,30 +1235,13 @@ html[data-theme="dark"] .mcp-form-submit-error {
   color: var(--error-fg);
 }
 
-html[data-theme="dark"] .windows-sandbox-meta-block,
+html[data-theme="dark"] .windows-sandbox-meta,
 html[data-theme="dark"] .settings-select-menu,
 html[data-theme="dark"] .settings-dialog,
 html[data-theme="dark"] .settings-license-group {
   border-color: var(--border-light);
   background: var(--surface-panel);
   box-shadow: var(--shadow-lg);
-}
-
-html[data-theme="dark"] .windows-sandbox-action {
-  border-color: var(--border-light);
-  background: var(--surface-panel-muted);
-  color: var(--text-main);
-}
-
-html[data-theme="dark"] .windows-sandbox-action:hover {
-  border-color: var(--accent-color);
-  background: var(--surface-hover);
-  box-shadow: 0 8px 20px var(--accent-soft);
-}
-
-html[data-theme="dark"] .windows-sandbox-action-primary {
-  border-color: rgba(96, 165, 250, 0.42);
-  background: linear-gradient(180deg, rgba(96, 165, 250, 0.2) 0%, rgba(59, 130, 246, 0.12) 100%);
 }
 
 html[data-theme="dark"] .settings-toggle {

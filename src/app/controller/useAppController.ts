@@ -6,7 +6,11 @@ import { applyAppServerNotification } from "./appControllerNotifications";
 import { FrameTextDeltaQueue } from "../../features/conversation/model/frameTextDeltaQueue";
 import { OutputDeltaQueue } from "../../features/conversation/model/outputDeltaQueue";
 import { normalizeServerRequest } from "./serverRequests";
-import { refreshConfigAfterWindowsSandboxSetup } from "../../features/settings/sandbox/windowsSandboxSetup";
+import {
+  refreshConfigAfterWindowsSandboxSetup,
+  startWindowsSandboxSetupRequest,
+} from "../../features/settings/sandbox/windowsSandboxSetup";
+import { readWindowsSandboxConfigView } from "../../features/settings/sandbox/windowsSandboxConfig";
 import { ProtocolClient } from "../../protocol/client";
 import { useAppDispatch } from "../../state/store";
 import { useAppControllerRuntimeState } from "./appControllerState";
@@ -43,6 +47,23 @@ export {
   refreshAccountState,
 } from "./appControllerAccount";
 
+function readWindowsSandboxAutoSetupTarget(
+  configSnapshot: unknown,
+  agentEnvironment: AgentEnvironment,
+): { readonly key: string; readonly mode: "elevated" | "unelevated" } | null {
+  if (agentEnvironment !== "windowsNative") {
+    return null;
+  }
+  const view = readWindowsSandboxConfigView(configSnapshot);
+  if (!view.enabled || view.mode === null) {
+    return null;
+  }
+  return {
+    key: `${agentEnvironment}:${view.mode}:${view.source ?? "windows.sandbox"}`,
+    mode: view.mode,
+  };
+}
+
 export function useAppController(hostBridge: HostBridge, agentEnvironment: AgentEnvironment): AppController {
   const dispatch = useAppDispatch();
   const runtimeState = useAppControllerRuntimeState();
@@ -61,6 +82,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
   const settledRequestIdsRef = useRef(new Set<string>());
   const previousAgentEnvironmentRef = useRef(agentEnvironment);
   const agentEnvironmentRef = useRef(agentEnvironment);
+  const windowsSandboxAutoSetupKeyRef = useRef<string | null>(null);
   const sessionIndexReloadInFlightRef = useRef(false);
   const approvalAllowlistRef = useRef<CommandApprovalAllowlist>({});
 
@@ -333,6 +355,21 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
       }
     };
   }, [dispatch, runtimeState.windowsSandboxSetup]);
+
+  useEffect(() => {
+    const target = readWindowsSandboxAutoSetupTarget(runtimeState.configSnapshot, agentEnvironment);
+    if (target === null) {
+      windowsSandboxAutoSetupKeyRef.current = null;
+      return;
+    }
+    if (runtimeState.windowsSandboxSetup.pending || windowsSandboxAutoSetupKeyRef.current === target.key) {
+      return;
+    }
+    windowsSandboxAutoSetupKeyRef.current = target.key;
+    void startWindowsSandboxSetupRequest(client, dispatch, target.mode).catch((error) => {
+      console.error("自动启用 Windows 沙盒失败", error);
+    });
+  }, [agentEnvironment, client, dispatch, runtimeState.configSnapshot, runtimeState.windowsSandboxSetup.pending]);
 
   useEffect(() => {
     if (bootStartedRef.current) {

@@ -11,13 +11,14 @@ import type {
 } from "../../../bridge/types";
 import type { WindowsSandboxSetupState } from "../../../domain/types";
 import { useI18n } from "../../../i18n";
+import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
-import type { WindowsSandboxSetupMode } from "../../../protocol/generated/v2/WindowsSandboxSetupMode";
 import {
   createDraftFromRecord,
   createEmptyCodexProviderDraft,
   readCurrentCodexProviderKey,
 } from "../config/codexProviderConfig";
+import { createWindowsSandboxConfigWriteParams } from "../sandbox/windowsSandboxSetup";
 import { CodexAuthModeCard } from "./CodexAuthModeCard";
 import { CodexProviderDialog } from "./CodexProviderDialog";
 import { CodexProviderDeleteDialog } from "./CodexProviderDeleteDialog";
@@ -35,7 +36,6 @@ interface ConfigSettingsSectionProps {
   readonly busy: boolean;
   readonly configSnapshot: unknown;
   readonly windowsSandboxSetup: WindowsSandboxSetupState;
-  readonly startWindowsSandboxSetup: (mode: WindowsSandboxSetupMode) => Promise<unknown>;
   onOpenConfigToml: () => Promise<void>;
   refreshConfigSnapshot: () => Promise<unknown>;
   refreshAuthState: () => Promise<void>;
@@ -46,6 +46,7 @@ interface ConfigSettingsSectionProps {
   applyCodexProvider: (input: { readonly id: string }) => Promise<CodexProviderApplyResult>;
   getCodexAuthModeState: () => Promise<CodexAuthModeStateOutput>;
   activateCodexChatgpt: () => Promise<CodexAuthSwitchResult>;
+  batchWriteConfig: (params: ConfigBatchWriteParams) => Promise<unknown>;
   writeConfigValue: (params: ConfigValueWriteParams) => Promise<unknown>;
 }
 
@@ -212,6 +213,16 @@ export function ConfigSettingsSection(props: ConfigSettingsSectionProps): JSX.El
     }
   };
 
+  const handleWindowsSandboxToggle = useCallback(async (enabled: boolean) => {
+    setNoticeMessage(null);
+    setErrorMessage(null);
+    try {
+      await props.batchWriteConfig(createWindowsSandboxConfigWriteParams(props.configSnapshot, enabled));
+    } catch (error) {
+      setErrorMessage(toErrorMessage(error));
+    }
+  }, [props.batchWriteConfig, props.configSnapshot]);
+
   return (
     <div className="settings-panel-group">
       <header className="settings-title-wrap">
@@ -251,7 +262,7 @@ export function ConfigSettingsSection(props: ConfigSettingsSectionProps): JSX.El
         busy={props.busy}
         configSnapshot={props.configSnapshot}
         setupState={props.windowsSandboxSetup}
-        onEnable={() => props.startWindowsSandboxSetup("unelevated")}
+        onToggle={handleWindowsSandboxToggle}
       />
       <CodexAuthModeCard
         busy={props.busy}

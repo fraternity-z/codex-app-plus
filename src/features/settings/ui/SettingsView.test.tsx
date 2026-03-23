@@ -82,7 +82,6 @@ function createBaseProps(
     unarchiveThread: vi.fn().mockResolvedValue(undefined),
     writeConfigValue: vi.fn().mockResolvedValue({}),
     batchWriteConfig: vi.fn().mockResolvedValue({}),
-    startWindowsSandboxSetup: vi.fn().mockResolvedValue({ started: true }),
     checkForAppUpdate: vi.fn().mockResolvedValue(undefined),
     installAppUpdate: vi.fn().mockResolvedValue(undefined),
     ...overrides,

@@ -9,7 +9,7 @@ interface WindowsSandboxSettingsCardProps {
   readonly busy: boolean;
   readonly configSnapshot: unknown;
   readonly setupState: WindowsSandboxSetupState;
-  readonly onEnable: () => Promise<unknown>;
+  readonly onToggle: (enabled: boolean) => Promise<unknown>;
 }
 
 const MODE_LABEL_KEYS: Record<"disabled" | "enabled", MessageKey> = {
@@ -46,23 +46,23 @@ function environmentMessageKey(agentEnvironment: AgentEnvironment): MessageKey {
     : "settings.windowsSandbox.waitingForWindowsNativeNote";
 }
 
-function EnableAction(props: {
-  readonly busy: boolean;
-  readonly running: boolean;
+function ToggleSwitch(props: {
+  readonly checked: boolean;
+  readonly disabled: boolean;
   readonly label: string;
-  readonly description: string;
-  readonly runningLabel: string;
-  readonly onEnable: () => Promise<unknown>;
+  readonly onToggle: () => void;
 }): JSX.Element {
   return (
     <button
       type="button"
-      className="windows-sandbox-action windows-sandbox-action-primary"
-      disabled={props.busy}
-      onClick={() => void props.onEnable()}
+      className={props.checked ? "settings-toggle settings-toggle-on" : "settings-toggle"}
+      role="switch"
+      aria-checked={props.checked}
+      aria-label={props.label}
+      disabled={props.disabled}
+      onClick={props.onToggle}
     >
-      <span className="windows-sandbox-action-title">{props.running ? props.runningLabel : props.label}</span>
-      <span className="windows-sandbox-action-copy">{props.description}</span>
+      <span className="settings-toggle-knob" />
     </button>
   );
 }
@@ -71,7 +71,7 @@ export function WindowsSandboxSettingsCard(props: WindowsSandboxSettingsCardProp
   const { t } = useI18n();
   const view = useMemo(() => readWindowsSandboxConfigView(props.configSnapshot), [props.configSnapshot]);
   const result = resultMessage(props.setupState, t);
-  const actionDisabled = props.busy || props.setupState.pending || !view.canRunSetup;
+  const actionDisabled = props.busy || props.setupState.pending;
   const statusLabel = view.enabled ? modeLabel("enabled", t) : modeLabel("disabled", t);
   const resultClass = props.setupState.success === false
     ? "settings-status-note settings-status-note-error windows-sandbox-status"
@@ -81,39 +81,32 @@ export function WindowsSandboxSettingsCard(props: WindowsSandboxSettingsCardProp
 
   return (
     <section className="settings-card windows-sandbox-card">
-      <div className="windows-sandbox-head">
+      <div className="windows-sandbox-row">
         <div className="windows-sandbox-head-main">
           <strong>{t("settings.windowsSandbox.title")}</strong>
           <p className="windows-sandbox-summary-copy">
             {t("settings.windowsSandbox.summary")}
           </p>
         </div>
-        <span className="settings-chip settings-chip-sm windows-sandbox-chip">{statusLabel}</span>
+        <div className="settings-row-control">
+          <ToggleSwitch
+            checked={view.enabled}
+            disabled={actionDisabled}
+            label={t("settings.windowsSandbox.title")}
+            onToggle={() => void props.onToggle(!view.enabled)}
+          />
+        </div>
       </div>
 
       <div className="windows-sandbox-meta">
-        <div className="windows-sandbox-meta-block">
-          <span className="windows-sandbox-meta-label">{t("settings.windowsSandbox.currentStatusLabel")}</span>
-          <strong>{statusLabel}</strong>
-          <p>{view.source ?? t("settings.windowsSandbox.noSource")}</p>
-        </div>
+        <span className="windows-sandbox-meta-label">{t("settings.windowsSandbox.currentStatusLabel")}</span>
+        <strong>{statusLabel}</strong>
+        <p>{view.source ?? t("settings.windowsSandbox.noSource")}</p>
       </div>
 
       {view.isLegacy ? <p className="settings-status-note windows-sandbox-status">{t("settings.windowsSandbox.legacyNote")}</p> : null}
       <p className="settings-status-note windows-sandbox-status">{t(environmentMessageKey(props.agentEnvironment))}</p>
-      {!view.canRunSetup ? <p className="settings-status-note settings-status-note-error windows-sandbox-status">{t("settings.windowsSandbox.unavailableNote")}</p> : null}
       {result ? <p className={resultClass}>{result}</p> : null}
-
-      <div className="windows-sandbox-actions">
-        <EnableAction
-          busy={actionDisabled}
-          running={props.setupState.pending}
-          label={view.enabled ? t("settings.windowsSandbox.reenableAction") : t("settings.windowsSandbox.enableAction")}
-          description={t("settings.windowsSandbox.enableDescription")}
-          runningLabel={t("settings.windowsSandbox.runningAction")}
-          onEnable={props.onEnable}
-        />
-      </div>
     </section>
   );
 }

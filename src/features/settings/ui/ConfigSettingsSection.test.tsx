@@ -78,9 +78,9 @@ function createBaseProps(
       configPath: "C:/Users/Administrator/.codex/config.toml",
       restoredFromSnapshot: false,
     }),
+    batchWriteConfig: vi.fn().mockResolvedValue({}),
     writeConfigValue: vi.fn().mockResolvedValue({}),
     windowsSandboxSetup: { pending: false, mode: null, success: null, error: null },
-    startWindowsSandboxSetup: vi.fn().mockResolvedValue({ started: true }),
     ...overrides,
   };
 }
@@ -194,5 +194,20 @@ describe("ConfigSettingsSection", () => {
     expect(await screen.findByText("Config")).toBeInTheDocument();
     expect(screen.getByText("Open config file")).toBeInTheDocument();
     expect(screen.getByText("Provider presets")).toBeInTheDocument();
+  });
+
+  it("writes the Windows Sandbox config when toggled on", async () => {
+    const batchWriteConfig = vi.fn().mockResolvedValue({});
+    renderSection(createBaseProps({
+      batchWriteConfig,
+    }));
+
+    fireEvent.click(screen.getByRole("switch", { name: "Windows 沙盒" }));
+
+    await waitFor(() => {
+      expect(batchWriteConfig).toHaveBeenCalledWith(expect.objectContaining({
+        edits: [{ keyPath: "windows.sandbox", mergeStrategy: "replace", value: "unelevated" }],
+      }));
+    });
   });
 });
