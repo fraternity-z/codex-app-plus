@@ -35,7 +35,7 @@ export type ThreadRuntimeStatus = "notLoaded" | "idle" | "systemError" | "active
 export type ThreadActiveFlag = "waitingOnApproval" | "waitingOnUserInput";
 export type CollaborationPreset = "default" | "plan";
 export const DEFAULT_COLLABORATION_PRESET: CollaborationPreset = "default";
-export type FollowUpMode = "queue" | "interrupt";
+export type FollowUpMode = "queue" | "steer";
 export type ComposerEnterBehavior = "enter" | "cmdIfMultiline";
 export type NoticeLevel = "info" | "warning" | "error";
 export interface ThreadSummary {

@@ -59,6 +59,7 @@ describe("useWorkspaceConversation WSL cwd", () => {
         hostBridge,
         selectedRootPath: "E:/code/FPGA",
         collaborationModes: [{ name: "plan", mode: "plan", model: "gpt-5.2", reasoningEffort: "medium" }],
+        steerAvailable: true,
         followUpQueueMode: "queue",
         permissionSettings: DEFAULT_COMPOSER_PERMISSION_SETTINGS,
       }),

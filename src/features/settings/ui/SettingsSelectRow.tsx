@@ -10,6 +10,7 @@ import {
 export interface SettingsSelectOption<T extends string> {
   readonly value: T;
   readonly label: string;
+  readonly disabled?: boolean;
 }
 
 interface SettingsSelectRowProps<T extends string> {
@@ -59,7 +60,16 @@ function SettingsSelectMenu<T extends string>(props: {
           const selected = option.value === props.value;
           const className = selected ? "toolbar-menu-item toolbar-menu-item-active" : "toolbar-menu-item";
           return (
-            <button key={option.value} type="button" className={className} role="menuitemradio" aria-checked={selected} onClick={() => props.onSelect(option.value)}>
+            <button
+              key={option.value}
+              type="button"
+              className={className}
+              role="menuitemradio"
+              aria-checked={selected}
+              aria-disabled={option.disabled === true}
+              disabled={option.disabled}
+              onClick={() => props.onSelect(option.value)}
+            >
               <span className="settings-select-check">{selected ? "✓" : ""}</span>
               <span className="toolbar-menu-label">{option.label}</span>
             </button>

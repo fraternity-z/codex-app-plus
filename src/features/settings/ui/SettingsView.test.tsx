@@ -47,6 +47,7 @@ function createBaseProps(
     preferences: createPreferencesController(),
     resolvedTheme: "light",
     configSnapshot: { config: {} },
+    steerAvailable: true,
     busy: false,
     ready: true,
     windowsSandboxSetup: { pending: false, mode: null, success: null, error: null },

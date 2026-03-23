@@ -32,6 +32,7 @@ export interface SettingsScreenState {
   readonly appUpdate: AppState["appUpdate"];
   readonly bootstrapBusy: boolean;
   readonly configSnapshot: AppState["configSnapshot"];
+  readonly experimentalFeatures: AppState["experimentalFeatures"];
   readonly initialized: boolean;
   readonly windowsSandboxSetup: AppState["windowsSandboxSetup"];
 }
@@ -114,6 +115,7 @@ function selectSettingsScreenState(state: AppState): SettingsScreenState {
     appUpdate: state.appUpdate,
     bootstrapBusy: state.bootstrapBusy,
     configSnapshot: state.configSnapshot,
+    experimentalFeatures: state.experimentalFeatures,
     initialized: state.initialized,
     windowsSandboxSetup: state.windowsSandboxSetup,
   };
@@ -123,6 +125,7 @@ function isSettingsScreenStateEqual(left: SettingsScreenState, right: SettingsSc
   return Object.is(left.appUpdate, right.appUpdate)
     && left.bootstrapBusy === right.bootstrapBusy
     && Object.is(left.configSnapshot, right.configSnapshot)
+    && Object.is(left.experimentalFeatures, right.experimentalFeatures)
     && left.initialized === right.initialized
     && Object.is(left.windowsSandboxSetup, right.windowsSandboxSetup);
 }

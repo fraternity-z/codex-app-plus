@@ -9,6 +9,7 @@ import { useSettingsScreenState } from "../../../app/controller/appControllerSta
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
 import { SettingsLoadingFallback } from "../../../app/ui/SettingsLoadingFallback";
 import type { ResolvedTheme } from "../../../domain/theme";
+import { selectSteerFeatureState } from "../config/experimentalFeatures";
 import type { SettingsSection, SettingsViewProps } from "./SettingsView";
 
 const LazySettingsView = lazy(async () => {
@@ -30,6 +31,7 @@ interface SettingsScreenProps {
 export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
   const state = useSettingsScreenState();
   const { notifyError } = useUiBannerNotifications("settings-screen");
+  const steerState = selectSteerFeatureState(state.experimentalFeatures, state.configSnapshot);
   const addRoot = useCallback(async () => {
     try {
       const root = await requestWorkspaceFolder("选择工作区", "暂不支持一次选择多个工作区。");
@@ -61,6 +63,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     preferences: props.preferences,
     resolvedTheme: props.resolvedTheme,
     configSnapshot: state.configSnapshot,
+    steerAvailable: steerState.available,
     busy: state.bootstrapBusy,
     ready: state.initialized,
     windowsSandboxSetup: state.windowsSandboxSetup,

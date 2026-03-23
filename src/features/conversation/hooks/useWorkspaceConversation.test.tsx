@@ -146,6 +146,7 @@ function renderConversation(
   ] as const,
   selectedRootPath = "E:/code/FPGA",
   initialAppServerReady = true,
+  steerAvailable = true,
 ) {
   return renderHook((props: { readonly rootPath: string | null; readonly appServerReady: boolean }) => {
       const store = useAppStore();
@@ -155,6 +156,7 @@ function renderConversation(
         appServerReady: props.appServerReady,
         selectedRootPath: props.rootPath,
         collaborationModes,
+        steerAvailable,
         followUpQueueMode: "queue",
         permissionSettings: DEFAULT_COMPOSER_PERMISSION_SETTINGS,
       });
@@ -809,7 +811,7 @@ describe("useWorkspaceConversation", () => {
     }));
   });
 
-  it("starts a fresh turn immediately when interrupt mode is chosen without an active turn", async () => {
+  it("starts a fresh turn immediately when steer mode is chosen without an active turn", async () => {
     const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
       if (input.method === "turn/start") {
         return { requestId: "request-1", result: { turn: createTurn() } };
@@ -825,18 +827,18 @@ describe("useWorkspaceConversation", () => {
     });
 
     await act(async () => {
-      await result.current.conversation.sendTurn({ ...createSendOptions("interrupt after idle"), followUpOverride: "interrupt" });
+      await result.current.conversation.sendTurn({ ...createSendOptions("steer after idle"), followUpOverride: "steer" });
     });
 
     expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/start" }));
-    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "turn/interrupt" }));
+    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "turn/steer" }));
     expect(result.current.conversation.queuedFollowUps).toHaveLength(0);
   });
 
-  it("keeps follow-up interrupt mode as turn-only interruption", async () => {
+  it("uses turn/steer for steer follow-ups while the current turn is active", async () => {
     const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
-      if (input.method === "turn/interrupt") {
-        return { requestId: "request-1", result: { success: true } };
+      if (input.method === "turn/steer") {
+        return { requestId: "request-1", result: { turnId: "turn-1" } };
       }
       throw new Error(`unexpected method: ${input.method}`);
     });
@@ -850,38 +852,37 @@ describe("useWorkspaceConversation", () => {
     });
 
     await act(async () => {
-      await result.current.conversation.sendTurn({ ...createSendOptions("interrupt from follow-up"), followUpOverride: "interrupt" });
+      await result.current.conversation.sendTurn({ ...createSendOptions("steer from follow-up"), followUpOverride: "steer" });
     });
 
-    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/interrupt", params: { threadId: "thread-1", turnId: "turn-1" } }));
-    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/backgroundTerminals/clean" }));
-    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe" }));
-    expect(result.current.conversation.queuedFollowUps).toHaveLength(1);
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({
+      method: "turn/steer",
+      params: {
+        threadId: "thread-1",
+        expectedTurnId: "turn-1",
+        input: [{ type: "text", text: "steer from follow-up", text_elements: [] }],
+      },
+    }));
+    expect(result.current.conversation.queuedFollowUps).toHaveLength(0);
   });
 
-  it("does not send a duplicate interrupt request when one is already pending", async () => {
-    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
-      if (input.method === "turn/interrupt") {
-        return { requestId: "request-1", result: { success: true } };
-      }
-      return { requestId: "noop", result: {} };
-    });
+  it("surfaces an explicit error when steer follow-ups are unavailable", async () => {
+    const request = vi.fn(async () => ({ requestId: "noop", result: {} }));
     const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
-    const { result } = renderConversation(hostBridge);
+    const { result } = renderConversation(hostBridge, undefined, "E:/code/FPGA", true, false);
 
     act(() => {
       result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ status: { type: "active" as const, activeFlags: [] }, turns: [createTurn()] }), { resumeState: "resumed" }) });
       result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
-      result.current.store.dispatch({ type: "turn/interruptRequested", conversationId: "thread-1", turnId: "turn-1" });
       result.current.store.dispatch({ type: "input/changed", value: "继续排队" });
     });
 
-    await act(async () => {
-      await result.current.conversation.sendTurn({ ...createSendOptions("interrupt already pending"), followUpOverride: "interrupt" });
-    });
+    await expect(
+      result.current.conversation.sendTurn({ ...createSendOptions("steer while unavailable"), followUpOverride: "steer" }),
+    ).rejects.toThrow("当前 Codex 配置未启用 steer");
 
-    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "turn/interrupt" }));
-    expect(result.current.conversation.queuedFollowUps).toHaveLength(1);
+    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "turn/steer" }));
+    expect(result.current.conversation.queuedFollowUps).toHaveLength(0);
   });
 
   it("reorders the queue without sending another interrupt when one is already pending", async () => {
@@ -979,6 +980,7 @@ describe("useWorkspaceConversation", () => {
         hostBridge,
         selectedRootPath: "E:/code/FPGA",
         collaborationModes: [{ name: "default", mode: "default", model: "gpt-5.2", reasoningEffort: null }],
+        steerAvailable: true,
         followUpQueueMode: "queue",
         permissionSettings: {
           defaultApprovalPolicy: "on-failure",

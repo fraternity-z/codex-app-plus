@@ -43,11 +43,24 @@ function createThreadDetailOptions(t: Translator): ReadonlyArray<SettingsSelectO
   ];
 }
 
-function createFollowUpModeOptions(t: Translator): ReadonlyArray<SettingsSelectOption<FollowUpMode>> {
+function createFollowUpModeOptions(
+  t: Translator,
+  steerAvailable: boolean,
+): ReadonlyArray<SettingsSelectOption<FollowUpMode>> {
   return [
     { value: "queue", label: t("settings.general.followUpQueueMode.options.queue") },
-    { value: "interrupt", label: t("settings.general.followUpQueueMode.options.interrupt") }
+    {
+      value: "steer",
+      label: t("settings.general.followUpQueueMode.options.steer"),
+      disabled: !steerAvailable,
+    },
   ];
+}
+
+function getFollowUpModeNote(t: Translator, steerAvailable: boolean): string {
+  return steerAvailable
+    ? t("settings.general.followUpQueueMode.note")
+    : t("settings.general.followUpQueueMode.unavailableNote");
 }
 
 function createComposerEnterOptions(t: Translator): ReadonlyArray<SettingsSelectOption<ComposerEnterBehavior>> {
@@ -59,6 +72,7 @@ function createComposerEnterOptions(t: Translator): ReadonlyArray<SettingsSelect
 
 interface GeneralSettingsSectionProps {
   readonly preferences: AppPreferencesController;
+  readonly steerAvailable: boolean;
 }
 
 function ToggleSwitch(props: {
@@ -88,7 +102,7 @@ export function GeneralSettingsSection(props: GeneralSettingsSectionProps): JSX.
   const terminalShellOptions = createTerminalShellOptions(t);
   const languageOptions = createLanguageOptions(t);
   const threadDetailOptions = createThreadDetailOptions(t);
-  const followUpModeOptions = createFollowUpModeOptions(t);
+  const followUpModeOptions = createFollowUpModeOptions(t, props.steerAvailable);
   const composerEnterOptions = createComposerEnterOptions(t);
 
   return (
@@ -154,7 +168,7 @@ export function GeneralSettingsSection(props: GeneralSettingsSectionProps): JSX.
           value={preferences.followUpQueueMode}
           options={followUpModeOptions}
           onChange={preferences.setFollowUpQueueMode}
-          statusNote={t("settings.general.followUpQueueMode.note")}
+          statusNote={getFollowUpModeNote(t, props.steerAvailable)}
         />
         <SettingsSelectRow
           label={t("settings.general.composerEnterBehavior.label")}

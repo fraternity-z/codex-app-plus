@@ -174,10 +174,11 @@ export const enUS = {
       followUpQueueMode: {
         label: "Follow-up mode",
         description: "Default behavior when sending another message during an active session.",
-        note: "Supports queue and interrupt.",
+        note: "Supports queue and steer. The Stop action still interrupts the current response.",
+        unavailableNote: "Supports queue and steer. The Stop action still interrupts the current response. Steer is unavailable in the current Codex config, so active follow-ups can only queue.",
         options: {
           queue: "Queue",
-          interrupt: "Interrupt",
+          steer: "Steer",
         },
       },
       composerEnterBehavior: {

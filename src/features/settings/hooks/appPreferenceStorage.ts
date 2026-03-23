@@ -49,7 +49,7 @@ const WORKSPACE_OPENERS: ReadonlyArray<WorkspaceOpener> = ["vscode", "visualStud
 const EMBEDDED_TERMINAL_SHELLS: ReadonlyArray<EmbeddedTerminalShell> = ["powerShell", "commandPrompt", "gitBash"];
 const UI_LANGUAGES: ReadonlyArray<UiLanguage> = ["auto", "zh-CN", "en-US"];
 const THREAD_DETAIL_LEVELS: ReadonlyArray<ThreadDetailLevel> = ["compact", "commands", "full"];
-const FOLLOW_UP_QUEUE_MODES: ReadonlyArray<FollowUpMode> = ["queue", "interrupt"];
+const FOLLOW_UP_QUEUE_MODES: ReadonlyArray<FollowUpMode> = ["queue", "steer"];
 const COMPOSER_ENTER_BEHAVIORS: ReadonlyArray<ComposerEnterBehavior> = ["enter", "cmdIfMultiline"];
 const SANDBOX_MODES: ReadonlyArray<SandboxMode> = ["read-only", "workspace-write", "danger-full-access"];
 

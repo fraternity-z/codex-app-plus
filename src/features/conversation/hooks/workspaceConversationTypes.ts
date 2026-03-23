@@ -51,6 +51,7 @@ export interface UseWorkspaceConversationOptions {
   readonly appServerReady?: boolean;
   readonly selectedRootPath: string | null;
   readonly collaborationModes: ReadonlyArray<CollaborationModePreset>;
+  readonly steerAvailable: boolean;
   readonly followUpQueueMode: FollowUpMode;
   readonly permissionSettings: ComposerPermissionSettings;
 }

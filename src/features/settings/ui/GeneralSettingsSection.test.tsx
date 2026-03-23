@@ -6,12 +6,13 @@ import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { DEFAULT_APP_PREFERENCES } from "../hooks/useAppPreferences";
 import { GeneralSettingsSection } from "./GeneralSettingsSection";
 
-function renderSection(locale: Locale = "zh-CN"): void {
+function renderSection(locale: Locale = "zh-CN", steerAvailable = true): void {
   function Wrapper(): JSX.Element {
     const [preferences, setPreferences] = useState(DEFAULT_APP_PREFERENCES);
 
     return (
       <GeneralSettingsSection
+        steerAvailable={steerAvailable}
         preferences={{
           ...preferences,
           setAgentEnvironment: (agentEnvironment) =>
@@ -113,14 +114,26 @@ describe("GeneralSettingsSection", () => {
     ).toBeInTheDocument();
   });
 
-  it("only offers queue and interrupt follow-up modes", () => {
+  it("offers queue and steer follow-up modes", () => {
     renderSection();
 
     fireEvent.click(screen.getByRole("button", { name: "Follow-up 模式：Queue" }));
 
     expect(screen.getByRole("menuitemradio", { name: /Queue/ })).toBeInTheDocument();
-    expect(screen.getByRole("menuitemradio", { name: "Interrupt" })).toBeInTheDocument();
-    expect(screen.queryByRole("menuitemradio", { name: "Steer" })).toBeNull();
+    expect(screen.getByRole("menuitemradio", { name: "Steer" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitemradio", { name: "Interrupt" })).toBeNull();
+  });
+
+  it("disables steer when the current Codex config does not expose the capability", () => {
+    renderSection("zh-CN", false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Follow-up 模式：Queue" }));
+
+    const steerOption = screen.getByRole("menuitemradio", { name: "Steer" });
+    expect(steerOption).toBeDisabled();
+    expect(
+      screen.getByText("支持 queue、steer 两种模式；Stop 按钮仍用于终止当前响应。当前 Codex 配置未启用 steer，因此运行中追发只能排队。"),
+    ).toBeInTheDocument();
   });
 
   it("offers auto language detection alongside Chinese and English", () => {

@@ -130,7 +130,21 @@ describe("useAppPreferences", () => {
     expect(result.current.uiLanguage).toBe("auto");
   });
 
-  it("falls back to queue when a legacy steer follow-up mode is stored", () => {
+  it("falls back to queue when a legacy interrupt follow-up mode is stored", () => {
+    window.localStorage.setItem(
+      APP_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        ...DEFAULT_APP_PREFERENCES,
+        followUpQueueMode: "interrupt",
+      }),
+    );
+
+    const { result } = renderHook(() => useAppPreferences());
+
+    expect(result.current.followUpQueueMode).toBe("queue");
+  });
+
+  it("preserves steer when it is stored explicitly", () => {
     window.localStorage.setItem(
       APP_PREFERENCES_STORAGE_KEY,
       JSON.stringify({
@@ -141,7 +155,7 @@ describe("useAppPreferences", () => {
 
     const { result } = renderHook(() => useAppPreferences());
 
-    expect(result.current.followUpQueueMode).toBe("queue");
+    expect(result.current.followUpQueueMode).toBe("steer");
   });
 
   it("preserves an explicit stored language choice", () => {

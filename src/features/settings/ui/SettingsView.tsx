@@ -54,6 +54,7 @@ export interface SettingsViewProps {
   readonly preferences: AppPreferencesController;
   readonly resolvedTheme: ResolvedTheme;
   readonly configSnapshot: unknown;
+  readonly steerAvailable: boolean;
   readonly busy: boolean;
   readonly ready: boolean;
   readonly windowsSandboxSetup: WindowsSandboxSetupState;
@@ -146,7 +147,7 @@ function SettingsContent(props: SettingsViewProps): JSX.Element {
   const sectionTitle = createNavItems(t).find((item) => item.key === props.section)?.label ?? t("settings.nav.general");
 
   if (props.section === "general") {
-    return <GeneralSettingsSection preferences={props.preferences} />;
+    return <GeneralSettingsSection preferences={props.preferences} steerAvailable={props.steerAvailable} />;
   }
   if (props.section === "appearance") {
     return (

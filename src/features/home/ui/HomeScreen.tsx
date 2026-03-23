@@ -8,7 +8,10 @@ import type { ComposerSelection } from "../../composer/model/composerPreferences
 import { useWorkspaceConversation } from "../../conversation/hooks/useWorkspaceConversation";
 import type { SendTurnOptions } from "../../conversation/hooks/workspaceConversationTypes";
 import { readUserConfigWriteTarget } from "../../settings/config/configWriteTarget";
-import { selectMultiAgentFeatureState } from "../../settings/config/experimentalFeatures";
+import {
+  selectMultiAgentFeatureState,
+  selectSteerFeatureState,
+} from "../../settings/config/experimentalFeatures";
 import type { AppPreferencesController } from "../../settings/hooks/useAppPreferences";
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
 import type { WorkspaceRootController } from "../../workspace/hooks/useWorkspaceRoots";
@@ -54,6 +57,10 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
     props.preferences.composerFullApprovalPolicy,
     props.preferences.composerFullSandboxMode,
   ]);
+  const steerState = useMemo(
+    () => selectSteerFeatureState(state.experimentalFeatures, state.configSnapshot),
+    [state.configSnapshot, state.experimentalFeatures],
+  );
   const conversation = useWorkspaceConversation({
     agentEnvironment: props.preferences.agentEnvironment,
     appServerClient,
@@ -61,6 +68,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
     hostBridge: props.hostBridge,
     selectedRootPath,
     collaborationModes: state.collaborationModes,
+    steerAvailable: steerState.available,
     followUpQueueMode: props.preferences.followUpQueueMode,
     permissionSettings,
   });

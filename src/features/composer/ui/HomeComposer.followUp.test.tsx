@@ -178,7 +178,7 @@ describe("HomeComposer follow-up", () => {
     const { onPromoteQueuedFollowUp, onRemoveQueuedFollowUp, onClearQueuedFollowUps } = renderComposer({
       queuedFollowUps: [
         createQueuedFollowUp(),
-        createQueuedFollowUp({ id: "follow-2", text: "马上打断并继续", mode: "interrupt" }),
+        createQueuedFollowUp({ id: "follow-2", text: "马上转向继续", mode: "steer" }),
       ],
     });
 

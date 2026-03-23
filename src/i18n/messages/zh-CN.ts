@@ -173,10 +173,11 @@ export const zhCN = {
       followUpQueueMode: {
         label: "Follow-up 模式",
         description: "会话进行中再次发送消息时的默认处理方式。",
-        note: "支持 queue、interrupt 两种模式。",
+        note: "支持 queue、steer 两种模式；Stop 按钮仍用于终止当前响应。",
+        unavailableNote: "支持 queue、steer 两种模式；Stop 按钮仍用于终止当前响应。当前 Codex 配置未启用 steer，因此运行中追发只能排队。",
         options: {
           queue: "Queue",
-          interrupt: "Interrupt",
+          steer: "Steer",
         },
       },
       composerEnterBehavior: {
