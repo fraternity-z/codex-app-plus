@@ -2,7 +2,9 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::command_utils::{open_detached_target, spawn_background_command};
+use crate::command_utils::{
+    open_detached_target, spawn_background_command, spawn_hidden_background_command,
+};
 use crate::error::{AppError, AppResult};
 use crate::models::{OpenWorkspaceInput, WorkspaceOpener};
 
@@ -24,6 +26,7 @@ const MACHINE_INSTALL_RELATIVE_PATHS: [&str; 2] = [
 struct CommandSpec {
     program: OsString,
     arguments: Vec<OsString>,
+    hide_window: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -211,12 +214,14 @@ fn create_vscode_command_spec(binary: &Path, workspace_path: &Path) -> CommandSp
                 OsString::from(VSCODE_NEW_WINDOW_FLAG),
                 workspace_arg,
             ],
+            hide_window: true,
         };
     }
 
     CommandSpec {
         program: binary.as_os_str().to_os_string(),
         arguments: vec![OsString::from(VSCODE_NEW_WINDOW_FLAG), workspace_arg],
+        hide_window: false,
     }
 }
 
@@ -230,6 +235,9 @@ fn is_script_binary(path: &Path) -> bool {
 fn spawn_command(spec: CommandSpec) -> AppResult<()> {
     let mut command = Command::new(&spec.program);
     command.args(&spec.arguments);
+    if spec.hide_window {
+        return spawn_hidden_background_command(&mut command);
+    }
     spawn_background_command(&mut command)
 }
 

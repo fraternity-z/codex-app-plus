@@ -46,6 +46,7 @@ fn builds_cmd_shell_command_for_code_cmd_on_path() {
             workspace_path.as_os_str().to_os_string(),
         ]
     );
+    assert!(spec.hide_window);
 }
 
 #[test]
@@ -75,6 +76,7 @@ fn falls_back_to_common_user_install_location() {
             workspace_path.as_os_str().to_os_string(),
         ]
     );
+    assert!(!spec.hide_window);
 }
 
 #[test]
