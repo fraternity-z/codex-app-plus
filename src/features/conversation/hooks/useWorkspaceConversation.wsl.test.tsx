@@ -32,7 +32,7 @@ function createThread(id: string, cwd: string) {
 }
 
 describe("useWorkspaceConversation WSL cwd", () => {
-  it("maps Windows workspaces to WSL cwd for thread/start and turn/start", async () => {
+  it("maps Windows workspaces and attachments to WSL paths for thread/start and turn/start", async () => {
     const request = vi.fn(async (input: { readonly method: string; readonly params: Record<string, unknown> }) => {
       if (input.method === "thread/start") {
         return {
@@ -70,7 +70,10 @@ describe("useWorkspaceConversation WSL cwd", () => {
       await result.current.createThread();
       await result.current.sendTurn({
         text: "hello",
-        attachments: [],
+        attachments: [
+          { id: "image-1", kind: "image", source: "localImage", name: "image.png", value: "E:/code/FPGA/image.png" },
+          { id: "file-1", kind: "file", source: "mention", name: "notes.md", value: "E:/code/FPGA/notes.md" },
+        ],
         selection: { model: "gpt-5.2", effort: "medium", serviceTier: null },
         permissionLevel: "default",
         collaborationPreset: "default"
@@ -83,7 +86,14 @@ describe("useWorkspaceConversation WSL cwd", () => {
     }));
     expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({
       method: "turn/start",
-      params: expect.objectContaining({ cwd: "/mnt/e/code/FPGA" })
+      params: expect.objectContaining({
+        cwd: "/mnt/e/code/FPGA",
+        input: [
+          { type: "text", text: "hello", text_elements: [] },
+          { type: "localImage", path: "/mnt/e/code/FPGA/image.png" },
+          { type: "mention", name: "notes.md", path: "/mnt/e/code/FPGA/notes.md" },
+        ],
+      })
     }));
   });
 });

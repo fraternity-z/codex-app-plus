@@ -1,13 +1,19 @@
 import { useCallback, useRef, useState, type KeyboardEvent } from "react";
-import { getAttachmentLabel } from "../model/composerAttachments";
 import type { ComposerPermissionLevel } from "../model/composerPermission";
 import type { ComposerModelOption, ComposerSelection } from "../model/composerPreferences";
+import {
+  appendComposerFileReferencePaths,
+  parseComposerFileReferenceDraft,
+  removeComposerFileReferencePath,
+  serializeComposerFileReferenceDraft,
+  toComposerFileReferencePath,
+} from "../model/composerFileReferences";
 import type { SendTurnOptions } from "../../conversation/hooks/useWorkspaceConversation";
 import { useComposerSelection } from "../hooks/useComposerSelection";
 import type { CollaborationPreset, ComposerEnterBehavior, FollowUpMode, QueuedFollowUp } from "../../../domain/timeline";
-import { AttachmentClip } from "./AttachmentClip";
 import { ComposerAttachmentMenu } from "./ComposerAttachmentMenu";
 import { ComposerCommandPalette } from "./ComposerCommandPalette";
+import { ComposerDraftChips } from "./ComposerDraftChips";
 import { ComposerFooter } from "./ComposerFooter";
 import { ComposerModelControls } from "./ComposerModelControls";
 import { ComposerQueuedFollowUpsPanel } from "./ComposerQueuedFollowUpsPanel";
@@ -72,11 +78,32 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [multiAgentPending, setMultiAgentPending] = useState(false);
-  const { attachments, appendPaths, clearAttachments, openFilePicker, removeAttachment, handlePaste } = useComposerAttachments({ selectedThreadId: props.selectedThreadId });
+  const fileReferenceDraft = parseComposerFileReferenceDraft(props.inputText);
+  const composerBodyText = fileReferenceDraft.bodyText;
+  const fileReferencePaths = fileReferenceDraft.filePaths;
+  const updateComposerBodyText = useCallback((nextBodyText: string) => {
+    props.onInputChange(serializeComposerFileReferenceDraft(nextBodyText, fileReferencePaths));
+  }, [fileReferencePaths, props]);
+  const appendFileReferenceTexts = useCallback((paths: ReadonlyArray<string>, nextBodyText?: string) => {
+    const nextInputText = nextBodyText === undefined
+      ? appendComposerFileReferencePaths(props.inputText, paths)
+      : serializeComposerFileReferenceDraft(nextBodyText, [...fileReferencePaths, ...paths]);
+    props.onInputChange(nextInputText);
+  }, [fileReferencePaths, props.inputText, props.onInputChange]);
+  const appendWorkspaceFilePaths = useCallback((paths: ReadonlyArray<string>) => {
+    appendFileReferenceTexts(paths.map((path) => toComposerFileReferencePath(path, props.selectedRootPath)));
+  }, [appendFileReferenceTexts, props.selectedRootPath]);
+  const removeFileReference = useCallback((path: string) => {
+    props.onInputChange(removeComposerFileReferencePath(props.inputText, path));
+  }, [props.inputText, props.onInputChange]);
+  const { attachments, clearAttachments, openFilePicker, removeAttachment, handlePaste } = useComposerAttachments({
+    selectedThreadId: props.selectedThreadId,
+    onInsertFilePaths: appendWorkspaceFilePaths,
+  });
   const composerSelection = useComposerSelection(props.models, props.defaultModel, props.defaultEffort, defaultServiceTier);
   const { handleSelectModel, handleSelectEffort, handleSelectServiceTier } = useComposerSelectionPersistence({ models: props.models, defaultModel: props.defaultModel, defaultEffort: props.defaultEffort, defaultServiceTier, selectedModel: composerSelection.selectedModel, selectedEffort: composerSelection.selectedEffort, selectedServiceTier: composerSelection.selectedServiceTier, replaceSelection: composerSelection.replaceSelection, persistSelection: props.onPersistComposerSelection });
   const commandPalette = useComposerCommandPalette({
-    inputText: props.inputText,
+    inputText: composerBodyText,
     selectedRootPath: props.selectedRootPath,
     selectedThreadId: props.selectedThreadId,
     collaborationPreset: props.collaborationPreset,
@@ -86,8 +113,8 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     selectedServiceTier: composerSelection.selectedServiceTier,
     permissionLevel: props.permissionLevel,
     composerCommandBridge: props.composerCommandBridge,
-    onInputChange: props.onInputChange,
-    onAppendMentionPath: (path) => appendPaths([path]),
+    onInputChange: updateComposerBodyText,
+    onAppendMentionPath: (path, nextText) => appendFileReferenceTexts([path], nextText),
     onCreateThread: props.onCreateThread,
     onToggleDiff: props.onToggleDiff,
     onSelectModel: handleSelectModel,
@@ -98,7 +125,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
   });
   const appServerReady = props.appServerReady !== false;
   const interactionDisabled = props.busy || multiAgentPending;
-  const hasDraftToSend = hasDraftContent(props.inputText, attachments.length > 0);
+  const hasDraftToSend = hasDraftContent(composerBodyText, attachments.length > 0 || fileReferencePaths.length > 0);
   const canSend = appServerReady
     && !interactionDisabled
     && hasDraftToSend;
@@ -108,13 +135,14 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     : interactionDisabled || !appServerReady || !canSend;
   const buttonLabel = showInterruptAction ? "Stop response" : "Send message";
 
-  useComposerTextareaAutosize({ textareaRef: commandPalette.textareaRef, value: props.inputText, maxExtraRows: MAX_COMPOSER_INPUT_EXTRA_ROWS });
+  useComposerTextareaAutosize({ textareaRef: commandPalette.textareaRef, value: composerBodyText, maxExtraRows: MAX_COMPOSER_INPUT_EXTRA_ROWS });
   useToolbarMenuDismissal(commandPalette.open, containerRef, () => void commandPalette.dismiss());
 
   const submit = useCallback((followUpOverride?: FollowUpMode) => {
     void submitTurn(
       props,
       canSend,
+      props.inputText,
       attachments,
       composerSelection,
       clearAttachments,
@@ -164,8 +192,8 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
           {multiAgentPending ? <ComposerReloadOverlay /> : null}
           {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label="Close attachment menu" onClick={() => setMenuOpen(false)} /> : null}
           {commandPalette.open ? <ComposerCommandPalette open={true} title={commandPalette.title} items={commandPalette.items} selectedIndex={commandPalette.selectedIndex} onSelectItem={commandPalette.onSelectItem} /> : null}
-          {attachments.length === 0 ? null : <AttachmentDraft attachments={attachments} onRemove={removeAttachment} />}
-          <textarea ref={commandPalette.textareaRef} rows={1} className="composer-input" placeholder={getComposerPlaceholder(props.selectedRootPath)} value={props.inputText} disabled={interactionDisabled} onPaste={(event) => void handlePaste(event)} onSelect={commandPalette.syncFromTextareaSelection} onKeyDown={(event) => handleInputKeyDown(event, props, attachments.length > 0, commandPalette.handleKeyDown, submit)} onChange={(event) => handleInputChange(event.currentTarget.value, event.currentTarget.selectionStart, props.onInputChange, commandPalette.syncFromTextInput)} />
+          <ComposerDraftChips attachments={attachments} filePaths={fileReferencePaths} onRemoveAttachment={removeAttachment} onRemoveFilePath={removeFileReference} />
+          <textarea ref={commandPalette.textareaRef} rows={1} className="composer-input" placeholder={getComposerPlaceholder(props.selectedRootPath)} value={composerBodyText} disabled={interactionDisabled} onPaste={(event) => void handlePaste(event)} onSelect={commandPalette.syncFromTextareaSelection} onKeyDown={(event) => handleInputKeyDown(event, props, attachments.length > 0 || fileReferencePaths.length > 0, commandPalette.handleKeyDown, submit)} onChange={(event) => handleInputChange(event.currentTarget.value, event.currentTarget.selectionStart, updateComposerBodyText, commandPalette.syncFromTextInput)} />
           <div className="composer-bar">
             <div className="composer-left">
               <div className="composer-plus-anchor">
@@ -194,14 +222,6 @@ function ComposerReloadOverlay(): JSX.Element {
       <span>正在重载 Codex…</span>
     </div>
   );
-}
-
-function AttachmentDraft(props: { readonly attachments: ReturnType<typeof useComposerAttachments>["attachments"]; readonly onRemove: (attachmentId: string) => void }): JSX.Element {
-  return <div className="composer-attachment-draft" aria-label="Attached files and images">{props.attachments.map((attachment) => <AttachmentDraftChip key={attachment.id} attachment={attachment} onRemove={props.onRemove} />)}</div>;
-}
-
-function AttachmentDraftChip(props: { readonly attachment: ReturnType<typeof useComposerAttachments>["attachments"][number]; readonly onRemove: (attachmentId: string) => void }): JSX.Element {
-  return <AttachmentClip label={getAttachmentLabel(props.attachment)} tone={props.attachment.kind} onRemove={() => props.onRemove(props.attachment.id)} />;
 }
 
 function getComposerPlaceholder(selectedRootPath: string | null): string {
@@ -269,6 +289,7 @@ function shouldSendOnEnter(inputText: string, behavior: ComposerEnterBehavior, m
 async function submitTurn(
   props: HomeComposerProps,
   canSend: boolean,
+  text: string,
   attachments: ReturnType<typeof useComposerAttachments>["attachments"],
   composerSelection: ReturnType<typeof useComposerSelection>,
   clearAttachments: () => void,
@@ -282,7 +303,7 @@ async function submitTurn(
   }
   try {
     await dismissPalette();
-    await props.onSendTurn({ text: props.inputText, attachments, selection: { model: composerSelection.selectedModel, effort: composerSelection.selectedEffort, serviceTier: composerSelection.selectedServiceTier }, permissionLevel: props.permissionLevel, collaborationPreset, followUpOverride });
+    await props.onSendTurn({ text, attachments, selection: { model: composerSelection.selectedModel, effort: composerSelection.selectedEffort, serviceTier: composerSelection.selectedServiceTier }, permissionLevel: props.permissionLevel, collaborationPreset, followUpOverride });
     clearAttachments();
   } catch (error) {
     console.error("发送消息失败", error);

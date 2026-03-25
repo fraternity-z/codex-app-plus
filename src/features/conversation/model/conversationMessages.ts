@@ -2,7 +2,7 @@ import type { ConversationMessage, ThreadSummary } from "../../../domain/types";
 import type { Thread } from "../../../protocol/generated/v2/Thread";
 import type { Turn } from "../../../protocol/generated/v2/Turn";
 import type { ThreadItem } from "../../../protocol/generated/v2/ThreadItem";
-import { extractImageAttachmentsFromText, summarizeUserInputs } from "./conversationUserInput";
+import { extractEmbeddedUserAttachmentsFromText, summarizeUserInputs } from "./conversationUserInput";
 
 const AGENTS_PREFIX = "# AGENTS.md instructions for ";
 const APP_CONTEXT_CLOSE_TAG = "</app-context>";
@@ -26,7 +26,7 @@ export function createUserConversationMessage(
   turnId: string,
   text: string,
 ): ConversationMessage {
-  const summary = extractImageAttachmentsFromText(normalizeConversationMessageText("user", text));
+  const summary = extractEmbeddedUserAttachmentsFromText(normalizeConversationMessageText("user", text));
   return {
     id: createMessageId(threadId, turnId, `user-${turnId}`),
     kind: "userMessage",
@@ -132,7 +132,7 @@ function normalizeAssistantMessage(message: ConversationMessage): ConversationMe
 
 function normalizeUserMessage(message: ConversationMessage): ConversationMessage | null {
   const text = normalizeConversationMessageText("user", message.text);
-  const summary = extractImageAttachmentsFromText(text);
+  const summary = extractEmbeddedUserAttachmentsFromText(text);
   const attachments = mergeAttachments(message.attachments, summary.attachments);
   if (summary.text.trim().length < MIN_VISIBLE_MESSAGE_LENGTH && attachments.length === 0) {
     return null;

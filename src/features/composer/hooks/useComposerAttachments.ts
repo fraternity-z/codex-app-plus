@@ -2,12 +2,14 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState, type ClipboardEvent } from "react";
 import {
   createComposerAttachmentsFromPaths,
+  partitionComposerPaths,
   readClipboardImageAttachment,
 } from "../model/composerAttachments";
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
 import type { ComposerAttachment } from "../../../domain/timeline";
 
 interface UseComposerAttachmentsOptions {
+  readonly onInsertFilePaths?: (paths: ReadonlyArray<string>) => void;
   readonly selectedThreadId: string | null;
 }
 
@@ -51,12 +53,14 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions): 
       const selected = await open({ title: DIALOG_TITLE, multiple: true });
       const paths = normalizeDialogSelection(selected);
       if (paths.length > 0) {
-        appendPaths(paths);
+        const partition = partitionComposerPaths(paths);
+        appendPaths(partition.imagePaths);
+        options.onInsertFilePaths?.(partition.filePaths);
       }
     } catch (error) {
       reportAttachmentError(notifyError, "添加文件或图片失败", error);
     }
-  }, [appendPaths, notifyError]);
+  }, [appendPaths, notifyError, options]);
 
   const handlePaste = useCallback(async (event: ClipboardEvent<HTMLTextAreaElement>) => {
     const files = getClipboardImageFiles(event);

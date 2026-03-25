@@ -1,8 +1,10 @@
+import type { FuzzyFileSearchResult } from "../../../protocol/generated/FuzzyFileSearchResult";
 import type { ComposerPermissionLevel } from "./composerPermission";
 import type { ComposerModelOption } from "./composerPreferences";
 import type { CustomPromptOutput } from "../../../bridge/types";
 import type { ComposerCommandPaletteItem } from "../ui/ComposerCommandPalette";
 import type { ComposerActiveTrigger } from "./composerInputTriggers";
+import { resolveMentionAttachmentPath } from "./composerAttachments";
 import { createCustomPromptPaletteItems } from "./customPromptPalette";
 import {
   listComposerSlashCommands,
@@ -86,7 +88,7 @@ export function createTriggerKey(trigger: ComposerActiveTrigger | null): string 
 }
 
 export interface MentionPaletteSession {
-  readonly files: ReadonlyArray<{ readonly path: string; readonly file_name: string }>;
+  readonly files: ReadonlyArray<FuzzyFileSearchResult>;
   readonly completed: boolean;
 }
 
@@ -169,15 +171,19 @@ function createMentionItems(
   if (mentionSession.files.length === 0) {
     return [createNoticeItem(mentionSession.completed ? NO_RESULTS_MESSAGE : SEARCHING_MESSAGE)];
   }
-  return mentionSession.files.map((file) => ({
-    key: file.path,
-    label: file.file_name,
-    description: file.path,
-    disabled: false,
-    meta: file.path,
-  }));
+  return mentionSession.files.map(createMentionPaletteItem);
 }
 
 function createNoticeItem(message: string): ComposerCommandPaletteItem {
   return { key: message, label: message, description: message, disabled: true, meta: null };
+}
+
+function createMentionPaletteItem(file: FuzzyFileSearchResult): ComposerCommandPaletteItem {
+  return {
+    key: resolveMentionAttachmentPath(file.root, file.path),
+    label: file.file_name,
+    description: file.path,
+    disabled: false,
+    meta: null,
+  };
 }

@@ -7,6 +7,7 @@ import {
   normalizeConversationMessage,
   normalizeConversationMessageText
 } from "./conversationMessages";
+import { serializeComposerFileReferenceDraft } from "../../composer/model/composerFileReferences";
 
 describe("conversationMessages", () => {
   it("maps thread history into user and assistant messages", () => {
@@ -54,6 +55,30 @@ describe("conversationMessages", () => {
     expect(messages[0]?.attachments).toEqual([{ kind: "file", source: "mention", name: "notes.md", value: "E:/code/codex-app-plus/notes.md" }]);
   });
 
+  it("keeps file references as chips when text and mention inputs are both present", () => {
+    const thread = {
+      id: "thread-1",
+      turns: [{
+        id: "turn-1",
+        items: [{
+          type: "userMessage",
+          id: "user-1",
+          content: [
+            { type: "text", text: "读取文件内容\n\ndocs/notes.md", text_elements: [] },
+            { type: "mention", name: "notes.md", path: "docs/notes.md" },
+          ],
+        }],
+      }],
+    } as const;
+
+    const messages = mapThreadHistoryToMessages(thread as never);
+
+    expect(messages[0]?.text).toBe("读取文件内容");
+    expect(messages[0]?.attachments).toEqual([
+      { kind: "file", source: "mention", name: "notes.md", value: "docs/notes.md" },
+    ]);
+  });
+
   it("aggregates assistant delta into one message bubble", () => {
     const messages = appendAssistantDelta([], "thread-1", "turn-1", "item-1", "Hello");
     const merged = appendAssistantDelta(messages, "thread-1", "turn-1", "item-1", " world");
@@ -95,6 +120,24 @@ describe("conversationMessages", () => {
 
     expect(message?.text).toBe("请看这张图");
     expect(message?.attachments).toHaveLength(1);
+  });
+
+  it("extracts hidden file reference markers into chips during normalization", () => {
+    const message = normalizeConversationMessage({
+      id: "user-1",
+      kind: "userMessage",
+      threadId: "thread-1",
+      turnId: "turn-1",
+      itemId: "item-1",
+      role: "user",
+      text: serializeComposerFileReferenceDraft("读取文件内容", ["docs/notes.md"]),
+      status: "done",
+    });
+
+    expect(message?.text).toBe("读取文件内容");
+    expect(message?.attachments).toEqual([
+      { kind: "file", source: "mention", name: "notes.md", value: "docs/notes.md" },
+    ]);
   });
 
   it("strips injected AGENTS and environment context from loaded user messages", () => {

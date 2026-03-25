@@ -4,6 +4,10 @@ import {
   createConversationFileAttachment,
   createConversationImageAttachment,
 } from "../../composer/model/composerAttachments";
+import {
+  getComposerFileReferenceLabel,
+  parseComposerFileReferenceDraft,
+} from "../../composer/model/composerFileReferences";
 
 const EMPTY_TEXT = "";
 const IMAGE_DATA_URL_PATTERN = /data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+/g;
@@ -18,10 +22,11 @@ interface TextWithAttachments {
 export function summarizeUserInputs(content: ReadonlyArray<UserInput>): TextWithAttachments {
   const attachments: Array<ConversationAttachment> = [];
   const textParts: Array<string> = [];
+  const explicitFilePaths = collectExplicitFilePaths(content);
 
   for (const input of content) {
     if (input.type === "text") {
-      const summary = extractImageAttachmentsFromText(input.text);
+      const summary = extractEmbeddedUserAttachmentsFromText(input.text, explicitFilePaths);
       attachments.push(...summary.attachments);
       if (summary.text.length > 0) {
         textParts.push(summary.text);
@@ -53,10 +58,52 @@ export function extractImageAttachmentsFromText(text: string): TextWithAttachmen
   return { text: compactUserText(nextText), attachments };
 }
 
+export function extractEmbeddedUserAttachmentsFromText(
+  text: string,
+  explicitFilePaths: ReadonlyArray<string> = [],
+): TextWithAttachments {
+  const draft = parseComposerFileReferenceDraft(text);
+  const fileAttachments = draft.filePaths.map((path) =>
+    createConversationFileAttachment(getComposerFileReferenceLabel(path), path),
+  );
+  const imageSummary = extractImageAttachmentsFromText(draft.bodyText);
+  const cleanedText = stripExplicitFilePathLines(imageSummary.text, [...explicitFilePaths, ...draft.filePaths]);
+
+  return {
+    text: cleanedText,
+    attachments: [...fileAttachments, ...imageSummary.attachments],
+  };
+}
+
 function compactUserText(text: string): string {
   return text.replace(SPACE_BEFORE_BREAK_PATTERN, "\n").replace(MULTI_BREAK_PATTERN, "\n\n").trim();
 }
 
 function isImageDataUrl(value: string): boolean {
   return value.startsWith("data:image/");
+}
+
+function collectExplicitFilePaths(content: ReadonlyArray<UserInput>): ReadonlyArray<string> {
+  return content.flatMap((input) => input.type === "mention" ? [input.path] : []);
+}
+
+function stripExplicitFilePathLines(text: string, filePaths: ReadonlyArray<string>): string {
+  if (filePaths.length === 0) {
+    return compactUserText(text);
+  }
+
+  const normalizedPaths = new Set(filePaths.map((path) => normalizeFileReferenceLine(path)));
+  const retainedLines = text
+    .split("\n")
+    .filter((line) => !normalizedPaths.has(normalizeFileReferenceLine(line)));
+
+  return compactUserText(retainedLines.join("\n"));
+}
+
+function normalizeFileReferenceLine(value: string): string {
+  const trimmedValue = value.trim();
+  if (trimmedValue.startsWith("\"") && trimmedValue.endsWith("\"")) {
+    return trimmedValue.slice(1, -1).trim();
+  }
+  return trimmedValue;
 }

@@ -5,7 +5,9 @@ const WINDOWS_DEVICE_PREFIX = /^(?:\\\\\?\\|\/\/\?\/)/;
 const TRAILING_SEPARATOR = /\/+$/;
 const WSL_UNC_PREFIX = /^\/\/(?:wsl\.localhost|wsl\$)\/([^/]+)(?:\/(.*))?$/i;
 const WINDOWS_DRIVE_PATH = /^([A-Za-z]):\/(.*)$/;
+const WINDOWS_FILE_URI_PATH = /^\/([A-Za-z]:\/.*)$/;
 const WSL_MOUNT_PATH = /^\/mnt\/([A-Za-z])(?:\/|$)/;
+const FILE_URI_PROTOCOL = "file:";
 
 export function trimWorkspaceText(value: string): string {
   return value.trim();
@@ -24,6 +26,12 @@ function trimTrailingSeparators(path: string): string {
     return path;
   }
   return path.replace(TRAILING_SEPARATOR, "");
+}
+
+function normalizePathInput(path: string): string {
+  const trimmedPath = trimWorkspaceText(path);
+  const fileUriPath = fileUriToPath(trimmedPath);
+  return fileUriPath ?? trimmedPath;
 }
 
 function normalizeLinuxPath(path: string): string {
@@ -52,8 +60,29 @@ function windowsDrivePathToWslPath(path: string): string | null {
     : `/mnt/${drive.toLowerCase()}/${normalizedRemainder}`;
 }
 
+function fileUriToPath(path: string): string | null {
+  if (!path.toLowerCase().startsWith(FILE_URI_PROTOCOL)) {
+    return null;
+  }
+
+  try {
+    const url = new URL(path);
+    if (url.protocol !== FILE_URI_PROTOCOL) {
+      return null;
+    }
+    const decodedPath = decodeURIComponent(url.pathname);
+    if (url.hostname.length > 0 && url.hostname.toLowerCase() !== "localhost") {
+      return `//${url.hostname}${decodedPath}`;
+    }
+    const windowsPath = decodedPath.match(WINDOWS_FILE_URI_PATH);
+    return windowsPath?.[1] ?? decodedPath;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeAbsolutePath(path: string): string {
-  const normalizedPath = stripWindowsDevicePrefix(normalizePathSeparators(trimWorkspaceText(path)));
+  const normalizedPath = stripWindowsDevicePrefix(normalizePathSeparators(normalizePathInput(path)));
   if (normalizedPath.length === 0) {
     return "";
   }
@@ -84,12 +113,12 @@ export function resolveAgentWorkspacePath(
   path: string,
   agentEnvironment: AgentEnvironment
 ): string {
-  const trimmedPath = trimWorkspaceText(path);
-  if (trimmedPath.length === 0 || agentEnvironment === "windowsNative") {
-    return trimmedPath;
+  const normalizedInput = normalizePathInput(path);
+  if (normalizedInput.length === 0 || agentEnvironment === "windowsNative") {
+    return normalizedInput;
   }
 
-  const normalizedPath = stripWindowsDevicePrefix(normalizePathSeparators(trimmedPath));
+  const normalizedPath = stripWindowsDevicePrefix(normalizePathSeparators(normalizedInput));
   const wslUncPath = wslUncPathToLinuxPath(normalizedPath);
   if (wslUncPath !== null) {
     return wslUncPath;

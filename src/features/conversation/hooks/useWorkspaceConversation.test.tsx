@@ -10,6 +10,7 @@ import { FrameTextDeltaQueue } from "../model/frameTextDeltaQueue";
 import { OutputDeltaQueue } from "../model/outputDeltaQueue";
 import { useWorkspaceConversation } from "./useWorkspaceConversation";
 import { createComposerFuzzySessionId } from "../../composer/service/composerCommandBridge";
+import { serializeComposerFileReferenceDraft } from "../../composer/model/composerFileReferences";
 import {
   DEFAULT_COMPOSER_PERMISSION_SETTINGS,
 } from "../../composer/model/composerPermission";
@@ -886,6 +887,38 @@ describe("useWorkspaceConversation", () => {
           { type: "text", text: "inspect attachments", text_elements: [] },
           { type: "localImage", path: "E:/code/codex-app-plus/image.png" },
           { type: "mention", name: "notes.md", path: "E:/code/codex-app-plus/notes.md" },
+        ],
+      }),
+    }));
+  });
+
+  it("expands managed file chips into text and mention inputs on turn start", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "turn/start") {
+        return { requestId: "request-1", result: { turn: createTurn() } };
+      }
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread(), { resumeState: "resumed" }) });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.sendTurn(createSendOptions(
+        serializeComposerFileReferenceDraft("读取文件内容", ["docs/notes.md"]),
+      ));
+    });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({
+      method: "turn/start",
+      params: expect.objectContaining({
+        input: [
+          { type: "text", text: "读取文件内容\n\ndocs/notes.md", text_elements: [] },
+          { type: "mention", name: "notes.md", path: "docs/notes.md" },
         ],
       }),
     }));

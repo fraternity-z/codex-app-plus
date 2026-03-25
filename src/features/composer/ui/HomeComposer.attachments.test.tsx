@@ -1,5 +1,5 @@
 import { createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { ComponentProps } from "react";
+import { useState, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ComposerModelOption } from "../model/composerPreferences";
 import { useAppSelector } from "../../../state/store";
@@ -82,17 +82,18 @@ function createCommandBridge(): ComposerCommandBridge {
 
 function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>) {
   const onSendTurn = vi.fn().mockResolvedValue(undefined);
+  const {
+    inputText: initialInputText = "",
+    onInputChange: _ignoredOnInputChange,
+    ...composerOverrides
+  } = overrides ?? {};
 
-  function BannerProbe(): JSX.Element | null {
-    const latestBanner = useAppSelector((state) => state.banners[0] ?? null);
-    return latestBanner === null ? null : <span>{latestBanner.title}</span>;
-  }
+  function ComposerHarness(): JSX.Element {
+    const [inputText, setInputText] = useState(initialInputText);
 
-  render(
-    <AppStoreProvider>
+    return (
       <HomeComposer
         busy={false}
-        inputText=""
         collaborationPreset="default"
         models={MODELS}
         defaultModel="gpt-5.2"
@@ -109,7 +110,6 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
         interruptPending={false}
         composerCommandBridge={createCommandBridge()}
         onSelectCollaborationPreset={vi.fn()}
-        onInputChange={vi.fn()}
         onCreateThread={vi.fn().mockResolvedValue(undefined)}
         onSendTurn={onSendTurn}
         onPersistComposerSelection={vi.fn().mockResolvedValue(undefined)}
@@ -120,8 +120,21 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
         onPromoteQueuedFollowUp={vi.fn().mockResolvedValue(undefined)}
         onRemoveQueuedFollowUp={vi.fn()}
         onClearQueuedFollowUps={vi.fn()}
-        {...overrides}
+        {...composerOverrides}
+        inputText={inputText}
+        onInputChange={setInputText}
       />
+    );
+  }
+
+  function BannerProbe(): JSX.Element | null {
+    const latestBanner = useAppSelector((state) => state.banners[0] ?? null);
+    return latestBanner === null ? null : <span>{latestBanner.title}</span>;
+  }
+
+  render(
+    <AppStoreProvider>
+      <ComposerHarness />
       <BannerProbe />
     </AppStoreProvider>,
   );
@@ -138,9 +151,10 @@ afterEach(() => {
 });
 
 describe("HomeComposer attachments", () => {
-  it("opens the official file picker and shows selected clips", async () => {
+  it("keeps image clips and shows picked files as chips while keeping the textarea clean", async () => {
     openMock.mockResolvedValue(["E:/code/codex-app-plus/image.png", "E:/code/codex-app-plus/notes.md"]);
     renderComposer();
+    const textarea = screen.getByPlaceholderText("Describe the task, ask a question, or queue a follow-up");
 
     fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
     fireEvent.click(await screen.findByRole("menuitem", { name: /Add files and photos/i }));
@@ -148,6 +162,7 @@ describe("HomeComposer attachments", () => {
     await waitFor(() => expect(openMock).toHaveBeenCalledWith({ title: "Add files and photos", multiple: true }));
     expect(screen.getByText("image.png")).toBeInTheDocument();
     expect(screen.getByText("notes.md")).toBeInTheDocument();
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
     expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled();
   });
 
@@ -178,40 +193,45 @@ describe("HomeComposer attachments", () => {
     expect((textarea as HTMLTextAreaElement).value).toBe("");
   });
 
-  it("keeps clips when send fails and surfaces the error", async () => {
+  it("keeps managed file chips when send fails and preserves them for retry", async () => {
     openMock.mockResolvedValue(["E:/code/codex-app-plus/notes.md"]);
     const onSendTurn = vi.fn().mockRejectedValue(new Error("send failed"));
     renderComposer({ onSendTurn });
+    const textarea = screen.getByPlaceholderText("Describe the task, ask a question, or queue a follow-up");
 
     fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
     fireEvent.click(await screen.findByRole("menuitem", { name: /Add files and photos/i }));
     await waitFor(() => expect(screen.getByText("notes.md")).toBeInTheDocument());
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
 
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() => expect(screen.getByText("发送消息失败")).toBeInTheDocument());
     expect(screen.getByText("notes.md")).toBeInTheDocument();
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
     expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({
-      text: "",
-      attachments: [expect.objectContaining({ kind: "file", name: "notes.md", source: "mention" })],
+      text: expect.any(String),
+      attachments: [],
     }));
   });
 
-  it("keeps the send action active while responding when only attachments are queued", async () => {
+  it("keeps the send action active while responding when managed file chips are present", async () => {
     openMock.mockResolvedValue(["E:/code/codex-app-plus/notes.md"]);
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
     const onInterruptTurn = vi.fn().mockResolvedValue(undefined);
     renderComposer({ inputText: "", isResponding: true, onSendTurn, onInterruptTurn });
+    const textarea = screen.getByPlaceholderText("Describe the task, ask a question, or queue a follow-up");
 
     fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
     fireEvent.click(await screen.findByRole("menuitem", { name: /Add files and photos/i }));
     await waitFor(() => expect(screen.getByText("notes.md")).toBeInTheDocument());
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
 
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({
-      text: "",
-      attachments: [expect.objectContaining({ kind: "file", name: "notes.md", source: "mention" })],
+      text: expect.any(String),
+      attachments: [],
     })));
     expect(onInterruptTurn).not.toHaveBeenCalled();
   });

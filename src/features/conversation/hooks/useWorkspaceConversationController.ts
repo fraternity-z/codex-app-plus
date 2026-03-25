@@ -170,7 +170,7 @@ export function useWorkspaceConversationController({
       throw createAppServerNotReadyError();
     }
     const collaborationMode = resolveRequestedCollaborationMode(options.collaborationModes, sendOptions);
-    const input = createInput(sendOptions.text, sendOptions.attachments);
+    const input = createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment);
     const resolvedCwd = resolveConversationCwd(cwdOverride, options.agentEnvironment);
     dispatch({
       type: "conversation/turnPlaceholderAdded",
@@ -220,7 +220,10 @@ export function useWorkspaceConversationController({
       }) as ThreadStartResponse
     );
     const conversation = createConversationFromThread(response.thread, { hidden: false, resumeState: "resumed", agentEnvironment: options.agentEnvironment });
-    const localPreviewTitle = pickConversationTitle(conversation.title, deriveConversationPreviewTitle(createInput(sendOptions.text, sendOptions.attachments)));
+    const localPreviewTitle = pickConversationTitle(
+      conversation.title,
+      deriveConversationPreviewTitle(createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment)),
+    );
     dispatch({ type: "conversation/upserted", conversation });
     if (localPreviewTitle !== null && localPreviewTitle !== conversation.title) {
       dispatch({ type: "conversation/titleChanged", conversationId: conversation.id, title: localPreviewTitle });
@@ -264,7 +267,7 @@ export function useWorkspaceConversationController({
     const params: TurnSteerParams = {
       threadId: conversationId,
       expectedTurnId: turnId,
-      input: createInput(sendOptions.text, sendOptions.attachments),
+      input: createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment),
     };
     const response = await appServerClient.request("turn/steer", params) as TurnSteerResponse;
     dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });

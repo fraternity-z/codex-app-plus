@@ -36,6 +36,7 @@ function ComposerHarness(props: {
   readonly onCreateThread?: ReturnType<typeof vi.fn>;
   readonly onToggleDiff?: ReturnType<typeof vi.fn>;
   readonly onSelectCollaborationPreset?: ReturnType<typeof vi.fn>;
+  readonly onSendTurn?: ReturnType<typeof vi.fn>;
   readonly request?: ReturnType<typeof vi.fn>;
   readonly customPrompts?: ReadonlyArray<CustomPromptOutput>;
 }): JSX.Element {
@@ -76,7 +77,7 @@ function ComposerHarness(props: {
       onSelectCollaborationPreset={props.onSelectCollaborationPreset ?? vi.fn()}
       onInputChange={setInputText}
       onCreateThread={props.onCreateThread ?? vi.fn().mockResolvedValue(undefined)}
-      onSendTurn={vi.fn().mockResolvedValue(undefined)}
+      onSendTurn={props.onSendTurn ?? vi.fn().mockResolvedValue(undefined)}
       onPersistComposerSelection={vi.fn().mockResolvedValue(undefined)}
       onSelectPermissionLevel={setPermissionLevel}
       onToggleDiff={props.onToggleDiff ?? vi.fn()}
@@ -234,8 +235,9 @@ describe("HomeComposer commands", () => {
     await waitFor(() => expect((textarea as HTMLTextAreaElement).value).toBe('/prompts:draft-pr BRANCH=""'));
   });
 
-  it("opens mention results from @ and adds a chip", async () => {
-    renderHarness();
+  it("opens mention results from @ and renders the file as a chip while sending the path in text", async () => {
+    const onSendTurn = vi.fn().mockResolvedValue(undefined);
+    renderHarness({ onSendTurn });
     const textarea = screen.getByRole("textbox");
 
     fireEvent.change(textarea, { target: { value: "@app", selectionStart: 4 } });
@@ -245,6 +247,12 @@ describe("HomeComposer commands", () => {
 
     await waitFor(() => expect(screen.getByText("App.tsx")).toBeInTheDocument());
     expect((textarea as HTMLTextAreaElement).value).toBe("");
+
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({
+      attachments: [],
+    })));
   });
 
   it("shows an explicit error when @ is used without a workspace", async () => {

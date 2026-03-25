@@ -54,7 +54,7 @@ interface UseComposerCommandPaletteOptions {
   readonly permissionLevel: ComposerPermissionLevel;
   readonly composerCommandBridge: ComposerCommandBridge;
   readonly onInputChange: (text: string) => void;
-  readonly onAppendMentionPath: (path: string) => void;
+  readonly onAppendMentionPath: (path: string, nextText: string) => void;
   readonly onCreateThread: () => Promise<void>;
   readonly onToggleDiff: () => void;
   readonly onSelectModel: (model: string) => void;
@@ -247,9 +247,10 @@ function useSelectPaletteItem(options: UseComposerCommandPaletteOptions, trigger
 }
 
 async function selectMentionItem(item: ComposerCommandPaletteItem, options: UseComposerCommandPaletteOptions, trigger: ReturnType<typeof usePaletteTrigger>, dismiss: () => Promise<void>): Promise<void> {
+  const mentionReference = item.description ?? item.key;
   const next = replaceComposerTrigger(options.inputText, trigger.activeTrigger!.range, "");
   options.onInputChange(next.text);
-  options.onAppendMentionPath(item.meta ?? item.label);
+  options.onAppendMentionPath(mentionReference, next.text);
   await dismiss();
   focusTextarea(trigger.textareaRef, next.caret);
 }

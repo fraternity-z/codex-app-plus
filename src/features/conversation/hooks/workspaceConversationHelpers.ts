@@ -13,8 +13,12 @@ export function resolveConversationCwd(cwd: string | null, agentEnvironment: "wi
   return cwd === null ? null : resolveAgentWorkspacePath(cwd, agentEnvironment);
 }
 
-export function createInput(text: string, attachments: ReadonlyArray<ComposerAttachment>): Array<UserInput> {
-  return buildComposerUserInputs(text, attachments);
+export function createInput(
+  text: string,
+  attachments: ReadonlyArray<ComposerAttachment>,
+  agentEnvironment: "windowsNative" | "wsl",
+): Array<UserInput> {
+  return buildComposerUserInputs(text, attachments, agentEnvironment);
 }
 
 export function createQueuedFollowUp(options: SendTurnOptions): QueuedFollowUp {
