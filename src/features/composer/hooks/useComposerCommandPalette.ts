@@ -14,9 +14,10 @@ import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigRe
 import type { CollaborationPreset } from "../../../domain/timeline";
 import type { AppState } from "../../../domain/types";
 import type { ComposerPermissionLevel } from "../model/composerPermission";
-import type { ComposerModelOption } from "../model/composerPreferences";
+import type { ComposerModelOption, ComposerSelection } from "../model/composerPreferences";
 import type { CustomPromptOutput } from "../../../bridge/types";
 import type { AppStoreApi } from "../../../state/store";
+import type { SendTurnOptions } from "../../conversation/hooks/workspaceConversationTypes";
 import { useAppDispatch, useAppSelector } from "../../../state/store";
 import type { ComposerCommandPaletteItem } from "../ui/ComposerCommandPalette";
 import { executeSlashCommand, focusTextarea, readTextareaCaret, toPermissionLevel } from "../model/composerCommandActions";
@@ -34,6 +35,7 @@ import {
   type SlashExecutionContext,
   type SlashExecutionDependencies,
 } from "../service/composerSlashCommandExecutor";
+import { executeInitSlashCommand } from "../service/composerInitCommand";
 import {
   useSelectedConversation,
   useSlashCollections,
@@ -50,12 +52,14 @@ interface UseComposerCommandPaletteOptions {
   readonly isResponding: boolean;
   readonly models: ReadonlyArray<ComposerModelOption>;
   readonly selectedModel: string | null;
+  readonly selectedEffort: ComposerSelection["effort"];
   readonly selectedServiceTier: ServiceTier | null;
   readonly permissionLevel: ComposerPermissionLevel;
   readonly composerCommandBridge: ComposerCommandBridge;
   readonly onInputChange: (text: string) => void;
   readonly onAppendMentionPath: (path: string, nextText: string) => void;
   readonly onCreateThread: () => Promise<void>;
+  readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
   readonly onToggleDiff: () => void;
   readonly onSelectModel: (model: string) => void;
   readonly onSelectServiceTier: (serviceTier: ServiceTier | null) => void;
@@ -287,6 +291,22 @@ async function selectRootSlashItem(itemKey: string, options: UseComposerCommandP
   }
   const parsed = parseComposerSlashQuery(trigger.activeTrigger.query);
   mention.clearError();
+  if (itemKey === "init") {
+    await executeInitSlashCommand({
+      selectedRootPath: slashContext.selectedRootPath,
+      selection: {
+        model: options.selectedModel,
+        effort: options.selectedEffort,
+        serviceTier: options.selectedServiceTier,
+      },
+      permissionLevel: options.permissionLevel,
+      collaborationPreset: options.collaborationPreset,
+    }, {
+      onSendTurn: options.onSendTurn,
+    });
+    await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
+    return;
+  }
   if (LOCAL_OR_PICKER_COMMANDS.has(itemKey)) {
     await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
     return;

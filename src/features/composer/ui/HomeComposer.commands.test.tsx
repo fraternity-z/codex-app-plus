@@ -7,6 +7,7 @@ import type { CustomPromptOutput } from "../../../bridge/types";
 import { AppStoreProvider, useAppStore } from "../../../state/store";
 import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import { HomeComposer } from "./HomeComposer";
+import { INIT_COMMAND_PROMPT } from "../service/composerInitCommand";
 
 const MODELS: ReadonlyArray<ComposerModelOption> = [
   { id: "model-1", value: "gpt-5.2", label: "GPT-5.2", defaultEffort: "medium", supportedEfforts: ["minimal", "low", "medium", "high", "xhigh"], isDefault: true },
@@ -95,6 +96,62 @@ function renderHarness(props?: Parameters<typeof ComposerHarness>[0]) {
 }
 
 describe("HomeComposer commands", () => {
+  it("executes /init by sending the official init prompt and clears the input", async () => {
+    const onSendTurn = vi.fn().mockResolvedValue(undefined);
+    const request = vi.fn().mockResolvedValue({});
+    renderHarness({ onSendTurn, request });
+    const textarea = screen.getByRole("textbox");
+
+    fireEvent.change(textarea, { target: { value: "/init", selectionStart: 5 } });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+
+    await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith({
+      text: INIT_COMMAND_PROMPT,
+      attachments: [],
+      selection: { model: "gpt-5.2", effort: "medium", serviceTier: null },
+      permissionLevel: "default",
+      collaborationPreset: "default",
+    }));
+    expect(request).not.toHaveBeenCalled();
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
+  });
+
+  it("clicking /init in the palette sends the same prompt", async () => {
+    const onSendTurn = vi.fn().mockResolvedValue(undefined);
+    const request = vi.fn().mockResolvedValue({});
+    renderHarness({ onSendTurn, request });
+    const textarea = screen.getByRole("textbox");
+
+    fireEvent.change(textarea, { target: { value: "/init", selectionStart: 5 } });
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: /\/init/i })).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("menuitem", { name: /\/init/i }));
+
+    await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({
+      text: INIT_COMMAND_PROMPT,
+    })));
+    expect(request).not.toHaveBeenCalled();
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
+  });
+
+  it("still executes /init even if request mocks imply the workspace already has AGENTS.md", async () => {
+    const onSendTurn = vi.fn().mockResolvedValue(undefined);
+    const request = vi.fn().mockResolvedValue({
+      entries: [{ fileName: "AGENTS.md", isDirectory: false, isFile: true }],
+    });
+    renderHarness({ onSendTurn, request });
+    const textarea = screen.getByRole("textbox");
+
+    fireEvent.change(textarea, { target: { value: "/init", selectionStart: 5 } });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+
+    await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({
+      text: INIT_COMMAND_PROMPT,
+    })));
+    expect(request).not.toHaveBeenCalled();
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
+  });
+
   it("executes /new immediately", async () => {
     const onCreateThread = vi.fn().mockResolvedValue(undefined);
     renderHarness({ onCreateThread });
@@ -212,6 +269,16 @@ describe("HomeComposer commands", () => {
     expect(screen.getByText("当前有任务正在执行，官方不允许这条命令在运行中使用。")).toBeInTheDocument();
     fireEvent.keyDown(textarea, { key: "Enter" });
     expect(onCreateThread).not.toHaveBeenCalled();
+  });
+
+  it("shows no command match after /theme is removed", async () => {
+    renderHarness();
+    const textarea = screen.getByRole("textbox");
+
+    fireEvent.change(textarea, { target: { value: "/theme", selectionStart: 6 } });
+
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: /No matching commands/i })).toBeInTheDocument());
+    expect(screen.queryByRole("menuitem", { name: /\/theme/i })).not.toBeInTheDocument();
   });
 
   it("shows custom prompts in the palette and inserts the command template", async () => {

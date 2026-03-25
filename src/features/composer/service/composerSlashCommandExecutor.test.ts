@@ -44,6 +44,14 @@ function createDeps(request: ReturnType<typeof vi.fn>): SlashExecutionDependenci
 }
 
 describe("composerSlashCommandExecutor", () => {
+  it("rejects /init from the direct executor path", async () => {
+    const deps = createDeps(vi.fn().mockResolvedValue({}));
+
+    await expect(
+      executeDirectSlashCommand("init", "", createContext(), deps),
+    ).rejects.toThrow("/init 应通过用户消息链路分发。");
+  });
+
   it("supports /fast inline arguments", async () => {
     const deps = createDeps(vi.fn().mockResolvedValue({}));
 

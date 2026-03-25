@@ -40,7 +40,6 @@ describe("composerSlashCommands", () => {
       "debug-config",
       "title",
       "statusline",
-      "theme",
       "mcp",
       "apps",
       "plugins",
@@ -75,6 +74,7 @@ describe("composerSlashCommands", () => {
       "login",
       "memory",
       "multi-agents",
+      "theme",
       "terminal-setup",
       "upgrade",
       "vim",
@@ -127,5 +127,33 @@ describe("composerSlashCommands", () => {
     expect(rename?.disabledReason).toContain("新的线程标题");
     expect(realtime?.disabledReason).toContain("提示词");
     expect(plan?.disabledReason).toContain("/plan");
+  });
+
+  it("requires a workspace before /init becomes available", () => {
+    const init = listComposerSlashCommands("init", {
+      hasThread: true,
+      hasWorkspace: false,
+      realtimeActive: false,
+      taskRunning: false,
+      capabilities: DEFAULT_COMPOSER_SLASH_CAPABILITIES,
+    })[0];
+
+    expect(init).toMatchObject({
+      id: "init",
+      name: "/init",
+    });
+    expect(init?.disabledReason).toContain("请先选择工作区");
+  });
+
+  it("does not return /theme after the command is removed", () => {
+    const results = listComposerSlashCommands("theme", {
+      hasThread: true,
+      hasWorkspace: true,
+      realtimeActive: false,
+      taskRunning: false,
+      capabilities: DEFAULT_COMPOSER_SLASH_CAPABILITIES,
+    });
+
+    expect(results).toEqual([]);
   });
 });

@@ -1,7 +1,6 @@
-import type { Dispatch } from "react";
 import type { AppAction, AccountSummary, ConnectionStatus, RealtimeState } from "../../../domain/types";
 import type { ConversationState } from "../../../domain/conversation";
-import type { CollaborationPreset, CollaborationModePreset, NoticeLevel } from "../../../domain/timeline";
+import type { CollaborationPreset, CollaborationModePreset } from "../../../domain/timeline";
 import type { RateLimitSnapshot } from "../../../protocol/generated/v2/RateLimitSnapshot";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import type { GetAccountResponse } from "../../../protocol/generated/v2/GetAccountResponse";
@@ -12,11 +11,12 @@ import type { ThreadForkResponse } from "../../../protocol/generated/v2/ThreadFo
 import type { ThreadResumeResponse } from "../../../protocol/generated/v2/ThreadResumeResponse";
 import type { ConfigRequirementsReadResponse } from "../../../protocol/generated/v2/ConfigRequirementsReadResponse";
 import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
-import { isComposerSlashCommandAllowedDuringTask, type ComposerSlashCapabilitySnapshot } from "../model/composerSlashCommandCatalog";
+import type { ComposerSlashCapabilitySnapshot } from "../model/composerSlashCommandCatalog";
 import { readUserConfigWriteTarget } from "../../settings/config/configWriteTarget";
 import { createConversationFromThread } from "../../conversation/model/conversationState";
 import type { ComposerPermissionLevel } from "../model/composerPermission";
 import type { ComposerCommandBridge } from "./composerCommandBridge";
+import type { Dispatch } from "react";
 import {
   formatAppSummary,
   formatConfigDebugDetail,
@@ -33,7 +33,15 @@ import {
   listAllPlugins,
   refreshSlashConfig,
 } from "./composerSlashCommandRequests";
-
+import {
+  assertCommandAvailable,
+  isRealtimeActive,
+  mapAccountSummary,
+  parseSandboxMode,
+  pushBanner,
+  pushThreadNotice,
+  toErrorMessage,
+} from "./composerSlashCommandShared";
 export interface SlashExecutionContext {
   readonly selectedThreadId: string | null;
   readonly selectedRootPath: string | null;
@@ -58,14 +66,16 @@ export interface SlashExecutionDependencies {
   readonly onSelectCollaborationPreset: (preset: CollaborationPreset) => void;
   readonly onLogout: () => Promise<void>;
 }
-
 export async function executeDirectSlashCommand(
   commandId: string,
   argumentsText: string,
   context: SlashExecutionContext,
   deps: SlashExecutionDependencies,
 ): Promise<void> {
-  assertCommandAvailable(commandId, context);
+  assertCommandAvailable(commandId, context.taskRunning, context.capabilities);
+  if (commandId === "init") {
+    throw new Error("/init 应通过用户消息链路分发。");
+  }
   if (commandId === "fast") return toggleFastMode(argumentsText, context, deps);
   if (commandId === "experimental") return showExperimentalFeatures(deps);
   if (commandId === "skills") return showSkills(context.selectedRootPath, deps);
@@ -85,7 +95,6 @@ export async function executeDirectSlashCommand(
   if (commandId === "setup-default-sandbox") return setupDefaultSandbox(argumentsText, deps);
   throw new Error(`未实现的 slash 命令：/${commandId}`);
 }
-
 export async function applySlashPermissionLevel(
   level: ComposerPermissionLevel,
   configSnapshot: ConfigReadResponse | null,
@@ -104,7 +113,6 @@ export async function applySlashPermissionLevel(
   await refreshSlashConfig(deps.composerCommandBridge, deps.dispatch);
   pushBanner(deps.dispatch, "info", "已更新审批策略", `当前默认审批策略：${approvalPolicy}`);
 }
-
 export async function resumeSlashThread(
   threadId: string,
   _context: SlashExecutionContext,
@@ -118,7 +126,6 @@ export async function resumeSlashThread(
   deps.dispatch({ type: "conversation/selected", conversationId: threadId });
   pushThreadNotice(deps.dispatch, threadId, "已恢复线程", response.thread.name ?? response.thread.preview, "info", "thread/resume");
 }
-
 function toggleFastMode(argumentsText: string, context: SlashExecutionContext, deps: SlashExecutionDependencies): void {
   const normalized = argumentsText.trim().toLowerCase();
   if (normalized === "status") {
@@ -141,13 +148,11 @@ function toggleFastMode(argumentsText: string, context: SlashExecutionContext, d
     nextTier === "fast" ? "后续发送将使用 fast service tier。" : "后续发送将恢复自动 service tier。",
   );
 }
-
 async function showExperimentalFeatures(deps: SlashExecutionDependencies): Promise<void> {
   const features = await listAllExperimentalFeatures(deps.composerCommandBridge);
   deps.dispatch({ type: "experimentalFeatures/loaded", features });
   pushBanner(deps.dispatch, "info", "实验特性", formatFeatureSummary(features));
 }
-
 async function showSkills(selectedRootPath: string | null, deps: SlashExecutionDependencies): Promise<void> {
   const response = (await deps.composerCommandBridge.request("skills/list", {
     cwds: selectedRootPath === null ? undefined : [selectedRootPath],
@@ -155,7 +160,6 @@ async function showSkills(selectedRootPath: string | null, deps: SlashExecutionD
   })) as SkillsListResponse;
   pushBanner(deps.dispatch, "info", "技能扫描结果", formatSkillSummary(response.data));
 }
-
 async function startReview(selectedThreadId: string | null, argumentsText: string, deps: SlashExecutionDependencies): Promise<void> {
   if (selectedThreadId === null) throw new Error("请先打开一个线程。");
   const instructions = argumentsText.trim();
@@ -173,7 +177,6 @@ async function startReview(selectedThreadId: string | null, argumentsText: strin
     "review/start",
   );
 }
-
 async function renameThread(selectedThreadId: string | null, argumentsText: string, deps: SlashExecutionDependencies): Promise<void> {
   if (selectedThreadId === null) throw new Error("请先打开一个线程。");
   const nextName = argumentsText.trim();
@@ -182,7 +185,6 @@ async function renameThread(selectedThreadId: string | null, argumentsText: stri
   deps.dispatch({ type: "conversation/titleChanged", conversationId: selectedThreadId, title: nextName });
   pushThreadNotice(deps.dispatch, selectedThreadId, "已重命名线程", nextName, "info", "thread/name/set");
 }
-
 async function forkThread(context: SlashExecutionContext, deps: SlashExecutionDependencies): Promise<void> {
   if (context.selectedThreadId === null || context.selectedConversation === null) throw new Error("请先打开一个线程。");
   const response = (await deps.composerCommandBridge.request("thread/fork", {
@@ -198,13 +200,11 @@ async function forkThread(context: SlashExecutionContext, deps: SlashExecutionDe
   deps.dispatch({ type: "conversation/selected", conversationId: conversation.id });
   pushThreadNotice(deps.dispatch, conversation.id, "已创建分支线程", conversation.title, "info", "thread/fork");
 }
-
 async function compactThread(selectedThreadId: string | null, deps: SlashExecutionDependencies): Promise<void> {
   if (selectedThreadId === null) throw new Error("请先打开一个线程。");
   await deps.composerCommandBridge.request("thread/compact/start", { threadId: selectedThreadId });
   pushThreadNotice(deps.dispatch, selectedThreadId, "已发起上下文压缩", "等待官方 compact 通知。", "info", "thread/compact/start");
 }
-
 function enablePlanPreset(currentPreset: CollaborationPreset, argumentsText: string, deps: SlashExecutionDependencies): void {
   if (argumentsText.trim().length > 0) {
     throw new Error("当前桌面壳暂不支持 `/plan 提示词` 直接发送，请先执行 /plan，再单独发送消息。");
@@ -288,38 +288,4 @@ async function setupDefaultSandbox(argumentsText: string, deps: SlashExecutionDe
     deps.dispatch({ type: "windowsSandbox/setupCompleted", mode, success: false, error: toErrorMessage(error) });
     throw error;
   }
-}
-
-function pushBanner(dispatch: Dispatch<AppAction>, level: NoticeLevel, title: string, detail: string | null): void {
-  dispatch({ type: "banner/pushed", banner: { id: `slash:${title}:${detail ?? ""}`, level, title, detail, source: "slash-command" } });
-}
-
-function pushThreadNotice(dispatch: Dispatch<AppAction>, threadId: string, title: string, detail: string | null, level: NoticeLevel, source: string): void {
-  dispatch({ type: "conversation/systemNoticeAdded", conversationId: threadId, turnId: null, title, detail, level, source });
-}
-
-function mapAccountSummary(response: GetAccountResponse): AccountSummary | null {
-  if (response.account === null) return null;
-  return response.account.type === "apiKey"
-    ? { authMode: "apikey", planType: null }
-    : { authMode: "chatgpt", planType: response.account.planType };
-}
-
-function isRealtimeActive(state: RealtimeState | null): boolean {
-  return state !== null && state.sessionId !== null && !state.closed;
-}
-
-function parseSandboxMode(argumentsText: string): "elevated" | "unelevated" {
-  const normalized = argumentsText.trim().toLowerCase();
-  return normalized.includes("elevated") || normalized.includes("enhanced") ? "elevated" : "unelevated";
-}
-
-function assertCommandAvailable(commandId: string, context: SlashExecutionContext): void {
-  if (context.taskRunning && !isComposerSlashCommandAllowedDuringTask(commandId, context.capabilities)) {
-    throw new Error("当前有任务正在执行，官方不允许这条命令在运行中使用。");
-  }
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
