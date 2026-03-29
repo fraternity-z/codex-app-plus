@@ -192,14 +192,14 @@ describe("ComposerFooter context window indicator", () => {
     fireEvent.mouseEnter(trigger);
 
     expect(screen.getByText("背景信息窗口：")).toBeInTheDocument();
-    expect(screen.getByText("15% 已用（剩余 85%）")).toBeInTheDocument();
-    expect(screen.getByText("已用 39k 标记，共 258k")).toBeInTheDocument();
+    expect(screen.getByText("1% 已用（剩余 99%）")).toBeInTheDocument();
+    expect(screen.getByText("已用 3k 标记，共 258k")).toBeInTheDocument();
 
     fireEvent.mouseLeave(trigger);
     expect(screen.queryByText("背景信息窗口：")).toBeNull();
 
     fireEvent.focus(trigger);
-    expect(screen.getByText("15% 已用（剩余 85%）")).toBeInTheDocument();
+    expect(screen.getByText("1% 已用（剩余 99%）")).toBeInTheDocument();
   });
 
   it("keeps the tooltip within 100 percent when cumulative totals exceed the context window", async () => {

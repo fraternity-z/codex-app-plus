@@ -37,19 +37,9 @@ function clampTokens(tokens: number, maxTokens: number): number {
   return Math.min(Math.max(tokens, MIN_CONTEXT_TOKENS), maxTokens);
 }
 
-function isWithinContextWindow(tokens: number, totalTokens: number): boolean {
-  return tokens > MIN_CONTEXT_TOKENS && tokens <= totalTokens;
-}
-
 function selectDisplayedUsedTokens(totalTokens: number, lastTokens: number, contextWindow: number): number {
-  if (isWithinContextWindow(totalTokens, contextWindow)) {
-    return totalTokens;
-  }
-  if (isWithinContextWindow(lastTokens, contextWindow)) {
-    return lastTokens;
-  }
-  const fallbackTokens = totalTokens > MIN_CONTEXT_TOKENS ? totalTokens : lastTokens;
-  return clampTokens(fallbackTokens, contextWindow);
+  const preferredTokens = lastTokens > MIN_CONTEXT_TOKENS ? lastTokens : totalTokens;
+  return clampTokens(preferredTokens, contextWindow);
 }
 
 function calculatePercent(usedTokens: number, totalTokens: number): number {

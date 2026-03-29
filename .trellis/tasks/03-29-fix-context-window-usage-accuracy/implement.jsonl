@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "State derivation for usage indicator"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Token usage typing and normalization"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend test and quality requirements"}
