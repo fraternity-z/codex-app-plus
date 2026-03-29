@@ -284,13 +284,13 @@ function useGlobalInstructionsEditor(props: {
   return { instructionsState, feedback, dirty, handleChange, handleSave };
 }
 
-export function PersonalizationSettingsSection(
-  props: PersonalizationSettingsSectionProps
-): JSX.Element {
-  const { t } = useI18n();
+function usePersonalizationSettingsController(
+  props: PersonalizationSettingsSectionProps,
+  t: Translator,
+) {
   const view = useMemo(
     () => readPersonalizationConfigView(props.configSnapshot),
-    [props.configSnapshot]
+    [props.configSnapshot],
   );
   const styleOptions = useMemo(() => createPersonalityOptions(t), [t]);
   const {
@@ -309,12 +309,38 @@ export function PersonalizationSettingsSection(
     () => PERSONALITY_MESSAGE_KEYS[selectedPersonality],
     [selectedPersonality],
   );
-  const { instructionsState, feedback, dirty, handleChange, handleSave } =
-    useGlobalInstructionsEditor({
-      t,
-      readGlobalAgentInstructions: props.readGlobalAgentInstructions,
-      writeGlobalAgentInstructions: props.writeGlobalAgentInstructions
-    });
+  const {
+    instructionsState,
+    feedback,
+    dirty,
+    handleChange,
+    handleSave,
+  } = useGlobalInstructionsEditor({
+    t,
+    readGlobalAgentInstructions: props.readGlobalAgentInstructions,
+    writeGlobalAgentInstructions: props.writeGlobalAgentInstructions,
+  });
+
+  return {
+    dirty,
+    feedback,
+    handleChange,
+    handleSave,
+    instructionsState,
+    personalityCopy,
+    selectedPersonality,
+    styleFeedback,
+    styleOptions,
+    styleSaving,
+    handleStyleChange,
+  };
+}
+
+export function PersonalizationSettingsSection(
+  props: PersonalizationSettingsSectionProps
+): JSX.Element {
+  const { t } = useI18n();
+  const controller = usePersonalizationSettingsController(props, t);
 
   return (
     <div className="settings-panel-group">
@@ -323,29 +349,29 @@ export function PersonalizationSettingsSection(
       </header>
       <PersonalizationStyleCard
         title={t("settings.personalization.styleLabel")}
-        description={t(personalityCopy.description)}
-        value={selectedPersonality}
-        options={styleOptions}
-        disabled={props.busy || styleSaving}
-        saving={styleSaving}
-        feedback={styleFeedback}
+        description={t(controller.personalityCopy.description)}
+        value={controller.selectedPersonality}
+        options={controller.styleOptions}
+        disabled={props.busy || controller.styleSaving}
+        saving={controller.styleSaving}
+        feedback={controller.styleFeedback}
         savingLabel={t("settings.personalization.styleSaving")}
-        onChange={handleStyleChange}
+        onChange={controller.handleStyleChange}
       />
       <InstructionsCard
-        busy={props.busy || !instructionsState.loaded}
-        dirty={dirty}
+        busy={props.busy || !controller.instructionsState.loaded}
+        dirty={controller.dirty}
         title={t("settings.personalization.instructionsTitle")}
         description={t("settings.personalization.instructionsDescription", {
-          path: instructionsState.path
+          path: controller.instructionsState.path
         })}
         ariaLabel={t("settings.personalization.instructionsAriaLabel")}
         saveLabel={t("settings.personalization.instructionsSaveAction")}
         savingLabel={t("settings.personalization.instructionsSaving")}
-        value={instructionsState.draftContent}
-        feedback={feedback}
-        onChange={handleChange}
-        onSave={handleSave}
+        value={controller.instructionsState.draftContent}
+        feedback={controller.feedback}
+        onChange={controller.handleChange}
+        onSave={controller.handleSave}
       />
     </div>
   );

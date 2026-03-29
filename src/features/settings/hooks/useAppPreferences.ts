@@ -37,6 +37,7 @@ import {
   readStoredAppPreferences,
   serializePreferences,
 } from "./appPreferenceStorage";
+import { writeStoredJson } from "../../shared/utils/storageJson";
 export type ThreadDetailLevel = "compact" | "commands" | "full";
 
 export interface AppPreferences {
@@ -127,7 +128,7 @@ export function useAppPreferences(): AppPreferencesController {
   );
 
   useEffect(() => {
-    window.localStorage.setItem(APP_PREFERENCES_STORAGE_KEY, JSON.stringify(serializePreferences(preferences)));
+    writeStoredJson(APP_PREFERENCES_STORAGE_KEY, preferences, serializePreferences);
   }, [preferences]);
 
   const setAgentEnvironment = usePreferenceSetter(setPreferences, "agentEnvironment");

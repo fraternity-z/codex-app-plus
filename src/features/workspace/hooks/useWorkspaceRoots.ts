@@ -4,6 +4,7 @@ import {
   normalizeWorkspaceLaunchScriptConfig,
   type LaunchScriptEntry,
 } from "../model/workspaceLaunchScripts";
+import { writeStoredJson, readStoredJson } from "../../shared/utils/storageJson";
 
 const ROOTS_STORAGE_KEY = "codex-app-plus.workspace-roots";
 const EMPTY_ROOTS: ReadonlyArray<WorkspaceRoot> = [];
@@ -71,20 +72,11 @@ function normalizeStoredRoot(value: unknown): WorkspaceRoot | null {
   };
 }
 
-function parseStoredRoots(raw: string | null): ReadonlyArray<WorkspaceRoot> {
-  if (raw === null) {
+function parseStoredRootsValue(value: unknown): ReadonlyArray<WorkspaceRoot> {
+  if (!Array.isArray(value)) {
     return EMPTY_ROOTS;
   }
-
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) {
-      return EMPTY_ROOTS;
-    }
-    return parsed.map(normalizeStoredRoot).filter((root): root is WorkspaceRoot => root !== null);
-  } catch {
-    return EMPTY_ROOTS;
-  }
+  return value.map(normalizeStoredRoot).filter((root): root is WorkspaceRoot => root !== null);
 }
 
 function rootKey(root: Pick<WorkspaceRoot, "name" | "path">): string {
@@ -133,12 +125,12 @@ function removeRootByKey(roots: ReadonlyArray<WorkspaceRoot>, key: string): Read
 
 export function useWorkspaceRoots(): WorkspaceRootController {
   const [roots, setRoots] = useState<ReadonlyArray<WorkspaceRoot>>(() =>
-    parseStoredRoots(window.localStorage.getItem(ROOTS_STORAGE_KEY))
+    readStoredJson(ROOTS_STORAGE_KEY, parseStoredRootsValue, EMPTY_ROOTS)
   );
   const [selectedRootId, setSelectedRootId] = useState<string | null>(null);
 
   useEffect(() => {
-    window.localStorage.setItem(ROOTS_STORAGE_KEY, JSON.stringify(roots));
+    writeStoredJson(ROOTS_STORAGE_KEY, roots);
   }, [roots]);
 
   useEffect(() => {

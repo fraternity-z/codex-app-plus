@@ -8,6 +8,7 @@ import {
   isComposerPermissionLevel,
   type ComposerApprovalPolicy,
 } from "../../composer/model/composerPermission";
+import { readStoredJson } from "../../shared/utils/storageJson";
 import type {
   AgentEnvironment,
   EmbeddedTerminalShell,
@@ -265,20 +266,11 @@ function sanitizeStoredPreferences(value: unknown): AppPreferences {
   };
 }
 
-function parseStoredPreferences(rawValue: string | null): AppPreferences {
-  if (rawValue === null) {
-    return DEFAULT_APP_PREFERENCES;
-  }
-  try {
-    return sanitizeStoredPreferences(JSON.parse(rawValue) as unknown);
-  } catch {
-    return DEFAULT_APP_PREFERENCES;
-  }
-}
-
 export function readStoredAppPreferences(): AppPreferences {
-  return parseStoredPreferences(
-    window.localStorage.getItem(APP_PREFERENCES_STORAGE_KEY),
+  return readStoredJson(
+    APP_PREFERENCES_STORAGE_KEY,
+    sanitizeStoredPreferences,
+    DEFAULT_APP_PREFERENCES,
   );
 }
 
