@@ -1,5 +1,0 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": ".trellis/spec/frontend/state-management.md", "reason": "State derivation for usage indicator"}
-{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Token usage typing and normalization"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend test and quality requirements"}
