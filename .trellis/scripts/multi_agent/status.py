@@ -71,9 +71,11 @@ def is_running(pid: int | str | None) -> bool:
         return False
     try:
         pid_int = int(pid)
+        if pid_int <= 0:
+            return False
         os.kill(pid_int, 0)
         return True
-    except (ProcessLookupError, ValueError, PermissionError, TypeError):
+    except (OSError, ProcessLookupError, ValueError, PermissionError, TypeError):
         return False
 
 
