@@ -29,6 +29,7 @@ export interface UpdateWorkspaceLaunchScriptsInput {
 
 export interface WorkspaceRootController {
   readonly roots: ReadonlyArray<WorkspaceRoot>;
+  readonly selectedRoot: WorkspaceRoot | null;
   readonly selectedRootId: string | null;
   selectRoot: (rootId: string) => void;
   addRoot: (input: AddWorkspaceRootInput) => void;
@@ -189,15 +190,21 @@ export function useWorkspaceRoots(): WorkspaceRootController {
     [],
   );
 
+  const selectedRoot = useMemo(
+    () => roots.find((root) => root.id === selectedRootId) ?? null,
+    [roots, selectedRootId],
+  );
+
   return useMemo(
     () => ({
       roots,
+      selectedRoot,
       selectedRootId,
       selectRoot: setSelectedRootId,
       addRoot,
       removeRoot,
       updateWorkspaceLaunchScripts,
     }),
-    [addRoot, removeRoot, roots, selectedRootId, updateWorkspaceLaunchScripts]
+    [addRoot, removeRoot, roots, selectedRoot, selectedRootId, updateWorkspaceLaunchScripts]
   );
 }

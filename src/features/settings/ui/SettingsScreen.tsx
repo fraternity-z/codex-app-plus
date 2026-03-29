@@ -30,7 +30,7 @@ interface SettingsScreenProps {
 
 export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
   const state = useSettingsScreenState();
-  const { notifyError } = useUiBannerNotifications("settings-screen");
+  const { reportError } = useUiBannerNotifications("settings-screen");
   const steerState = selectSteerFeatureState(state.experimentalFeatures, state.configSnapshot);
   const addRoot = useCallback(async () => {
     try {
@@ -39,10 +39,9 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
         props.workspace.addRoot(root);
       }
     } catch (error) {
-      console.error("选择工作区文件夹失败", error);
-      notifyError("选择工作区文件夹失败", error);
+      reportError("选择工作区文件夹失败", error);
     }
-  }, [notifyError, props.workspace]);
+  }, [props.workspace, reportError]);
   const openConfigToml = useCallback(async () => {
     try {
       const writeTarget = readUserConfigWriteTarget(state.configSnapshot);
@@ -51,10 +50,9 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
         filePath: writeTarget.filePath,
       });
     } catch (error) {
-      console.error("打开 config.toml 失败", error);
-      notifyError("打开 config.toml 失败", error);
+      reportError("打开 config.toml 失败", error);
     }
-  }, [notifyError, props.hostBridge.app, props.preferences.agentEnvironment, state.configSnapshot]);
+  }, [props.hostBridge.app, props.preferences.agentEnvironment, reportError, state.configSnapshot]);
 
   const settingsProps: SettingsViewProps = {
     appUpdate: state.appUpdate,

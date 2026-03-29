@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense } from "react";
 import type { WorkspaceRootController } from "../../workspace/hooks/useWorkspaceRoots";
 import type { AppController } from "../../../app/controller/appControllerTypes";
 import { useSkillsScreenState } from "../../../app/controller/appControllerState";
@@ -19,10 +19,7 @@ interface SkillsScreenProps {
 
 export function SkillsScreen(props: SkillsScreenProps): JSX.Element {
   const state = useSkillsScreenState();
-  const selectedRootPath = useMemo(() => {
-    const selectedRoot = props.workspace.roots.find((root) => root.id === props.workspace.selectedRootId);
-    return selectedRoot?.path ?? null;
-  }, [props.workspace.roots, props.workspace.selectedRootId]);
+  const selectedRootPath = props.workspace.selectedRoot?.path ?? null;
 
   const skillsProps: SkillsViewProps = {
     authStatus: state.authStatus,

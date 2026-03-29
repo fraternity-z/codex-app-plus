@@ -10,9 +10,16 @@ interface PushBannerInput {
   readonly source?: string;
 }
 
+interface ReportErrorOptions {
+  readonly detail?: string | null;
+  readonly logMessage?: string;
+  readonly rethrow?: boolean;
+}
+
 interface UiBannerNotifications {
   readonly pushBanner: (input: PushBannerInput) => void;
   readonly notifyError: (title: string, error: unknown, detail?: string | null) => void;
+  readonly reportError: (title: string, error: unknown, options?: ReportErrorOptions) => void;
   readonly dismissBanner: (bannerId: string) => void;
 }
 
@@ -54,9 +61,17 @@ export function useUiBannerNotifications(source = "ui"): UiBannerNotifications {
     });
   }, [pushBanner]);
 
+  const reportError = useCallback((title: string, error: unknown, options?: ReportErrorOptions) => {
+    console.error(options?.logMessage ?? title, error);
+    notifyError(title, error, options?.detail);
+    if (options?.rethrow) {
+      throw error;
+    }
+  }, [notifyError]);
+
   const dismissBanner = useCallback((bannerId: string) => {
     dispatch({ type: "banner/dismissed", bannerId });
   }, [dispatch]);
 
-  return { pushBanner, notifyError, dismissBanner };
+  return { pushBanner, notifyError, reportError, dismissBanner };
 }

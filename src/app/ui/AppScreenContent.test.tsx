@@ -60,6 +60,7 @@ function createPreferences(): AppPreferencesController {
 function createWorkspace(): WorkspaceRootController {
   return {
     roots: [],
+    selectedRoot: null,
     selectedRootId: null,
     selectRoot: vi.fn(),
     addRoot: vi.fn(),

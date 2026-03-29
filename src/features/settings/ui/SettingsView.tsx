@@ -120,19 +120,19 @@ function createNavItems(t: (key: MessageKey) => string): ReadonlyArray<NavItem> 
   }));
 }
 function SettingsSidebar(props: {
+  readonly navItems: ReadonlyArray<NavItem>;
   readonly section: SettingsSection;
   onBackHome: () => void;
   onSelectSection: (section: SettingsSection) => void;
 }): JSX.Element {
   const { t } = useI18n();
-  const navItems = createNavItems(t);
   return (
     <aside className="settings-sidebar">
       <button type="button" className="settings-back-app" onClick={props.onBackHome}>
         ← {t("settings.sidebar.backToApp")}
       </button>
       <nav className="settings-nav">
-        {navItems.map((item) => (
+        {props.navItems.map((item) => (
           <button
             key={item.key}
             type="button"
@@ -148,9 +148,7 @@ function SettingsSidebar(props: {
   );
 }
 
-function SettingsContent(props: SettingsViewProps): JSX.Element {
-  const { t } = useI18n();
-  const sectionTitle = createNavItems(t).find((item) => item.key === props.section)?.label ?? t("settings.nav.general");
+function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: string }): JSX.Element {
 
   if (props.section === "general") {
     return <GeneralSettingsSection preferences={props.preferences} steerAvailable={props.steerAvailable} />;
@@ -234,15 +232,24 @@ function SettingsContent(props: SettingsViewProps): JSX.Element {
   if (props.section === "worktree") {
     return <WorktreeContent />;
   }
-  return <PlaceholderContent sectionTitle={sectionTitle} />;
+  return <PlaceholderContent sectionTitle={props.sectionTitle} />;
 }
 
 export function SettingsView(props: SettingsViewProps): JSX.Element {
+  const { t } = useI18n();
+  const navItems = createNavItems(t);
+  const sectionTitle = navItems.find((item) => item.key === props.section)?.label ?? t("settings.nav.general");
+
   return (
     <div className="settings-layout">
-      <SettingsSidebar section={props.section} onBackHome={props.onBackHome} onSelectSection={props.onSelectSection} />
+      <SettingsSidebar
+        navItems={navItems}
+        section={props.section}
+        onBackHome={props.onBackHome}
+        onSelectSection={props.onSelectSection}
+      />
       <main className="settings-main">
-        <SettingsContent {...props} />
+        <SettingsContent {...props} sectionTitle={sectionTitle} />
       </main>
     </div>
   );

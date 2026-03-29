@@ -212,7 +212,7 @@ function createLastNodeScrollKey(
     return `${lastNode.key}:${lastNode.message.status}:${lastNode.message.text.length}`;
   }
   if (lastNode.kind === "reasoningBlock") {
-    return `${lastNode.key}:${lastNode.block.titleMarkdown}:${lastNode.block.bodyMarkdown}`;
+    return `${lastNode.key}:${lastNode.block.titleMarkdown.length}:${lastNode.block.bodyMarkdown.length}`;
   }
   if (lastNode.kind === "traceItem") {
     return createTraceScrollKey(lastNode);
@@ -230,7 +230,7 @@ function createTraceScrollKey(
     return `${node.key}:${node.item.status}:${node.item.output.length}:${node.item.changes.length}`;
   }
   if (node.item.kind === "mcpToolCall") {
-    return `${node.key}:${node.item.status}:${JSON.stringify(node.item.result)?.length ?? 0}:${node.item.progress.length}`;
+    return `${node.key}:${node.item.status}:${getMcpToolResultSignature(node.item.result)}:${node.item.progress.length}`;
   }
   if (node.item.kind === "dynamicToolCall") {
     return `${node.key}:${node.item.status}:${node.item.contentItems.length}`;
@@ -242,6 +242,28 @@ function createTraceScrollKey(
     return `${node.key}:${node.item.query}:${node.item.action?.type ?? "none"}`;
   }
   return `${node.key}:${node.item.path}`;
+}
+
+function getMcpToolResultSignature(result: unknown): string {
+  if (result === null || result === undefined) {
+    return "null";
+  }
+  if (Array.isArray(result)) {
+    return `array:${result.length}`;
+  }
+  if (typeof result === "string") {
+    return `string:${result.length}`;
+  }
+  if (typeof result === "number") {
+    return "number";
+  }
+  if (typeof result === "boolean") {
+    return "boolean";
+  }
+  if (typeof result === "object") {
+    return `object:${Object.keys(result).length}`;
+  }
+  return "other";
 }
 
 function ConversationPlaceholder(props: {

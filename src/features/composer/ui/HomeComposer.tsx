@@ -69,7 +69,7 @@ export interface HomeComposerProps {
 }
 
 export function HomeComposer(props: HomeComposerProps): JSX.Element {
-  const { notifyError } = useUiBannerNotifications("composer");
+  const { reportError } = useUiBannerNotifications("composer");
   const defaultServiceTier = props.defaultServiceTier ?? null;
   const multiAgentAvailable = props.multiAgentAvailable ?? false;
   const multiAgentEnabled = props.multiAgentEnabled ?? false;
@@ -150,7 +150,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
       clearAttachments,
       commandPalette.dismiss,
       props.collaborationPreset,
-      notifyError,
+      reportError,
       followUpOverride,
     );
   }, [
@@ -159,16 +159,15 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     clearAttachments,
     commandPalette.dismiss,
     composerSelection,
-    notifyError,
+    reportError,
     props,
   ]);
 
   const handlePromoteQueuedFollowUp = useCallback((followUpId: string) => {
     void props.onPromoteQueuedFollowUp(followUpId).catch((error) => {
-      console.error("插队失败", error);
-      notifyError("插队失败", error);
+      reportError("插队失败", error);
     });
-  }, [notifyError, props]);
+  }, [props, reportError]);
 
   const handleToggleMultiAgent = useCallback(async () => {
     setMenuOpen(false);
@@ -297,7 +296,7 @@ async function submitTurn(
   clearAttachments: () => void,
   dismissPalette: () => Promise<void>,
   collaborationPreset: CollaborationPreset,
-  notifyError: (title: string, error: unknown, detail?: string | null) => void,
+  reportError: (title: string, error: unknown, options?: { readonly detail?: string | null; readonly logMessage?: string; readonly rethrow?: boolean }) => void,
   followUpOverride?: FollowUpMode,
 ): Promise<void> {
   if (!canSend) {
@@ -308,8 +307,7 @@ async function submitTurn(
     await props.onSendTurn({ text, attachments, selection: { model: composerSelection.selectedModel, effort: composerSelection.selectedEffort, serviceTier: composerSelection.selectedServiceTier }, permissionLevel: props.permissionLevel, collaborationPreset, followUpOverride });
     clearAttachments();
   } catch (error) {
-    console.error("发送消息失败", error);
-    notifyError("发送消息失败", error);
+    reportError("发送消息失败", error);
   }
 }
 

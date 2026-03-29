@@ -67,7 +67,8 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       cancelled = true;
     };
   }, [dispatch, notifyError, props.hostBridge, props.preferences.agentEnvironment]);
-  const { selectedRootName, selectedRootPath } = useSelectedWorkspace(props.workspace, t("home.workspaceSelector.placeholder"));
+  const selectedRootName = props.workspace.selectedRoot?.name ?? t("home.workspaceSelector.placeholder");
+  const selectedRootPath = props.workspace.selectedRoot?.path ?? null;
   const permissionSettings = useMemo(() => ({
     defaultApprovalPolicy: props.preferences.composerDefaultApprovalPolicy,
     defaultSandboxMode: props.preferences.composerDefaultSandboxMode,
@@ -189,19 +190,6 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
   );
 }
 
-function useSelectedWorkspace(
-  workspace: WorkspaceRootController,
-  fallbackName: string,
-): { selectedRootName: string; selectedRootPath: string | null } {
-  return useMemo(() => {
-    const selectedRoot = workspace.roots.find((root) => root.id === workspace.selectedRootId) ?? null;
-    return {
-      selectedRootName: selectedRoot?.name ?? fallbackName,
-      selectedRootPath: selectedRoot?.path ?? null,
-    };
-  }, [fallbackName, workspace.roots, workspace.selectedRootId]);
-}
-
 function useHomeScreenActions(args: {
   readonly configSnapshot: unknown;
   readonly controller: AppController;
@@ -212,15 +200,15 @@ function useHomeScreenActions(args: {
   readonly workspace: WorkspaceRootController;
 }) {
   const { t } = useI18n();
-  const { dismissBanner, pushBanner } = useUiBannerNotifications("home-screen");
-  const notifyAlertError = useCallback((key: MessageKey, error: unknown) => {
+  const { dismissBanner, reportError } = useUiBannerNotifications("home-screen");
+  const notifyAlertError = useCallback((key: MessageKey, error: unknown, options?: { readonly logMessage?: string; readonly rethrow?: boolean }) => {
     const detail = error instanceof Error ? error.message : String(error);
-    pushBanner({
-      level: "error",
-      title: t(key, { error: detail }),
+    reportError(t(key, { error: detail }), error, {
       detail: null,
+      logMessage: options?.logMessage,
+      rethrow: options?.rethrow,
     });
-  }, [pushBanner, t]);
+  }, [reportError, t]);
 
   const addRoot = useCallback(async () => {
     try {
@@ -232,8 +220,7 @@ function useHomeScreenActions(args: {
         args.workspace.addRoot(root);
       }
     } catch (error) {
-      console.error("选择工作区文件夹失败", error);
-      notifyAlertError("app.alerts.selectWorkspaceFailed", error);
+      notifyAlertError("app.alerts.selectWorkspaceFailed", error, { logMessage: "选择工作区文件夹失败" });
     }
   }, [args.workspace, notifyAlertError, t]);
 
@@ -245,8 +232,7 @@ function useHomeScreenActions(args: {
     try {
       await args.conversation.createThread();
     } catch (error) {
-      console.error("创建工作区会话失败", error);
-      notifyAlertError("app.alerts.createThreadFailed", error);
+      notifyAlertError("app.alerts.createThreadFailed", error, { logMessage: "创建工作区会话失败" });
     }
   }, [args.conversation, notifyAlertError, t]);
 
@@ -261,9 +247,10 @@ function useHomeScreenActions(args: {
       });
       await args.conversation.createThread({ workspacePath: root.path });
     } catch (error) {
-      console.error("创建工作区会话失败", error);
-      notifyAlertError("app.alerts.createThreadFailed", error);
-      throw error;
+      notifyAlertError("app.alerts.createThreadFailed", error, {
+        logMessage: "创建工作区会话失败",
+        rethrow: true,
+      });
     }
   }, [args.conversation, args.workspace, notifyAlertError, t]);
 
@@ -278,8 +265,7 @@ function useHomeScreenActions(args: {
     try {
       await args.conversation.sendTurn(sendOptions);
     } catch (error) {
-      console.error("发送工作区消息失败", error);
-      notifyAlertError("app.alerts.sendTurnFailed", error);
+      notifyAlertError("app.alerts.sendTurnFailed", error, { logMessage: "发送工作区消息失败" });
     }
   }, [args.conversation, notifyAlertError, t]);
 
@@ -303,9 +289,10 @@ function useHomeScreenActions(args: {
     try {
       await args.controller.setMultiAgentEnabled(enabled);
     } catch (error) {
-      console.error("切换多代理失败", error);
-      notifyAlertError("app.alerts.setMultiAgentFailed", error);
-      throw error;
+      notifyAlertError("app.alerts.setMultiAgentFailed", error, {
+        logMessage: "切换多代理失败",
+        rethrow: true,
+      });
     }
   }, [args.controller, notifyAlertError, t]);
 
