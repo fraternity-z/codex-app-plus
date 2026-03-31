@@ -39,15 +39,6 @@ export const zhCN = {
       worktree: "工作树",
       archived: "已归档线程",
       about: "关于",
-      group: {
-        interface: "界面",
-        auth: "认证与模型",
-        ai: "AI 功能",
-        integrations: "集成",
-        vcs: "版本控制",
-        workspace: "工作区环境",
-        system: "系统",
-      },
     },
     placeholder: {
       message: "该页面仍保留官方布局占位，后续可接入真实设置数据。",

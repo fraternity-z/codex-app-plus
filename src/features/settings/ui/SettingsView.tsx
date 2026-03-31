@@ -163,22 +163,15 @@ function SettingsSidebar(props: {
         ← {t("settings.sidebar.backToApp")}
       </button>
       <nav className="settings-nav">
-        <div className="settings-nav-group-label">{t("settings.nav.group.interface")}</div>
         {renderNavItem("general")}
         {renderNavItem("appearance")}
-        <div className="settings-nav-group-label">{t("settings.nav.group.auth")}</div>
         {renderNavItem("config")}
-        <div className="settings-nav-group-label">{t("settings.nav.group.ai")}</div>
         {renderNavItem("agents")}
         {renderNavItem("personalization")}
-        <div className="settings-nav-group-label">{t("settings.nav.group.integrations")}</div>
         {renderNavItem("mcp")}
-        <div className="settings-nav-group-label">{t("settings.nav.group.vcs")}</div>
         {renderNavItem("git")}
-        <div className="settings-nav-group-label">{t("settings.nav.group.workspace")}</div>
         {renderNavItem("environment")}
         {renderNavItem("worktree", true)}
-        <div className="settings-nav-group-label">{t("settings.nav.group.system")}</div>
         {renderNavItem("archived")}
         {renderNavItem("about")}
       </nav>

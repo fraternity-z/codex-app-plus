@@ -40,15 +40,6 @@ export const enUS = {
       worktree: "Worktree",
       archived: "Archived Threads",
       about: "About",
-      group: {
-        interface: "Interface",
-        auth: "Auth & Models",
-        ai: "AI Features",
-        integrations: "Integrations",
-        vcs: "Version Control",
-        workspace: "Workspace",
-        system: "System",
-      },
     },
     placeholder: {
       message: "This page still uses the official placeholder layout and can be wired to real settings data later.",
