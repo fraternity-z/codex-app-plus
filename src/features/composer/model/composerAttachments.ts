@@ -42,10 +42,16 @@ interface ComposerPathPartition {
   readonly filePaths: ReadonlyArray<string>;
 }
 
+interface MentionedSkillInput {
+  readonly name: string;
+  readonly path: string;
+}
+
 export function buildComposerUserInputs(
   text: string,
   attachments: ReadonlyArray<ComposerAttachment>,
   agentEnvironment: AgentEnvironment,
+  mentionedSkills: ReadonlyArray<MentionedSkillInput> = [],
 ): Array<UserInput> {
   const inputs: Array<UserInput> = [];
   const fileReferenceDraft = parseComposerFileReferenceDraft(text);
@@ -86,6 +92,19 @@ export function buildComposerUserInputs(
       type: "mention",
       name: getComposerFileReferenceLabel(filePath),
       path: filePath,
+    });
+  }
+
+  const skillPaths = new Set<string>();
+  for (const skill of mentionedSkills) {
+    if (skillPaths.has(skill.path)) {
+      continue;
+    }
+    skillPaths.add(skill.path);
+    inputs.push({
+      type: "skill",
+      name: skill.name,
+      path: skill.path,
     });
   }
 

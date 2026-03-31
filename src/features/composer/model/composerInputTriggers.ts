@@ -4,7 +4,7 @@ export interface ComposerTriggerRange {
 }
 
 export interface ComposerActiveTrigger {
-  readonly kind: "slash" | "mention";
+  readonly kind: "slash" | "mention" | "skill";
   readonly query: string;
   readonly range: ComposerTriggerRange;
 }
@@ -14,7 +14,7 @@ export function getActiveComposerTrigger(text: string, caret: number): ComposerA
     return null;
   }
 
-  return getSlashTrigger(text, caret) ?? getMentionTrigger(text, caret);
+  return getSlashTrigger(text, caret) ?? getMentionTrigger(text, caret) ?? getSkillTrigger(text, caret);
 }
 
 export function replaceComposerTrigger(
@@ -54,6 +54,21 @@ function getMentionTrigger(text: string, caret: number): ComposerActiveTrigger |
     kind: "mention",
     query: match[1] ?? "",
     range: { start: atIndex, end: caret },
+  };
+}
+
+function getSkillTrigger(text: string, caret: number): ComposerActiveTrigger | null {
+  const prefix = text.slice(0, caret);
+  const match = prefix.match(/(?:^|[\s])\$([^\s$]*)$/);
+  if (match === null || match.index === undefined) {
+    return null;
+  }
+
+  const dollarIndex = match.index + match[0].lastIndexOf("$");
+  return {
+    kind: "skill",
+    query: match[1] ?? "",
+    range: { start: dollarIndex, end: caret },
   };
 }
 

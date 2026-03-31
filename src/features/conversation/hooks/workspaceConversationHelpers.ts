@@ -1,8 +1,10 @@
 import type { CollaborationMode } from "../../../protocol/generated/CollaborationMode";
 import type { ConversationState } from "../../../domain/conversation";
 import type { CollaborationModePreset, ComposerAttachment, QueuedFollowUp } from "../../../domain/timeline";
-import type { Turn } from "../../../protocol/generated/v2/Turn";
+import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsListResponse";
+import type { SkillMetadata } from "../../../protocol/generated/v2/SkillMetadata";
 import type { UserInput } from "../../../protocol/generated/v2/UserInput";
+import type { Turn } from "../../../protocol/generated/v2/Turn";
 import type { ComposerSelection } from "../../composer/model/composerPreferences";
 import { buildComposerUserInputs } from "../../composer/model/composerAttachments";
 import { resolveAgentWorkspacePath } from "../../workspace/model/workspacePath";
@@ -17,8 +19,9 @@ export function createInput(
   text: string,
   attachments: ReadonlyArray<ComposerAttachment>,
   agentEnvironment: "windowsNative" | "wsl",
+  availableSkills: ReadonlyArray<SkillMetadata> = [],
 ): Array<UserInput> {
-  return buildComposerUserInputs(text, attachments, agentEnvironment);
+  return buildComposerUserInputs(text, attachments, agentEnvironment, extractMentionedSkills(text, availableSkills));
 }
 
 export function createQueuedFollowUp(options: SendTurnOptions): QueuedFollowUp {
@@ -80,4 +83,45 @@ export function resolveRequestedCollaborationMode(
     return undefined;
   }
   return resolvePlanMode(modes, sendOptions.selection);
+}
+
+export function mergeSkillsListResponses(
+  responses: ReadonlyArray<SkillsListResponse>,
+): ReadonlyArray<SkillMetadata> {
+  const byPath = new Map<string, SkillMetadata>();
+  for (const response of responses) {
+    for (const entry of response.data) {
+      for (const skill of entry.skills) {
+        if (!skill.enabled) {
+          continue;
+        }
+        byPath.set(skill.path, skill);
+      }
+    }
+  }
+  return [...byPath.values()];
+}
+
+function extractMentionedSkills(
+  text: string,
+  skills: ReadonlyArray<SkillMetadata>,
+): ReadonlyArray<Pick<SkillMetadata, "name" | "path">> {
+  if (skills.length === 0) {
+    return [];
+  }
+  const byName = new Map<string, SkillMetadata>();
+  for (const skill of skills) {
+    byName.set(skill.name.toLowerCase(), skill);
+  }
+  const mentions = text.match(/(?:^|[\s])\$([A-Za-z0-9_-]+)/g) ?? [];
+  const selected = new Map<string, Pick<SkillMetadata, "name" | "path">>();
+  for (const mention of mentions) {
+    const name = mention.trim().slice(1).toLowerCase();
+    const skill = byName.get(name);
+    if (skill === undefined) {
+      continue;
+    }
+    selected.set(skill.path, { name: skill.name, path: skill.path });
+  }
+  return [...selected.values()];
 }

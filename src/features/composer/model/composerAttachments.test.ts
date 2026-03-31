@@ -82,6 +82,25 @@ describe("composerAttachments", () => {
     ]);
   });
 
+  it("adds mentioned skills as skill user inputs and deduplicates by path", () => {
+    const inputs = buildComposerUserInputs(
+      "请执行 $exp-search 并继续",
+      [],
+      "windowsNative",
+      [
+        { name: "exp-search", path: "projectSettings:exp-search" },
+        { name: "exp-search", path: "projectSettings:exp-search" },
+        { name: "spec-explore", path: "projectSettings:spec-explore" },
+      ],
+    );
+
+    expect(inputs).toEqual([
+      { type: "text", text: "请执行 $exp-search 并继续", text_elements: [] },
+      { type: "skill", name: "exp-search", path: "projectSettings:exp-search" },
+      { type: "skill", name: "spec-explore", path: "projectSettings:spec-explore" },
+    ]);
+  });
+
   it("resolves mention search results to absolute paths", () => {
     expect(resolveMentionAttachmentPath("E:/code/codex-app-plus", "src/App.tsx")).toBe("E:/code/codex-app-plus/src/App.tsx");
     expect(resolveMentionAttachmentPath("E:/code/codex-app-plus", "E:/code/codex-app-plus/src/App.tsx")).toBe("E:/code/codex-app-plus/src/App.tsx");

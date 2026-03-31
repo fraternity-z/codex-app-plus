@@ -32,6 +32,9 @@ describe("composerPaletteData", () => {
         customPrompts: [],
         collaborationItems: [],
         resumeItems: [],
+        skills: [],
+        skillsLoading: false,
+        skillsError: null,
       },
     );
 

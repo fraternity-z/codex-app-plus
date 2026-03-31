@@ -20,22 +20,21 @@
 .composer-command-palette-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   max-height: 280px;
   overflow: auto;
 }
 
 .composer-command-palette-item {
+  position: relative;
   width: 100%;
-  min-height: 48px;
+  min-height: 44px;
   border: 0;
   border-radius: 12px;
   background: transparent;
   padding: 10px 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   text-align: left;
 }
 
@@ -53,25 +52,66 @@
 
 .composer-command-palette-copy {
   min-width: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
 }
 
 .composer-command-palette-label {
+  display: block;
   color: var(--text-main);
   font-size: 14px;
+  line-height: 1.35;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.composer-command-palette-detail {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: calc(100% + 6px);
+  z-index: 2;
+  display: none;
+  padding: 8px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-lg);
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.composer-command-palette-item:hover .composer-command-palette-detail,
+.composer-command-palette-item:focus-visible .composer-command-palette-detail {
+  display: flex;
 }
 
 .composer-command-palette-description {
+  display: block;
   color: var(--text-muted);
   font-size: 12px;
-  line-height: 1.35;
+  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .composer-command-palette-meta {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  max-width: 36%;
+  align-self: flex-start;
   color: var(--text-muted);
   font-size: 12px;
+  line-height: 1.35;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

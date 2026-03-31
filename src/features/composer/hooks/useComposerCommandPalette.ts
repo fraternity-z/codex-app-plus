@@ -18,6 +18,8 @@ import type { ComposerModelOption, ComposerSelection } from "../model/composerPr
 import type { CustomPromptOutput } from "../../../bridge/types";
 import type { AppStoreApi } from "../../../state/store";
 import type { SendTurnOptions } from "../../conversation/hooks/workspaceConversationTypes";
+import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsListResponse";
+import type { SkillMetadata } from "../../../protocol/generated/v2/SkillMetadata";
 import { useAppDispatch, useAppSelector } from "../../../state/store";
 import type { ComposerCommandPaletteItem } from "../ui/ComposerCommandPalette";
 import { executeSlashCommand, focusTextarea, readTextareaCaret, toPermissionLevel } from "../model/composerCommandActions";
@@ -44,6 +46,13 @@ import {
 } from "./composerCommandPaletteState";
 
 type ManualPaletteMode = "slash-model" | "slash-permissions" | "slash-collab" | "slash-resume" | "slash-personality" | null;
+
+interface SkillPaletteSession {
+  readonly skills: ReadonlyArray<SkillMetadata>;
+  readonly loaded: boolean;
+  readonly loading: boolean;
+  readonly error: string | null;
+}
 
 interface UseComposerCommandPaletteOptions {
   readonly inputText: string;
@@ -94,6 +103,7 @@ export function useComposerCommandPalette(
   const customPrompts = useAppSelector((state) => state.customPrompts);
   const trigger = usePaletteTrigger(options.inputText);
   const mention = useMentionPalette(options, dispatch, trigger.mode, trigger.activeTrigger);
+  const skillPalette = useSkillPalette(options, trigger.mode);
   const selectedConversation = useSelectedConversation(options.selectedThreadId);
   const runtimeState = useSlashRuntimeState(options.selectedThreadId);
   const mentionSession = useAppSelector(
@@ -104,8 +114,34 @@ export function useComposerCommandPalette(
   );
   const collections = useSlashCollections(options, runtimeState.realtimeState);
   const items = useMemo(
-    () => createPaletteItems(trigger.mode, trigger.activeTrigger, options.models, options.selectedModel, options.permissionLevel, mentionSession, mention.error, collections),
-    [collections, mention.error, mentionSession, options.models, options.permissionLevel, options.selectedModel, trigger.activeTrigger, trigger.mode],
+    () => createPaletteItems(
+      trigger.mode,
+      trigger.activeTrigger,
+      options.models,
+      options.selectedModel,
+      options.permissionLevel,
+      mentionSession,
+      mention.error,
+      {
+        ...collections,
+        skills: skillPalette.skills,
+        skillsLoading: skillPalette.loading,
+        skillsError: skillPalette.error,
+      },
+    ),
+    [
+      collections,
+      mention.error,
+      mentionSession,
+      options.models,
+      options.permissionLevel,
+      options.selectedModel,
+      skillPalette.error,
+      skillPalette.loading,
+      skillPalette.skills,
+      trigger.activeTrigger,
+      trigger.mode,
+    ],
   );
   const [selectedIndex, setSelectedIndex] = useBoundedSelection(items.length);
   const slashContext = useMemo<SlashExecutionContext>(() => ({
@@ -163,7 +199,21 @@ function usePaletteTrigger(inputText: string) {
   const detectedTrigger = useMemo(() => getActiveComposerTrigger(inputText, caret), [caret, inputText]);
   const triggerKey = useMemo(() => createTriggerKey(detectedTrigger), [detectedTrigger]);
   const activeTrigger = useMemo(() => suppressedTriggerKey === triggerKey ? null : detectedTrigger, [detectedTrigger, suppressedTriggerKey, triggerKey]);
-  const mode = useMemo<PaletteMode>(() => manualMode ?? (activeTrigger?.kind === "slash" ? "slash-root" : activeTrigger?.kind === "mention" ? "mention" : null), [activeTrigger, manualMode]);
+  const mode = useMemo<PaletteMode>(() => {
+    if (manualMode !== null) {
+      return manualMode;
+    }
+    if (activeTrigger?.kind === "slash") {
+      return "slash-root";
+    }
+    if (activeTrigger?.kind === "mention") {
+      return "mention";
+    }
+    if (activeTrigger?.kind === "skill") {
+      return "skill";
+    }
+    return null;
+  }, [activeTrigger, manualMode]);
 
   useEffect(() => {
     if (suppressedTriggerKey !== null && suppressedTriggerKey !== triggerKey) setSuppressedTriggerKey(null);
@@ -212,6 +262,46 @@ function useMentionPalette(options: UseComposerCommandPaletteOptions, dispatch: 
   return { sessionId, error, clearError: () => setError(null), stop };
 }
 
+function useSkillPalette(options: UseComposerCommandPaletteOptions, mode: PaletteMode): SkillPaletteSession {
+  const [session, setSession] = useState<SkillPaletteSession>({
+    skills: [],
+    loaded: false,
+    loading: false,
+    error: null,
+  });
+
+  const reload = useCallback(async (forceReload: boolean) => {
+    if (mode !== "skill") {
+      return;
+    }
+    setSession((current) => ({ ...current, loading: true, error: null }));
+    try {
+      const response = await options.composerCommandBridge.request("skills/list", {
+        cwds: options.selectedRootPath === null ? undefined : [options.selectedRootPath],
+        forceReload,
+      }) as SkillsListResponse;
+      const skills = response.data.flatMap((entry) => entry.skills).filter((skill) => skill.enabled);
+      setSession({ skills, loaded: true, loading: false, error: null });
+    } catch (error) {
+      setSession((current) => ({
+        ...current,
+        loaded: true,
+        loading: false,
+        error: toErrorMessage(error),
+      }));
+    }
+  }, [mode, options.composerCommandBridge, options.selectedRootPath]);
+
+  useEffect(() => {
+    if (mode !== "skill") {
+      return;
+    }
+    void reload(!session.loaded);
+  }, [mode, reload, session.loaded]);
+
+  return session;
+}
+
 function useMentionSessionRefs(): MentionSessionRefs {
   const sessionIdRef = useRef<string | null>(null);
   const rootPathRef = useRef<string | null>(null);
@@ -231,6 +321,7 @@ function useSelectPaletteItem(options: UseComposerCommandPaletteOptions, trigger
     if (item === null || item.disabled) return;
     try {
       if (trigger.mode === "mention" && trigger.activeTrigger?.kind === "mention") return selectMentionItem(item, options, trigger, dismiss);
+      if (trigger.mode === "skill" && trigger.activeTrigger?.kind === "skill") return selectSkillItem(item, options, trigger, dismiss);
       if (trigger.mode === "slash-model") return selectModelItem(item.key, options.onSelectModel, dismiss, trigger.textareaRef);
       if (trigger.mode === "slash-permissions") return selectPermissionItem(item.key, slashContext.configSnapshot, slashDeps, dismiss, trigger.textareaRef);
       if (trigger.mode === "slash-collab") return selectCollaborationItem(item.key, options.onSelectCollaborationPreset, dismiss, trigger.textareaRef);
@@ -257,6 +348,21 @@ async function selectMentionItem(item: ComposerCommandPaletteItem, options: UseC
   const next = replaceComposerTrigger(options.inputText, trigger.activeTrigger!.range, "");
   options.onInputChange(next.text);
   options.onAppendMentionPath(mentionReference, next.text);
+  await dismiss();
+  focusTextarea(trigger.textareaRef, next.caret);
+}
+
+async function selectSkillItem(
+  item: ComposerCommandPaletteItem,
+  options: UseComposerCommandPaletteOptions,
+  trigger: ReturnType<typeof usePaletteTrigger>,
+  dismiss: () => Promise<void>,
+): Promise<void> {
+  if (trigger.activeTrigger?.kind !== "skill") {
+    return;
+  }
+  const next = replaceComposerTrigger(options.inputText, trigger.activeTrigger.range, item.label);
+  options.onInputChange(next.text);
   await dismiss();
   focusTextarea(trigger.textareaRef, next.caret);
 }

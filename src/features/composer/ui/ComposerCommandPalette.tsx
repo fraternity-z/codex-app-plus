@@ -37,9 +37,11 @@ export function ComposerCommandPalette(props: ComposerCommandPaletteProps): JSX.
             >
               <span className="composer-command-palette-copy">
                 <span className="composer-command-palette-label">{item.label}</span>
-                <span className="composer-command-palette-description">{item.description}</span>
               </span>
-              {item.meta === null ? null : <span className="composer-command-palette-meta">{item.meta}</span>}
+              <span className="composer-command-palette-detail" aria-hidden="true">
+                <span className="composer-command-palette-description">{item.description}</span>
+                {item.meta === null ? null : <span className="composer-command-palette-meta">{item.meta}</span>}
+              </span>
             </button>
           );
         })}

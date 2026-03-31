@@ -1,4 +1,5 @@
 import type { FuzzyFileSearchResult } from "../../../protocol/generated/FuzzyFileSearchResult";
+import type { SkillMetadata } from "../../../protocol/generated/v2/SkillMetadata";
 import type { ComposerPermissionLevel } from "./composerPermission";
 import type { ComposerModelOption } from "./composerPreferences";
 import type { CustomPromptOutput } from "../../../bridge/types";
@@ -19,11 +20,13 @@ export type PaletteMode =
   | "slash-resume"
   | "slash-personality"
   | "mention"
+  | "skill"
   | null;
 
 const SEARCHING_MESSAGE = "Searching workspace files…";
 const NO_RESULTS_MESSAGE = "No matching files";
 const NO_COMMANDS_MESSAGE = "No matching commands";
+const NO_SKILLS_MESSAGE = "No matching skills";
 const NO_COLLABORATION_MESSAGE = "No collaboration presets available";
 const NO_THREADS_MESSAGE = "No resumable threads";
 
@@ -32,6 +35,9 @@ export interface SlashPaletteCollections {
   readonly customPrompts: ReadonlyArray<CustomPromptOutput>;
   readonly collaborationItems: ReadonlyArray<ComposerCommandPaletteItem>;
   readonly resumeItems: ReadonlyArray<ComposerCommandPaletteItem>;
+  readonly skills: ReadonlyArray<SkillMetadata>;
+  readonly skillsLoading: boolean;
+  readonly skillsError: string | null;
 }
 
 export function createPaletteItems(
@@ -65,6 +71,9 @@ export function createPaletteItems(
   if (mode === "mention") {
     return createMentionItems(mentionSession, paletteError);
   }
+  if (mode === "skill") {
+    return createSkillItems(activeTrigger, collections.skills, collections.skillsLoading, collections.skillsError);
+  }
   return [];
 }
 
@@ -86,6 +95,9 @@ export function getPaletteTitle(mode: PaletteMode): string {
   }
   if (mode === "mention") {
     return "Mention file";
+  }
+  if (mode === "skill") {
+    return "Invoke skill";
   }
   return "Run command";
 }
@@ -179,6 +191,46 @@ function createMentionItems(
     return [createNoticeItem(mentionSession.completed ? NO_RESULTS_MESSAGE : SEARCHING_MESSAGE)];
   }
   return mentionSession.files.map(createMentionPaletteItem);
+}
+
+function createSkillItems(
+  activeTrigger: ComposerActiveTrigger | null,
+  skills: ReadonlyArray<SkillMetadata>,
+  skillsLoading: boolean,
+  skillsError: string | null,
+): ReadonlyArray<ComposerCommandPaletteItem> {
+  if (skillsError !== null) {
+    return [createNoticeItem(skillsError)];
+  }
+  if (skillsLoading) {
+    return [createNoticeItem("Loading skills…")];
+  }
+  if (activeTrigger?.kind !== "skill") {
+    return [createNoticeItem(NO_SKILLS_MESSAGE)];
+  }
+  const query = activeTrigger.query.trim().toLowerCase();
+  const filteredSkills = skills.filter((skill) => {
+    if (!skill.enabled) {
+      return false;
+    }
+    if (query.length === 0) {
+      return true;
+    }
+    return skill.name.toLowerCase().includes(query) || skill.description.toLowerCase().includes(query);
+  });
+  if (filteredSkills.length === 0) {
+    return [createNoticeItem(NO_SKILLS_MESSAGE)];
+  }
+  return filteredSkills
+    .slice()
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((skill) => ({
+      key: skill.path,
+      label: `$${skill.name}`,
+      description: skill.description,
+      disabled: false,
+      meta: skill.scope,
+    }));
 }
 
 function createPersonalityItems(): ReadonlyArray<ComposerCommandPaletteItem> {

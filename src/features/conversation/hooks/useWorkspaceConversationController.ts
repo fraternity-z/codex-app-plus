@@ -22,7 +22,9 @@ import { getActiveTurnId, isConversationStreaming } from "../model/conversationS
 import { consumePrewarmedThread } from "../service/prewarmedThreadManager";
 import { collectDescendantThreadIds, createRpcThreadRuntimeCleanupTransport, forceCloseThreadRuntime, reportThreadCleanupError } from "../service/threadRuntimeCleanup";
 import { useThreadResourceCleanup } from "./useThreadResourceCleanup";
-import { buildInterruptedTurn, createInput, createQueuedFollowUp, resolveConversationCwd, resolveRequestedCollaborationMode, toErrorMessage } from "./workspaceConversationHelpers";
+import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsListResponse";
+import type { SkillMetadata } from "../../../protocol/generated/v2/SkillMetadata";
+import { buildInterruptedTurn, createInput, createQueuedFollowUp, mergeSkillsListResponses, resolveConversationCwd, resolveRequestedCollaborationMode, toErrorMessage } from "./workspaceConversationHelpers";
 import type { CreateThreadOptions, SendTurnOptions, UseWorkspaceConversationOptions, WorkspaceConversationController } from "./workspaceConversationTypes";
 import { createHostBridgeAppServerClient } from "../../../protocol/appServerClient";
 
@@ -53,6 +55,7 @@ type WorkspaceConversationActions = Pick<
 
 const APP_SERVER_NOT_READY_MESSAGE = "Codex 正在启动或未连接，请等待连接完成后再发送。";
 const STEER_UNAVAILABLE_MESSAGE = "当前 Codex 配置未启用 steer，运行中追发不可用。";
+const SKILL_MENTION_PATTERN = /(?:^|[\s])\$[A-Za-z0-9_-]+/;
 
 function createAppServerNotReadyError(): Error {
   return new Error(APP_SERVER_NOT_READY_MESSAGE);
@@ -79,6 +82,27 @@ export function useWorkspaceConversationController({
     [options.appServerClient, options.hostBridge],
   );
   const appServerReady = options.appServerReady !== false;
+
+  const listAvailableSkills = useCallback(async (cwd: string | null): Promise<ReadonlyArray<SkillMetadata>> => {
+    if (!appServerReady) {
+      return [];
+    }
+    const response = await appServerClient.request("skills/list", {
+      cwds: cwd === null ? undefined : [cwd],
+      forceReload: false,
+    }) as SkillsListResponse;
+    return mergeSkillsListResponses([response]);
+  }, [appServerClient, appServerReady]);
+
+  const resolveInputSkills = useCallback(async (
+    text: string,
+    cwd: string | null,
+  ): Promise<ReadonlyArray<SkillMetadata>> => {
+    if (!SKILL_MENTION_PATTERN.test(text)) {
+      return [];
+    }
+    return listAvailableSkills(cwd);
+  }, [listAvailableSkills]);
 
   useThreadResourceCleanup({ appServerClient, store, dispatch });
 
@@ -170,7 +194,8 @@ export function useWorkspaceConversationController({
       throw createAppServerNotReadyError();
     }
     const collaborationMode = resolveRequestedCollaborationMode(options.collaborationModes, sendOptions);
-    const input = createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment);
+    const availableSkills = await resolveInputSkills(sendOptions.text, cwdOverride ?? options.selectedRootPath);
+    const input = createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment, availableSkills);
     const resolvedCwd = resolveConversationCwd(cwdOverride, options.agentEnvironment);
     dispatch({
       type: "conversation/turnPlaceholderAdded",
@@ -197,7 +222,7 @@ export function useWorkspaceConversationController({
     const response = await appServerClient.request("turn/start", params) as TurnStartResponse;
     dispatch({ type: "conversation/turnStarted", conversationId, turn: response.turn });
     dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });
-  }, [appServerClient, appServerReady, dispatch, options.agentEnvironment, options.collaborationModes, options.permissionSettings]);
+  }, [appServerClient, appServerReady, dispatch, options.agentEnvironment, options.collaborationModes, options.permissionSettings, options.selectedRootPath, resolveInputSkills]);
 
   const startNewConversation = useCallback(async (sendOptions: SendTurnOptions) => {
     if (!appServerReady) {
@@ -220,9 +245,10 @@ export function useWorkspaceConversationController({
       }) as ThreadStartResponse
     );
     const conversation = createConversationFromThread(response.thread, { hidden: false, resumeState: "resumed", agentEnvironment: options.agentEnvironment });
+    const availableSkills = await resolveInputSkills(sendOptions.text, workspacePath);
     const localPreviewTitle = pickConversationTitle(
       conversation.title,
-      deriveConversationPreviewTitle(createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment)),
+      deriveConversationPreviewTitle(createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment, availableSkills)),
     );
     dispatch({ type: "conversation/upserted", conversation });
     if (localPreviewTitle !== null && localPreviewTitle !== conversation.title) {
@@ -231,7 +257,7 @@ export function useWorkspaceConversationController({
     dispatch({ type: "composer/draftCollaborationPresetTransferred", conversationId: conversation.id });
     dispatch({ type: "conversation/selected", conversationId: conversation.id });
     await startTurn(conversation.id, sendOptions, response.thread.cwd || response.cwd || agentWorkspacePath);
-  }, [appServerClient, appServerReady, dispatch, options.agentEnvironment, options.permissionSettings, options.selectedRootPath, startTurn, store]);
+  }, [appServerClient, appServerReady, dispatch, options.agentEnvironment, options.permissionSettings, options.selectedRootPath, resolveInputSkills, startTurn, store]);
 
   const interruptTurn = useCallback(async (conversationId: string, turnId: string) => {
     if (!appServerReady) {
@@ -264,15 +290,16 @@ export function useWorkspaceConversationController({
       throw createSteerUnavailableError();
     }
 
+    const availableSkills = await resolveInputSkills(sendOptions.text, options.selectedRootPath);
     const params: TurnSteerParams = {
       threadId: conversationId,
       expectedTurnId: turnId,
-      input: createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment),
+      input: createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment, availableSkills),
     };
     const response = await appServerClient.request("turn/steer", params) as TurnSteerResponse;
     dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });
     return response.turnId;
-  }, [appServerClient, appServerReady, dispatch, options.steerAvailable]);
+  }, [appServerClient, appServerReady, dispatch, options.selectedRootPath, options.steerAvailable, resolveInputSkills]);
 
   const interruptAndUnloadConversation = useCallback(async (conversationId: string, turnId: string) => {
     const descendantThreadIds = collectDescendantThreadIds(conversationId, store.getState().conversationsById);
