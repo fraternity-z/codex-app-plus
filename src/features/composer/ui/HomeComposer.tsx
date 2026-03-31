@@ -172,7 +172,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
         <div className="composer-card" ref={containerRef}>
           {multiAgentPending ? <ComposerReloadOverlay /> : null}
           {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label="Close attachment menu" onClick={() => setMenuOpen(false)} /> : null}
-          {commandPalette.open ? <ComposerCommandPalette open={true} title={commandPalette.title} items={commandPalette.items} selectedIndex={commandPalette.selectedIndex} onSelectItem={commandPalette.onSelectItem} /> : null}
+          {commandPalette.open ? <ComposerCommandPalette open={true} title={commandPalette.title} items={commandPalette.items} selectedIndex={commandPalette.selectedIndex} onSelectItem={commandPalette.onSelectItem} onHoverItem={commandPalette.onHoverItem} /> : null}
           <ComposerDraftChips attachments={attachments} filePaths={fileReferencePaths} onRemoveAttachment={removeAttachment} onRemoveFilePath={removeFileReference} />
           <textarea ref={commandPalette.textareaRef} rows={1} className="composer-input" placeholder={getComposerPlaceholder(props.selectedRootPath)} value={composerBodyText} disabled={interactionDisabled} onPaste={(event) => void handlePaste(event)} onSelect={commandPalette.syncFromTextareaSelection} onKeyDown={(event) => handleInputKeyDown(event, props, attachments.length > 0 || fileReferencePaths.length > 0, commandPalette.handleKeyDown, submit)} onChange={(event) => handleInputChange(event.currentTarget.value, event.currentTarget.selectionStart, updateComposerBodyText, commandPalette.syncFromTextInput)} />
           <div className="composer-bar">
@@ -209,6 +209,10 @@ function useHomeComposerDraft(args: {
   const fileReferencePaths = fileReferenceDraft.filePaths;
 
   const updateComposerBodyText = useCallback((nextBodyText: string) => {
+    if (fileReferencePaths.length === 0) {
+      args.onInputChange(nextBodyText);
+      return;
+    }
     args.onInputChange(serializeComposerFileReferenceDraft(nextBodyText, fileReferencePaths));
   }, [args.onInputChange, fileReferencePaths]);
 

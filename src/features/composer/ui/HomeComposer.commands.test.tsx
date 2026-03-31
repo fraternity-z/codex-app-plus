@@ -302,6 +302,106 @@ describe("HomeComposer commands", () => {
     await waitFor(() => expect((textarea as HTMLTextAreaElement).value).toBe('/prompts:draft-pr BRANCH=""'));
   });
 
+  it("completes slash command with Tab and appends trailing space", async () => {
+    renderHarness();
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: "/comp", selectionStart: 5 } });
+
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: /\/compact/i })).toBeInTheDocument());
+    fireEvent.keyDown(textarea, { key: "Tab" });
+
+    await waitFor(() => expect(textarea.value).toBe("/compact "));
+    expect(textarea.selectionStart).toBe(textarea.value.length);
+  });
+
+  it("completes hovered slash command with Tab", async () => {
+    renderHarness();
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: "/comp", selectionStart: 5 } });
+
+    const compactItem = await screen.findByRole("menuitem", { name: /\/compact/i });
+    fireEvent.mouseEnter(compactItem);
+    fireEvent.keyDown(textarea, { key: "Tab" });
+
+    await waitFor(() => expect(textarea.value).toBe("/compact "));
+  });
+
+  it("completes mention with Tab and appends trailing space", async () => {
+    renderHarness();
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: "@app", selectionStart: 4 } });
+
+    await waitFor(() => expect(screen.getByRole("menu", { name: "Mention file" })).toBeInTheDocument());
+    fireEvent.keyDown(textarea, { key: "Tab" });
+
+    await waitFor(() => expect(textarea.value).toBe("@src/App.tsx "));
+  });
+
+  it("completes skill with Tab and appends trailing space", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === "skills/list") {
+        return {
+          data: [{
+            source: "workspace",
+            skills: [{
+              name: "compact-skill",
+              description: "skill desc",
+              scope: "project",
+              path: "skills/compact-skill",
+              enabled: true,
+            }],
+          }],
+        };
+      }
+      return {};
+    });
+    renderHarness({ request });
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: "$c", selectionStart: 2 } });
+
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: /\$compact-skill/i })).toBeInTheDocument());
+    fireEvent.keyDown(textarea, { key: "Tab" });
+
+    await waitFor(() => expect(textarea.value).toBe("$compact-skill "));
+  });
+
+  it("does not complete disabled items with Tab", async () => {
+    renderHarness();
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: "/theme", selectionStart: 6 } });
+
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: /No matching commands/i })).toBeInTheDocument());
+    fireEvent.keyDown(textarea, { key: "Tab" });
+
+    expect(textarea.value).toBe("/theme");
+  });
+
+  it("fills the first item with Tab when no hover happened", async () => {
+    renderHarness();
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: "/comp", selectionStart: 5 } });
+
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: /\/compact/i })).toBeInTheDocument());
+    fireEvent.keyDown(textarea, { key: "Tab" });
+
+    await waitFor(() => expect(textarea.value).toBe("/compact "));
+  });
+
+  it("hides slash palette once a non-inline-args command is followed by a space", async () => {
+    renderHarness();
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: "/compact ", selectionStart: 9 } });
+
+    await waitFor(() => expect(screen.queryByRole("menu", { name: "Run command" })).not.toBeInTheDocument());
+  });
+
   it("opens mention results from @ and renders the file as a chip while sending the path in text", async () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
     renderHarness({ onSendTurn });

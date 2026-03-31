@@ -12,6 +12,7 @@ interface ComposerCommandPaletteProps {
   readonly items: ReadonlyArray<ComposerCommandPaletteItem>;
   readonly selectedIndex: number;
   readonly onSelectItem: (index: number) => void;
+  readonly onHoverItem: (index: number) => void;
 }
 
 export function ComposerCommandPalette(props: ComposerCommandPaletteProps): JSX.Element | null {
@@ -33,6 +34,7 @@ export function ComposerCommandPalette(props: ComposerCommandPaletteProps): JSX.
               role="menuitem"
               aria-disabled={item.disabled}
               disabled={item.disabled}
+              onMouseEnter={() => props.onHoverItem(index)}
               onClick={() => props.onSelectItem(index)}
             >
               <span className="composer-command-palette-copy">

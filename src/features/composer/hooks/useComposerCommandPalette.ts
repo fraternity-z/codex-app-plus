@@ -28,7 +28,7 @@ import { customPromptNameFromPaletteKey } from "../model/customPromptPalette";
 import { createCustomPromptCommandInsert } from "../model/customPromptTemplate";
 import { getActiveComposerTrigger, replaceComposerTrigger, type ComposerActiveTrigger } from "../model/composerInputTriggers";
 import { createPaletteItems, createTriggerKey, getPaletteTitle, type PaletteMode } from "../model/composerPaletteData";
-import { parseComposerSlashQuery } from "../model/composerSlashCommands";
+import { findComposerSlashCommand, parseComposerSlashQuery } from "../model/composerSlashCommands";
 import { stopMentionSession, syncMentionSession, type MentionSessionRefs } from "../model/composerMentionSession";
 import {
   applySlashPermissionLevel,
@@ -89,6 +89,7 @@ interface UseComposerCommandPaletteState {
   readonly dismiss: () => Promise<void>;
   readonly handleKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => boolean;
   readonly onSelectItem: (index: number) => void;
+  readonly onHoverItem: (index: number) => void;
   readonly syncFromTextInput: (value: string, caret: number) => void;
   readonly syncFromTextareaSelection: () => void;
 }
@@ -144,6 +145,11 @@ export function useComposerCommandPalette(
     ],
   );
   const [selectedIndex, setSelectedIndex] = useBoundedSelection(items.length);
+  const suppressSlashPalette = useMemo(
+    () => shouldSuppressSlashPalette(trigger.mode, trigger.activeTrigger),
+    [trigger.activeTrigger, trigger.mode],
+  );
+  const visibleMode = suppressSlashPalette ? null : trigger.mode;
   const slashContext = useMemo<SlashExecutionContext>(() => ({
     selectedThreadId: options.selectedThreadId,
     selectedRootPath: options.selectedRootPath,
@@ -175,17 +181,20 @@ export function useComposerCommandPalette(
   }, [mention, setSelectedIndex, trigger]);
   const selectItem = useSelectPaletteItem(options, trigger, mention, dismiss, slashContext, slashDeps, customPrompts);
   const selectCurrentItem = useCallback(() => selectItem(items[selectedIndex] ?? null), [items, selectedIndex, selectItem]);
-  const handleKeyDown = usePaletteKeyboard(trigger.mode, items.length, setSelectedIndex, dismiss, selectCurrentItem);
+  const completeItem = useCompletePaletteItem(options, trigger);
+  const completeCurrentItem = useCallback(() => completeItem(items[selectedIndex] ?? null), [completeItem, items, selectedIndex]);
+  const handleKeyDown = usePaletteKeyboard(trigger.mode, items.length, setSelectedIndex, dismiss, selectCurrentItem, completeCurrentItem);
 
   return {
     textareaRef: trigger.textareaRef,
-    open: trigger.mode !== null,
-    title: getPaletteTitle(trigger.mode),
+    open: visibleMode !== null,
+    title: getPaletteTitle(visibleMode),
     items,
     selectedIndex,
     dismiss,
     handleKeyDown,
     onSelectItem: (index) => void selectItem(items[index] ?? null),
+    onHoverItem: (index) => setSelectedIndex(index),
     syncFromTextInput: trigger.syncFromTextInput,
     syncFromTextareaSelection: trigger.syncFromTextareaSelection,
   };
@@ -449,7 +458,36 @@ async function selectCustomPromptItem(
   focusTextarea(trigger.textareaRef, caret);
 }
 
-function usePaletteKeyboard(mode: PaletteMode, itemCount: number, setSelectedIndex: Dispatch<SetStateAction<number>>, dismiss: () => Promise<void>, selectCurrentItem: () => Promise<void>) {
+function useCompletePaletteItem(options: UseComposerCommandPaletteOptions, trigger: ReturnType<typeof usePaletteTrigger>) {
+  return useCallback((item: ComposerCommandPaletteItem | null) => {
+    if (item === null || item.disabled || trigger.activeTrigger === null) {
+      return;
+    }
+    if (trigger.activeTrigger.kind === "slash") {
+      const slashCommand = item.label.startsWith("/") ? item.label : `/${item.key}`;
+      const next = replaceComposerTrigger(options.inputText, trigger.activeTrigger.range, `${slashCommand} `);
+      options.onInputChange(next.text);
+      trigger.setSuppressedTriggerKey(null);
+      focusTextarea(trigger.textareaRef, next.caret);
+      return;
+    }
+    if (trigger.activeTrigger.kind === "skill") {
+      const skillCommand = item.label.startsWith("$") ? item.label : `$${item.label}`;
+      const next = replaceComposerTrigger(options.inputText, trigger.activeTrigger.range, `${skillCommand} `);
+      options.onInputChange(next.text);
+      trigger.setSuppressedTriggerKey(null);
+      focusTextarea(trigger.textareaRef, next.caret);
+      return;
+    }
+    const mentionReference = item.description || item.label;
+    const mentionToken = mentionReference.startsWith("@") ? mentionReference : `@${mentionReference}`;
+    const next = replaceComposerTrigger(options.inputText, trigger.activeTrigger.range, `${mentionToken} `);
+    options.onInputChange(next.text);
+    focusTextarea(trigger.textareaRef, next.caret);
+  }, [options, trigger]);
+}
+
+function usePaletteKeyboard(mode: PaletteMode, itemCount: number, setSelectedIndex: Dispatch<SetStateAction<number>>, dismiss: () => Promise<void>, selectCurrentItem: () => Promise<void>, completeCurrentItem: () => void) {
   return useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (mode === null || itemCount === 0) return false;
     if (event.key === "ArrowDown") {
@@ -460,6 +498,11 @@ function usePaletteKeyboard(mode: PaletteMode, itemCount: number, setSelectedInd
     if (event.key === "ArrowUp") {
       event.preventDefault();
       setSelectedIndex((current) => (current - 1 + itemCount) % itemCount);
+      return true;
+    }
+    if (event.key === "Tab") {
+      event.preventDefault();
+      completeCurrentItem();
       return true;
     }
     if (event.key === "Enter") {
@@ -473,7 +516,22 @@ function usePaletteKeyboard(mode: PaletteMode, itemCount: number, setSelectedInd
       return true;
     }
     return false;
-  }, [dismiss, itemCount, mode, selectCurrentItem, setSelectedIndex]);
+  }, [completeCurrentItem, dismiss, itemCount, mode, selectCurrentItem, setSelectedIndex]);
+}
+
+function shouldSuppressSlashPalette(mode: PaletteMode, activeTrigger: ComposerActiveTrigger | null): boolean {
+  if (mode !== "slash-root" || activeTrigger?.kind !== "slash") {
+    return false;
+  }
+  if (!/\s/.test(activeTrigger.query)) {
+    return false;
+  }
+  const parsed = parseComposerSlashQuery(activeTrigger.query);
+  if (parsed.commandId === null) {
+    return false;
+  }
+  const command = findComposerSlashCommand(parsed.commandId);
+  return command !== null && !command.supportsInlineArgs;
 }
 
 function toErrorMessage(error: unknown): string {
