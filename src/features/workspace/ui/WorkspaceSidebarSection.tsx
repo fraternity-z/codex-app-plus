@@ -188,9 +188,10 @@ const WorkspaceThreadItem = memo(function WorkspaceThreadItem(props: {
 });
 
 function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
-  const handleOpenMenu = useCallback((event: MouseEvent<HTMLButtonElement>) => {
+  const handleOpenMenu = useCallback((event: MouseEvent<HTMLButtonElement | HTMLDivElement>) => {
+    event.preventDefault();
     event.stopPropagation();
-    props.onOpenMenu(event, props.root);
+    props.onOpenMenu(event as MouseEvent<HTMLButtonElement>, props.root);
   }, [props]);
 
   const handleCreateThread = useCallback((event: MouseEvent<HTMLButtonElement>) => {
@@ -205,7 +206,7 @@ function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
   ].filter(Boolean).join(" ");
 
   return (
-    <div className={rowClassName}>
+    <div className={rowClassName} onContextMenu={handleOpenMenu}>
       <button
         ref={props.setDragActivatorRef}
         type="button"
@@ -220,10 +221,10 @@ function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
       </button>
       {props.showActions ? (
         <div className="workspace-root-actions">
-          <button type="button" className="thread-item-tools workspace-root-action" aria-label={`工作区更多操作 ${props.root.name}`} title={`工作区更多操作 ${props.root.name}`} onClick={handleOpenMenu}>
+          <button type="button" className="thread-item-tools workspace-root-action" aria-label={`工作区更多操作 ${props.root.name}`} title={`工作区更多操作 ${props.root.name}`} onClick={handleOpenMenu} onContextMenu={handleOpenMenu}>
             <WorkspaceMoreIcon className="workspace-root-action-icon" />
           </button>
-          <button type="button" className="thread-item-tools workspace-root-action" aria-label={`在工作区 ${props.root.name} 中创建新会话`} title={`在工作区 ${props.root.name} 中创建新会话`} onClick={handleCreateThread}>
+          <button type="button" className="thread-item-tools workspace-root-action" aria-label={`在工作区 ${props.root.name} 中创建新会话`} title={`在工作区 ${props.root.name} 中创建新会话`} onClick={handleCreateThread} onContextMenu={handleOpenMenu}>
             <WorkspaceNewThreadIcon className="workspace-root-action-icon" />
           </button>
         </div>

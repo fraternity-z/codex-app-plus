@@ -181,9 +181,31 @@ describe("WorkspaceSidebarSection", () => {
 
     renderSection([createThread(ROOTS[0]!, 1)], { onRemoveRoot });
     fireEvent.click(screen.getByRole("button", { name: "工作区更多操作 FPGA" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "移除" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "从列表移除" }));
 
     await waitFor(() => expect(onRemoveRoot).toHaveBeenCalledWith(ROOTS[0]!.id));
+  });
+
+  it("opens the same workspace menu on right click", async () => {
+    const onRemoveRoot = vi.fn();
+
+    renderSection([createThread(ROOTS[0]!, 1)], { onRemoveRoot });
+    fireEvent.contextMenu(screen.getByText("FPGA").closest(".workspace-root-row") as HTMLElement);
+    fireEvent.click(screen.getByRole("menuitem", { name: "从列表移除" }));
+
+    await waitFor(() => expect(onRemoveRoot).toHaveBeenCalledWith(ROOTS[0]!.id));
+  });
+
+  it("opens the same workspace menu when right clicking either action button", () => {
+    renderSection([createThread(ROOTS[0]!, 1)]);
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: "工作区更多操作 FPGA" }));
+    expect(screen.getByRole("menuitem", { name: "从列表移除" })).toBeInTheDocument();
+
+    fireEvent.click(document.body);
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: "在工作区 FPGA 中创建新会话" }));
+    expect(screen.getByRole("menuitem", { name: "从列表移除" })).toBeInTheDocument();
   });
 
   it("shows explicit errors", () => {
