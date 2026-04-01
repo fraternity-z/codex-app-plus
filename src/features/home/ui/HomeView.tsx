@@ -124,6 +124,7 @@ export interface HomeViewProps {
   readonly onInterruptTurn: () => Promise<void>;
   readonly onAddRoot: () => void;
   readonly onRemoveRoot: (rootId: string) => void;
+  readonly onReorderRoots?: (fromIndex: number, toIndex: number) => void;
   readonly onRetryConnection: () => Promise<void>;
   readonly onLogin: () => Promise<void>;
   readonly onLogout: () => Promise<void>;

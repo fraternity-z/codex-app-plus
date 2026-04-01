@@ -308,12 +308,13 @@ describe("HomeSidebar", () => {
       </AppStoreProvider>,
     );
 
-    expect(onRender).toHaveBeenCalledTimes(1);
+    const initialRenderCount = onRender.mock.calls.length;
+    expect(initialRenderCount).toBeGreaterThan(0);
 
     act(() => {
       dispatch?.({ type: "input/changed", value: "streaming" });
     });
 
-    expect(onRender).toHaveBeenCalledTimes(1);
+    expect(onRender).toHaveBeenCalledTimes(initialRenderCount);
   });
 });

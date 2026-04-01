@@ -8,6 +8,23 @@
   line-height: 1.4;
 }
 
+.workspace-root-list {
+  position: relative;
+}
+
+.workspace-root-sortable-wrapper {
+  position: relative;
+}
+
+.workspace-root-sortable-item {
+  list-style: none;
+  will-change: transform;
+}
+
+.workspace-root-sortable-item-dragging {
+  opacity: 0;
+}
+
 .workspace-root-item {
   min-width: 0;
 }
@@ -17,6 +34,27 @@
   gap: 2px;
   margin: 0;
   padding: 0 2px;
+}
+
+.workspace-root-row-dragging {
+  opacity: 0.4;
+}
+
+.workspace-root-overlay {
+  padding: 0 6px;
+  box-shadow: var(--shadow-lg);
+  background: var(--surface-panel);
+}
+
+.workspace-root-drop-indicator {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: -1px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--accent-solid, var(--text-main));
+  pointer-events: none;
 }
 
 .workspace-root-row:hover,

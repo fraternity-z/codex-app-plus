@@ -1,5 +1,26 @@
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragMoveEvent,
+  type DragOverEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { memo, useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { listThreadsForWorkspace } from "../model/workspaceThread";
+import {
+  resolveWorkspaceDropTargetIndex,
+  type WorkspaceDnDHoverState,
+} from "../model/workspaceRootDnd";
 import type { WorkspaceRoot } from "../hooks/useWorkspaceRoots";
 import type { ThreadSummary } from "../../../domain/types";
 import { OfficialChevronRightIcon, OfficialFolderPlusIcon, OfficialSortIcon } from "../../shared/ui/officialIcons";
@@ -28,6 +49,7 @@ interface WorkspaceSidebarSectionProps {
   readonly onCreateThread: () => Promise<void>;
   readonly onCreateThreadInRoot?: (rootId: string) => Promise<void>;
   readonly onRemoveRoot: (rootId: string) => void;
+  readonly onReorderRoots?: (fromIndex: number, toIndex: number) => void;
 }
 
 interface WorkspaceRootRowProps {
@@ -38,6 +60,10 @@ interface WorkspaceRootRowProps {
   readonly onCreateThread: () => Promise<void>;
   readonly onToggleExpanded: (rootId: string) => void;
   readonly onOpenMenu: (event: MouseEvent<HTMLButtonElement>, root: WorkspaceRoot) => void;
+  readonly dragListeners?: ReturnType<typeof useSortable>["listeners"];
+  readonly dragAttributes?: ReturnType<typeof useSortable>["attributes"];
+  readonly setDragActivatorRef?: (element: HTMLElement | null) => void;
+  readonly dragging?: boolean;
 }
 
 interface WorkspaceRootItemProps {
@@ -53,6 +79,10 @@ interface WorkspaceRootItemProps {
   readonly onOpenMenu: (event: MouseEvent<HTMLButtonElement>, thread: ThreadSummary) => void;
   readonly onOpenRootMenu: (event: MouseEvent<HTMLButtonElement>, root: WorkspaceRoot) => void;
   readonly onToggleShowAllThreads: (rootId: string) => void;
+  readonly dragListeners?: ReturnType<typeof useSortable>["listeners"];
+  readonly dragAttributes?: ReturnType<typeof useSortable>["attributes"];
+  readonly setDragActivatorRef?: (element: HTMLElement | null) => void;
+  readonly dragging?: boolean;
 }
 
 interface ThreadMenuState {
@@ -158,10 +188,22 @@ function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
   }, [props]);
 
   const chevronClassName = props.expanded ? "workspace-chevron workspace-chevron-expanded" : "workspace-chevron";
-  const rowClassName = props.selected ? "thread-item thread-item-active workspace-root-row" : "thread-item workspace-root-row";
+  const rowClassName = [
+    props.selected ? "thread-item thread-item-active workspace-root-row" : "thread-item workspace-root-row",
+    props.dragging ? "workspace-root-row-dragging" : "",
+  ].filter(Boolean).join(" ");
+
   return (
     <div className={rowClassName}>
-      <button type="button" className="workspace-root-button" aria-label={props.expanded ? `收起工作区 ${props.root.name}` : `展开工作区 ${props.root.name}`} onClick={() => props.onToggleExpanded(props.root.id)}>
+      <button
+        ref={props.setDragActivatorRef}
+        type="button"
+        className="workspace-root-button"
+        aria-label={props.expanded ? `收起工作区 ${props.root.name}` : `展开工作区 ${props.root.name}`}
+        onClick={() => props.onToggleExpanded(props.root.id)}
+        {...props.dragAttributes}
+        {...props.dragListeners}
+      >
         <OfficialChevronRightIcon className={chevronClassName} />
         <span className="thread-label">{props.root.name}</span>
       </button>
@@ -211,7 +253,7 @@ function WorkspaceThreadList(props: {
 
 const WorkspaceRootItem = memo(function WorkspaceRootItem(props: WorkspaceRootItemProps): JSX.Element {
   return (
-    <li className="workspace-root-item">
+    <div className="workspace-root-item">
       <WorkspaceRootRow
         root={props.root}
         expanded={props.expanded}
@@ -220,10 +262,37 @@ const WorkspaceRootItem = memo(function WorkspaceRootItem(props: WorkspaceRootIt
         onCreateThread={props.onCreateThread}
         onToggleExpanded={props.onToggleExpanded}
         onOpenMenu={props.onOpenRootMenu}
+        dragListeners={props.dragListeners}
+        dragAttributes={props.dragAttributes}
+        setDragActivatorRef={props.setDragActivatorRef}
+        dragging={props.dragging}
       />
       {props.expanded ? (
         <WorkspaceThreadList rootId={props.root.id} threads={props.threads} selectedThreadId={props.selectedThreadId} showAllThreads={props.showAllThreads} onSelectThread={props.onSelectThread} onOpenMenu={props.onOpenMenu} onToggleShowAllThreads={props.onToggleShowAllThreads} />
       ) : null}
+    </div>
+  );
+});
+
+const SortableWorkspaceRootItem = memo(function SortableWorkspaceRootItem(props: WorkspaceRootItemProps): JSX.Element {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: props.root.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  const className = isDragging
+    ? "workspace-root-sortable-item workspace-root-sortable-item-dragging"
+    : "workspace-root-sortable-item";
+
+  return (
+    <li ref={setNodeRef} style={style} className={className} data-root-id={props.root.id}>
+      <WorkspaceRootItem
+        {...props}
+        dragListeners={listeners}
+        dragAttributes={attributes}
+        setDragActivatorRef={setActivatorNodeRef}
+        dragging={isDragging}
+      />
     </li>
   );
 });
@@ -233,6 +302,10 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
   const [expandedThreadRootIds, setExpandedThreadRootIds] = useState<ReadonlyArray<string>>([]);
   const { menuState, openThreadMenu, closeMenu, handleArchiveThread, handleDeleteThread } = useThreadMenuState(props);
   const workspaceRootMenu = useWorkspaceRootMenuState(props.onRemoveRoot);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const [hoverState, setHoverState] = useState<WorkspaceDnDHoverState>({ overId: null, enteredAt: 0 });
+  const [dropMarkerRootId, setDropMarkerRootId] = useState<string | null>(null);
+  const [activeRootId, setActiveRootId] = useState<string | null>(null);
 
   useEffect(() => {
     if (expandedThreadRootIds.length === 0) {
@@ -264,6 +337,76 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
     workspaceRootMenu.openMenu(event, root);
   }, [closeMenu, workspaceRootMenu]);
 
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const overId = event.over?.id;
+    if (typeof overId !== "string") {
+      return;
+    }
+    setHoverState((current) => current.overId === overId ? current : ({ overId, enteredAt: Date.now() }));
+  }, []);
+
+  const handleDragMove = useCallback((event: DragMoveEvent) => {
+    const overId = event.over?.id;
+    if (typeof overId === "string") {
+      setDropMarkerRootId(overId);
+    }
+  }, []);
+
+  const handleDragStart = useCallback((event: { active: { id: string | number } }) => {
+    if (typeof event.active.id === "string") {
+      setActiveRootId(event.active.id);
+      setDropMarkerRootId(event.active.id);
+    }
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const activeId = String(event.active.id);
+    const overId = event.over ? String(event.over.id) : null;
+    if (overId === null) {
+      setHoverState({ overId: null, enteredAt: 0 });
+      setDropMarkerRootId(null);
+      setActiveRootId(null);
+      return;
+    }
+
+    const overRect = event.over?.rect;
+    if (!overRect) {
+      setHoverState({ overId: null, enteredAt: 0 });
+      setDropMarkerRootId(null);
+      setActiveRootId(null);
+      return;
+    }
+
+    const translatedTop = event.active.rect.current.translated?.top;
+    const translatedHeight = event.active.rect.current.translated?.height;
+    const pointerY = (translatedTop ?? overRect.top) + ((translatedHeight ?? overRect.height) / 2);
+
+    const targetIndex = resolveWorkspaceDropTargetIndex({
+      roots: props.roots,
+      activeId,
+      overId,
+      pointerY,
+      overTop: overRect.top,
+      overHeight: overRect.height,
+      now: Date.now(),
+      hoverState,
+    });
+
+    const fromIndex = props.roots.findIndex((root) => root.id === activeId);
+    if (fromIndex >= 0 && targetIndex >= 0 && fromIndex !== targetIndex) {
+      props.onReorderRoots?.(fromIndex, targetIndex);
+    }
+
+    setHoverState({ overId: null, enteredAt: 0 });
+    setDropMarkerRootId(null);
+    setActiveRootId(null);
+  }, [hoverState, props]);
+
+  const activeRoot = useMemo(
+    () => props.roots.find((root) => root.id === activeRootId) ?? null,
+    [activeRootId, props.roots]
+  );
+
   return (
     <section className="thread-section">
       <div className="thread-section-header">
@@ -278,26 +421,52 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
         </div>
       </div>
       {props.error !== null ? <div className="thread-section-status" role="alert">加载会话失败：{props.error}</div> : null}
-      <ul className="thread-list">
-        {props.roots.map((root) => (
-          <WorkspaceRootItem
-            key={root.id}
-            root={root}
-            expanded={expandedRootIds.includes(root.id)}
-            selected={root.id === props.selectedRootId}
-            selectedThreadId={props.selectedThreadId}
-            threads={threadsByRootId.get(root.id) ?? []}
-            showAllThreads={expandedThreadRootIds.includes(root.id)}
-            onCreateThread={() => handleCreateThreadInRoot(root.id)}
-            onSelectThread={(threadId) => handleSelectWorkspaceThread(root.id, threadId)}
-            onToggleExpanded={toggleExpanded}
-            onOpenMenu={handleOpenThreadMenu}
-            onOpenRootMenu={handleOpenRootMenu}
-            onToggleShowAllThreads={toggleShowAllThreads}
-          />
-        ))}
-        {props.roots.length === 0 ? <li className="thread-empty">暂无工作区，点击左上角添加</li> : null}
-      </ul>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragMove={handleDragMove}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => {
+          setHoverState({ overId: null, enteredAt: 0 });
+          setDropMarkerRootId(null);
+          setActiveRootId(null);
+        }}
+      >
+        <SortableContext items={props.roots.map((root) => root.id)} strategy={verticalListSortingStrategy}>
+          <ul className="thread-list workspace-root-list">
+            {props.roots.map((root) => (
+              <div key={root.id} className="workspace-root-sortable-wrapper">
+                {dropMarkerRootId === root.id ? <div className="workspace-root-drop-indicator" aria-hidden="true" /> : null}
+                <SortableWorkspaceRootItem
+                  root={root}
+                  expanded={expandedRootIds.includes(root.id)}
+                  selected={root.id === props.selectedRootId}
+                  selectedThreadId={props.selectedThreadId}
+                  threads={threadsByRootId.get(root.id) ?? []}
+                  showAllThreads={expandedThreadRootIds.includes(root.id)}
+                  onCreateThread={() => handleCreateThreadInRoot(root.id)}
+                  onSelectThread={(threadId) => handleSelectWorkspaceThread(root.id, threadId)}
+                  onToggleExpanded={toggleExpanded}
+                  onOpenMenu={handleOpenThreadMenu}
+                  onOpenRootMenu={handleOpenRootMenu}
+                  onToggleShowAllThreads={toggleShowAllThreads}
+                />
+              </div>
+            ))}
+            {props.roots.length === 0 ? <li className="thread-empty">暂无工作区，点击左上角添加</li> : null}
+          </ul>
+        </SortableContext>
+        <DragOverlay>
+          {activeRoot ? (
+            <div className="workspace-root-overlay thread-item workspace-root-row thread-item-active">
+              <OfficialChevronRightIcon className="workspace-chevron" />
+              <span className="thread-label">{activeRoot.name}</span>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
       {menuState ? (
         <ThreadContextMenu
           x={menuState.x}

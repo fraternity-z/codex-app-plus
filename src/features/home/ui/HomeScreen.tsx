@@ -178,6 +178,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       onInterruptTurn={conversation.interruptActiveTurn}
       onAddRoot={actions.addRoot}
       onRemoveRoot={props.workspace.removeRoot}
+      onReorderRoots={props.workspace.reorderRoots}
       onRetryConnection={props.controller.retryConnection}
       onLogin={props.controller.login}
       onLogout={props.controller.logout}

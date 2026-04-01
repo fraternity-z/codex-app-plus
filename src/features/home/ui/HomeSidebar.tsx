@@ -38,6 +38,7 @@ export interface HomeSidebarProps {
   readonly onArchiveThread: (threadId: string) => Promise<void>;
   readonly onAddRoot: () => void;
   readonly onRemoveRoot: (rootId: string) => void;
+  readonly onReorderRoots?: (fromIndex: number, toIndex: number) => void;
 }
 
 function SidebarNav(props: {
@@ -79,6 +80,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
     onOpenSettings,
     onOpenSkills,
     onRemoveRoot,
+    onReorderRoots,
     onSelectRoot,
     onSelectThread,
     onSelectWorkspaceThread,
@@ -153,6 +155,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
         onCreateThread={onCreateThread}
         onCreateThreadInRoot={onCreateThreadInRoot}
         onRemoveRoot={onRemoveRoot}
+        onReorderRoots={onReorderRoots}
       />
       <div className="settings-slot">
         {settingsMenuOpen ? (

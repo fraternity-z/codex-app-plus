@@ -61,6 +61,33 @@ describe("useWorkspaceRoots", () => {
     expect(result.current.roots[0]).toMatchObject({ name: removedRoot.name, path: removedRoot.path });
   });
 
+  it("reorders roots and persists the new order", async () => {
+    const hook = renderHook(() => useWorkspaceRoots());
+
+    act(() => {
+      hook.result.current.addRoot({ name: "FPGA", path: "E:/code/FPGA" });
+      hook.result.current.addRoot({ name: "Codex", path: "E:/code/codex" });
+      hook.result.current.addRoot({ name: "Docs", path: "E:/docs" });
+    });
+
+    expect(hook.result.current.roots.map((root) => root.name)).toEqual(["FPGA", "Codex", "Docs"]);
+
+    act(() => {
+      hook.result.current.reorderRoots(2, 0);
+    });
+
+    expect(hook.result.current.roots.map((root) => root.name)).toEqual(["Docs", "FPGA", "Codex"]);
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem(ROOTS_STORAGE_KEY)).toContain("Docs");
+    });
+
+    hook.unmount();
+
+    const remounted = renderHook(() => useWorkspaceRoots());
+    expect(remounted.result.current.roots.map((root) => root.name)).toEqual(["Docs", "FPGA", "Codex"]);
+  });
+
   it("persists launch script settings for a workspace", async () => {
     const first = renderHook(() => useWorkspaceRoots());
 

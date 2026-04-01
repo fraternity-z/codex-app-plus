@@ -78,6 +78,7 @@ export function createHomeSidebarProps(
     onOpenSettings: props.onOpenSettings,
     onOpenSkills: props.onOpenSkills,
     onRemoveRoot: props.onRemoveRoot,
+    onReorderRoots: props.onReorderRoots,
     onSelectRoot: props.onSelectRoot,
     onSelectThread: props.onSelectThread,
     onSelectWorkspaceThread: props.onSelectWorkspaceThread,
