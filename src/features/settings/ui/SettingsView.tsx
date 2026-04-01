@@ -19,6 +19,7 @@ import type {
   UpdateGlobalAgentInstructionsInput,
 } from "../../../bridge/types";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
+import type { GitWorktreeEntry } from "../../../bridge/types";
 import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
 import "../../../styles/replica/replica-settings.css";
@@ -57,6 +58,9 @@ export interface SettingsViewProps {
   readonly appUpdate: AppUpdateState;
   readonly section: SettingsSection;
   readonly roots: ReadonlyArray<WorkspaceRoot>;
+  readonly worktrees?: ReadonlyArray<GitWorktreeEntry>;
+  readonly onCreateWorktree?: () => Promise<void>;
+  readonly onDeleteWorktree?: (worktreePath: string) => Promise<void>;
   readonly preferences: AppPreferencesController;
   readonly resolvedTheme: ResolvedTheme;
   readonly configSnapshot: ConfigReadResponse | null;
@@ -171,7 +175,7 @@ function SettingsSidebar(props: {
         {renderNavItem("mcp")}
         {renderNavItem("git")}
         {renderNavItem("environment")}
-        {renderNavItem("worktree", true)}
+        {renderNavItem("worktree")}
         {renderNavItem("archived")}
         {renderNavItem("about")}
       </nav>
@@ -284,7 +288,7 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
     return <EnvironmentContent roots={props.roots} onAddRoot={props.onAddRoot} />;
   }
   if (props.section === "worktree") {
-    return <WorktreeContent />;
+    return <WorktreeContent worktrees={props.worktrees ?? []} onCreateWorktree={props.onCreateWorktree} onDeleteWorktree={props.onDeleteWorktree} />;
   }
   return <PlaceholderContent sectionTitle={props.sectionTitle} />;
 }

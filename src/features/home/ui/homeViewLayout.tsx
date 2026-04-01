@@ -78,6 +78,8 @@ export function createHomeSidebarProps(
     onOpenSettings: props.onOpenSettings,
     onOpenSkills: props.onOpenSkills,
     onRemoveRoot: props.onRemoveRoot,
+    onCreateWorktree: props.onCreateWorktree,
+    onDeleteWorktree: props.onDeleteWorktree,
     onReorderRoots: props.onReorderRoots,
     onSelectRoot: props.onSelectRoot,
     onSelectThread: props.onSelectThread,
@@ -87,6 +89,7 @@ export function createHomeSidebarProps(
     selectedRootId: props.selectedRootId,
     selectedThreadId: props.selectedThreadId,
     settingsMenuOpen: props.settingsMenuOpen,
+    worktrees: props.worktrees,
   };
 }
 

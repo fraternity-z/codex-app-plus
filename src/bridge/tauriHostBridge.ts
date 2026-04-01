@@ -38,6 +38,9 @@ import type {
   GitStatusSnapshotOutput,
   GitWorkspaceDiffOutput,
   GitWorkspaceDiffsInput,
+  GitWorktreeAddInput,
+  GitWorktreeEntry,
+  GitWorktreeRemoveInput,
   GlobalAgentInstructionsOutput,
   GetCodexAuthModeStateInput,
   HostBridge,
@@ -267,6 +270,15 @@ export function createTauriHostBridge(): HostBridge {
           "git_get_workspace_diffs",
           input
         ),
+      getWorktrees: (input: GitRepoInput) =>
+        invokeWithInput<GitRepoInput, ReadonlyArray<GitWorktreeEntry>>(
+          "git_get_worktrees",
+          input
+        ),
+      addWorktree: (input: GitWorktreeAddInput) =>
+        invokeWithInput<GitWorktreeAddInput, GitWorktreeEntry>("git_add_worktree", input),
+      removeWorktree: (input: GitWorktreeRemoveInput) =>
+        invokeWithInput("git_remove_worktree", input),
       initRepository: (input: GitRepoInput) =>
         invokeWithInput("git_init_repository", input),
       stagePaths: (input: GitPathsInput) => invokeWithInput("git_stage_paths", input),

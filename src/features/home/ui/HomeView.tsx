@@ -11,6 +11,7 @@ import type {
   EmbeddedTerminalShell,
   HostBridge,
   WorkspaceOpener,
+  GitWorktreeEntry,
 } from "../../../bridge/types";
 import type {
   AccountSummary,
@@ -124,6 +125,9 @@ export interface HomeViewProps {
   readonly onInterruptTurn: () => Promise<void>;
   readonly onAddRoot: () => void;
   readonly onRemoveRoot: (rootId: string) => void;
+  readonly worktrees?: ReadonlyArray<GitWorktreeEntry>;
+  readonly onCreateWorktree?: (root: WorkspaceRoot) => Promise<void>;
+  readonly onDeleteWorktree?: (root: WorkspaceRoot) => Promise<void>;
   readonly onReorderRoots?: (fromIndex: number, toIndex: number) => void;
   readonly onRetryConnection: () => Promise<void>;
   readonly onLogin: () => Promise<void>;

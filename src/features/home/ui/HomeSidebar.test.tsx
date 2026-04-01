@@ -180,7 +180,7 @@ describe("HomeSidebar", () => {
     renderSidebar(createThread("codexData"), { onRemoveRoot });
 
     fireEvent.click(screen.getByRole("button", { name: "工作区更多操作 FPGA" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "移除" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "从列表移除" }));
 
     await waitFor(() => expect(onRemoveRoot).toHaveBeenCalledWith(ROOT.id));
   });

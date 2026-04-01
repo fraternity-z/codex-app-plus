@@ -40,6 +40,7 @@ interface WorkspaceSidebarSectionProps {
   readonly error: string | null;
   readonly selectedRootId: string | null;
   readonly selectedThreadId: string | null;
+  readonly worktreePaths?: ReadonlyArray<string>;
   readonly onSelectRoot: (rootId: string) => void;
   readonly onSelectThread: (threadId: string | null) => void;
   readonly onSelectWorkspaceThread?: (rootId: string, threadId: string | null) => void;
@@ -49,6 +50,8 @@ interface WorkspaceSidebarSectionProps {
   readonly onCreateThread: () => Promise<void>;
   readonly onCreateThreadInRoot?: (rootId: string) => Promise<void>;
   readonly onRemoveRoot: (rootId: string) => void;
+  readonly onCreateWorktree?: (root: WorkspaceRoot) => Promise<void>;
+  readonly onDeleteWorktree?: (root: WorkspaceRoot) => Promise<void>;
   readonly onReorderRoots?: (fromIndex: number, toIndex: number) => void;
 }
 
@@ -111,6 +114,14 @@ function canArchiveThread(thread: ThreadSummary): boolean { return thread.source
 
 function createThreadsByRootId(roots: ReadonlyArray<WorkspaceRoot>, codexSessions: ReadonlyArray<ThreadSummary>) {
   return new Map(roots.map((root) => [root.id, listThreadsForWorkspace(codexSessions, root.path)]));
+}
+
+function createWorktreePathSet(paths: ReadonlyArray<string> | undefined): ReadonlySet<string> {
+  return new Set((paths ?? []).map((path) => path.replace(/\\/g, "/").toLowerCase()));
+}
+
+function isWorktreeRoot(root: WorkspaceRoot, worktreePaths: ReadonlySet<string>): boolean {
+  return worktreePaths.has(root.path.replace(/\\/g, "/").toLowerCase());
 }
 
 function toggleRootId(rootIds: ReadonlyArray<string>, rootId: string): ReadonlyArray<string> {
@@ -301,7 +312,13 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
   const { expandedRootIds, toggleExpanded } = useExpandedRootIds(props.roots);
   const [expandedThreadRootIds, setExpandedThreadRootIds] = useState<ReadonlyArray<string>>([]);
   const { menuState, openThreadMenu, closeMenu, handleArchiveThread, handleDeleteThread } = useThreadMenuState(props);
-  const workspaceRootMenu = useWorkspaceRootMenuState(props.onRemoveRoot);
+  const worktreePathSet = useMemo(() => createWorktreePathSet(props.worktreePaths), [props.worktreePaths]);
+  const workspaceRootMenu = useWorkspaceRootMenuState({
+    onRemoveRoot: props.onRemoveRoot,
+    onCreateWorktree: props.onCreateWorktree,
+    onDeleteWorktree: props.onDeleteWorktree,
+    isWorktree: (root) => isWorktreeRoot(root, worktreePathSet),
+  });
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const [hoverState, setHoverState] = useState<WorkspaceDnDHoverState>({ overId: null, enteredAt: 0 });
   const [dropMarkerRootId, setDropMarkerRootId] = useState<string | null>(null);
@@ -482,6 +499,9 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
           rootName={workspaceRootMenu.menuState.root.name}
           x={workspaceRootMenu.menuState.x}
           y={workspaceRootMenu.menuState.y}
+          canDeleteWorktree={workspaceRootMenu.canDeleteWorktree}
+          onCreateWorktree={props.onCreateWorktree && workspaceRootMenu.menuState ? () => workspaceRootMenu.handleCreateWorktree() : undefined}
+          onDeleteWorktree={props.onDeleteWorktree && workspaceRootMenu.menuState ? () => workspaceRootMenu.handleDeleteWorktree() : undefined}
           onRemove={workspaceRootMenu.handleRemoveRoot}
           onClose={workspaceRootMenu.closeMenu}
         />

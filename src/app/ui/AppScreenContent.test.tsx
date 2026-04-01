@@ -60,12 +60,15 @@ function createPreferences(): AppPreferencesController {
 function createWorkspace(): WorkspaceRootController {
   return {
     roots: [],
+    managedWorktrees: [],
     selectedRoot: null,
     selectedRootId: null,
     selectRoot: vi.fn(),
     addRoot: vi.fn(),
     removeRoot: vi.fn(),
     reorderRoots: vi.fn(),
+    addManagedWorktree: vi.fn(),
+    removeManagedWorktree: vi.fn(),
     updateWorkspaceLaunchScripts: vi.fn(),
   };
 }

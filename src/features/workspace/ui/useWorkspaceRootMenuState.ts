@@ -1,7 +1,7 @@
 import { useCallback, useState, type MouseEvent } from "react";
 import type { WorkspaceRoot } from "../hooks/useWorkspaceRoots";
 
-const ROOT_MENU_WIDTH_PX = 132;
+const ROOT_MENU_WIDTH_PX = 168;
 const ROOT_MENU_OFFSET_PX = 6;
 const VIEWPORT_PADDING_PX = 8;
 
@@ -21,7 +21,12 @@ function createRootMenuPosition(button: HTMLButtonElement): Pick<WorkspaceRootMe
   };
 }
 
-export function useWorkspaceRootMenuState(onRemoveRoot: (rootId: string) => void) {
+export function useWorkspaceRootMenuState(options: {
+  readonly onRemoveRoot: (rootId: string) => void;
+  readonly onCreateWorktree?: (root: WorkspaceRoot) => void | Promise<void>;
+  readonly onDeleteWorktree?: (root: WorkspaceRoot) => void | Promise<void>;
+  readonly isWorktree?: (root: WorkspaceRoot) => boolean;
+}) {
   const [menuState, setMenuState] = useState<WorkspaceRootMenuState | null>(null);
 
   const openMenu = useCallback((event: MouseEvent<HTMLButtonElement>, root: WorkspaceRoot) => {
@@ -35,9 +40,33 @@ export function useWorkspaceRootMenuState(onRemoveRoot: (rootId: string) => void
     if (menuState === null) {
       return;
     }
-    onRemoveRoot(menuState.root.id);
+    options.onRemoveRoot(menuState.root.id);
     closeMenu();
-  }, [closeMenu, menuState, onRemoveRoot]);
+  }, [closeMenu, menuState, options]);
 
-  return { menuState, openMenu, closeMenu, handleRemoveRoot };
+  const handleCreateWorktree = useCallback(async () => {
+    if (menuState === null || options.onCreateWorktree === undefined) {
+      return;
+    }
+    await options.onCreateWorktree(menuState.root);
+    closeMenu();
+  }, [closeMenu, menuState, options]);
+
+  const handleDeleteWorktree = useCallback(async () => {
+    if (menuState === null || options.onDeleteWorktree === undefined) {
+      return;
+    }
+    await options.onDeleteWorktree(menuState.root);
+    closeMenu();
+  }, [closeMenu, menuState, options]);
+
+  return {
+    menuState,
+    openMenu,
+    closeMenu,
+    handleRemoveRoot,
+    handleCreateWorktree,
+    handleDeleteWorktree,
+    canDeleteWorktree: menuState !== null && (options.isWorktree?.(menuState.root) ?? false),
+  };
 }

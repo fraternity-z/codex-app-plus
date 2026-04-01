@@ -13,13 +13,6 @@ function SectionHeader(props: {
   );
 }
 
-function ToggleControl(props: { readonly checked?: boolean }): JSX.Element {
-  return (
-    <span className={props.checked ? "settings-toggle settings-toggle-on" : "settings-toggle"}>
-      <span className="settings-toggle-knob" />
-    </span>
-  );
-}
 
 export function EnvironmentContent(props: {
   readonly roots: ReadonlyArray<WorkspaceRoot>;
@@ -55,7 +48,11 @@ export function EnvironmentContent(props: {
   );
 }
 
-export function WorktreeContent(): JSX.Element {
+export function WorktreeContent(props: {
+  readonly worktrees: ReadonlyArray<{ readonly path: string; readonly branch: string | null; readonly isCurrent: boolean }>;
+  readonly onCreateWorktree?: () => Promise<void>;
+  readonly onDeleteWorktree?: (worktreePath: string) => Promise<void>;
+}): JSX.Element {
   const { t } = useI18n();
 
   return (
@@ -67,7 +64,9 @@ export function WorktreeContent(): JSX.Element {
             <strong>{t("settings.worktree.autoCleanLabel")}</strong>
             <p>{t("settings.worktree.autoCleanDescription")}</p>
           </div>
-          <ToggleControl checked />
+          <span className="settings-toggle settings-toggle-on">
+            <span className="settings-toggle-knob" />
+          </span>
         </div>
         <div className="settings-row">
           <div>
@@ -76,6 +75,39 @@ export function WorktreeContent(): JSX.Element {
           </div>
           <span className="settings-chip settings-chip-sm">15</span>
         </div>
+      </section>
+      <section className="settings-panel-group">
+        <h2 className="settings-section-title">{t("settings.worktree.managedTitle")}</h2>
+        <section className="settings-card">
+          {props.worktrees.length === 0 ? (
+            <div className="settings-empty">{t("settings.worktree.empty")}</div>
+          ) : (
+            props.worktrees.map((worktree) => (
+              <div key={worktree.path} className="settings-env-row">
+                <div className="settings-env-main">
+                  <strong>{worktree.branch ?? t("settings.worktree.unknownBranch")}</strong>
+                  <span>{worktree.path}</span>
+                </div>
+                {props.onDeleteWorktree ? (
+                  <button type="button" className="settings-head-action" onClick={() => {
+                    void props.onDeleteWorktree?.(worktree.path);
+                  }}>
+                    {t("settings.worktree.deleteAction")}
+                  </button>
+                ) : null}
+              </div>
+            ))
+          )}
+          {props.onCreateWorktree ? (
+            <div className="settings-section-head">
+              <button type="button" className="settings-head-action" onClick={() => {
+                void props.onCreateWorktree?.();
+              }}>
+                {t("settings.worktree.createAction")}
+              </button>
+            </div>
+          ) : null}
+        </section>
       </section>
     </div>
   );

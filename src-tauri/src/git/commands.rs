@@ -5,7 +5,8 @@ use crate::error::AppResult;
 use super::models::{
     GitBranchRef, GitCheckoutInput, GitCommitInput, GitDeleteBranchInput, GitDiffInput,
     GitDiffOutput, GitDiscardInput, GitPathsInput, GitPushInput, GitRemoteInput, GitRepoInput,
-    GitStatusSnapshotOutput, GitWorkspaceDiffOutput, GitWorkspaceDiffsInput,
+    GitStatusSnapshotOutput, GitWorkspaceDiffOutput, GitWorkspaceDiffsInput, GitWorktreeAddInput,
+    GitWorktreeEntry, GitWorktreeRemoveInput,
 };
 use super::repository::resolve_workspace;
 use super::runtime::GitRuntimeState;
@@ -77,6 +78,33 @@ pub async fn git_get_workspace_diffs(
 ) -> Result<Vec<GitWorkspaceDiffOutput>, String> {
     let cache = state.repository_cache();
     run_blocking(move || service::get_workspace_diffs(input, &cache)).await
+}
+
+#[tauri::command]
+pub async fn git_get_worktrees(
+    state: State<'_, GitRuntimeState>,
+    input: GitRepoInput,
+) -> Result<Vec<GitWorktreeEntry>, String> {
+    let cache = state.repository_cache();
+    run_blocking(move || service::get_worktrees(input, &cache)).await
+}
+
+#[tauri::command]
+pub async fn git_add_worktree(
+    state: State<'_, GitRuntimeState>,
+    input: GitWorktreeAddInput,
+) -> Result<GitWorktreeEntry, String> {
+    let cache = state.repository_cache();
+    run_blocking(move || service::add_worktree(input, &cache)).await
+}
+
+#[tauri::command]
+pub async fn git_remove_worktree(
+    state: State<'_, GitRuntimeState>,
+    input: GitWorktreeRemoveInput,
+) -> Result<(), String> {
+    let cache = state.repository_cache();
+    run_blocking(move || service::remove_worktree(input, &cache)).await
 }
 
 #[tauri::command]

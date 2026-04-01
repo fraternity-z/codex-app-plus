@@ -179,3 +179,31 @@ pub struct GitWorkspaceDiffOutput {
     pub additions: usize,
     pub deletions: usize,
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitWorktreeAddInput {
+    pub repo_path: String,
+    pub branch_name: String,
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitWorktreeRemoveInput {
+    pub repo_path: String,
+    pub worktree_path: String,
+    pub force: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GitWorktreeEntry {
+    pub path: String,
+    pub branch: Option<String>,
+    pub head: Option<String>,
+    pub is_current: bool,
+    pub is_locked: bool,
+    pub prunable: bool,
+}
+

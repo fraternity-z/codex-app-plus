@@ -101,3 +101,23 @@ export interface GitWorkspaceDiffOutput {
   readonly additions: number;
   readonly deletions: number;
 }
+
+export interface GitWorktreeEntry {
+  readonly path: string;
+  readonly branch: string | null;
+  readonly head: string | null;
+  readonly isCurrent: boolean;
+  readonly isLocked: boolean;
+  readonly prunable: boolean;
+}
+
+export interface GitWorktreeAddInput extends GitRepoInput {
+  readonly branchName: string;
+  readonly name?: string;
+}
+
+export interface GitWorktreeRemoveInput extends GitRepoInput {
+  readonly worktreePath: string;
+  readonly force?: boolean;
+}
+

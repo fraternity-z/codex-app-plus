@@ -7,7 +7,9 @@ import {
 import { writeStoredJson, readStoredJson } from "../../shared/utils/storageJson";
 
 const ROOTS_STORAGE_KEY = "codex-app-plus.workspace-roots";
+const MANAGED_WORKTREES_STORAGE_KEY = "codex-app-plus.managed-worktrees";
 const EMPTY_ROOTS: ReadonlyArray<WorkspaceRoot> = [];
+const EMPTY_MANAGED_WORKTREES: ReadonlyArray<ManagedWorktreeRecord> = [];
 
 export interface WorkspaceRoot {
   readonly id: string;
@@ -15,6 +17,12 @@ export interface WorkspaceRoot {
   readonly path: string;
   readonly launchScript?: string | null;
   readonly launchScripts?: ReadonlyArray<LaunchScriptEntry> | null;
+}
+
+export interface ManagedWorktreeRecord {
+  readonly path: string;
+  readonly branch: string | null;
+  readonly createdAt: string;
 }
 
 export interface AddWorkspaceRootInput {
@@ -30,12 +38,15 @@ export interface UpdateWorkspaceLaunchScriptsInput {
 
 export interface WorkspaceRootController {
   readonly roots: ReadonlyArray<WorkspaceRoot>;
+  readonly managedWorktrees: ReadonlyArray<ManagedWorktreeRecord>;
   readonly selectedRoot: WorkspaceRoot | null;
   readonly selectedRootId: string | null;
   selectRoot: (rootId: string) => void;
   addRoot: (input: AddWorkspaceRootInput) => void;
   removeRoot: (rootId: string) => void;
   reorderRoots: (fromIndex: number, toIndex: number) => void;
+  addManagedWorktree: (input: { readonly path: string; readonly branch: string | null }) => void;
+  removeManagedWorktree: (path: string) => void;
   updateWorkspaceLaunchScripts: (input: UpdateWorkspaceLaunchScriptsInput) => void;
 }
 
@@ -78,6 +89,29 @@ function parseStoredRootsValue(value: unknown): ReadonlyArray<WorkspaceRoot> {
     return EMPTY_ROOTS;
   }
   return value.map(normalizeStoredRoot).filter((root): root is WorkspaceRoot => root !== null);
+}
+
+function normalizeManagedWorktree(value: unknown): ManagedWorktreeRecord | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+  const record = value as { path?: unknown; branch?: unknown; createdAt?: unknown };
+  const path = typeof record.path === "string" ? trimWorkspaceText(record.path) : "";
+  if (path.length === 0) {
+    return null;
+  }
+  return {
+    path,
+    branch: typeof record.branch === "string" ? record.branch : null,
+    createdAt: typeof record.createdAt === "string" ? record.createdAt : new Date(0).toISOString(),
+  };
+}
+
+function parseManagedWorktreesValue(value: unknown): ReadonlyArray<ManagedWorktreeRecord> {
+  if (!Array.isArray(value)) {
+    return EMPTY_MANAGED_WORKTREES;
+  }
+  return value.map(normalizeManagedWorktree).filter((item): item is ManagedWorktreeRecord => item !== null);
 }
 
 function rootKey(root: Pick<WorkspaceRoot, "name" | "path">): string {
@@ -170,11 +204,18 @@ export function useWorkspaceRoots(): WorkspaceRootController {
   const [roots, setRoots] = useState<ReadonlyArray<WorkspaceRoot>>(() =>
     readStoredJson(ROOTS_STORAGE_KEY, parseStoredRootsValue, EMPTY_ROOTS)
   );
+  const [managedWorktrees, setManagedWorktrees] = useState<ReadonlyArray<ManagedWorktreeRecord>>(() =>
+    readStoredJson(MANAGED_WORKTREES_STORAGE_KEY, parseManagedWorktreesValue, EMPTY_MANAGED_WORKTREES)
+  );
   const [selectedRootId, setSelectedRootId] = useState<string | null>(null);
 
   useEffect(() => {
     writeStoredJson(ROOTS_STORAGE_KEY, roots);
   }, [roots]);
+
+  useEffect(() => {
+    writeStoredJson(MANAGED_WORKTREES_STORAGE_KEY, managedWorktrees);
+  }, [managedWorktrees]);
 
   useEffect(() => {
     if (selectedRootId !== null && roots.some((root) => root.id === selectedRootId)) {
@@ -229,6 +270,23 @@ export function useWorkspaceRoots(): WorkspaceRootController {
     setRoots((current) => reorderRootsByIndex(current, fromIndex, toIndex));
   }, []);
 
+  const addManagedWorktree = useCallback((input: { readonly path: string; readonly branch: string | null }) => {
+    const normalizedPath = trimWorkspaceText(input.path);
+    if (normalizedPath.length === 0) {
+      return;
+    }
+    setManagedWorktrees((current) => {
+      const pathKey = normalizeWorkspacePath(normalizedPath);
+      const remaining = current.filter((item) => normalizeWorkspacePath(item.path) !== pathKey);
+      return [...remaining, { path: normalizedPath, branch: input.branch, createdAt: new Date().toISOString() }];
+    });
+  }, []);
+
+  const removeManagedWorktree = useCallback((path: string) => {
+    const pathKey = normalizeWorkspacePath(path);
+    setManagedWorktrees((current) => current.filter((item) => normalizeWorkspacePath(item.path) !== pathKey));
+  }, []);
+
   const selectedRoot = useMemo(
     () => roots.find((root) => root.id === selectedRootId) ?? null,
     [roots, selectedRootId],
@@ -237,14 +295,28 @@ export function useWorkspaceRoots(): WorkspaceRootController {
   return useMemo(
     () => ({
       roots,
+      managedWorktrees,
       selectedRoot,
       selectedRootId,
       selectRoot: setSelectedRootId,
       addRoot,
       removeRoot,
       reorderRoots,
+      addManagedWorktree,
+      removeManagedWorktree,
       updateWorkspaceLaunchScripts,
     }),
-    [addRoot, removeRoot, reorderRoots, roots, selectedRoot, selectedRootId, updateWorkspaceLaunchScripts]
+    [
+      addManagedWorktree,
+      addRoot,
+      managedWorktrees,
+      removeManagedWorktree,
+      removeRoot,
+      reorderRoots,
+      roots,
+      selectedRoot,
+      selectedRootId,
+      updateWorkspaceLaunchScripts,
+    ]
   );
 }

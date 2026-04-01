@@ -53,6 +53,9 @@ function createBaseProps(
     appUpdate: INITIAL_APP_UPDATE_STATE,
     section: "general",
     roots: [],
+    worktrees: [],
+    onCreateWorktree: vi.fn().mockResolvedValue(undefined),
+    onDeleteWorktree: vi.fn().mockResolvedValue(undefined),
     preferences: createPreferencesController(),
     resolvedTheme: "light",
     configSnapshot: createConfigSnapshot(),
@@ -165,12 +168,26 @@ describe("SettingsView", () => {
     expect(screen.queryByText("应用更新")).toBeNull();
   });
 
-  it("renders app updates in the about section", () => {
-    render(<SettingsView {...createBaseProps({ section: "about" })} />, {
+  it("renders managed worktree list without main worktree", () => {
+    render(<SettingsView {...createBaseProps({
+      section: "worktree",
+      worktrees: [
+        {
+          path: "E:/worktrees/feature-a",
+          branch: "feature-a",
+          head: null,
+          isCurrent: false,
+          isLocked: false,
+          prunable: false,
+        },
+      ],
+    })} />, {
       wrapper: createI18nWrapper("zh-CN"),
     });
 
-    expect(screen.getByRole("heading", { name: "关于" })).toBeInTheDocument();
-    expect(screen.getByText("应用更新")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "工作树" })).toBeInTheDocument();
+    expect(screen.getByText("尚无工作树")).toBeInTheDocument();
+    expect(screen.getByText("feature-a")).toBeInTheDocument();
+    expect(screen.queryByText("main")).toBeNull();
   });
 });

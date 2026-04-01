@@ -88,6 +88,44 @@ describe("useWorkspaceRoots", () => {
     expect(remounted.result.current.roots.map((root) => root.name)).toEqual(["Docs", "FPGA", "Codex"]);
   });
 
+  it("persists managed worktrees after remount", async () => {
+    const hook = renderHook(() => useWorkspaceRoots());
+
+    act(() => {
+      hook.result.current.addManagedWorktree({
+        path: "E:/code/codex-worktrees/feature-a",
+        branch: "feature-a",
+      });
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem("codex-app-plus.managed-worktrees")).toContain("feature-a");
+    });
+
+    hook.unmount();
+
+    const remounted = renderHook(() => useWorkspaceRoots());
+    expect(remounted.result.current.managedWorktrees).toHaveLength(1);
+    expect(remounted.result.current.managedWorktrees[0]).toMatchObject({
+      path: "E:/code/codex-worktrees/feature-a",
+      branch: "feature-a",
+    });
+  });
+
+  it("removes managed worktrees by path", () => {
+    const hook = renderHook(() => useWorkspaceRoots());
+
+    act(() => {
+      hook.result.current.addManagedWorktree({
+        path: "E:/code/codex-worktrees/feature-a",
+        branch: "feature-a",
+      });
+      hook.result.current.removeManagedWorktree("E:/code/codex-worktrees/feature-a");
+    });
+
+    expect(hook.result.current.managedWorktrees).toEqual([]);
+  });
+
   it("persists launch script settings for a workspace", async () => {
     const first = renderHook(() => useWorkspaceRoots());
 

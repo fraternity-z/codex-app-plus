@@ -66,6 +66,9 @@ import type {
   GitStatusSnapshotOutput,
   GitWorkspaceDiffOutput,
   GitWorkspaceDiffsInput,
+  GitWorktreeAddInput,
+  GitWorktreeEntry,
+  GitWorktreeRemoveInput,
 } from "./gitTypes";
 import type {
   TerminalCloseInput,
@@ -141,6 +144,9 @@ export interface HostBridge {
     getRemoteUrl(input: GitRemoteInput): Promise<string | null>;
     getDiff(input: GitDiffInput): Promise<GitDiffOutput>;
     getWorkspaceDiffs(input: GitWorkspaceDiffsInput): Promise<ReadonlyArray<GitWorkspaceDiffOutput>>;
+    getWorktrees(input: GitRepoInput): Promise<ReadonlyArray<GitWorktreeEntry>>;
+    addWorktree(input: GitWorktreeAddInput): Promise<GitWorktreeEntry>;
+    removeWorktree(input: GitWorktreeRemoveInput): Promise<void>;
     initRepository(input: GitRepoInput): Promise<void>;
     stagePaths(input: GitPathsInput): Promise<void>;
     unstagePaths(input: GitPathsInput): Promise<void>;

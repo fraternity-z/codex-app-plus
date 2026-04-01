@@ -103,6 +103,7 @@ function renderHomeScreen(props: AppScreenContentProps): JSX.Element {
       workspace={props.workspace}
       onDismissSettingsMenu={props.onDismissSettingsMenu}
       onOpenSettings={props.onOpenSettings}
+      onOpenSettingsSection={props.onOpenSettingsSection}
       onOpenSkills={props.onOpenSkills}
       onToggleSettingsMenu={props.onToggleSettingsMenu}
     />

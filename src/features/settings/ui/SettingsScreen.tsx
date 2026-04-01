@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback } from "react";
-import type { HostBridge } from "../../../bridge/types";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import type { HostBridge, GitWorktreeEntry } from "../../../bridge/types";
 import { readUserConfigWriteTarget } from "../config/configWriteTarget";
 import type { AppPreferencesController } from "../hooks/useAppPreferences";
 import { requestWorkspaceFolder } from "../../../app/workspacePicker";
@@ -32,6 +32,34 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
   const state = useSettingsScreenState();
   const { reportError } = useUiBannerNotifications("settings-screen");
   const steerState = selectSteerFeatureState(state.experimentalFeatures, state.configSnapshot);
+  const [worktrees, setWorktrees] = useState<ReadonlyArray<GitWorktreeEntry>>([]);
+  const selectedRootPath = props.workspace.selectedRoot?.path ?? null;
+  const managedWorktreeSet = useMemo(
+    () => new Set(props.workspace.managedWorktrees.map((item) => item.path.replace(/\\/g, "/").toLowerCase())),
+    [props.workspace.managedWorktrees],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    if (props.section !== "worktree" || selectedRootPath === null) {
+      setWorktrees([]);
+      return;
+    }
+    void props.hostBridge.git.getWorktrees({ repoPath: selectedRootPath }).then((entries) => {
+      if (!cancelled) {
+        setWorktrees(entries.filter((entry) => managedWorktreeSet.has(entry.path.replace(/\\/g, "/").toLowerCase())));
+      }
+    }).catch((error) => {
+      if (!cancelled) {
+        setWorktrees([]);
+      }
+      reportError("读取工作树失败", error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [props.hostBridge.git, props.section, reportError, selectedRootPath, managedWorktreeSet]);
+
   const addRoot = useCallback(async () => {
     try {
       const root = await requestWorkspaceFolder("选择工作区", "暂不支持一次选择多个工作区。");
@@ -54,10 +82,59 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     }
   }, [props.hostBridge.app, props.preferences.agentEnvironment, reportError, state.configSnapshot]);
 
+  const createWorktree = useCallback(async () => {
+    if (selectedRootPath === null) {
+      return;
+    }
+    const branchName = window.prompt("请输入新的 worktree 分支名");
+    if (branchName === null || branchName.trim().length === 0) {
+      return;
+    }
+    try {
+      const created = await props.hostBridge.git.addWorktree({
+        repoPath: selectedRootPath,
+        branchName: branchName.trim(),
+      });
+      props.workspace.addRoot({ name: created.branch ?? created.path, path: created.path });
+      props.workspace.addManagedWorktree({ path: created.path, branch: created.branch });
+      const entries = await props.hostBridge.git.getWorktrees({ repoPath: selectedRootPath });
+      setWorktrees(entries.filter((entry) => {
+        const normalizedPath = entry.path.replace(/\\/g, "/").toLowerCase();
+        return normalizedPath === created.path.replace(/\\/g, "/").toLowerCase() || managedWorktreeSet.has(normalizedPath);
+      }));
+    } catch (error) {
+      reportError("创建工作树失败", error);
+    }
+  }, [props.hostBridge.git, props.workspace, reportError, selectedRootPath, managedWorktreeSet]);
+
+  const deleteWorktree = useCallback(async (worktreePath: string) => {
+    if (selectedRootPath === null) {
+      return;
+    }
+    try {
+      await props.hostBridge.git.removeWorktree({
+        repoPath: selectedRootPath,
+        worktreePath,
+      });
+      const matchedRoot = props.workspace.roots.find((root) => root.path === worktreePath);
+      if (matchedRoot) {
+        props.workspace.removeRoot(matchedRoot.id);
+      }
+      props.workspace.removeManagedWorktree(worktreePath);
+      const remaining = await props.hostBridge.git.getWorktrees({ repoPath: selectedRootPath });
+      setWorktrees(remaining.filter((entry) => managedWorktreeSet.has(entry.path.replace(/\\/g, "/").toLowerCase()) && entry.path !== worktreePath));
+    } catch (error) {
+      reportError("删除工作树失败", error);
+    }
+  }, [props.hostBridge.git, props.workspace, reportError, selectedRootPath, managedWorktreeSet]);
+
   const settingsProps: SettingsViewProps = {
     appUpdate: state.appUpdate,
     section: props.section,
     roots: props.workspace.roots,
+    worktrees,
+    onCreateWorktree: createWorktree,
+    onDeleteWorktree: deleteWorktree,
     preferences: props.preferences,
     resolvedTheme: props.resolvedTheme,
     configSnapshot: state.configSnapshot,

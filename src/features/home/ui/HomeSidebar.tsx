@@ -1,7 +1,7 @@
 import { memo, useCallback, useMemo } from "react";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import { collectDescendantThreadIds, createRpcThreadRuntimeCleanupTransport, forceCloseThreadRuntime, reportThreadCleanupError } from "../../conversation/service/threadRuntimeCleanup";
-import type { HostBridge } from "../../../bridge/types";
+import type { HostBridge, GitWorktreeEntry } from "../../../bridge/types";
 import type { AuthStatus, ThreadSummary } from "../../../domain/types";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import { useAppDispatch, useAppStoreApi } from "../../../state/store";
@@ -38,6 +38,9 @@ export interface HomeSidebarProps {
   readonly onArchiveThread: (threadId: string) => Promise<void>;
   readonly onAddRoot: () => void;
   readonly onRemoveRoot: (rootId: string) => void;
+  readonly worktrees?: ReadonlyArray<GitWorktreeEntry>;
+  readonly onCreateWorktree?: (root: WorkspaceRoot) => Promise<void>;
+  readonly onDeleteWorktree?: (root: WorkspaceRoot) => Promise<void>;
   readonly onReorderRoots?: (fromIndex: number, toIndex: number) => void;
 }
 
@@ -80,6 +83,8 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
     onOpenSettings,
     onOpenSkills,
     onRemoveRoot,
+    onCreateWorktree,
+    onDeleteWorktree,
     onReorderRoots,
     onSelectRoot,
     onSelectThread,
@@ -89,6 +94,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
     selectedRootId,
     selectedThreadId,
     settingsMenuOpen,
+    worktrees,
   } = props;
   const dispatch = useAppDispatch();
   const store = useAppStoreApi();
@@ -146,6 +152,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
         error={codexSessionsError}
         selectedRootId={selectedRootId}
         selectedThreadId={selectedThreadId}
+        worktreePaths={worktrees?.map((worktree) => worktree.path)}
         onSelectRoot={onSelectRoot}
         onSelectThread={onSelectThread}
         onSelectWorkspaceThread={onSelectWorkspaceThread}
@@ -155,6 +162,8 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
         onCreateThread={onCreateThread}
         onCreateThreadInRoot={onCreateThreadInRoot}
         onRemoveRoot={onRemoveRoot}
+        onCreateWorktree={onCreateWorktree}
+        onDeleteWorktree={onDeleteWorktree}
         onReorderRoots={onReorderRoots}
       />
       <div className="settings-slot">
