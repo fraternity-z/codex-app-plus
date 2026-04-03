@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import type { ComposerPermissionLevel } from "../../composer/model/composerPermission";
 import type {
   ComposerModelOption,
@@ -141,7 +141,7 @@ export interface HomeViewProps {
   readonly onDismissBanner: (bannerId: string) => void;
 }
 
-export function HomeView(props: HomeViewProps): JSX.Element {
+export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Element {
   const uiState = useHomeViewUiState(props.selectedRootPath);
   const selectedRoot = useMemo(
     () => props.roots.find((root) => root.id === props.selectedRootId) ?? null,
@@ -191,17 +191,23 @@ export function HomeView(props: HomeViewProps): JSX.Element {
     }
     terminalController.showPanel();
   }, [terminalController, uiState.openTerminal]);
-  const sidebarProps = createHomeSidebarProps(props, uiState.sidebarCollapsed);
-  const contentProps = createHomeMainContentProps(
-    props,
-    gitController,
-    launchState,
-    filteredActivities,
-    retryInfo,
-    uiState.openTerminal,
-    uiState.canShowDiffSidebar,
-    toggleTerminal,
-    uiState.toggleDiffSidebar,
+  const sidebarProps = useMemo(
+    () => createHomeSidebarProps(props, uiState.sidebarCollapsed),
+    [props, uiState.sidebarCollapsed],
+  );
+  const contentProps = useMemo(
+    () => createHomeMainContentProps(
+      props,
+      gitController,
+      launchState,
+      filteredActivities,
+      retryInfo,
+      uiState.openTerminal,
+      uiState.canShowDiffSidebar,
+      toggleTerminal,
+      uiState.toggleDiffSidebar,
+    ),
+    [props, gitController, launchState, filteredActivities, retryInfo, uiState.openTerminal, uiState.canShowDiffSidebar, toggleTerminal, uiState.toggleDiffSidebar],
   );
 
   return (
@@ -244,4 +250,4 @@ export function HomeView(props: HomeViewProps): JSX.Element {
       />
     </div>
   );
-}
+});

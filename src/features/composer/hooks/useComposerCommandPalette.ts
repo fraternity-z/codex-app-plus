@@ -4,10 +4,8 @@ import {
   useMemo,
   useRef,
   useState,
-  type Dispatch,
   type KeyboardEvent,
   type RefObject,
-  type SetStateAction,
 } from "react";
 import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
@@ -26,8 +24,9 @@ import { executeSlashCommand, focusTextarea, readTextareaCaret, toPermissionLeve
 import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import { customPromptNameFromPaletteKey } from "../model/customPromptPalette";
 import { createCustomPromptCommandInsert } from "../model/customPromptTemplate";
-import { getActiveComposerTrigger, replaceComposerTrigger, type ComposerActiveTrigger } from "../model/composerInputTriggers";
-import { createPaletteItems, createTriggerKey, getPaletteTitle, type PaletteMode } from "../model/composerPaletteData";
+import type { ComposerActiveTrigger } from "../model/composerInputTriggers";
+import { replaceComposerTrigger } from "../model/composerInputTriggers";
+import { createPaletteItems, getPaletteTitle, type PaletteMode } from "../model/composerPaletteData";
 import { findComposerSlashCommand, parseComposerSlashQuery } from "../model/composerSlashCommands";
 import { stopMentionSession, syncMentionSession, type MentionSessionRefs } from "../model/composerMentionSession";
 import {
@@ -44,8 +43,9 @@ import {
   useSlashCollections,
   useSlashRuntimeState,
 } from "./composerCommandPaletteState";
+import { usePaletteTrigger, useBoundedSelection, usePaletteKeyboard } from "./usePaletteTrigger";
 
-type ManualPaletteMode = "slash-model" | "slash-permissions" | "slash-collab" | "slash-resume" | "slash-personality" | null;
+const NO_WORKSPACE_MESSAGE = "请先选择工作区后再使用 @ 文件提及。";
 
 interface SkillPaletteSession {
   readonly skills: ReadonlyArray<SkillMetadata>;
@@ -94,7 +94,6 @@ interface UseComposerCommandPaletteState {
   readonly syncFromTextareaSelection: () => void;
 }
 
-const NO_WORKSPACE_MESSAGE = "请先选择工作区后再使用 @ 文件提及。";
 const LOCAL_OR_PICKER_COMMANDS = new Set(["new", "clear", "diff", "mention", "model", "approvals", "permissions", "collab", "resume", "personality"]);
 
 export function useComposerCommandPalette(
@@ -200,50 +199,6 @@ export function useComposerCommandPalette(
   };
 }
 
-function usePaletteTrigger(inputText: string) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [caret, setCaret] = useState(0);
-  const [manualMode, setManualMode] = useState<ManualPaletteMode>(null);
-  const [suppressedTriggerKey, setSuppressedTriggerKey] = useState<string | null>(null);
-  const detectedTrigger = useMemo(() => getActiveComposerTrigger(inputText, caret), [caret, inputText]);
-  const triggerKey = useMemo(() => createTriggerKey(detectedTrigger), [detectedTrigger]);
-  const activeTrigger = useMemo(() => suppressedTriggerKey === triggerKey ? null : detectedTrigger, [detectedTrigger, suppressedTriggerKey, triggerKey]);
-  const mode = useMemo<PaletteMode>(() => {
-    if (manualMode !== null) {
-      return manualMode;
-    }
-    if (activeTrigger?.kind === "slash") {
-      return "slash-root";
-    }
-    if (activeTrigger?.kind === "mention") {
-      return "mention";
-    }
-    if (activeTrigger?.kind === "skill") {
-      return "skill";
-    }
-    return null;
-  }, [activeTrigger, manualMode]);
-
-  useEffect(() => {
-    if (suppressedTriggerKey !== null && suppressedTriggerKey !== triggerKey) setSuppressedTriggerKey(null);
-  }, [suppressedTriggerKey, triggerKey]);
-  useEffect(() => setCaret(readTextareaCaret(textareaRef.current, inputText.length)), [inputText]);
-
-  return {
-    textareaRef,
-    activeTrigger,
-    mode,
-    setManualMode,
-    setSuppressedTriggerKey,
-    suppressCurrentTrigger: () => setSuppressedTriggerKey(triggerKey),
-    syncFromTextInput: (value: string, nextCaret: number) => {
-      if (manualMode !== null) setManualMode(null);
-      setCaret(Math.max(0, Math.min(nextCaret, value.length)));
-    },
-    syncFromTextareaSelection: () => setCaret(readTextareaCaret(textareaRef.current, inputText.length)),
-  };
-}
-
 function useMentionPalette(options: UseComposerCommandPaletteOptions, dispatch: AppStoreApi["dispatch"], mode: PaletteMode, activeTrigger: ComposerActiveTrigger | null) {
   const previousThreadIdRef = useRef(options.selectedThreadId);
   const previousRootPathRef = useRef(options.selectedRootPath);
@@ -317,12 +272,6 @@ function useMentionSessionRefs(): MentionSessionRefs {
   const syncedQueryRef = useRef<string | null>(null);
   const syncTokenRef = useRef(0);
   return useMemo(() => ({ sessionIdRef, rootPathRef, syncedQueryRef, syncTokenRef }), []);
-}
-
-function useBoundedSelection(itemCount: number) {
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  useEffect(() => setSelectedIndex((current) => itemCount === 0 ? 0 : Math.min(current, itemCount - 1)), [itemCount]);
-  return [selectedIndex, setSelectedIndex] as const;
 }
 
 function useSelectPaletteItem(options: UseComposerCommandPaletteOptions, trigger: ReturnType<typeof usePaletteTrigger>, mention: ReturnType<typeof useMentionPalette>, dismiss: () => Promise<void>, slashContext: SlashExecutionContext, slashDeps: SlashExecutionDependencies, customPrompts: ReadonlyArray<CustomPromptOutput>) {
@@ -485,38 +434,6 @@ function useCompletePaletteItem(options: UseComposerCommandPaletteOptions, trigg
     options.onInputChange(next.text);
     focusTextarea(trigger.textareaRef, next.caret);
   }, [options, trigger]);
-}
-
-function usePaletteKeyboard(mode: PaletteMode, itemCount: number, setSelectedIndex: Dispatch<SetStateAction<number>>, dismiss: () => Promise<void>, selectCurrentItem: () => Promise<void>, completeCurrentItem: () => void) {
-  return useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (mode === null || itemCount === 0) return false;
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setSelectedIndex((current) => (current + 1) % itemCount);
-      return true;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setSelectedIndex((current) => (current - 1 + itemCount) % itemCount);
-      return true;
-    }
-    if (event.key === "Tab") {
-      event.preventDefault();
-      completeCurrentItem();
-      return true;
-    }
-    if (event.key === "Enter") {
-      event.preventDefault();
-      void selectCurrentItem();
-      return true;
-    }
-    if (event.key === "Escape") {
-      event.preventDefault();
-      void dismiss();
-      return true;
-    }
-    return false;
-  }, [completeCurrentItem, dismiss, itemCount, mode, selectCurrentItem, setSelectedIndex]);
 }
 
 function shouldSuppressSlashPalette(mode: PaletteMode, activeTrigger: ComposerActiveTrigger | null): boolean {

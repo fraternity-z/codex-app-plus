@@ -405,7 +405,7 @@ function useHomeScreenActions(args: {
     }
   }, [args.controller, notifyAlertError, t]);
 
-  return {
+  return useMemo(() => ({
     addRoot,
     createWorkspaceThread,
     createWorkspaceThreadInRoot,
@@ -419,7 +419,21 @@ function useHomeScreenActions(args: {
     sendWorkspaceTurn,
     setMultiAgentEnabled,
     worktrees,
-  };
+  }), [
+    addRoot,
+    createWorkspaceThread,
+    createWorkspaceThreadInRoot,
+    createWorktree,
+    confirmCreateWorktree,
+    deleteWorktree,
+    dismissBanner,
+    persistComposerSelection,
+    selectRoot,
+    selectWorkspaceThread,
+    sendWorkspaceTurn,
+    setMultiAgentEnabled,
+    worktrees,
+  ]);
 }
 
 function createRateLimitSummary(rateLimits: ReturnType<typeof useHomeScreenState>["rateLimits"]): string | null {
