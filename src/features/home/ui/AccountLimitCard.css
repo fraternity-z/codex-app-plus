@@ -1,0 +1,46 @@
+.account-limit-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  transition: background-color 0.2s;
+}
+
+.account-limit-card:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.account-limit-card-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.account-limit-card-label {
+  font-size: 13px;
+  color: var(--vscode-foreground);
+}
+
+.account-limit-card-badge {
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+.account-limit-card-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: right;
+}
+
+.account-limit-card-value {
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground);
+}

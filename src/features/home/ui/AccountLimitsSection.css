@@ -1,0 +1,87 @@
+.account-limits-section {
+  border-bottom: 1px solid var(--vscode-menu-separatorBackground);
+}
+
+.account-limits-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  color: var(--vscode-foreground);
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+  transition: background-color 0.2s;
+}
+
+.account-limits-trigger:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.account-limits-chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.account-limits-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.account-limits-trigger-text {
+  flex: 1;
+}
+
+.account-limits-arrow {
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+
+.account-limits-content {
+  padding: 12px;
+  background-color: var(--vscode-sideBar-background);
+}
+
+.account-limits-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 8px;
+}
+
+.account-limits-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-top: 1px solid var(--vscode-menu-separatorBackground);
+  padding-top: 8px;
+}
+
+.account-limits-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  color: var(--vscode-foreground);
+  text-decoration: none;
+  font-size: 13px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.account-limits-link:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.account-limits-link svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .account-limits-grid {
+    grid-template-columns: 1fr;
+  }
+}

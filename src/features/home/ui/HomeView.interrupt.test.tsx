@@ -180,6 +180,7 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       activities={[]}
       banners={[]}
       account={null}
+      rateLimits={null}
       rateLimitSummary={null}
       queuedFollowUps={[]}
       draftActive={false}

@@ -3,6 +3,7 @@ import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import { collectDescendantThreadIds, createRpcThreadRuntimeCleanupTransport, forceCloseThreadRuntime, reportThreadCleanupError } from "../../conversation/service/threadRuntimeCleanup";
 import type { HostBridge, GitWorktreeEntry } from "../../../bridge/types";
 import type { AuthStatus, ThreadSummary } from "../../../domain/types";
+import type { RateLimitSnapshot } from "../../../protocol/generated/v2/RateLimitSnapshot";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import { useAppDispatch, useAppStoreApi } from "../../../state/store";
 import { SidebarIcon } from "../../shared/ui/icons";
@@ -22,6 +23,7 @@ export interface HomeSidebarProps {
   readonly authMode: string | null;
   readonly authBusy: boolean;
   readonly authLoginPending: boolean;
+  readonly rateLimits: RateLimitSnapshot | null;
   readonly settingsMenuOpen: boolean;
   readonly collapsed: boolean;
   readonly onToggleSettingsMenu: () => void;
@@ -90,6 +92,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
     onSelectThread,
     onSelectWorkspaceThread,
     onToggleSettingsMenu,
+    rateLimits,
     roots,
     selectedRootId,
     selectedThreadId,
@@ -173,6 +176,8 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
             authMode={authMode}
             authBusy={authBusy}
             authLoginPending={authLoginPending}
+            rateLimits={rateLimits}
+            appServerClient={appServerClient}
             onOpenSettings={onOpenSettings}
             onLogin={onLogin}
             onLogout={onLogout}

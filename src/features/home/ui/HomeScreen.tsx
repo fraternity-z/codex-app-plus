@@ -135,6 +135,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       interruptPending={conversation.interruptPending}
       activities={conversation.activities}
       account={state.account}
+      rateLimits={state.rateLimits}
       rateLimitSummary={createRateLimitSummary(state.rateLimits)}
       queuedFollowUps={conversation.queuedFollowUps}
       draftActive={conversation.draftActive}

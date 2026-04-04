@@ -85,6 +85,7 @@ export function createHomeSidebarProps(
     onSelectThread: props.onSelectThread,
     onSelectWorkspaceThread: props.onSelectWorkspaceThread,
     onToggleSettingsMenu: props.onToggleSettingsMenu,
+    rateLimits: props.rateLimits,
     roots: props.roots,
     selectedRootId: props.selectedRootId,
     selectedThreadId: props.selectedThreadId,

@@ -23,6 +23,7 @@ import type {
   UiBanner,
   WorkspaceSwitchState,
 } from "../../../domain/types";
+import type { RateLimitSnapshot } from "../../../protocol/generated/v2/RateLimitSnapshot";
 import type {
   CollaborationPreset,
   ComposerEnterBehavior,
@@ -74,6 +75,7 @@ export interface HomeViewProps {
   readonly activities: ReadonlyArray<TimelineEntry>;
   readonly banners?: ReadonlyArray<UiBanner>;
   readonly account: AccountSummary | null;
+  readonly rateLimits: RateLimitSnapshot | null;
   readonly rateLimitSummary: string | null;
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
   readonly draftActive: boolean;

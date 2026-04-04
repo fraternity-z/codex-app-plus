@@ -1,6 +1,9 @@
 import { useState } from "react";
 import type { AuthStatus } from "../../../domain/types";
+import type { RateLimitSnapshot } from "../../../protocol/generated/v2/RateLimitSnapshot";
+import type { AppServerClient } from "../../../protocol/appServerClient";
 import { createLanguageOptions, useI18n } from "../../../i18n";
+import { AccountLimitsSection } from "./AccountLimitsSection";
 import "../../../styles/replica/replica-settings-popover.css";
 
 interface SettingsPopoverProps {
@@ -8,6 +11,8 @@ interface SettingsPopoverProps {
   readonly authMode: string | null;
   readonly authBusy: boolean;
   readonly authLoginPending: boolean;
+  readonly rateLimits: RateLimitSnapshot | null;
+  readonly appServerClient: AppServerClient;
   readonly onOpenSettings: () => void;
   readonly onLogin: () => Promise<void>;
   readonly onLogout: () => Promise<void>;
@@ -47,6 +52,9 @@ export function SettingsPopover(props: SettingsPopoverProps): JSX.Element {
       <button type="button" className="settings-popover-item" onClick={props.onOpenSettings}>
         <span>⚙ {t("home.settingsPopover.settings.action")}</span>
       </button>
+      {props.authStatus === "authenticated" ? (
+        <AccountLimitsSection appServerClient={props.appServerClient} rateLimits={props.rateLimits} />
+      ) : null}
       <button
         type="button"
         className="settings-popover-item"

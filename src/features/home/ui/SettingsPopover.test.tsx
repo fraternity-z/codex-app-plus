@@ -2,29 +2,43 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { I18nProvider, type UiLanguage } from "../../../i18n";
-import { createI18nWrapper } from "../../../test/createI18nWrapper";
+import { AppStoreProvider } from "../../../state/store";
 import { SettingsPopover } from "./SettingsPopover";
+import type { AppServerClient } from "../../../protocol/appServerClient";
+
+const mockAppServerClient = { request: vi.fn() } as unknown as AppServerClient;
+
+function createTestWrapper(initialLanguage: UiLanguage = "zh-CN") {
+  return function Wrapper({ children }: { children: React.ReactNode }): JSX.Element {
+    const [language, setLanguage] = useState<UiLanguage>(initialLanguage);
+    return (
+      <AppStoreProvider>
+        <I18nProvider language={language} setLanguage={setLanguage}>
+          {children}
+        </I18nProvider>
+      </AppStoreProvider>
+    );
+  };
+}
 
 describe("SettingsPopover", () => {
   function renderPopoverWithLanguage(initialLanguage: UiLanguage): void {
-    function Wrapper(): JSX.Element {
-      const [language, setLanguage] = useState<UiLanguage>(initialLanguage);
-      return (
-        <I18nProvider language={language} setLanguage={setLanguage}>
-          <SettingsPopover
-            authStatus="needs_login"
-            authMode={null}
-            authBusy={false}
-            authLoginPending={false}
-            onOpenSettings={vi.fn()}
-            onLogin={vi.fn().mockResolvedValue(undefined)}
-            onLogout={vi.fn().mockResolvedValue(undefined)}
-          />
-        </I18nProvider>
-      );
-    }
-
-    render(<Wrapper />);
+    const Wrapper = createTestWrapper(initialLanguage);
+    render(
+      <Wrapper>
+        <SettingsPopover
+          authStatus="needs_login"
+          authMode={null}
+          authBusy={false}
+          authLoginPending={false}
+          rateLimits={null}
+          appServerClient={mockAppServerClient}
+          onOpenSettings={vi.fn()}
+          onLogin={vi.fn().mockResolvedValue(undefined)}
+          onLogout={vi.fn().mockResolvedValue(undefined)}
+        />
+      </Wrapper>
+    );
   }
 
   it("shows the logout action for authenticated users", () => {
@@ -36,11 +50,13 @@ describe("SettingsPopover", () => {
         authMode="chatgpt"
         authBusy={false}
         authLoginPending={false}
+        rateLimits={null}
+        appServerClient={mockAppServerClient}
         onOpenSettings={vi.fn()}
         onLogin={vi.fn().mockResolvedValue(undefined)}
         onLogout={onLogout}
       />,
-      { wrapper: createI18nWrapper() }
+      { wrapper: createTestWrapper() }
     );
 
     expect(screen.getByText("● 已通过 ChatGPT 登录")).toBeInTheDocument();
@@ -58,11 +74,13 @@ describe("SettingsPopover", () => {
         authMode={null}
         authBusy={false}
         authLoginPending={false}
+        rateLimits={null}
+        appServerClient={mockAppServerClient}
         onOpenSettings={vi.fn()}
         onLogin={onLogin}
         onLogout={vi.fn().mockResolvedValue(undefined)}
       />,
-      { wrapper: createI18nWrapper() }
+      { wrapper: createTestWrapper() }
     );
 
     expect(screen.getByText("● 未登录")).toBeInTheDocument();
@@ -78,11 +96,13 @@ describe("SettingsPopover", () => {
         authMode={null}
         authBusy={true}
         authLoginPending={true}
+        rateLimits={null}
+        appServerClient={mockAppServerClient}
         onOpenSettings={vi.fn()}
         onLogin={vi.fn().mockResolvedValue(undefined)}
         onLogout={vi.fn().mockResolvedValue(undefined)}
       />,
-      { wrapper: createI18nWrapper() }
+      { wrapper: createTestWrapper() }
     );
 
     expect(screen.getByRole("button", { name: "→ 正在登录..." })).toBeDisabled();
@@ -122,11 +142,13 @@ describe("SettingsPopover", () => {
         authMode={null}
         authBusy={false}
         authLoginPending={false}
+        rateLimits={null}
+        appServerClient={mockAppServerClient}
         onOpenSettings={vi.fn()}
         onLogin={vi.fn().mockResolvedValue(undefined)}
         onLogout={vi.fn().mockResolvedValue(undefined)}
       />,
-      { wrapper: createI18nWrapper("en-US") }
+      { wrapper: createTestWrapper("en-US") }
     );
 
     expect(screen.getByText("● Signed out")).toBeInTheDocument();
