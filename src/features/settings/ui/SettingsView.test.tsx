@@ -78,7 +78,6 @@ function createBaseProps(
     deleteAgent: vi.fn().mockResolvedValue({ configPath: "", multiAgentEnabled: false, maxThreads: 6, maxDepth: 1, agents: [] }),
     readAgentConfig: vi.fn().mockResolvedValue({ content: "" }),
     writeAgentConfig: vi.fn().mockResolvedValue({ content: "" }),
-    setMultiAgentEnabled: vi.fn().mockResolvedValue(undefined),
     readProxySettings: vi.fn().mockResolvedValue({
       settings: {
         enabled: false,

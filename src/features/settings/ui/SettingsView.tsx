@@ -83,7 +83,6 @@ export interface SettingsViewProps {
   deleteAgent: (input: import("../../../bridge/types").DeleteAgentInput) => Promise<import("../../../bridge/types").AgentsSettingsOutput>;
   readAgentConfig: (name: string) => Promise<import("../../../bridge/types").ReadAgentConfigOutput>;
   writeAgentConfig: (name: string, content: string) => Promise<import("../../../bridge/types").WriteAgentConfigOutput>;
-  setMultiAgentEnabled: (enabled: boolean) => Promise<void>;
   readProxySettings: (input: { readonly agentEnvironment: AgentEnvironment }) => Promise<ReadProxySettingsOutput>;
   writeGlobalAgentInstructions: (
     input: UpdateGlobalAgentInstructionsInput
@@ -235,7 +234,6 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
         experimentalFeatures={props.experimentalFeatures}
         onOpenConfigToml={props.onOpenConfigToml}
         refreshConfigSnapshot={props.refreshConfigSnapshot}
-        setMultiAgentEnabled={props.setMultiAgentEnabled}
         getAgentsSettings={props.getAgentsSettings}
         createAgent={props.createAgent}
         updateAgent={props.updateAgent}

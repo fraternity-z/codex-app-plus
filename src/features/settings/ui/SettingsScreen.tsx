@@ -165,7 +165,6 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     deleteAgent: (input) => props.controller.deleteAgent(input),
     readAgentConfig: (name) => props.controller.readAgentConfig(name),
     writeAgentConfig: (name, content) => props.controller.writeAgentConfig(name, content),
-    setMultiAgentEnabled: props.controller.setMultiAgentEnabled,
     writeGlobalAgentInstructions: (input) =>
       props.hostBridge.app.writeGlobalAgentInstructions({
         ...input,

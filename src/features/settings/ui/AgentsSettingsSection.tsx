@@ -9,7 +9,6 @@ import { useI18n } from "../../../i18n";
 import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigMutationResult } from "../config/configOperations";
 import { readUserConfigWriteTarget } from "../config/configWriteTarget";
-import { selectMultiAgentFeatureState } from "../config/experimentalFeatures";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import type { ExperimentalFeature } from "../../../protocol/generated/v2/ExperimentalFeature";
 
@@ -19,7 +18,6 @@ interface AgentsSettingsSectionProps {
   readonly experimentalFeatures: ReadonlyArray<ExperimentalFeature>;
   readonly onOpenConfigToml: () => Promise<void>;
   readonly refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
-  readonly setMultiAgentEnabled: (enabled: boolean) => Promise<void>;
   readonly getAgentsSettings: () => Promise<AgentsSettingsOutput>;
   readonly createAgent: (input: CreateAgentInput) => Promise<AgentsSettingsOutput>;
   readonly updateAgent: (input: UpdateAgentInput) => Promise<AgentsSettingsOutput>;
@@ -64,10 +62,6 @@ function StatusNote(props: { readonly feedback: Feedback }): JSX.Element | null 
 
 export function AgentsSettingsSection(props: AgentsSettingsSectionProps): JSX.Element {
   const { t } = useI18n();
-  const multiAgentState = useMemo(
-    () => selectMultiAgentFeatureState(props.experimentalFeatures, props.configSnapshot),
-    [props.configSnapshot, props.experimentalFeatures],
-  );
   const [settings, setSettings] = useState<AgentsSettingsOutput | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(EMPTY_FEEDBACK);
   const [loading, setLoading] = useState(false);
@@ -110,15 +104,6 @@ export function AgentsSettingsSection(props: AgentsSettingsSectionProps): JSX.El
     });
     await props.refreshConfigSnapshot();
     await reload();
-  };
-
-  const handleToggle = async () => {
-    try {
-      await props.setMultiAgentEnabled(!multiAgentState.enabled);
-      await reload();
-    } catch (error) {
-      setFeedback({ kind: "error", message: toErrorMessage(error) });
-    }
   };
 
   const handleThreadsStep = async (delta: number) => {
@@ -222,15 +207,6 @@ export function AgentsSettingsSection(props: AgentsSettingsSectionProps): JSX.El
           </div>
           <button type="button" className="settings-action-btn" onClick={() => void props.onOpenConfigToml()}>
             {t("settings.agents.openConfig")}
-          </button>
-        </div>
-        <div className="settings-row">
-          <div className="settings-row-copy">
-            <div className="settings-row-heading">{t("settings.agents.enable")}</div>
-            <p className="settings-row-meta">{t("settings.agents.enableDesc")}</p>
-          </div>
-          <button type="button" className="settings-action-btn" onClick={() => void handleToggle()} disabled={props.busy}>
-            {multiAgentState.enabled ? t("settings.agents.enabled") : t("settings.agents.disabled")}
           </button>
         </div>
         <div className="settings-row">
