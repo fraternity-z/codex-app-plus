@@ -185,17 +185,17 @@ export const enUS = {
       },
       approvalPolicy: {
         options: {
-          untrusted: "untrusted",
-          onFailure: "on-failure",
-          onRequest: "on-request",
-          never: "never",
+          untrusted: "Untrusted",
+          onFailure: "On failure",
+          onRequest: "On request",
+          never: "Never",
         },
       },
       sandboxMode: {
         options: {
-          readOnly: "read-only",
-          workspaceWrite: "workspace-write",
-          dangerFullAccess: "danger-full-access",
+          readOnly: "Read only",
+          workspaceWrite: "Workspace write",
+          dangerFullAccess: "Full access",
         },
       },
       composerDefaultApprovalPolicy: {
@@ -203,16 +203,16 @@ export const enUS = {
         description: "Controls the approval policy used by the footer's default permission button.",
       },
       composerDefaultSandboxMode: {
-        label: "Standard permission · Sandbox mode",
-        description: "Controls the sandbox mode used by the footer's default permission button.",
+        label: "Standard permission · Access mode",
+        description: "Controls Agent's filesystem access. Read only: can only read files; Workspace write: can write within workspace; Full access: unrestricted access.",
       },
       composerFullApprovalPolicy: {
         label: "Full access · Approval policy",
         description: "Controls the approval policy used by the footer's full access button.",
       },
       composerFullSandboxMode: {
-        label: "Full access · Sandbox mode",
-        description: "Controls the sandbox mode used by the footer's full access button.",
+        label: "Full access · Access mode",
+        description: "Controls Agent's filesystem access. Typically set to 'Full access' to match the full permission button semantics.",
       },
       appUpdate: {
         title: "App updates",

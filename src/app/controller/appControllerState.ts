@@ -32,7 +32,6 @@ export interface SettingsScreenState {
   readonly configSnapshot: AppState["configSnapshot"];
   readonly experimentalFeatures: AppState["experimentalFeatures"];
   readonly initialized: boolean;
-  readonly windowsSandboxSetup: AppState["windowsSandboxSetup"];
 }
 
 export interface SkillsScreenState {
@@ -47,7 +46,6 @@ interface AppControllerRuntimeState {
   readonly connectionStatus: AppState["connectionStatus"];
   readonly pendingRequestsById: AppState["pendingRequestsById"];
   readonly selectedConversationId: AppState["selectedConversationId"];
-  readonly windowsSandboxSetup: AppState["windowsSandboxSetup"];
 }
 
 function selectAppBootstrapState(state: AppState): AppBootstrapState {
@@ -111,7 +109,6 @@ function selectSettingsScreenState(state: AppState): SettingsScreenState {
     configSnapshot: state.configSnapshot,
     experimentalFeatures: state.experimentalFeatures,
     initialized: state.initialized,
-    windowsSandboxSetup: state.windowsSandboxSetup,
   };
 }
 
@@ -120,8 +117,7 @@ function isSettingsScreenStateEqual(left: SettingsScreenState, right: SettingsSc
     && left.bootstrapBusy === right.bootstrapBusy
     && Object.is(left.configSnapshot, right.configSnapshot)
     && Object.is(left.experimentalFeatures, right.experimentalFeatures)
-    && left.initialized === right.initialized
-    && Object.is(left.windowsSandboxSetup, right.windowsSandboxSetup);
+    && left.initialized === right.initialized;
 }
 
 function selectSkillsScreenState(state: AppState): SkillsScreenState {
@@ -146,7 +142,6 @@ function selectAppControllerRuntimeState(state: AppState): AppControllerRuntimeS
     connectionStatus: state.connectionStatus,
     pendingRequestsById: state.pendingRequestsById,
     selectedConversationId: state.selectedConversationId,
-    windowsSandboxSetup: state.windowsSandboxSetup,
   };
 }
 
@@ -154,8 +149,7 @@ function isAppControllerRuntimeStateEqual(left: AppControllerRuntimeState, right
   return Object.is(left.configSnapshot, right.configSnapshot)
     && left.connectionStatus === right.connectionStatus
     && Object.is(left.pendingRequestsById, right.pendingRequestsById)
-    && left.selectedConversationId === right.selectedConversationId
-    && Object.is(left.windowsSandboxSetup, right.windowsSandboxSetup);
+    && left.selectedConversationId === right.selectedConversationId;
 }
 
 export function useAppBootstrapState(): AppBootstrapState {

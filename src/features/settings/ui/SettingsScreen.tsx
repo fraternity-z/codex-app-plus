@@ -147,7 +147,6 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     steerAvailable: steerState.available,
     busy: state.bootstrapBusy,
     ready: state.initialized,
-    windowsSandboxSetup: state.windowsSandboxSetup,
     onBackHome: props.onBackHome,
     onSelectSection: props.onSelectSection,
     onAddRoot: () => void addRoot(),

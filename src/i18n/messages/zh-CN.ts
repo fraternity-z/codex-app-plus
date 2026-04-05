@@ -184,17 +184,17 @@ export const zhCN = {
       },
       approvalPolicy: {
         options: {
-          untrusted: "untrusted",
-          onFailure: "on-failure",
-          onRequest: "on-request",
-          never: "never",
+          untrusted: "不信任",
+          onFailure: "失败时询问",
+          onRequest: "按需询问",
+          never: "从不询问",
         },
       },
       sandboxMode: {
         options: {
-          readOnly: "read-only",
-          workspaceWrite: "workspace-write",
-          dangerFullAccess: "danger-full-access",
+          readOnly: "只读",
+          workspaceWrite: "工作区写入",
+          dangerFullAccess: "完全访问",
         },
       },
       composerDefaultApprovalPolicy: {
@@ -202,16 +202,16 @@ export const zhCN = {
         description: "控制底部\"默认权限\"实际使用的 approval policy。",
       },
       composerDefaultSandboxMode: {
-        label: "标准权限 · 沙箱策略",
-        description: "控制底部\"默认权限\"实际使用的 sandbox mode。",
+        label: "标准权限 · 访问模式",
+        description: "控制 Agent 的文件系统访问权限。只读：仅读取文件；工作区写入：可在工作区内写入；完全访问：无限制访问。",
       },
       composerFullApprovalPolicy: {
         label: "完全访问 · 审批策略",
         description: "控制底部\"完全访问权限\"实际使用的 approval policy。",
       },
       composerFullSandboxMode: {
-        label: "完全访问 · 沙箱策略",
-        description: "控制底部\"完全访问权限\"实际使用的 sandbox mode。",
+        label: "完全访问 · 访问模式",
+        description: "控制 Agent 的文件系统访问权限。通常设置为\"完全访问\"以匹配完全权限按钮的语义。",
       },
       appUpdate: {
         title: "应用更新",

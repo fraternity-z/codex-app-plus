@@ -7,22 +7,18 @@ import type {
   UpdateProxySettingsInput,
   UpdateProxySettingsOutput,
 } from "../../../bridge/types";
-import type { WindowsSandboxSetupState } from "../../../domain/types";
 import { useI18n } from "../../../i18n";
 import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
-import { createWindowsSandboxConfigWriteParams } from "../sandbox/windowsSandboxSetup";
 import { CodexAuthModeCard } from "./CodexAuthModeCard";
 import { CodexProviderRecommendationCard } from "./CodexProviderRecommendationCard";
 import { ProxySettingsCard } from "./ProxySettingsCard";
-import { WindowsSandboxSettingsCard } from "./WindowsSandboxSettingsCard";
 import { writeForcedLoginMethod } from "./configAuthMode";
 
 interface ConfigSettingsSectionProps {
   readonly agentEnvironment: AgentEnvironment;
   readonly busy: boolean;
   readonly configSnapshot: unknown;
-  readonly windowsSandboxSetup: WindowsSandboxSetupState;
   onOpenConfigToml: () => Promise<void>;
   onOpenExternal: (url: string) => Promise<void>;
   refreshConfigSnapshot: () => Promise<unknown>;
@@ -114,16 +110,6 @@ function useConfigSettingsSectionController(
     }
   }, [loadAuthModeState, props.login, props.refreshAuthState, t]);
 
-  const handleWindowsSandboxToggle = useCallback(async (enabled: boolean) => {
-    setNoticeMessage(null);
-    setErrorMessage(null);
-    try {
-      await props.batchWriteConfig(createWindowsSandboxConfigWriteParams(props.configSnapshot, enabled));
-    } catch (error) {
-      setErrorMessage(toErrorMessage(error));
-    }
-  }, [props.batchWriteConfig, props.configSnapshot]);
-
   return {
     authActionPending,
     authLoading,
@@ -131,7 +117,6 @@ function useConfigSettingsSectionController(
     errorMessage,
     handleActivateChatgpt,
     handleChatgptLogin,
-    handleWindowsSandboxToggle,
     noticeMessage,
   };
 }
@@ -166,13 +151,6 @@ export function ConfigSettingsSection(props: ConfigSettingsSectionProps): JSX.El
         busy={props.busy}
         readProxySettings={props.readProxySettings}
         writeProxySettings={props.writeProxySettings}
-      />
-      <WindowsSandboxSettingsCard
-        agentEnvironment={props.agentEnvironment}
-        busy={props.busy}
-        configSnapshot={props.configSnapshot}
-        setupState={props.windowsSandboxSetup}
-        onToggle={controller.handleWindowsSandboxToggle}
       />
       <CodexAuthModeCard
         busy={props.busy}

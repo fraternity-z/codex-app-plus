@@ -1,6 +1,6 @@
 import type { ConfigMutationResult, McpRefreshResult } from "../config/configOperations";
 import type { AppPreferencesController } from "../hooks/useAppPreferences";
-import type { AppUpdateState, WindowsSandboxSetupState } from "../../../domain/types";
+import type { AppUpdateState } from "../../../domain/types";
 import type { ResolvedTheme } from "../../../domain/theme";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import type {
@@ -61,7 +61,6 @@ export interface SettingsViewProps {
   readonly steerAvailable: boolean;
   readonly busy: boolean;
   readonly ready: boolean;
-  readonly windowsSandboxSetup: WindowsSandboxSetupState;
   onBackHome: () => void;
   onSelectSection: (section: SettingsSection) => void;
   onAddRoot: () => void;
@@ -206,7 +205,6 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
           writeProxySettings={props.writeProxySettings}
           batchWriteConfig={props.batchWriteConfig}
           writeConfigValue={props.writeConfigValue}
-          windowsSandboxSetup={props.windowsSandboxSetup}
         />
       </>
     );
