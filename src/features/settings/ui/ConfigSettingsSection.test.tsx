@@ -58,7 +58,6 @@ function createBaseProps(
     }),
     batchWriteConfig: vi.fn().mockResolvedValue({}),
     writeConfigValue: vi.fn().mockResolvedValue({}),
-    windowsSandboxSetup: { pending: false, mode: null, success: null, error: null },
     ...overrides,
   };
 }

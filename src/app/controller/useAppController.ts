@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { AgentEnvironment, HostBridge } from "../../bridge/types";
-import type { WindowsSandboxSetupCompletedNotification } from "../../protocol/generated/v2/WindowsSandboxSetupCompletedNotification";
 import { applyAppServerNotification } from "./appControllerNotifications";
 import { FrameTextDeltaQueue } from "../../features/conversation/model/frameTextDeltaQueue";
 import { OutputDeltaQueue } from "../../features/conversation/model/outputDeltaQueue";
 import { normalizeServerRequest } from "./serverRequests";
-import { refreshConfigAfterWindowsSandboxSetup } from "../../features/settings/sandbox/windowsSandboxSetup";
 import { ProtocolClient } from "../../protocol/client";
 import { useAppDispatch } from "../../state/store";
 import { useAppControllerRuntimeState } from "./appControllerState";
@@ -27,7 +25,6 @@ import {
 } from "./appControllerTypes";
 import { useAppControllerActions } from "./useAppControllerActions";
 import { useServerRequestTracker } from "./useServerRequestTracker";
-import { useWindowsSandboxSetup } from "./useWindowsSandboxSetup";
 
 export {
   ensureChatgptModeForLogin,
@@ -123,9 +120,6 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
               console.error("同步 OAuth 快照失败", error);
             }
           })();
-        }
-        if (method === "windowsSandbox/setupCompleted" && clientRef.current !== null) {
-          void refreshConfigAfterWindowsSandboxSetup(clientRef.current, dispatch, params as WindowsSandboxSetupCompletedNotification).catch((error) => dispatch({ type: "fatal/error", message: toErrorMessage(error) }));
         }
       },
       onServerRequest: (id, method, params) => {
@@ -252,8 +246,6 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
       detach?.();
     };
   }, [hostBridge, refreshConversationCatalog]);
-
-  useWindowsSandboxSetup(client, dispatch, agentEnvironment, runtimeState.configSnapshot, runtimeState.windowsSandboxSetup);
 
   useEffect(() => {
     if (bootStartedRef.current) {
