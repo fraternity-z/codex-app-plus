@@ -1,33 +1,33 @@
-.account-limits-section {
-  border-bottom: 1px solid var(--vscode-menu-separatorBackground);
-}
-
 .account-limits-trigger {
   width: 100%;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.5;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: transparent;
-  border: none;
-  color: var(--vscode-foreground);
-  cursor: pointer;
-  font-size: 13px;
+  justify-content: space-between;
   text-align: left;
-  transition: background-color 0.2s;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .account-limits-trigger:hover {
-  background-color: var(--vscode-list-hoverBackground);
+  background: var(--surface-hover);
+  color: var(--text-main);
 }
 
-.account-limits-chevron {
-  flex-shrink: 0;
-  transition: transform 0.2s;
+.account-limits-trigger:active {
+  background: var(--surface-active);
 }
 
-.account-limits-chevron.expanded {
-  transform: rotate(180deg);
+.account-limits-trigger:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 1px;
 }
 
 .account-limits-trigger-text {
@@ -37,11 +37,18 @@
 .account-limits-arrow {
   flex-shrink: 0;
   transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.account-limits-trigger:hover .account-limits-arrow {
+  transform: rotate(-90deg) translateX(2px);
 }
 
 .account-limits-content {
-  padding: 12px;
-  background-color: var(--vscode-sideBar-background);
+  margin: 4px 0 6px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface-panel-muted);
 }
 
 .account-limits-grid {

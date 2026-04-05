@@ -1,15 +1,22 @@
 .account-limit-card {
+  width: 100%;
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: 13px;
+  line-height: 1.5;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  background-color: transparent;
-  border: none;
-  transition: background-color 0.2s;
+  text-align: left;
+  transition: background-color 0.15s ease;
 }
 
 .account-limit-card:hover {
-  background-color: var(--vscode-list-hoverBackground);
+  background: var(--surface-hover);
 }
 
 .account-limit-card-left {
@@ -17,6 +24,7 @@
   align-items: center;
   gap: 8px;
   flex: 1;
+  min-width: 0;
 }
 
 .account-limit-card-copy {
@@ -27,7 +35,7 @@
 
 .account-limit-card-label {
   font-size: 13px;
-  color: var(--vscode-foreground);
+  color: var(--text-soft);
 }
 
 .account-limit-card-caption {
@@ -37,11 +45,11 @@
 
 .account-limit-card-badge {
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 11px;
   font-weight: 500;
-  background-color: var(--vscode-badge-background);
-  color: var(--vscode-badge-foreground);
+  background-color: var(--surface-active);
+  color: var(--text-main);
 }
 
 .account-limit-card-right {
@@ -49,9 +57,10 @@
   align-items: center;
   gap: 8px;
   text-align: right;
+  flex-shrink: 0;
 }
 
 .account-limit-card-value {
   font-size: 13px;
-  color: var(--vscode-foreground);
+  color: var(--text-soft);
 }

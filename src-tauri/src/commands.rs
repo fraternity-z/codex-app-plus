@@ -13,20 +13,19 @@ use crate::app_support::{
 };
 use crate::custom_prompts::list_custom_prompts;
 use crate::codex_auth::{
-    activate_codex_chatgpt, activate_codex_provider, capture_codex_oauth_snapshot,
+    activate_codex_chatgpt, capture_codex_oauth_snapshot,
     get_codex_auth_mode_state,
 };
 use crate::codex_data::{delete_codex_session, list_codex_sessions, read_codex_session};
-use crate::codex_provider::{delete_codex_provider, list_codex_providers, upsert_codex_provider};
 use crate::command_utils::open_detached_target;
 use crate::error::{AppError, AppResult};
 use crate::events::{EVENT_CONTEXT_MENU_REQUESTED, EVENT_NOTIFICATION_REQUESTED};
 use crate::models::{
-    ActivateCodexChatgptInput, AppServerStartInput, ApplyCodexProviderInput,
+    ActivateCodexChatgptInput, AppServerStartInput,
     CaptureCodexOauthSnapshotInput, ChatgptAuthTokensOutput, CodexAuthModeStateOutput,
-    CodexAuthSwitchResult, CodexProviderApplyResult, CodexProviderRecord, CodexProviderStore,
+    CodexAuthSwitchResult,
     CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSummary, CreateAgentInput,
-    DeleteAgentInput, DeleteCodexProviderInput,
+    DeleteAgentInput,
     DeleteCodexSessionInput, GetAgentsSettingsInput, GetCodexAuthModeStateInput,
     GlobalAgentInstructionsOutput, ImportOfficialDataInput, ListCodexSessionsInput,
     OpenCodexConfigTomlInput, OpenFileInEditorInput, OpenWorkspaceInput, ReadAgentConfigInput,
@@ -36,7 +35,7 @@ use crate::models::{
     RpcRequestOutput, ServerRequestResolveInput, SetAgentsCoreInput, ShowContextMenuInput,
     ShowNotificationInput, UpdateAgentInput, UpdateChatgptAuthTokensInput,
     UpdateGlobalAgentInstructionsInput, UpdateProxySettingsInput,
-    UpdateProxySettingsOutput, UpsertCodexProviderInput, CustomPromptOutput,
+    UpdateProxySettingsOutput, CustomPromptOutput,
     ListCustomPromptsInput, WriteAgentConfigInput, WriteAgentConfigOutput,
     WindowChromeAction,
 };
@@ -268,32 +267,6 @@ pub async fn app_write_proxy_settings(
     input: UpdateProxySettingsInput,
 ) -> Result<UpdateProxySettingsOutput, String> {
     run_blocking(move || write_proxy_settings(input)).await
-}
-
-#[tauri::command]
-pub async fn app_list_codex_providers() -> Result<CodexProviderStore, String> {
-    run_blocking(move || list_codex_providers()).await
-}
-
-#[tauri::command]
-pub async fn app_upsert_codex_provider(
-    input: UpsertCodexProviderInput,
-) -> Result<CodexProviderRecord, String> {
-    run_blocking(move || upsert_codex_provider(input)).await
-}
-
-#[tauri::command]
-pub async fn app_delete_codex_provider(
-    input: DeleteCodexProviderInput,
-) -> Result<CodexProviderStore, String> {
-    run_blocking(move || delete_codex_provider(input)).await
-}
-
-#[tauri::command]
-pub async fn app_apply_codex_provider(
-    input: ApplyCodexProviderInput,
-) -> Result<CodexProviderApplyResult, String> {
-    run_blocking(move || activate_codex_provider(input)).await
 }
 
 #[tauri::command]

@@ -9,45 +9,45 @@ mod tests;
 use std::path::Path;
 
 use crate::agent_environment::resolve_agent_environment;
-use crate::codex_provider::{apply_codex_provider, list_codex_providers, upsert_codex_provider};
-use crate::error::{AppError, AppResult};
+use crate::error::AppResult;
 use crate::models::{
-    ActivateCodexChatgptInput, ApplyCodexProviderInput, CaptureCodexOauthSnapshotInput,
-    CodexAuthMode, CodexAuthModeStateOutput, CodexAuthSwitchResult, CodexProviderApplyResult,
-    CodexProviderRecord, GetCodexAuthModeStateInput,
+    ActivateCodexChatgptInput, CaptureCodexOauthSnapshotInput,
+    CodexAuthMode, CodexAuthModeStateOutput, CodexAuthSwitchResult, GetCodexAuthModeStateInput,
 };
 
 use live::{
-    build_oauth_snapshot_from_api_key_live, build_provider_input_from_live,
-    build_snapshot_from_live, clear_oauth_snapshot_auth, detect_active_context, read_live_files,
+    auth_contains_api_key, auth_contains_chatgpt_markers, build_oauth_snapshot_from_api_key_live,
+    build_snapshot_from_live, clear_oauth_snapshot_auth, read_live_files, read_model_provider_key,
     write_snapshot_to_live, LiveFiles,
 };
 use storage::{
-    persist_mode_state, read_oauth_snapshot, read_oauth_snapshot_at, read_persisted_mode_state,
+    persist_mode_state, read_oauth_snapshot, read_oauth_snapshot_at,
     write_oauth_snapshot, write_oauth_snapshot_at,
 };
-use types::{ActiveContext, CodexOauthSnapshot};
+use types::CodexOauthSnapshot;
 
 pub fn get_codex_auth_mode_state(
     input: GetCodexAuthModeStateInput,
 ) -> AppResult<CodexAuthModeStateOutput> {
     let live = read_live_files(resolve_agent_environment(input.agent_environment))?;
-    let providers = list_codex_providers()?.providers;
-    let persisted = read_persisted_mode_state()?;
-    let current = detect_active_context(&providers, &live, persisted.clone());
     let snapshot = read_oauth_snapshot()?;
+
+    // 直接从 config.toml 读取 providerKey
+    let active_provider_key = read_model_provider_key(&live.config_table);
+
+    // 根据配置文件判断模式
+    let active_mode = if active_provider_key.is_some() && auth_contains_api_key(&live.auth_map) {
+        CodexAuthMode::Apikey
+    } else if auth_contains_chatgpt_markers(&live.auth_map) {
+        CodexAuthMode::Chatgpt
+    } else {
+        // 默认为 ChatGPT 模式
+        CodexAuthMode::Chatgpt
+    };
+
     Ok(CodexAuthModeStateOutput {
-        active_mode: current.mode,
-        active_provider_id: current.provider_id.or_else(|| {
-            persisted
-                .as_ref()
-                .and_then(|entry| entry.active_provider_id.clone())
-        }),
-        active_provider_key: current.provider_key.or_else(|| {
-            persisted
-                .as_ref()
-                .and_then(|entry| entry.active_provider_key.clone())
-        }),
+        active_mode,
+        active_provider_key,
         oauth_snapshot_available: snapshot.is_some(),
     })
 }
@@ -57,7 +57,7 @@ pub fn capture_codex_oauth_snapshot(
 ) -> AppResult<CodexAuthModeStateOutput> {
     let live = read_live_files(resolve_agent_environment(input.agent_environment))?;
     write_oauth_snapshot(&build_snapshot_from_live(&live))?;
-    persist_mode_state(CodexAuthMode::Chatgpt, None, None)?;
+    persist_mode_state(CodexAuthMode::Chatgpt)?;
     get_codex_auth_mode_state(GetCodexAuthModeStateInput {
         agent_environment: input.agent_environment,
     })
@@ -67,12 +67,17 @@ pub fn activate_codex_chatgpt(
     input: ActivateCodexChatgptInput,
 ) -> AppResult<CodexAuthSwitchResult> {
     let live = read_live_files(resolve_agent_environment(input.agent_environment))?;
-    let providers = list_codex_providers()?.providers;
-    let current = detect_active_context(&providers, &live, read_persisted_mode_state()?);
-    backfill_current_mode_if_needed(&current, &providers, &live)?;
+
+    // 如果当前是 ChatGPT 模式，先捕获快照
+    if auth_contains_chatgpt_markers(&live.auth_map) {
+        write_oauth_snapshot(&build_snapshot_from_live(&live))?;
+    }
+
+    // 恢复或创建 OAuth 快照
     let snapshot = resolve_target_oauth_snapshot(&live)?;
     write_snapshot_to_live(&live, &snapshot)?;
-    persist_mode_state(CodexAuthMode::Chatgpt, None, None)?;
+    persist_mode_state(CodexAuthMode::Chatgpt)?;
+
     Ok(CodexAuthSwitchResult {
         mode: CodexAuthMode::Chatgpt,
         provider_id: None,
@@ -83,50 +88,11 @@ pub fn activate_codex_chatgpt(
     })
 }
 
-pub fn activate_codex_provider(
-    input: ApplyCodexProviderInput,
-) -> AppResult<CodexProviderApplyResult> {
-    let live = read_live_files(resolve_agent_environment(input.agent_environment))?;
-    let providers = list_codex_providers()?.providers;
-    let current = detect_active_context(&providers, &live, read_persisted_mode_state()?);
-    backfill_current_mode_if_needed(&current, &providers, &live)?;
-    persist_oauth_snapshot_if_needed(&current, &live)?;
-    let target_provider = target_provider(&providers, &input.id)?;
-    let result = apply_codex_provider(input)?;
-    persist_mode_state(
-        CodexAuthMode::Apikey,
-        Some(target_provider.id),
-        Some(target_provider.provider_key),
-    )?;
-    Ok(result)
-}
-
 pub(crate) fn clear_oauth_snapshot_auth_state_in_root(root: &Path) -> AppResult<()> {
     let Some(snapshot) = read_oauth_snapshot_at(root)? else {
         return Ok(());
     };
     write_oauth_snapshot_at(root, &clear_oauth_snapshot_auth(&snapshot)?)
-}
-
-fn backfill_current_mode_if_needed(
-    current: &ActiveContext,
-    providers: &[CodexProviderRecord],
-    live: &LiveFiles,
-) -> AppResult<()> {
-    if current.mode != CodexAuthMode::Apikey {
-        return Ok(());
-    }
-    let provider = resolve_current_provider(current, providers)?;
-    let draft = build_provider_input_from_live(&provider, live)?;
-    let _ = upsert_codex_provider(draft)?;
-    Ok(())
-}
-
-fn persist_oauth_snapshot_if_needed(current: &ActiveContext, live: &LiveFiles) -> AppResult<()> {
-    if current.mode == CodexAuthMode::Chatgpt {
-        write_oauth_snapshot(&build_snapshot_from_live(live))?;
-    }
-    Ok(())
 }
 
 fn resolve_target_oauth_snapshot(live: &LiveFiles) -> AppResult<CodexOauthSnapshot> {
@@ -136,37 +102,4 @@ fn resolve_target_oauth_snapshot(live: &LiveFiles) -> AppResult<CodexOauthSnapsh
     let snapshot = build_oauth_snapshot_from_api_key_live(live)?;
     write_oauth_snapshot(&snapshot)?;
     Ok(snapshot)
-}
-
-fn target_provider(
-    providers: &[CodexProviderRecord],
-    provider_id: &str,
-) -> AppResult<CodexProviderRecord> {
-    providers
-        .iter()
-        .find(|provider| provider.id == provider_id)
-        .cloned()
-        .ok_or_else(|| AppError::InvalidInput("未找到要应用的提供商".to_string()))
-}
-
-fn resolve_current_provider(
-    current: &ActiveContext,
-    providers: &[CodexProviderRecord],
-) -> AppResult<CodexProviderRecord> {
-    if let Some(provider_id) = current.provider_id.as_ref() {
-        if let Some(provider) = providers.iter().find(|entry| entry.id == *provider_id) {
-            return Ok(provider.clone());
-        }
-    }
-    if let Some(provider_key) = current.provider_key.as_ref() {
-        if let Some(provider) = providers
-            .iter()
-            .find(|entry| entry.provider_key == *provider_key)
-        {
-            return Ok(provider.clone());
-        }
-    }
-    Err(AppError::InvalidInput(
-        "当前 API Key live 配置未绑定到已保存的提供商，无法切换模式".to_string(),
-    ))
 }

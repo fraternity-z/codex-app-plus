@@ -6,13 +6,11 @@ use toml::Table;
 
 use crate::agent_environment::{resolve_codex_home_relative_path, AgentFsPath};
 use crate::error::{AppError, AppResult};
-use crate::models::{
-    AgentEnvironment, CodexAuthMode, CodexProviderRecord, UpsertCodexProviderInput,
-};
+use crate::models::AgentEnvironment;
 
 use super::live_io::write_live_files;
 use super::storage::now_unix_ms;
-use super::types::{ActiveContext, CodexOauthSnapshot, PersistedModeState};
+use super::types::CodexOauthSnapshot;
 
 const OPENAI_API_KEY: &str = "OPENAI_API_KEY";
 
@@ -40,76 +38,20 @@ pub(crate) fn read_live_files(agent_environment: AgentEnvironment) -> AppResult<
     })
 }
 
-pub(crate) fn detect_active_context(
-    providers: &[CodexProviderRecord],
-    live: &LiveFiles,
-    persisted: Option<PersistedModeState>,
-) -> ActiveContext {
-    let config_key = read_model_provider_key(&live.config_table);
-    let live_provider = config_key
-        .as_ref()
-        .and_then(|key| {
-            providers
-                .iter()
-                .find(|provider| provider.provider_key == *key)
-        })
-        .cloned();
-    if let Some(provider) = live_provider {
-        if auth_contains_api_key(&live.auth_map) {
-            return ActiveContext {
-                mode: CodexAuthMode::Apikey,
-                provider_id: Some(provider.id),
-                provider_key: Some(provider.provider_key),
-            };
-        }
-    }
-    if auth_contains_chatgpt_markers(&live.auth_map) {
-        return ActiveContext {
-            mode: CodexAuthMode::Chatgpt,
-            provider_id: None,
-            provider_key: None,
-        };
-    }
-    persisted.map_or(
-        ActiveContext {
-            mode: CodexAuthMode::Chatgpt,
-            provider_id: None,
-            provider_key: None,
-        },
-        |entry| ActiveContext {
-            mode: entry.active_mode,
-            provider_id: entry.active_provider_id,
-            provider_key: entry.active_provider_key,
-        },
-    )
+pub(crate) fn auth_contains_api_key(auth_map: &JsonMap<String, JsonValue>) -> bool {
+    auth_map
+        .get(OPENAI_API_KEY)
+        .and_then(JsonValue::as_str)
+        .map(str::trim)
+        .is_some_and(|value| !value.is_empty())
 }
 
-pub(crate) fn build_provider_input_from_live(
-    provider: &CodexProviderRecord,
-    live: &LiveFiles,
-) -> AppResult<UpsertCodexProviderInput> {
-    let key = read_model_provider_key(&live.config_table)
-        .unwrap_or_else(|| provider.provider_key.clone());
-    let provider_table = live
-        .config_table
-        .get("model_providers")
-        .and_then(toml::Value::as_table)
-        .and_then(|table| table.get(&key))
-        .and_then(toml::Value::as_table);
-    let name = provider_name(provider_table, &provider.name);
-    let model = provider_model(&live.config_table, &provider.model);
-    let base_url = provider_base_url(provider_table, &provider.base_url);
-    let api_key = live_api_key(&live.auth_map)?;
-    Ok(UpsertCodexProviderInput {
-        id: Some(provider.id.clone()),
-        name,
-        provider_key: key,
-        model,
-        api_key,
-        base_url,
-        auth_json_text: serialize_auth_map(&live.auth_map)?,
-        config_toml_text: live.config_text.clone(),
-    })
+pub(crate) fn auth_contains_chatgpt_markers(auth_map: &JsonMap<String, JsonValue>) -> bool {
+    auth_map.contains_key("tokens")
+        || contains_non_empty_string(auth_map, "accessToken")
+        || contains_non_empty_string(auth_map, "access_token")
+        || contains_non_empty_string(auth_map, "idToken")
+        || contains_non_empty_string(auth_map, "id_token")
 }
 
 pub(crate) fn build_snapshot_from_live(live: &LiveFiles) -> CodexOauthSnapshot {
@@ -237,64 +179,6 @@ fn read_optional_string(path: &Path) -> AppResult<String> {
         return Ok(String::new());
     }
     Ok(fs::read_to_string(path)?)
-}
-
-fn provider_name(provider_table: Option<&Table>, fallback: &str) -> String {
-    provider_table
-        .and_then(|table| table.get("name"))
-        .and_then(toml::Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(ToString::to_string)
-        .unwrap_or_else(|| fallback.to_string())
-}
-
-fn provider_base_url(provider_table: Option<&Table>, fallback: &str) -> String {
-    provider_table
-        .and_then(|table| table.get("base_url"))
-        .and_then(toml::Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(ToString::to_string)
-        .unwrap_or_else(|| fallback.to_string())
-}
-
-fn provider_model(config_table: &Table, fallback: &str) -> String {
-    config_table
-        .get("model")
-        .and_then(toml::Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(ToString::to_string)
-        .unwrap_or_else(|| fallback.to_string())
-}
-
-fn live_api_key(auth_map: &JsonMap<String, JsonValue>) -> AppResult<String> {
-    auth_map
-        .get(OPENAI_API_KEY)
-        .and_then(JsonValue::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(ToString::to_string)
-        .ok_or_else(|| {
-            AppError::InvalidInput("当前 live auth.json 缺少 OPENAI_API_KEY".to_string())
-        })
-}
-
-fn auth_contains_api_key(auth_map: &JsonMap<String, JsonValue>) -> bool {
-    auth_map
-        .get(OPENAI_API_KEY)
-        .and_then(JsonValue::as_str)
-        .map(str::trim)
-        .is_some_and(|value| !value.is_empty())
-}
-
-fn auth_contains_chatgpt_markers(auth_map: &JsonMap<String, JsonValue>) -> bool {
-    auth_map.contains_key("tokens")
-        || contains_non_empty_string(auth_map, "accessToken")
-        || contains_non_empty_string(auth_map, "access_token")
-        || contains_non_empty_string(auth_map, "idToken")
-        || contains_non_empty_string(auth_map, "id_token")
 }
 
 fn contains_non_empty_string(auth_map: &JsonMap<String, JsonValue>, key: &str) -> bool {

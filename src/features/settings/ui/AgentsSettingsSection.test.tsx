@@ -25,7 +25,6 @@ function createProps(
     experimentalFeatures: [],
     onOpenConfigToml: vi.fn().mockResolvedValue(undefined),
     refreshConfigSnapshot: vi.fn().mockResolvedValue({ config: {}, layers: [], origins: {} }),
-    setMultiAgentEnabled: vi.fn().mockResolvedValue(undefined),
     getAgentsSettings: vi.fn().mockResolvedValue({
       configPath: "C:/Users/Administrator/.codex/config.toml",
       multiAgentEnabled: false,
@@ -44,15 +43,20 @@ function createProps(
 }
 
 describe("AgentsSettingsSection", () => {
-  it("loads agents settings and toggles multi-agent", async () => {
-    const setMultiAgentEnabled = vi.fn().mockResolvedValue(undefined);
-    render(<AgentsSettingsSection {...createProps({ setMultiAgentEnabled })} />, {
+  it("loads agents settings on mount", async () => {
+    const getAgentsSettings = vi.fn().mockResolvedValue({
+      configPath: "C:/Users/Administrator/.codex/config.toml",
+      multiAgentEnabled: false,
+      maxThreads: 6,
+      maxDepth: 1,
+      agents: [],
+    });
+    render(<AgentsSettingsSection {...createProps({ getAgentsSettings })} />, {
       wrapper: createI18nWrapper("zh-CN"),
     });
 
     expect(await screen.findByText("Agents")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "已关闭" }));
-    await waitFor(() => expect(setMultiAgentEnabled).toHaveBeenCalledWith(true));
+    await waitFor(() => expect(getAgentsSettings).toHaveBeenCalled());
   });
 
   it("writes max threads via batchWriteConfig", async () => {

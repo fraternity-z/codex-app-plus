@@ -292,54 +292,6 @@ pub struct UpdateChatgptAuthTokensInput {
     pub chatgpt_plan_type: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CodexProviderRecord {
-    pub id: String,
-    pub name: String,
-    pub provider_key: String,
-    pub model: String,
-    pub api_key: String,
-    pub base_url: String,
-    pub auth_json_text: String,
-    pub config_toml_text: String,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CodexProviderStore {
-    pub version: u32,
-    pub providers: Vec<CodexProviderRecord>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct UpsertCodexProviderInput {
-    pub id: Option<String>,
-    pub name: String,
-    pub provider_key: String,
-    pub model: String,
-    pub api_key: String,
-    pub base_url: String,
-    pub auth_json_text: String,
-    pub config_toml_text: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DeleteCodexProviderInput {
-    pub id: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ApplyCodexProviderInput {
-    pub agent_environment: Option<AgentEnvironment>,
-    pub id: String,
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActivateCodexChatgptInput {
@@ -369,7 +321,6 @@ pub enum CodexAuthMode {
 #[serde(rename_all = "camelCase")]
 pub struct CodexAuthModeStateOutput {
     pub active_mode: CodexAuthMode,
-    pub active_provider_id: Option<String>,
     pub active_provider_key: Option<String>,
     pub oauth_snapshot_available: bool,
 }
@@ -383,15 +334,6 @@ pub struct CodexAuthSwitchResult {
     pub auth_path: String,
     pub config_path: String,
     pub restored_from_snapshot: bool,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CodexProviderApplyResult {
-    pub provider_id: String,
-    pub provider_key: String,
-    pub auth_path: String,
-    pub config_path: String,
 }
 
 #[derive(Debug, Serialize)]
