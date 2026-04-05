@@ -1,4 +1,4 @@
-import { zhCNSettingsMcp } from "./settingsMcp";
+﻿import { zhCNSettingsMcp } from "./settingsMcp";
 
 export const zhCN = {
   app: {
@@ -211,19 +211,19 @@ export const zhCN = {
       },
       composerDefaultApprovalPolicy: {
         label: "标准权限 · 审批策略",
-        description: "控制底部“默认权限”实际使用的 approval policy。",
+        description: "控制底部\"默认权限\"实际使用的 approval policy。",
       },
       composerDefaultSandboxMode: {
         label: "标准权限 · 沙箱策略",
-        description: "控制底部“默认权限”实际使用的 sandbox mode。",
+        description: "控制底部\"默认权限\"实际使用的 sandbox mode。",
       },
       composerFullApprovalPolicy: {
         label: "完全访问 · 审批策略",
-        description: "控制底部“完全访问权限”实际使用的 approval policy。",
+        description: "控制底部\"完全访问权限\"实际使用的 approval policy。",
       },
       composerFullSandboxMode: {
         label: "完全访问 · 沙箱策略",
-        description: "控制底部“完全访问权限”实际使用的 sandbox mode。",
+        description: "控制底部\"完全访问权限\"实际使用的 sandbox mode。",
       },
       appUpdate: {
         title: "应用更新",
@@ -292,14 +292,14 @@ export const zhCN = {
       forceLeaseDescription: "推送时附带 `--force-with-lease`。",
       forceLeaseEnabledNote: "当前已启用，推送确认框也会明确展示该参数。",
       forceLeaseDisabledNote: "当前未启用，内置推送会保持普通 `git push`。",
-      appScopeNote: "这些设置仅作用于应用内的“新建分支”和“推送”操作。",
+      appScopeNote: "这些设置仅作用于应用内的\"新建分支\"和\"推送\"操作。",
     },
     environment: {
       title: "环境",
       workspacesTitle: "工作区",
       addProjectAction: "添加项目",
       note: "选择要在 Codex 中使用的本地项目目录。",
-      empty: "暂无项目，点击“添加项目”后即可在侧边栏中切换工作区。",
+      empty: "暂无项目，点击\"添加项目\"后即可在侧边栏中切换工作区。",
     },
     worktree: {
       title: "工作树",
@@ -371,44 +371,15 @@ export const zhCN = {
         switchedNeedsLoginMessage: "已切换到 ChatGPT 模式，请继续登录 ChatGPT，重启软件后生效。",
         loginStartedMessage: "已开始 ChatGPT 登录流程，重启软件后生效。",
       },
-      providers: {
-        title: "提供商配置",
-        description: "保存到应用本地文件；“一键应用”只覆盖当前提供商相关 live 配置。",
-        addAction: "新增提供商",
-        loading: "正在加载提供商列表…",
-        empty: "暂无提供商，点击“新增提供商”开始配置。",
-        current: "当前已应用",
-        editAction: "编辑",
-        deleteAction: "删除",
-        applyAction: "一键应用",
-        applying: "应用中…",
-        savedMessage: "已保存提供商：{name}",
-        appliedMessage: "已应用提供商：{name}，重启软件后生效。",
-        deletedMessage: "已删除提供商：{name}",
-        deleteTitle: "删除提供商",
-        deleteDescription:
-          "将从应用本地配置中删除 {name}，不会清理现有 ~/.codex/config.toml 里的历史条目。",
-        cancelAction: "取消",
-        confirmDeleteAction: "确认删除",
-        deleting: "删除中…",
-        closeAction: "关闭",
-      },
-      providerDialog: {
-        addTitle: "新增提供商",
-        editTitle: "编辑提供商",
-        closeAction: "关闭",
-        nameLabel: "名称",
-        providerKeyLabel: "providerKey",
-        providerKeyPlaceholder: "例如：openai-custom",
-        apiKeyLabel: "API Key",
-        baseUrlLabel: "Base URL",
-        authLabel: "auth.json",
-        configLabel: "config.toml",
-        cancelAction: "取消",
-        saveAction: "保存",
-        saving: "保存中…",
-        saveAndApplyAction: "保存并应用",
-        applying: "应用中…",
+      providerRecommendation: {
+        title: "提供商配置管理",
+        description: "推荐使用 CC Switch 管理提供商配置。",
+        ccSwitchIntro: "CC Switch 是专门用于管理多个 AI 编码工具配置的跨平台工具，支持统一管理提供商、MCP 服务器和系统提示词。",
+        downloadCcSwitch: "下载 CC Switch",
+        viewDocs: "查看文档",
+        manualConfigTitle: "或者手动编辑配置文件：",
+        authJsonPath: "~/.codex/auth.json",
+        configTomlPath: "~/.codex/config.toml",
       },
     },
     personalization: {
@@ -534,3 +505,6 @@ export const zhCN = {
     },
   },
 } as const;
+
+
+

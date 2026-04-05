@@ -152,6 +152,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     onSelectSection: props.onSelectSection,
     onAddRoot: () => void addRoot(),
     onOpenConfigToml: openConfigToml,
+    onOpenExternal: (url: string) => props.hostBridge.app.openExternal(url),
     refreshConfigSnapshot: props.controller.refreshConfigSnapshot,
     refreshAuthState: props.controller.refreshAuthState,
     login: props.controller.login,
@@ -174,14 +175,6 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
       props.hostBridge.app.readProxySettings(input),
     writeProxySettings: (input) =>
       props.hostBridge.app.writeProxySettings(input),
-    listCodexProviders: () => props.hostBridge.app.listCodexProviders(),
-    upsertCodexProvider: (input) => props.hostBridge.app.upsertCodexProvider(input),
-    deleteCodexProvider: (input) => props.hostBridge.app.deleteCodexProvider(input),
-    applyCodexProvider: (input) =>
-      props.hostBridge.app.applyCodexProvider({
-        ...input,
-        agentEnvironment: props.preferences.agentEnvironment,
-      }),
     getCodexAuthModeState: () =>
       props.hostBridge.app.getCodexAuthModeState({
         agentEnvironment: props.preferences.agentEnvironment,

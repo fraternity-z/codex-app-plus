@@ -1,13 +1,8 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import type {
   AgentEnvironment,
   CodexAuthModeStateOutput,
   CodexAuthSwitchResult,
-  CodexProviderApplyResult,
-  CodexProviderDraft,
-  CodexProviderRecord,
-  CodexProviderStore,
-  DeleteCodexProviderInput,
   ReadProxySettingsOutput,
   UpdateProxySettingsInput,
   UpdateProxySettingsOutput,
@@ -16,16 +11,9 @@ import type { WindowsSandboxSetupState } from "../../../domain/types";
 import { useI18n } from "../../../i18n";
 import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
-import {
-  createDraftFromRecord,
-  createEmptyCodexProviderDraft,
-  readCurrentCodexProviderKey,
-} from "../config/codexProviderConfig";
 import { createWindowsSandboxConfigWriteParams } from "../sandbox/windowsSandboxSetup";
 import { CodexAuthModeCard } from "./CodexAuthModeCard";
-import { CodexProviderDialog } from "./CodexProviderDialog";
-import { CodexProviderDeleteDialog } from "./CodexProviderDeleteDialog";
-import { CodexProviderListCard } from "./CodexProviderListCard";
+import { CodexProviderRecommendationCard } from "./CodexProviderRecommendationCard";
 import { ProxySettingsCard } from "./ProxySettingsCard";
 import { WindowsSandboxSettingsCard } from "./WindowsSandboxSettingsCard";
 import { writeForcedLoginMethod } from "./configAuthMode";
@@ -41,16 +29,13 @@ interface ConfigSettingsSectionProps {
   readonly configSnapshot: unknown;
   readonly windowsSandboxSetup: WindowsSandboxSetupState;
   onOpenConfigToml: () => Promise<void>;
+  onOpenExternal: (url: string) => Promise<void>;
   refreshConfigSnapshot: () => Promise<unknown>;
   refreshAuthState: () => Promise<void>;
   login: () => Promise<void>;
   readProxySettings: (
     input: { readonly agentEnvironment: AgentEnvironment }
   ) => Promise<ReadProxySettingsOutput>;
-  listCodexProviders: () => Promise<CodexProviderStore>;
-  upsertCodexProvider: (input: CodexProviderDraft) => Promise<CodexProviderRecord>;
-  deleteCodexProvider: (input: DeleteCodexProviderInput) => Promise<CodexProviderStore>;
-  applyCodexProvider: (input: { readonly id: string }) => Promise<CodexProviderApplyResult>;
   getCodexAuthModeState: () => Promise<CodexAuthModeStateOutput>;
   activateCodexChatgpt: () => Promise<CodexAuthSwitchResult>;
   writeProxySettings: (input: UpdateProxySettingsInput) => Promise<UpdateProxySettingsOutput>;
@@ -67,28 +52,11 @@ function useConfigSettingsSectionController(
   t: ReturnType<typeof useI18n>["t"],
 ) {
   const [licensesOpen, setLicensesOpen] = useState(false);
-  const [providers, setProviders] = useState<ReadonlyArray<CodexProviderRecord>>([]);
   const [authModeState, setAuthModeState] = useState<CodexAuthModeStateOutput | null>(null);
-  const [loading, setLoading] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
-  const [editingDraft, setEditingDraft] = useState<CodexProviderDraft | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<CodexProviderRecord | null>(null);
-  const [pendingProviderId, setPendingProviderId] = useState<string | null>(null);
   const [authActionPending, setAuthActionPending] = useState<"chatgpt" | "login" | null>(null);
-
-  const loadProviders = useCallback(async () => {
-    setLoading(true);
-    try {
-      const store = await props.listCodexProviders();
-      setProviders(store.providers);
-    } finally {
-      setLoading(false);
-    }
-  }, [props.listCodexProviders]);
 
   const loadAuthModeState = useCallback(async () => {
     setAuthLoading(true);
@@ -101,63 +69,22 @@ function useConfigSettingsSectionController(
 
   const refreshSection = useCallback(async () => {
     await Promise.all([
-      loadProviders(),
       loadAuthModeState(),
       props.refreshConfigSnapshot(),
       props.refreshAuthState(),
     ]);
-  }, [loadAuthModeState, loadProviders, props.refreshAuthState, props.refreshConfigSnapshot]);
+  }, [loadAuthModeState, props.refreshAuthState, props.refreshConfigSnapshot]);
 
   useEffect(() => {
     void (async () => {
       setErrorMessage(null);
       try {
-        await Promise.all([loadProviders(), loadAuthModeState()]);
+        await loadAuthModeState();
       } catch (error) {
         setErrorMessage(toErrorMessage(error));
       }
     })();
-  }, [loadAuthModeState, loadProviders]);
-
-  const handleSave = useCallback(async (draft: CodexProviderDraft, applyAfterSave: boolean) => {
-    setSaving(true);
-    setSubmitError(null);
-    setNoticeMessage(null);
-    try {
-      const saved = await props.upsertCodexProvider(draft);
-      if (!applyAfterSave) {
-        await loadProviders();
-        setNoticeMessage(t("settings.config.providers.savedMessage", { name: saved.name }));
-        setEditingDraft(null);
-        return;
-      }
-      await props.applyCodexProvider({ id: saved.id });
-      await writeForcedLoginMethod(props.writeConfigValue, props.configSnapshot, "apikey");
-      await refreshSection();
-      setNoticeMessage(t("settings.config.providers.appliedMessage", { name: saved.name }));
-      setEditingDraft(null);
-    } catch (error) {
-      setSubmitError(toErrorMessage(error));
-    } finally {
-      setSaving(false);
-    }
-  }, [loadProviders, props.applyCodexProvider, props.configSnapshot, props.upsertCodexProvider, props.writeConfigValue, refreshSection, t]);
-
-  const handleApply = useCallback(async (provider: CodexProviderRecord) => {
-    setPendingProviderId(provider.id);
-    setNoticeMessage(null);
-    setErrorMessage(null);
-    try {
-      await props.applyCodexProvider({ id: provider.id });
-      await writeForcedLoginMethod(props.writeConfigValue, props.configSnapshot, "apikey");
-      await refreshSection();
-      setNoticeMessage(t("settings.config.providers.appliedMessage", { name: provider.name }));
-    } catch (error) {
-      setErrorMessage(toErrorMessage(error));
-    } finally {
-      setPendingProviderId(null);
-    }
-  }, [props.applyCodexProvider, props.configSnapshot, props.writeConfigValue, refreshSection, t]);
+  }, [loadAuthModeState]);
 
   const handleActivateChatgpt = useCallback(async () => {
     setAuthActionPending("chatgpt");
@@ -193,26 +120,6 @@ function useConfigSettingsSectionController(
     }
   }, [loadAuthModeState, props.login, props.refreshAuthState, t]);
 
-  const handleDelete = useCallback(async () => {
-    if (deleteTarget === null) {
-      return;
-    }
-    setPendingProviderId(deleteTarget.id);
-    setNoticeMessage(null);
-    setErrorMessage(null);
-    try {
-      const store = await props.deleteCodexProvider({ id: deleteTarget.id });
-      setProviders(store.providers);
-      setDeleteTarget(null);
-      await loadAuthModeState();
-      setNoticeMessage(t("settings.config.providers.deletedMessage", { name: deleteTarget.name }));
-    } catch (error) {
-      setErrorMessage(toErrorMessage(error));
-    } finally {
-      setPendingProviderId(null);
-    }
-  }, [deleteTarget, loadAuthModeState, props.deleteCodexProvider, t]);
-
   const handleWindowsSandboxToggle = useCallback(async (enabled: boolean) => {
     setNoticeMessage(null);
     setErrorMessage(null);
@@ -222,27 +129,6 @@ function useConfigSettingsSectionController(
       setErrorMessage(toErrorMessage(error));
     }
   }, [props.batchWriteConfig, props.configSnapshot]);
-
-  const handleAddProvider = useCallback(() => {
-    setEditingDraft(createEmptyCodexProviderDraft());
-    setSubmitError(null);
-  }, []);
-
-  const handleEditProvider = useCallback((provider: CodexProviderRecord) => {
-    setEditingDraft(createDraftFromRecord(provider));
-    setSubmitError(null);
-  }, []);
-
-  const handleCloseDialog = useCallback(() => {
-    if (!saving) {
-      setEditingDraft(null);
-      setSubmitError(null);
-    }
-  }, [saving]);
-
-  const handleCancelDelete = useCallback(() => {
-    setDeleteTarget(null);
-  }, []);
 
   const closeLicenses = useCallback(() => {
     setLicensesOpen(false);
@@ -257,38 +143,19 @@ function useConfigSettingsSectionController(
     authLoading,
     authModeState,
     closeLicenses,
-    deleteTarget,
-    editingDraft,
     errorMessage,
     handleActivateChatgpt,
-    handleAddProvider,
-    handleApply,
-    handleCancelDelete,
     handleChatgptLogin,
-    handleCloseDialog,
-    handleDelete,
-    handleEditProvider,
-    handleSave,
     handleWindowsSandboxToggle,
     licensesOpen,
-    loading,
     noticeMessage,
     openLicenses,
-    pendingProviderId,
-    providers,
-    saving,
-    setDeleteTarget,
-    submitError,
   };
 }
 
 export function ConfigSettingsSection(props: ConfigSettingsSectionProps): JSX.Element {
   const { t } = useI18n();
   const controller = useConfigSettingsSectionController(props, t);
-  const currentProviderKey = useMemo(
-    () => readCurrentCodexProviderKey(props.configSnapshot),
-    [props.configSnapshot],
-  );
 
   return (
     <div className="settings-panel-group">
@@ -345,20 +212,17 @@ export function ConfigSettingsSection(props: ConfigSettingsSectionProps): JSX.El
         onActivateChatgpt={controller.handleActivateChatgpt}
         onLogin={controller.handleChatgptLogin}
       />
-      <CodexProviderListCard
-        busy={props.busy}
-        loading={controller.loading}
-        providers={controller.providers}
-        authModeState={controller.authModeState}
-        currentProviderKey={currentProviderKey}
-        pendingProviderId={controller.pendingProviderId}
-        noticeMessage={controller.noticeMessage}
-        errorMessage={controller.errorMessage}
-        onAdd={controller.handleAddProvider}
-        onEdit={controller.handleEditProvider}
-        onDelete={controller.setDeleteTarget}
-        onApply={controller.handleApply}
-      />
+      <CodexProviderRecommendationCard onOpenExternal={props.onOpenExternal} />
+      {controller.errorMessage ? (
+        <div className="settings-notice settings-notice-error">
+          {controller.errorMessage}
+        </div>
+      ) : null}
+      {controller.noticeMessage ? (
+        <div className="settings-notice settings-notice-success">
+          {controller.noticeMessage}
+        </div>
+      ) : null}
       {controller.licensesOpen ? (
         <Suspense fallback={null}>
           <LazyOpenSourceLicensesDialog
@@ -367,21 +231,6 @@ export function ConfigSettingsSection(props: ConfigSettingsSectionProps): JSX.El
           />
         </Suspense>
       ) : null}
-      <CodexProviderDialog
-        open={controller.editingDraft !== null}
-        initialDraft={controller.editingDraft}
-        providers={controller.providers}
-        saving={controller.saving}
-        submitError={controller.submitError}
-        onClose={controller.handleCloseDialog}
-        onSave={controller.handleSave}
-      />
-      <CodexProviderDeleteDialog
-        deleteTarget={controller.deleteTarget}
-        pendingProviderId={controller.pendingProviderId}
-        onCancel={controller.handleCancelDelete}
-        onConfirm={controller.handleDelete}
-      />
     </div>
   );
 }

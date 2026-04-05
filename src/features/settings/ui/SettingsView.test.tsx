@@ -95,10 +95,7 @@ function createBaseProps(
         noProxy: "",
       },
     }),
-    listCodexProviders: vi.fn().mockResolvedValue({ version: 1, providers: [] }),
-    upsertCodexProvider: vi.fn(),
-    deleteCodexProvider: vi.fn(),
-    applyCodexProvider: vi.fn(),
+    onOpenExternal: vi.fn().mockResolvedValue(undefined),
     getCodexAuthModeState: vi.fn().mockResolvedValue({
       activeMode: "chatgpt",
       activeProviderId: null,

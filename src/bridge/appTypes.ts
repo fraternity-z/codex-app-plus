@@ -181,42 +181,6 @@ export interface UpdateChatgptAuthTokensInput {
   readonly chatgptPlanType: string | null;
 }
 
-export interface CodexProviderDraft {
-  readonly id?: string | null;
-  readonly name: string;
-  readonly providerKey: string;
-  readonly apiKey: string;
-  readonly baseUrl: string;
-  readonly authJsonText: string;
-  readonly configTomlText: string;
-}
-
-export interface CodexProviderRecord {
-  readonly id: string;
-  readonly name: string;
-  readonly providerKey: string;
-  readonly apiKey: string;
-  readonly baseUrl: string;
-  readonly authJsonText: string;
-  readonly configTomlText: string;
-  readonly createdAt: number;
-  readonly updatedAt: number;
-}
-
-export interface CodexProviderStore {
-  readonly version: number;
-  readonly providers: ReadonlyArray<CodexProviderRecord>;
-}
-
-export interface DeleteCodexProviderInput {
-  readonly id: string;
-}
-
-export interface ApplyCodexProviderInput {
-  readonly agentEnvironment?: AgentEnvironment;
-  readonly id: string;
-}
-
 export type CodexAuthMode = "chatgpt" | "apikey";
 
 export interface ActivateCodexChatgptInput {
@@ -233,7 +197,6 @@ export interface CaptureCodexOauthSnapshotInput {
 
 export interface CodexAuthModeStateOutput {
   readonly activeMode: CodexAuthMode;
-  readonly activeProviderId: string | null;
   readonly activeProviderKey: string | null;
   readonly oauthSnapshotAvailable: boolean;
 }
@@ -245,13 +208,6 @@ export interface CodexAuthSwitchResult {
   readonly authPath: string;
   readonly configPath: string;
   readonly restoredFromSnapshot: boolean;
-}
-
-export interface CodexProviderApplyResult {
-  readonly providerId: string;
-  readonly providerKey: string;
-  readonly authPath: string;
-  readonly configPath: string;
 }
 
 export interface CodexSessionSummaryOutput {

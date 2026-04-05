@@ -7,11 +7,6 @@ import type {
   AgentEnvironment,
   CodexAuthModeStateOutput,
   CodexAuthSwitchResult,
-  CodexProviderApplyResult,
-  CodexProviderDraft,
-  CodexProviderRecord,
-  CodexProviderStore,
-  DeleteCodexProviderInput,
   GlobalAgentInstructionsOutput,
   ReadProxySettingsOutput,
   UpdateProxySettingsInput,
@@ -73,6 +68,7 @@ export interface SettingsViewProps {
   onSelectSection: (section: SettingsSection) => void;
   onAddRoot: () => void;
   onOpenConfigToml: () => Promise<void>;
+  onOpenExternal: (url: string) => Promise<void>;
   refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
   refreshAuthState: () => Promise<void>;
   login: () => Promise<void>;
@@ -88,10 +84,6 @@ export interface SettingsViewProps {
     input: UpdateGlobalAgentInstructionsInput
   ) => Promise<GlobalAgentInstructionsOutput>;
   writeProxySettings: (input: UpdateProxySettingsInput) => Promise<UpdateProxySettingsOutput>;
-  listCodexProviders: () => Promise<CodexProviderStore>;
-  upsertCodexProvider: (input: CodexProviderDraft) => Promise<CodexProviderRecord>;
-  deleteCodexProvider: (input: DeleteCodexProviderInput) => Promise<CodexProviderStore>;
-  applyCodexProvider: (input: { readonly id: string }) => Promise<CodexProviderApplyResult>;
   getCodexAuthModeState: () => Promise<CodexAuthModeStateOutput>;
   activateCodexChatgpt: () => Promise<CodexAuthSwitchResult>;
   refreshMcpData: () => Promise<McpRefreshResult>;
@@ -208,14 +200,11 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
           busy={props.busy}
           configSnapshot={props.configSnapshot}
           onOpenConfigToml={props.onOpenConfigToml}
+          onOpenExternal={props.onOpenExternal}
           refreshConfigSnapshot={props.refreshConfigSnapshot}
           refreshAuthState={props.refreshAuthState}
           login={props.login}
           readProxySettings={props.readProxySettings}
-          listCodexProviders={props.listCodexProviders}
-          upsertCodexProvider={props.upsertCodexProvider}
-          deleteCodexProvider={props.deleteCodexProvider}
-          applyCodexProvider={props.applyCodexProvider}
           getCodexAuthModeState={props.getCodexAuthModeState}
           activateCodexChatgpt={props.activateCodexChatgpt}
           writeProxySettings={props.writeProxySettings}

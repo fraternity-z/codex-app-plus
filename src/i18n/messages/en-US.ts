@@ -1,4 +1,4 @@
-import type { MessagesSchema } from "./schema";
+﻿import type { MessagesSchema } from "./schema";
 import { enUSSettingsMcp } from "./settingsMcp";
 
 export const enUS = {
@@ -300,7 +300,7 @@ export const enUS = {
       workspacesTitle: "Workspaces",
       addProjectAction: "Add project",
       note: "Choose the local project directories available in Codex.",
-      empty: "No projects yet. Click “Add project” to switch workspaces from the sidebar.",
+      empty: "No projects yet. Click \"Add project\" to switch workspaces from the sidebar.",
     },
     worktree: {
       title: "Worktree",
@@ -372,44 +372,15 @@ export const enUS = {
         switchedNeedsLoginMessage: "Switched to ChatGPT mode. Continue by signing in to ChatGPT, then restart the app for the change to take effect.",
         loginStartedMessage: "Started the ChatGPT sign-in flow. Restart the app for the change to take effect.",
       },
-      providers: {
-        title: "Provider presets",
-        description: "Saved locally in the app. “Apply now” only overwrites the current provider-related live config.",
-        addAction: "Add provider",
-        loading: "Loading providers…",
-        empty: "No providers yet. Click “Add provider” to start.",
-        current: "Currently applied",
-        editAction: "Edit",
-        deleteAction: "Delete",
-        applyAction: "Apply now",
-        applying: "Applying…",
-        savedMessage: "Saved provider: {name}",
-        appliedMessage: "Applied provider: {name}. Restart the app for the change to take effect.",
-        deletedMessage: "Deleted provider: {name}",
-        deleteTitle: "Delete provider",
-        deleteDescription:
-          "This removes {name} from the app-local config and does not clean historical entries from ~/.codex/config.toml.",
-        cancelAction: "Cancel",
-        confirmDeleteAction: "Delete",
-        deleting: "Deleting…",
-        closeAction: "Close",
-      },
-      providerDialog: {
-        addTitle: "Add Provider",
-        editTitle: "Edit Provider",
-        closeAction: "Close",
-        nameLabel: "Name",
-        providerKeyLabel: "providerKey",
-        providerKeyPlaceholder: "For example: openai-custom",
-        apiKeyLabel: "API Key",
-        baseUrlLabel: "Base URL",
-        authLabel: "auth.json",
-        configLabel: "config.toml",
-        cancelAction: "Cancel",
-        saveAction: "Save",
-        saving: "Saving…",
-        saveAndApplyAction: "Save & Apply",
-        applying: "Applying…",
+      providerRecommendation: {
+        title: "Provider Configuration Management",
+        description: "We recommend using CC Switch to manage provider configurations.",
+        ccSwitchIntro: "CC Switch is a cross-platform tool for managing multiple AI coding tool configurations, supporting unified management of providers, MCP servers, and system prompts.",
+        downloadCcSwitch: "Download CC Switch",
+        viewDocs: "View Documentation",
+        manualConfigTitle: "Or manually edit configuration files:",
+        authJsonPath: "~/.codex/auth.json",
+        configTomlPath: "~/.codex/config.toml",
       },
     },
     personalization: {
@@ -535,3 +506,4 @@ export const enUS = {
     },
   },
 } satisfies MessagesSchema;
+

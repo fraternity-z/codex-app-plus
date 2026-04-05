@@ -16,7 +16,6 @@ export interface AccountLimitsSectionProps {
 }
 
 export const AccountLimitsSection = memo(function AccountLimitsSection({
-  appServerClient,
   rateLimits,
   className,
 }: AccountLimitsSectionProps) {

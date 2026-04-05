@@ -15,7 +15,6 @@ export interface AccountLimitCardProps {
 export const AccountLimitCard = memo(function AccountLimitCard({
   label,
   value,
-  caption,
   badge,
   className,
 }: AccountLimitCardProps) {

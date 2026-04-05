@@ -6,28 +6,24 @@ use serde::{Deserialize, Serialize};
 use crate::error::{AppError, AppResult};
 use crate::models::CodexAuthMode;
 
-use super::types::{CodexOauthSnapshot, PersistedModeState};
+use super::types::CodexOauthSnapshot;
 
 const APP_DIRECTORY: &str = "CodexAppPlus";
 const MODE_STATE_FILE_NAME: &str = "codex-auth-mode.json";
 const OAUTH_SNAPSHOT_FILE_NAME: &str = "codex-oauth-snapshot.json";
 
-pub(crate) fn persist_mode_state(
-    mode: CodexAuthMode,
-    provider_id: Option<String>,
-    provider_key: Option<String>,
-) -> AppResult<()> {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct PersistedModeState {
+    pub(crate) active_mode: CodexAuthMode,
+    pub(crate) updated_at: i64,
+}
+
+pub(crate) fn persist_mode_state(mode: CodexAuthMode) -> AppResult<()> {
     let state = PersistedModeState {
         active_mode: mode,
-        active_provider_id: provider_id,
-        active_provider_key: provider_key,
         updated_at: now_unix_ms()?,
     };
     write_json_file(mode_state_path()?, &state)
-}
-
-pub(crate) fn read_persisted_mode_state() -> AppResult<Option<PersistedModeState>> {
-    read_json_file(mode_state_path()?)
 }
 
 pub(crate) fn read_oauth_snapshot() -> AppResult<Option<CodexOauthSnapshot>> {

@@ -4,7 +4,6 @@ import type {
   ActivateCodexChatgptInput,
   AgentEnvironment,
   AgentsSettingsOutput,
-  ApplyCodexProviderInput,
   AppServerStartInput,
   BridgeEventName,
   BridgeEventPayloadMap,
@@ -12,17 +11,12 @@ import type {
   ChatgptAuthTokensOutput,
   CodexAuthModeStateOutput,
   CodexAuthSwitchResult,
-  CodexProviderApplyResult,
   CreateAgentInput,
   CustomPromptOutput,
-  CodexProviderDraft,
-  CodexProviderRecord,
-  CodexProviderStore,
   CodexSessionReadInput,
   CodexSessionReadOutput,
   CodexSessionSummaryOutput,
   DeleteAgentInput,
-  DeleteCodexProviderInput,
   DeleteCodexSessionInput,
   GitBranchRef,
   GitCheckoutInput,
@@ -187,23 +181,6 @@ export function createTauriHostBridge(): HostBridge {
       writeProxySettings: (input: UpdateProxySettingsInput) =>
         invokeWithInput<UpdateProxySettingsInput, UpdateProxySettingsOutput>(
           "app_write_proxy_settings",
-          input
-        ),
-      listCodexProviders: () =>
-        invokeCommand<CodexProviderStore>("app_list_codex_providers"),
-      upsertCodexProvider: (input: CodexProviderDraft) =>
-        invokeWithInput<CodexProviderDraft, CodexProviderRecord>(
-          "app_upsert_codex_provider",
-          input
-        ),
-      deleteCodexProvider: (input: DeleteCodexProviderInput) =>
-        invokeWithInput<DeleteCodexProviderInput, CodexProviderStore>(
-          "app_delete_codex_provider",
-          input
-        ),
-      applyCodexProvider: (input: ApplyCodexProviderInput) =>
-        invokeWithInput<ApplyCodexProviderInput, CodexProviderApplyResult>(
-          "app_apply_codex_provider",
           input
         ),
       getCodexAuthModeState: (input: GetCodexAuthModeStateInput) =>

@@ -95,25 +95,6 @@ function createHostBridge(): HostBridge {
           noProxy: ""
         }
       }),
-      listCodexProviders: vi.fn().mockResolvedValue({ version: 1, providers: [] }),
-      upsertCodexProvider: vi.fn().mockResolvedValue({
-        id: "provider-1",
-        name: "Right Code",
-        providerKey: "right_code",
-        apiKey: "secret-1",
-        baseUrl: "https://right.codes/codex/v1",
-        authJsonText: "{}",
-        configTomlText: "",
-        createdAt: 1,
-        updatedAt: 1
-      }),
-      deleteCodexProvider: vi.fn().mockResolvedValue({ version: 1, providers: [] }),
-      applyCodexProvider: vi.fn().mockResolvedValue({
-        providerId: "provider-1",
-        providerKey: "right_code",
-        authPath: "C:/Users/Administrator/.codex/auth.json",
-        configPath: "C:/Users/Administrator/.codex/config.toml"
-      }),
       getCodexAuthModeState: vi.fn().mockResolvedValue({
         activeMode: "chatgpt",
         activeProviderId: null,
