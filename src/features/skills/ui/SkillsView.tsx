@@ -8,6 +8,7 @@ import type { SkillsConfigWriteParams } from "../../../protocol/generated/v2/Ski
 import type { SkillsConfigWriteResponse } from "../../../protocol/generated/v2/SkillsConfigWriteResponse";
 import type { SkillsListParams } from "../../../protocol/generated/v2/SkillsListParams";
 import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsListResponse";
+import { useI18n } from "../../../i18n";
 import "../../../styles/replica/replica-skills.css";
 import { useSkillsViewModel } from "../hooks/useSkillsViewModel";
 import type { InstalledSkillCard, MarketplacePluginCard } from "../model/skillCatalog";
@@ -82,15 +83,16 @@ function SkillsToolbar(props: {
   readonly onRefresh: () => Promise<void>;
   readonly onQueryChange: (value: string) => void;
 }): JSX.Element {
+  const { t } = useI18n();
   return (
     <header className="skills-toolbar">
       <button type="button" className="skills-back-button" onClick={props.onBackHome}>
-        ← 返回应用
+        {t("home.skills.back")}
       </button>
       <div className="skills-toolbar-actions">
         <button type="button" className="skills-ghost-button" onClick={() => void props.onRefresh()} disabled={!props.ready || props.refreshPending}>
           <RefreshIcon />
-          <span>{props.refreshPending ? "刷新中" : "刷新"}</span>
+          <span>{props.refreshPending ? t("home.skills.refreshing") : t("home.skills.refresh")}</span>
         </button>
         <label className="skills-search-field">
           <SearchIcon />
@@ -98,25 +100,25 @@ function SkillsToolbar(props: {
             type="search"
             value={props.query}
             onChange={(event) => props.onQueryChange(event.target.value)}
-            placeholder="搜索技能"
-            aria-label="搜索技能"
+            placeholder={t("home.skills.search")}
+            aria-label={t("home.skills.search")}
           />
         </label>
         <button
           type="button"
           className="skills-primary-button"
           disabled
-          title="暂未接入本地创建技能链路"
+          title={t("home.skills.newSkillDisabled")}
         >
-          + 新技能
+          {t("home.skills.newSkill")}
         </button>
       </div>
       <div className="skills-header-copy">
-        <h1>技能</h1>
+        <h1>{t("home.skills.title")}</h1>
         <p>
-          赋予 Codex 更强大的能力。
+          {t("home.skills.subtitle")}
           <button type="button" className="skills-inline-link" onClick={() => void props.onOpenLearnMore()}>
-            了解更多
+            {t("home.skills.learnMore")}
           </button>
         </p>
       </div>
@@ -133,21 +135,24 @@ function InstalledSkillsSection(props: {
   readonly loading: boolean;
   readonly onToggleSkillEnabled: (skill: InstalledSkillCard) => Promise<void>;
 }): JSX.Element {
+  const { t } = useI18n();
   return (
     <section className="skills-section">
-      <SectionHeading title="已安装" loading={props.loading} />
+      <SectionHeading title={t("home.skills.installed.title")} loading={props.loading} />
       <SectionBanner message={props.actionError} tone="error" />
-      <SectionBanner message={formatScanErrors(props.scanErrors)} tone="warning" />
+      <SectionBanner message={formatScanErrors(props.scanErrors, t)} tone="warning" />
       <SkillsGridState
-        emptyCopy="当前没有匹配的已安装技能。"
+        emptyCopy={t("home.skills.installed.empty")}
         error={props.installedError}
         items={props.skills}
         loading={props.loading}
+        t={t}
         renderItem={(skill) => (
           <InstalledSkillCardView
             key={skill.path}
             pending={props.pendingPaths[skill.path] === true}
             skill={skill}
+            t={t}
             onToggleSkillEnabled={props.onToggleSkillEnabled}
           />
         )}
@@ -163,19 +168,22 @@ function RecommendedSkillsSection(props: {
   readonly loading: boolean;
   readonly onInstallSkill: (skill: MarketplacePluginCard) => Promise<void>;
 }): JSX.Element {
+  const { t } = useI18n();
   return (
     <section className="skills-section">
-      <SectionHeading title="推荐" loading={props.loading} />
+      <SectionHeading title={t("home.skills.recommended.title")} loading={props.loading} />
       <SkillsGridState
-        emptyCopy="暂无推荐技能。"
+        emptyCopy={t("home.skills.recommended.empty")}
         error={props.error}
         items={props.skills}
         loading={props.loading}
+        t={t}
         renderItem={(skill) => (
           <RemoteSkillCardView
             key={skill.id}
             installing={props.installingIds[skill.id] === true}
             skill={skill}
+            t={t}
             onInstallSkill={props.onInstallSkill}
           />
         )}
@@ -189,16 +197,17 @@ function SkillsGridState<T>(props: {
   readonly error: string | null;
   readonly loading: boolean;
   readonly emptyCopy: string;
+  readonly t: ReturnType<typeof useI18n>["t"];
   readonly renderItem: (item: T) => JSX.Element;
 }): JSX.Element {
   if (props.error !== null) {
-    return <SectionErrorState title="无法加载技能" detail={props.error} />;
+    return <SectionErrorState title={props.t("home.skills.installed.errorTitle")} detail={props.error} />;
   }
   if (props.loading && props.items.length === 0) {
-    return <SectionEmptyState title="正在加载技能" detail="请稍候，正在通过官方链路获取最新技能数据。" />;
+    return <SectionEmptyState title={props.t("home.skills.installed.loadingTitle")} detail={props.t("home.skills.installed.loadingDetail")} />;
   }
   if (props.items.length === 0) {
-    return <SectionEmptyState title="没有结果" detail={props.emptyCopy} />;
+    return <SectionEmptyState title={props.t("home.skills.empty")} detail={props.emptyCopy} />;
   }
   return <div className="skills-grid">{props.items.map(props.renderItem)}</div>;
 }
@@ -206,6 +215,7 @@ function SkillsGridState<T>(props: {
 function InstalledSkillCardView(props: {
   readonly skill: InstalledSkillCard;
   readonly pending: boolean;
+  readonly t: ReturnType<typeof useI18n>["t"];
   readonly onToggleSkillEnabled: (skill: InstalledSkillCard) => Promise<void>;
 }): JSX.Element {
   return (
@@ -214,7 +224,7 @@ function InstalledSkillCardView(props: {
       <div className="skills-card-copy">
         <div className="skills-card-title-row">
           <strong>{props.skill.name}</strong>
-          <span className="skills-scope-pill">{formatScope(props.skill.scope)}</span>
+          <span className="skills-scope-pill">{formatScope(props.skill.scope, props.t)}</span>
         </div>
         <p>{props.skill.description}</p>
       </div>
@@ -223,7 +233,7 @@ function InstalledSkillCardView(props: {
         className={props.skill.enabled ? "settings-toggle settings-toggle-on" : "settings-toggle"}
         role="switch"
         aria-checked={props.skill.enabled}
-        aria-label={`${props.skill.name}${props.skill.enabled ? "已启用" : "已禁用"}`}
+        aria-label={`${props.skill.name}${props.skill.enabled ? props.t("home.skills.card.enabled") : props.t("home.skills.card.disabled")}`}
         disabled={props.pending}
         onClick={() => void props.onToggleSkillEnabled(props.skill)}
       >
@@ -236,6 +246,7 @@ function InstalledSkillCardView(props: {
 function RemoteSkillCardView(props: {
   readonly skill: MarketplacePluginCard;
   readonly installing: boolean;
+  readonly t: ReturnType<typeof useI18n>["t"];
   readonly onInstallSkill: (skill: MarketplacePluginCard) => Promise<void>;
 }): JSX.Element {
   return (
@@ -251,17 +262,18 @@ function RemoteSkillCardView(props: {
         disabled={props.installing}
         onClick={() => void props.onInstallSkill(props.skill)}
       >
-        {props.installing ? "安装中" : "安装"}
+        {props.installing ? props.t("home.skills.card.installing") : props.t("home.skills.card.install")}
       </button>
     </article>
   );
 }
 
 function SectionHeading(props: { readonly title: string; readonly loading: boolean }): JSX.Element {
+  const { t } = useI18n();
   return (
     <div className="skills-section-heading">
       <h2>{props.title}</h2>
-      {props.loading ? <span>同步中…</span> : null}
+      {props.loading ? <span>{t("home.skills.installed.syncing")}</span> : null}
     </div>
   );
 }
@@ -299,20 +311,23 @@ function RefreshIcon(): JSX.Element {
   return <span className="skills-toolbar-icon" aria-hidden="true">↻</span>;
 }
 
-function formatScope(scope: InstalledSkillCard["scope"]): string {
-  if (scope === "repo") return "仓库";
-  if (scope === "user") return "个人";
-  if (scope === "system") return "系统";
-  return "管理";
+function formatScope(scope: InstalledSkillCard["scope"], t: ReturnType<typeof useI18n>["t"]): string {
+  if (scope === "repo") return t("home.skills.card.scopeRepo");
+  if (scope === "user") return t("home.skills.card.scopePersonal");
+  if (scope === "system") return t("home.skills.card.scopeSystem");
+  return t("home.skills.card.scopeAdmin");
 }
 
-function formatScanErrors(scanErrors: ReadonlyArray<{ readonly path: string; readonly message: string }>): string | null {
+function formatScanErrors(
+  scanErrors: ReadonlyArray<{ readonly path: string; readonly message: string }>,
+  t: ReturnType<typeof useI18n>["t"],
+): string | null {
   if (scanErrors.length === 0) {
     return null;
   }
   const [firstError] = scanErrors;
   if (scanErrors.length === 1) {
-    return `扫描错误：${firstError.path} - ${firstError.message}`;
+    return t("home.skills.scan.error", { path: firstError.path, message: firstError.message });
   }
-  return `扫描错误：${firstError.path} - ${firstError.message}，另有 ${scanErrors.length - 1} 条。`;
+  return t("home.skills.scan.errorMultiple", { path: firstError.path, message: firstError.message, count: scanErrors.length - 1 });
 }

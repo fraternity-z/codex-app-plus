@@ -280,7 +280,7 @@ describe("HomeConversationCanvas", () => {
   it("renders a single bottom thinking indicator immediately after user input", () => {
     const { container } = renderCanvas([USER_MESSAGE], { activeTurnId: "turn-1" });
 
-    expect(screen.getByText(/正在思考/)).toBeInTheDocument();
+    expect(screen.getByText(/Thinking/)).toBeInTheDocument();
     expect(container.querySelector(".home-turn-thinking-indicator")).not.toBeNull();
     expect(container.querySelector(".home-assistant-transcript-thinking")).toBeNull();
     expect(container.querySelector(".home-thinking-block")).toBeNull();
@@ -294,7 +294,7 @@ describe("HomeConversationCanvas", () => {
     expect(container.querySelector('.home-assistant-transcript-summary[data-truncate-summary="true"]')).not.toBeNull();
     expect(container.querySelector(".home-assistant-transcript-details details[open]")).toBeNull();
     expect(container.querySelector(".home-request-card")).toBeNull();
-    expect(screen.queryByText(/正在思考/)).toBeNull();
+    expect(screen.queryByText(/Thinking/)).toBeNull();
   });
 
   it("keeps reasoning, trace, and assistant reply in visual order", () => {
@@ -306,7 +306,7 @@ describe("HomeConversationCanvas", () => {
     expect(classNames[1]).toContain("home-assistant-transcript-reasoning");
     expect(classNames[2]).toContain("home-assistant-transcript-details");
     expect(classNames[3]).toContain("home-assistant-transcript-message");
-    expect(screen.queryByText(/正在思考/)).toBeNull();
+    expect(screen.queryByText(/Thinking/)).toBeNull();
   });
 
   it("keeps the thinking indicator below streaming assistant content", () => {
@@ -317,7 +317,7 @@ describe("HomeConversationCanvas", () => {
     const classNames = Array.from(group?.children ?? []).map((element) => (element as HTMLElement).className);
 
     expect(screen.getByText("正在输出正文")).toBeInTheDocument();
-    expect(screen.getByText(/正在思考/)).toBeInTheDocument();
+    expect(screen.getByText(/Thinking/)).toBeInTheDocument();
     expect(assistantChildren[0]).toContain("home-chat-markdown-inline");
     expect(assistantChildren).toHaveLength(1);
     expect(classNames[classNames.length - 1]).toContain("home-turn-thinking-indicator");
@@ -353,7 +353,7 @@ describe("HomeConversationCanvas", () => {
     renderCanvas([USER_MESSAGE, COMMAND_ENTRY], { activeTurnId: "turn-1", threadDetailLevel: "compact" });
 
     expect(screen.queryByText("正在执行命令：pnpm test")).toBeNull();
-    expect(screen.getByText(/正在思考/)).toBeInTheDocument();
+    expect(screen.getByText(/Thinking/)).toBeInTheDocument();
   });
 
   it("shows raw responses and debug entries in full mode", () => {
@@ -372,8 +372,8 @@ describe("HomeConversationCanvas", () => {
     expect(classNames[1]).toContain("home-assistant-transcript-reasoning");
     expect(classNames[2]).toContain("home-assistant-transcript-details");
     expect(classNames[3]).toContain("home-turn-thinking-indicator");
-    expect(screen.queryByText("正在思考...")).toBeNull();
-    expect(screen.queryByText("正在思考…")).toBeNull();
+    expect(screen.queryByText("Thinking...")).toBeNull();
+    expect(screen.queryByText("Thinking…")).toBeNull();
   });
 
   it("renders user image previews without dumping base64 into the bubble", () => {

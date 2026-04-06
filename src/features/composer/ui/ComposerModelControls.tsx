@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "../../../i18n/useI18n";
 import {
   DEFAULT_COMPOSER_MODEL_LABEL,
   getComposerModelLabel,
@@ -8,7 +9,6 @@ import {
 import type { ReasoningEffort } from "../../../protocol/generated/ReasoningEffort";
 import { OfficialChevronRightIcon } from "../../shared/ui/officialIcons";
 import {
-  getReasoningEffortLabel,
   isReasoningEffortSelected,
   listSelectableReasoningEfforts
 } from "../model/reasoningEffortOptions";
@@ -47,9 +47,29 @@ function FolderIcon(props: { readonly className?: string }): JSX.Element {
 function MenuCheck(): JSX.Element {
   return (
     <span className="composer-select-check" aria-hidden="true">
-      ✓
+      {"\u2713"}
     </span>
   );
+}
+
+function reasoningEffortLabel(t: ReturnType<typeof useI18n>["t"], effort: ReasoningEffort | null): string {
+  switch (effort) {
+    case "none":
+      return t("home.composer.reasoningEffort.none");
+    case "minimal":
+      return t("home.composer.reasoningEffort.minimal");
+    case "low":
+      return t("home.composer.reasoningEffort.low");
+    case "medium":
+      return t("home.composer.reasoningEffort.medium");
+    case "high":
+      return t("home.composer.reasoningEffort.high");
+    case "xhigh":
+    case null:
+      return t("home.composer.reasoningEffort.xhigh");
+    default:
+      return t("home.composer.reasoningEffort.xhigh");
+  }
 }
 
 function ModelMenuItem(props: {
@@ -121,6 +141,7 @@ function ExtraModelsFolder(props: {
   readonly disabled: boolean;
   readonly onSelectModel: (model: string) => void;
 }): JSX.Element {
+  const { t } = useI18n();
   const submenu = useDelayedSubmenuState();
   const open = submenu.open;
   const triggerClassName = open
@@ -143,15 +164,15 @@ function ExtraModelsFolder(props: {
       >
         <span className="composer-select-menu-item-left">
           <FolderIcon className="composer-select-folder-icon" />
-          <span className="composer-select-menu-item-label">Extra models</span>
+          <span className="composer-select-menu-item-label">{t("home.composer.extraModels")}</span>
         </span>
         <span className="composer-select-folder-meta">
           <span className="composer-select-folder-count">{props.models.length}</span>
           <OfficialChevronRightIcon className="composer-select-folder-caret" />
         </span>
       </button>
-      <div className={submenuClassName} role="menu" aria-label="Extra models" aria-hidden={!open}>
-        <div className="composer-select-menu-title">Extra models</div>
+      <div className={submenuClassName} role="menu" aria-label={t("home.composer.extraModels")} aria-hidden={!open}>
+        <div className="composer-select-menu-title">{t("home.composer.extraModels")}</div>
         {props.models.map((model) => (
           <ModelMenuItem
             key={model.id}
@@ -172,11 +193,12 @@ function ModelMenu(props: {
   readonly disabled: boolean;
   readonly onSelectModel: (model: string) => void;
 }): JSX.Element {
+  const { t } = useI18n();
   const { primaryModels, extraModels } = useMemo(() => partitionComposerModels(props.models), [props.models]);
 
   return (
-    <div className="composer-select-menu composer-select-menu-model" role="menu" aria-label="选择模型">
-      <div className="composer-select-menu-title">选择模型</div>
+    <div className="composer-select-menu composer-select-menu-model" role="menu" aria-label={t("home.toolbar.selectModel")}>
+      <div className="composer-select-menu-title">{t("home.toolbar.selectModel")}</div>
       {primaryModels.map((model) => (
         <ModelMenuItem
           key={model.id}
@@ -205,14 +227,15 @@ function EffortMenu(props: {
   readonly disabled: boolean;
   readonly onSelectEffort: (effort: ReasoningEffort) => void;
 }): JSX.Element {
+  const { t } = useI18n();
   const visibleEfforts = useMemo(
     () => listSelectableReasoningEfforts(props.supportedEfforts, props.selectedEffort),
     [props.selectedEffort, props.supportedEfforts]
   );
 
   return (
-    <div className="composer-select-menu composer-select-menu-effort" role="menu" aria-label="选择推理强度">
-      <div className="composer-select-menu-title">选择推理强度</div>
+    <div className="composer-select-menu composer-select-menu-effort" role="menu" aria-label={t("home.composer.selectReasoningEffort")}>
+      <div className="composer-select-menu-title">{t("home.composer.selectReasoningEffort")}</div>
       {visibleEfforts.map((effort) => {
         const selected = isReasoningEffortSelected(props.selectedEffort, effort.value);
         const itemClassName = selected ? "composer-select-menu-item composer-select-menu-item-selected" : "composer-select-menu-item";
@@ -228,7 +251,7 @@ function EffortMenu(props: {
           >
             <span className="composer-select-menu-item-left">
               <BrainIcon className="composer-select-brain" />
-              <span className="composer-select-menu-item-label">{effort.label}</span>
+              <span className="composer-select-menu-item-label">{reasoningEffortLabel(t, effort.value)}</span>
             </span>
             {selected ? <MenuCheck /> : null}
           </button>
@@ -247,11 +270,11 @@ export function ComposerModelControls(props: {
   readonly onSelectModel: (model: string) => void;
   readonly onSelectEffort: (effort: ReasoningEffort) => void;
 }): JSX.Element {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const [openMenu, setOpenMenu] = useState<ComposerMenu>(null);
   const modelLabel = getComposerModelLabel(props.models, props.selectedModel);
-  const effortLabel = getReasoningEffortLabel(props.selectedEffort);
-
+  const effortLabel = reasoningEffortLabel(t, props.selectedEffort);
   useToolbarMenuDismissal(openMenu !== null, containerRef, () => setOpenMenu(null));
 
   const onSelectModel = (model: string) => {
@@ -275,7 +298,7 @@ export function ComposerModelControls(props: {
           className={openMenu === "model" ? "composer-select-trigger composer-select-trigger-active" : "composer-select-trigger"}
           aria-haspopup="menu"
           aria-expanded={openMenu === "model"}
-          aria-label={`选择模型：${modelLabel}`}
+          aria-label={`${t("home.toolbar.selectModel")}: ${modelLabel}`}
           disabled={props.disabled}
           onClick={() => setOpenMenu((current) => (current === "model" ? null : "model"))}
         >
@@ -292,7 +315,7 @@ export function ComposerModelControls(props: {
           className={openMenu === "effort" ? "composer-select-trigger composer-select-trigger-active" : "composer-select-trigger"}
           aria-haspopup="menu"
           aria-expanded={openMenu === "effort"}
-          aria-label={`选择思考强度：${effortLabel}`}
+          aria-label={`${t("home.composer.selectReasoningEffort")}: ${effortLabel}`}
           disabled={props.disabled}
           onClick={() => setOpenMenu((current) => (current === "effort" ? null : "effort"))}
         >

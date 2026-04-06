@@ -225,14 +225,20 @@ function useHomeScreenActions(args: {
 }) {
   const { t } = useI18n();
   const { dismissBanner, reportError } = useUiBannerNotifications("home-screen");
-  const notifyAlertError = useCallback((key: MessageKey, error: unknown, options?: { readonly logMessage?: string; readonly rethrow?: boolean }) => {
+  const normalizeUiErrorMessage = useCallback((error: unknown) => {
     const detail = error instanceof Error ? error.message : String(error);
+    return detail === "è¯·å…ˆé€‰æ‹©å·¥ä½œåŒºã€‚"
+      ? t("app.alerts.workspaceRequired")
+      : detail;
+  }, [t]);
+  const notifyAlertError = useCallback((key: MessageKey, error: unknown, options?: { readonly logMessage?: string; readonly rethrow?: boolean }) => {
+    const detail = normalizeUiErrorMessage(error);
     reportError(t(key, { error: detail }), error, {
       detail: null,
       logMessage: options?.logMessage,
       rethrow: options?.rethrow,
     });
-  }, [reportError, t]);
+  }, [normalizeUiErrorMessage, reportError, t]);
 
   const addRoot = useCallback(async () => {
     try {

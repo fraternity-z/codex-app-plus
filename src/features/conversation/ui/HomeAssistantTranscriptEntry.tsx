@@ -7,6 +7,7 @@ import { HomeAssistantTranscriptDetailBlock } from "./HomeAssistantTranscriptDet
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { HomePlanDraftCard } from "../../composer/ui/HomePlanDraftCard";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
+import { useI18n } from "../../../i18n/useI18n";
 
 type AssistantNode = Extract<ConversationRenderNode, { kind: "assistantMessage" | "reasoningBlock" | "traceItem" | "auxiliaryBlock" }>;
 
@@ -16,6 +17,7 @@ interface HomeAssistantTranscriptEntryProps {
 }
 
 export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntryProps): JSX.Element {
+  const { t } = useI18n();
   if (props.node.kind === "reasoningBlock") {
     return <ReasoningTranscriptEntry block={props.node.block} />;
   }
@@ -38,7 +40,7 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
     );
   }
 
-  const model = createAssistantTranscriptEntryModel(props.node);
+  const model = createAssistantTranscriptEntryModel(props.node, t);
   const truncateSummaryWhenCollapsed = model.kind === "details" && model.truncateSummaryWhenCollapsed === true;
   const traceEntry = props.node.kind === "traceItem";
   const summaryContent = model.kind === "message" ? null : createSummaryContent(props.node, model.summary);

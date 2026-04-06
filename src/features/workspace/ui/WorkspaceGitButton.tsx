@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "../../../i18n/useI18n";
 import { GitCommitIcon, GitPullIcon, GitPushIcon } from "../../git/ui/gitIcons";
 import { GitPushConfirmDialog } from "../../git/ui/GitPushConfirmDialog";
 import { canOpenCommitDialog, canPullChanges, canPushChanges } from "../../git/model/gitActionAvailability";
@@ -6,13 +7,6 @@ import type { WorkspaceGitController } from "../../git/model/types";
 import { readStoredAppPreferences } from "../../settings/hooks/useAppPreferences";
 import { OfficialChevronRightIcon } from "../../shared/ui/officialIcons";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
-
-const CURRENT_WORKSPACE_LABEL = "当前工作区";
-const GIT_MENU_LABEL = "Git 操作";
-const GIT_TRIGGER_LABEL = "选择 Git 操作";
-const COMMIT_LABEL = "提交";
-const PUSH_LABEL = "推送";
-const PULL_LABEL = "拉取";
 
 interface WorkspaceGitButtonProps {
   readonly controller: WorkspaceGitController;
@@ -50,21 +44,15 @@ interface GitMenuAction {
   readonly renderIcon: (className: string) => JSX.Element;
 }
 
-function createMenuActions(controller: WorkspaceGitController, requestPush: () => void): ReadonlyArray<GitMenuAction> {
-  return [
-    { label: COMMIT_LABEL, disabled: !canOpenCommitDialog(controller), onClick: controller.openCommitDialog, renderIcon: (className) => <GitCommitIcon className={className} /> },
-    { label: PUSH_LABEL, disabled: !canPushChanges(controller), onClick: requestPush, renderIcon: (className) => <GitPushIcon className={className} /> },
-    { label: PULL_LABEL, disabled: !canPullChanges(controller), onClick: controller.pull, renderIcon: (className) => <GitPullIcon className={className} /> }
-  ];
-}
-
 function WorkspaceGitMenu(props: {
   readonly actions: ReadonlyArray<GitMenuAction>;
   readonly onClose: () => void;
 }): JSX.Element {
+  const { t } = useI18n();
+
   return (
-    <div className="toolbar-split-menu" role="menu" aria-label={GIT_MENU_LABEL}>
-      <div className="toolbar-menu-title">{GIT_MENU_LABEL}</div>
+    <div className="toolbar-split-menu" role="menu" aria-label={t("home.toolbar.gitActions")}>
+      <div className="toolbar-menu-title">{t("home.toolbar.gitActions")}</div>
       <div className="toolbar-menu-separator" />
       {props.actions.map((action) => (
         <button
@@ -90,6 +78,7 @@ function WorkspaceGitMenu(props: {
 }
 
 export function WorkspaceGitButton(props: WorkspaceGitButtonProps): JSX.Element {
+  const { t } = useI18n();
   const appPreferences = readStoredAppPreferences();
   const [menuOpen, setMenuOpen] = useState(false);
   const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
@@ -117,7 +106,11 @@ export function WorkspaceGitButton(props: WorkspaceGitButtonProps): JSX.Element 
   }, [props.controller]);
   const triggerDisabled = props.selectedRootPath === null || props.controller.pendingAction !== null || props.controller.loading || !props.controller.statusLoaded;
   const pushDisabled = props.selectedRootPath === null || !canPushChanges(props.controller);
-  const menuActions = useMemo(() => createMenuActions(props.controller, requestPush), [props.controller, requestPush]);
+  const menuActions = useMemo<ReadonlyArray<GitMenuAction>>(() => [
+    { label: t("home.toolbar.commit"), disabled: !canOpenCommitDialog(props.controller), onClick: props.controller.openCommitDialog, renderIcon: (className) => <GitCommitIcon className={className} /> },
+    { label: t("home.toolbar.push"), disabled: !canPushChanges(props.controller), onClick: requestPush, renderIcon: (className) => <GitPushIcon className={className} /> },
+    { label: t("home.toolbar.pull"), disabled: !canPullChanges(props.controller), onClick: props.controller.pull, renderIcon: (className) => <GitPullIcon className={className} /> }
+  ], [props.controller, requestPush, t]);
   const branchName = props.controller.status?.branch?.head ?? null;
 
   useRequestedOpen(props.controller, props.requestedOpen ?? null, setMenuOpen, setPushConfirmOpen);
@@ -126,11 +119,11 @@ export function WorkspaceGitButton(props: WorkspaceGitButtonProps): JSX.Element 
   return (
     <>
       <div className={menuOpen ? "toolbar-split toolbar-split-open" : "toolbar-split"} ref={containerRef}>
-        <button type="button" className="toolbar-split-main" disabled={pushDisabled} aria-label={`${PUSH_LABEL}${CURRENT_WORKSPACE_LABEL}`} onClick={requestPush}>
+        <button type="button" className="toolbar-split-main" disabled={pushDisabled} aria-label={t("home.toolbar.pushCurrentWorkspace")} onClick={requestPush}>
           <GitPushIcon className="toolbar-action-icon" />
-          <span className="toolbar-split-main-text">{PUSH_LABEL}</span>
+          <span className="toolbar-split-main-text">{t("home.toolbar.push")}</span>
         </button>
-        <button type="button" className="toolbar-split-trigger" disabled={triggerDisabled} aria-haspopup="menu" aria-expanded={menuOpen} aria-label={GIT_TRIGGER_LABEL} onClick={() => setMenuOpen((value) => !value)}>
+        <button type="button" className="toolbar-split-trigger" disabled={triggerDisabled} aria-haspopup="menu" aria-expanded={menuOpen} aria-label={t("home.toolbar.selectGitAction")} onClick={() => setMenuOpen((value) => !value)}>
           <OfficialChevronRightIcon className="toolbar-caret-icon" />
         </button>
         {menuOpen ? <WorkspaceGitMenu actions={menuActions} onClose={closeMenu} /> : null}

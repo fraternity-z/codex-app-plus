@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ComposerPermissionLevel } from "../model/composerPermission";
 import type { ComposerModelOption } from "../model/composerPreferences";
 import { AppStoreProvider } from "../../../state/store";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import { HomeComposer } from "./HomeComposer";
 import { permissionLabel } from "./ComposerFooterPopovers";
@@ -88,7 +89,7 @@ function ComposerHarness(props: {
       <HomeComposer
         appServerReady={props.appServerReady}
         busy={false}
-        inputText="检查权限链路"
+        inputText="check permission flow"
         collaborationPreset="default"
         models={MODELS}
         defaultModel="gpt-5.2"
@@ -123,13 +124,13 @@ function ComposerHarness(props: {
 
 describe("HomeComposer permission", () => {
   it("renders persisted permission label", () => {
-    render(<ComposerHarness initialPermissionLevel="full" onSendTurn={vi.fn().mockResolvedValue(undefined)} />);
+    render(<ComposerHarness initialPermissionLevel="full" onSendTurn={vi.fn().mockResolvedValue(undefined)} />, { wrapper: createI18nWrapper("en-US") });
     expect(screen.getByRole("button", { name: permissionLabel("full") })).toBeInTheDocument();
   });
 
   it("submits with the selected permission level", async () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
-    render(<ComposerHarness initialPermissionLevel="default" onSendTurn={onSendTurn} />);
+    render(<ComposerHarness initialPermissionLevel="default" onSendTurn={onSendTurn} />, { wrapper: createI18nWrapper("en-US") });
 
     fireEvent.click(screen.getByRole("button", { name: permissionLabel("default") }));
     fireEvent.click(screen.getByRole("menuitem", { name: permissionLabel("full") }));
@@ -140,7 +141,7 @@ describe("HomeComposer permission", () => {
 
   it("switches back to default permission before submit", async () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
-    render(<ComposerHarness initialPermissionLevel="full" onSendTurn={onSendTurn} />);
+    render(<ComposerHarness initialPermissionLevel="full" onSendTurn={onSendTurn} />, { wrapper: createI18nWrapper("en-US") });
 
     fireEvent.click(screen.getByRole("button", { name: permissionLabel("full") }));
     fireEvent.click(screen.getByRole("menuitem", { name: permissionLabel("default") }));
@@ -151,7 +152,7 @@ describe("HomeComposer permission", () => {
 
   it("blocks send while the app server is not ready", () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
-    render(<ComposerHarness initialPermissionLevel="default" onSendTurn={onSendTurn} appServerReady={false} />);
+    render(<ComposerHarness initialPermissionLevel="default" onSendTurn={onSendTurn} appServerReady={false} />, { wrapper: createI18nWrapper("en-US") });
 
     const sendButton = screen.getByRole("button", { name: "Send message" });
     expect(sendButton).toBeDisabled();

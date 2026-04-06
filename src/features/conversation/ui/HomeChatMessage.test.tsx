@@ -48,7 +48,7 @@ describe("HomeChatMessage", () => {
     );
 
     expect(screen.getByText("正在输出正文")).toBeInTheDocument();
-    expect(screen.queryByText("正在思考")).toBeNull();
+    expect(screen.queryByText("Thinking")).toBeNull();
     expect(assistantChildren).toEqual(["home-chat-message-stack home-chat-message-stack-assistant"]);
   });
 

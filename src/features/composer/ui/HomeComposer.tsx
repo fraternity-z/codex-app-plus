@@ -26,6 +26,7 @@ import { useComposerAttachments } from "../hooks/useComposerAttachments";
 import { useComposerTextareaAutosize } from "../hooks/useComposerTextareaAutosize";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
+import { useI18n } from "../../../i18n/useI18n";
 
 const MIN_TRIMMED_MESSAGE_LENGTH = 1;
 const MAX_COMPOSER_INPUT_EXTRA_ROWS = 3;
@@ -70,6 +71,7 @@ export interface HomeComposerProps {
 }
 
 export function HomeComposer(props: HomeComposerProps): JSX.Element {
+  const { t } = useI18n();
   const { reportError } = useUiBannerNotifications("composer");
   const defaultServiceTier = props.defaultServiceTier ?? null;
   const multiAgentAvailable = props.multiAgentAvailable ?? false;
@@ -146,7 +148,9 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     onPromoteQueuedFollowUp: props.onPromoteQueuedFollowUp,
     onSendTurn: props.onSendTurn,
     permissionLevel: props.permissionLevel,
+    promoteFailedMessage: t("home.composer.promoteFailed"),
     reportError,
+    sendFailedMessage: t("home.composer.sendFailed"),
   });
 
   const handleToggleMultiAgent = useCallback(async () => {
@@ -171,7 +175,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
         />
         <div className="composer-card" ref={containerRef}>
           {multiAgentPending ? <ComposerReloadOverlay /> : null}
-          {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label="Close attachment menu" onClick={() => setMenuOpen(false)} /> : null}
+          {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label={t("home.composer.closeAttachmentMenu")} onClick={() => setMenuOpen(false)} /> : null}
           {commandPalette.open ? <ComposerCommandPalette open={true} title={commandPalette.title} items={commandPalette.items} selectedIndex={commandPalette.selectedIndex} onSelectItem={commandPalette.onSelectItem} onHoverItem={commandPalette.onHoverItem} /> : null}
           <ComposerDraftChips attachments={attachments} filePaths={fileReferencePaths} onRemoveAttachment={removeAttachment} onRemoveFilePath={removeFileReference} />
           <textarea ref={commandPalette.textareaRef} rows={1} className="composer-input" placeholder={getComposerPlaceholder(props.selectedRootPath)} value={composerBodyText} disabled={interactionDisabled} onPaste={(event) => void handlePaste(event)} onSelect={commandPalette.syncFromTextareaSelection} onKeyDown={(event) => handleInputKeyDown(event, props, attachments.length > 0 || fileReferencePaths.length > 0, commandPalette.handleKeyDown, submit)} onChange={(event) => handleInputChange(event.currentTarget.value, event.currentTarget.selectionStart, updateComposerBodyText, commandPalette.syncFromTextInput)} />
@@ -179,7 +183,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
             <div className="composer-left">
               <div className="composer-plus-anchor">
                 {menuOpen ? <ComposerAttachmentMenu collaborationPreset={props.collaborationPreset} serviceTier={composerSelection.selectedServiceTier} multiAgentAvailable={multiAgentAvailable} multiAgentEnabled={multiAgentEnabled} multiAgentDisabled={interactionDisabled || props.isResponding} onAddAttachments={() => handleAddAttachments(openFilePicker, setMenuOpen)} onSelectCollaborationPreset={props.onSelectCollaborationPreset} onSelectServiceTier={handleSelectServiceTier} onToggleMultiAgent={handleToggleMultiAgent} onClose={() => setMenuOpen(false)} /> : null}
-                <button type="button" className={menuOpen ? "composer-mini-btn composer-mini-btn-active" : "composer-mini-btn"} aria-label="Open attachment menu" aria-haspopup="menu" aria-expanded={menuOpen} disabled={interactionDisabled} onClick={() => void toggleAttachmentMenu(menuOpen, setMenuOpen, commandPalette.dismiss)}>
+                <button type="button" className={menuOpen ? "composer-mini-btn composer-mini-btn-active" : "composer-mini-btn"} aria-label={t("home.composer.openAttachmentMenu")} aria-haspopup="menu" aria-expanded={menuOpen} disabled={interactionDisabled} onClick={() => void toggleAttachmentMenu(menuOpen, setMenuOpen, commandPalette.dismiss)}>
                   <OfficialPlusIcon className="composer-plus-icon" />
                 </button>
               </div>
@@ -252,7 +256,9 @@ function useHomeComposerActions(args: {
   readonly onPromoteQueuedFollowUp: (followUpId: string) => Promise<void>;
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
   readonly permissionLevel: ComposerPermissionLevel;
+  readonly promoteFailedMessage: string;
   readonly reportError: ReportErrorFn;
+  readonly sendFailedMessage: string;
 }) {
   const submit = useCallback((followUpOverride?: FollowUpMode) => {
     void submitTurn({
@@ -267,12 +273,13 @@ function useHomeComposerActions(args: {
       onSendTurn: args.onSendTurn,
       permissionLevel: args.permissionLevel,
       reportError: args.reportError,
+      sendFailedMessage: args.sendFailedMessage,
     });
   }, [args]);
 
   const handlePromoteQueuedFollowUp = useCallback((followUpId: string) => {
     void args.onPromoteQueuedFollowUp(followUpId).catch((error) => {
-      args.reportError("插队失败", error);
+      args.reportError(args.promoteFailedMessage, error);
     });
   }, [args]);
 
@@ -280,10 +287,11 @@ function useHomeComposerActions(args: {
 }
 
 function ComposerReloadOverlay(): JSX.Element {
+  const { t } = useI18n();
   return (
     <div className="composer-reload-overlay" role="status" aria-live="polite">
       <span className="composer-reload-spinner" aria-hidden="true" />
-      <span>正在重载 Codex…</span>
+      <span>{t("home.composer.reloadingCodex")}</span>
     </div>
   );
 }
@@ -362,6 +370,7 @@ async function submitTurn(args: {
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
   readonly permissionLevel: ComposerPermissionLevel;
   readonly reportError: ReportErrorFn;
+  readonly sendFailedMessage: string;
 }): Promise<void> {
   if (!args.canSend) {
     return;
@@ -382,7 +391,7 @@ async function submitTurn(args: {
     });
     args.clearAttachments();
   } catch (error) {
-    args.reportError("发送消息失败", error);
+    args.reportError(args.sendFailedMessage, error);
   }
 }
 

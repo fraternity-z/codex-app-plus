@@ -127,7 +127,7 @@ describe("useAppPreferences", () => {
 
     const { result } = renderHook(() => useAppPreferences());
 
-    expect(result.current.uiLanguage).toBe("auto");
+    expect(result.current.uiLanguage).toBe("en-US");
   });
 
   it("falls back to queue when a legacy interrupt follow-up mode is stored", () => {

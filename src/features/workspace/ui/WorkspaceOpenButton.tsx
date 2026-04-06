@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { HostBridge, WorkspaceOpener } from "../../../bridge/types";
+import { useI18n } from "../../../i18n/useI18n";
 import fileExplorerIconUrl from "../../../assets/official/apps/file-explorer.png";
 import gitBashIconUrl from "../../../assets/official/apps/git-bash.png";
 import githubDesktopIconUrl from "../../../assets/official/apps/github-desktop.png";
@@ -9,11 +10,6 @@ import vscodeIconUrl from "../../../assets/official/apps/vscode.png";
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
 import { OfficialChevronRightIcon } from "../../shared/ui/officialIcons";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
-
-const OPEN_TEXT = "\u6253\u5f00";
-const OPEN_METHODS_TEXT = "\u6253\u5f00\u65b9\u5f0f";
-const SELECT_OPEN_METHOD_TEXT = "\u9009\u62e9\u6253\u5f00\u65b9\u5f0f";
-const CURRENT_WORKSPACE_TEXT = "\u5f53\u524d\u5de5\u4f5c\u533a";
 
 interface WorkspaceOpenButtonProps {
   readonly hostBridge: HostBridge;
@@ -70,7 +66,7 @@ const WORKSPACE_OPENER_OPTIONS = [
 
 function assertSelectedRootPath(selectedRootPath: string | null): string {
   if (selectedRootPath === null) {
-    throw new Error("\u6253\u5f00\u5de5\u4f5c\u533a\u524d\u5fc5\u987b\u5148\u9009\u62e9\u4e00\u4e2a\u5de5\u4f5c\u533a\u3002");
+    throw new Error("Select a workspace before opening it.");
   }
   return selectedRootPath;
 }
@@ -83,9 +79,11 @@ function WorkspaceOpenMenu(props: {
   readonly selectedOpener: WorkspaceOpener;
   readonly onSelectOpener: (opener: WorkspaceOpener) => void;
 }): JSX.Element {
+  const { t } = useI18n();
+
   return (
-    <div className="toolbar-split-menu" role="menu" aria-label={OPEN_METHODS_TEXT}>
-      <div className="toolbar-menu-title">{OPEN_METHODS_TEXT}</div>
+    <div className="toolbar-split-menu" role="menu" aria-label={t("home.toolbar.openMethods")}>
+      <div className="toolbar-menu-title">{t("home.toolbar.openMethods")}</div>
       <div className="toolbar-menu-list">
         {WORKSPACE_OPENER_OPTIONS.map((option) => {
           const selected = option.id === props.selectedOpener;
@@ -111,6 +109,7 @@ function WorkspaceOpenMenu(props: {
 }
 
 export function WorkspaceOpenButton(props: WorkspaceOpenButtonProps): JSX.Element {
+  const { t } = useI18n();
   const { notifyError } = useUiBannerNotifications("workspace-open");
   const [menuOpen, setMenuOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -141,9 +140,9 @@ export function WorkspaceOpenButton(props: WorkspaceOpenButtonProps): JSX.Elemen
       });
     } catch (error) {
       console.error(`Failed to open workspace with ${selectedOption.label}`, error);
-      notifyError(`${selectedOption.label} 打开失败`, error);
+      notifyError(t("home.toolbar.openFailed", { opener: selectedOption.label }), error);
     }
-  }, [notifyError, props.hostBridge.app, props.selectedOpener, props.selectedRootPath, selectedOption.label]);
+  }, [notifyError, props.hostBridge.app, props.selectedOpener, props.selectedRootPath, selectedOption.label, t]);
 
   const selectOpener = useCallback(
     (opener: WorkspaceOpener) => {
@@ -160,18 +159,18 @@ export function WorkspaceOpenButton(props: WorkspaceOpenButtonProps): JSX.Elemen
         className="toolbar-split-main"
         data-opener={props.selectedOpener}
         disabled={!canOpenWorkspace}
-        aria-label={`\u4f7f\u7528 ${selectedOption.label} ${OPEN_TEXT}${CURRENT_WORKSPACE_TEXT}`}
+        aria-label={t("home.toolbar.openCurrentWorkspace", { opener: selectedOption.label })}
         onClick={() => void openSelectedWorkspace()}
       >
         {selectedOption.renderIcon("toolbar-app-icon")}
-        <span className="toolbar-split-main-text">{OPEN_TEXT}</span>
+        <span className="toolbar-split-main-text">{t("home.toolbar.open")}</span>
       </button>
       <button
         type="button"
         className="toolbar-split-trigger"
         aria-haspopup="menu"
         aria-expanded={menuOpen}
-        aria-label={SELECT_OPEN_METHOD_TEXT}
+        aria-label={t("home.toolbar.selectOpenMethod")}
         onClick={() => setMenuOpen((value) => !value)}
       >
         <OfficialChevronRightIcon className="toolbar-caret-icon" />

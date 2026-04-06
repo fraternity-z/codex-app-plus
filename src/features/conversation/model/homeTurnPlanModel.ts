@@ -1,4 +1,6 @@
 import type { TimelineEntry, TurnPlanSnapshotEntry } from "../../../domain/timeline";
+import type { MessageKey } from "../../../i18n/messages/schema";
+import type { TranslationParams } from "../../../i18n/types";
 import type { TurnPlanStep } from "../../../protocol/generated/v2/TurnPlanStep";
 
 export interface TurnPlanModel {
@@ -7,6 +9,8 @@ export interface TurnPlanModel {
   readonly totalSteps: number;
   readonly completedSteps: number;
 }
+
+type TranslateFn = (key: MessageKey, params?: TranslationParams) => string;
 
 export function selectLatestTurnPlan(entries: ReadonlyArray<TimelineEntry>): TurnPlanModel | null {
   for (let index = entries.length - 1; index >= 0; index -= 1) {
@@ -31,19 +35,19 @@ export function createTurnPlanModel(entry: TurnPlanSnapshotEntry): TurnPlanModel
   };
 }
 
-export function formatTurnPlanStatusLabel(status: TurnPlanStep["status"]): string {
-  if (status === "completed") return "已完成";
-  if (status === "inProgress") return "进行中";
-  return "待开始";
+export function formatTurnPlanStatusLabel(status: TurnPlanStep["status"], t: TranslateFn): string {
+  if (status === "completed") return t("home.turnPlan.status.completed");
+  if (status === "inProgress") return t("home.turnPlan.status.inProgress");
+  return t("home.turnPlan.status.pending");
 }
 
-export function createTurnPlanDetailLines(model: TurnPlanModel): Array<string> {
+export function createTurnPlanDetailLines(model: TurnPlanModel, t: TranslateFn): Array<string> {
   const lines: Array<string> = [];
   if (model.explanation) {
     lines.push(model.explanation);
   }
-  lines.push(`进度：完成 ${model.completedSteps} / 共 ${model.totalSteps}`);
-  lines.push(...model.entry.plan.map((step, index) => `${index + 1}. ${step.step} · ${formatTurnPlanStatusLabel(step.status)}`));
+  lines.push(t("home.turnPlan.progress", { completed: model.completedSteps, total: model.totalSteps }));
+  lines.push(...model.entry.plan.map((step, index) => `${index + 1}. ${step.step} · ${formatTurnPlanStatusLabel(step.status, t)}`));
   return lines;
 }
 

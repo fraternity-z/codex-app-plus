@@ -1,4 +1,5 @@
 import type { HostBridge, WorkspaceOpener } from "../../../bridge/types";
+import { useI18n } from "../../../i18n/useI18n";
 import { WorkspaceGitButtonLauncher } from "../../workspace/ui/WorkspaceGitButtonLauncher";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { WorkspaceOpenButton } from "../../workspace/ui/WorkspaceOpenButton";
@@ -6,13 +7,6 @@ import { GitDiffIcon } from "../../git/ui/gitIcons";
 import type { WorkspaceLaunchScriptsState } from "../hooks/useWorkspaceLaunchScripts";
 import { LaunchScriptsToolbar } from "./LaunchScriptsToolbar";
 
-const DEFAULT_CONVERSATION_TITLE = "会话";
-const DEFAULT_WORKSPACE_TITLE = "工作区会话";
-const HIDE_TERMINAL_LABEL = "隐藏终端";
-const SHOW_TERMINAL_LABEL = "显示终端";
-const HIDE_DIFF_LABEL = "隐藏差异侧栏";
-const SHOW_DIFF_LABEL = "显示差异侧栏";
-const TOOLBAR_ACTIONS_LABEL = "快捷操作";
 const MAX_TOOLBAR_TITLE_LENGTH = 72;
 const TOOLBAR_TITLE_TAIL_LENGTH = 28;
 
@@ -64,11 +58,11 @@ function TerminalIcon(props: { readonly className?: string }): JSX.Element {
   );
 }
 
-function resolveTitle(props: HomeMainToolbarProps): string {
+function resolveTitle(props: HomeMainToolbarProps, conversationTitle: string, workspaceTitle: string): string {
   if (props.conversationActive) {
-    return props.selectedThreadTitle?.trim() || DEFAULT_CONVERSATION_TITLE;
+    return props.selectedThreadTitle?.trim() || conversationTitle;
   }
-  return DEFAULT_WORKSPACE_TITLE;
+  return workspaceTitle;
 }
 
 function truncateToolbarTitle(value: string): string {
@@ -76,19 +70,20 @@ function truncateToolbarTitle(value: string): string {
     return value;
   }
   const headLength = MAX_TOOLBAR_TITLE_LENGTH - TOOLBAR_TITLE_TAIL_LENGTH - 1;
-  return `${value.slice(0, headLength)}…${value.slice(-TOOLBAR_TITLE_TAIL_LENGTH)}`;
+  return `${value.slice(0, headLength)}...${value.slice(-TOOLBAR_TITLE_TAIL_LENGTH)}`;
 }
 
 export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
-  const title = resolveTitle(props);
+  const { t } = useI18n();
+  const title = resolveTitle(props, t("home.toolbar.conversation"), t("home.toolbar.workspaceConversation"));
   const displayTitle = truncateToolbarTitle(title);
   const subtitle = props.conversationActive && props.selectedRootPath !== null
     ? props.workspaceSwitching
-      ? `${props.selectedRootName} · 切换中…`
+      ? `${props.selectedRootName} · ${t("home.toolbar.switching")}`
       : props.selectedRootName
     : null;
-  const terminalLabel = props.terminalOpen ? HIDE_TERMINAL_LABEL : SHOW_TERMINAL_LABEL;
-  const diffLabel = props.diffOpen ? HIDE_DIFF_LABEL : SHOW_DIFF_LABEL;
+  const terminalLabel = props.terminalOpen ? t("home.toolbar.hideTerminal") : t("home.toolbar.showTerminal");
+  const diffLabel = props.diffOpen ? t("home.toolbar.hideDiffSidebar") : t("home.toolbar.showDiffSidebar");
   const toolbarClassName = props.conversationActive ? "main-toolbar main-toolbar-conversation" : "main-toolbar";
   const titleClassName = props.conversationActive ? "toolbar-title toolbar-title-compact" : "toolbar-title";
 
@@ -112,7 +107,7 @@ export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
           onSelectOpener={props.onSelectWorkspaceOpener}
         />
         <WorkspaceGitButtonLauncher controller={props.gitController} selectedRootPath={props.selectedRootPath} />
-        <div className="toolbar-icon-row" aria-label={TOOLBAR_ACTIONS_LABEL}>
+        <div className="toolbar-icon-row" aria-label={t("home.toolbar.quickActions")}>
           <ToolbarIconButton
             active={props.diffOpen}
             disabled={props.selectedRootPath === null || props.workspaceSwitching}

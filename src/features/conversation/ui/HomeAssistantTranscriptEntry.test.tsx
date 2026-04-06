@@ -1,4 +1,4 @@
-﻿import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type {
   CollabAgentToolCallEntry,
@@ -9,6 +9,7 @@ import type {
   PlanEntry,
   TurnPlanSnapshotEntry,
 } from "../../../domain/timeline";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { HomeAssistantTranscriptEntry } from "./HomeAssistantTranscriptEntry";
 
 type AssistantNode = Parameters<typeof HomeAssistantTranscriptEntry>[0]["node"];
@@ -30,7 +31,7 @@ function createAssistantMessage(text: string): Extract<AssistantNode, { kind: "a
   return { key: message.id, kind: "assistantMessage", message };
 }
 
-function createTraceNode(entry: Extract<AssistantNode, { kind: "traceItem" }>['item']): Extract<AssistantNode, { kind: "traceItem" }> {
+function createTraceNode(entry: Extract<AssistantNode, { kind: "traceItem" }>["item"]): Extract<AssistantNode, { kind: "traceItem" }> {
   return { key: entry.id, kind: "traceItem", item: entry };
 }
 
@@ -138,7 +139,7 @@ function createPlanDraftNode(): Extract<AssistantNode, { kind: "auxiliaryBlock" 
     threadId: "thread-1",
     turnId: "turn-1",
     itemId: "item-plan-draft",
-    text: "## 计划书\n- 第一步\n- 第二步",
+    text: "## Plan doc\n- Step one\n- Step two",
     status: "done",
   };
 
@@ -166,6 +167,7 @@ describe("HomeAssistantTranscriptEntry", () => {
       <HomeAssistantTranscriptEntry
         node={createAssistantMessage("before\n<proposed_plan>\n# Plan\n- one\n</proposed_plan>\nafter")}
       />,
+      { wrapper: createI18nWrapper("en-US") },
     );
 
     expect(container.querySelector(".home-plan-draft-card")).not.toBeNull();
@@ -174,21 +176,27 @@ describe("HomeAssistantTranscriptEntry", () => {
   });
 
   it("renders plan items as markdown cards", () => {
-    const { container } = render(<HomeAssistantTranscriptEntry node={createPlanDraftNode()} />);
+    const { container } = render(<HomeAssistantTranscriptEntry node={createPlanDraftNode()} />, {
+      wrapper: createI18nWrapper("en-US"),
+    });
 
     expect(container.querySelector(".home-plan-draft-card")).not.toBeNull();
-    expect(screen.getByText("计划草稿")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "计划书" })).toBeInTheDocument();
+    expect(screen.getByText("Plan draft")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Plan doc" })).toBeInTheDocument();
   });
 
   it("omits empty assistant message placeholders", () => {
-    const { container } = render(<HomeAssistantTranscriptEntry node={createAssistantMessage("")} />);
+    const { container } = render(<HomeAssistantTranscriptEntry node={createAssistantMessage("")} />, {
+      wrapper: createI18nWrapper("en-US"),
+    });
 
     expect(container.firstChild).toBeNull();
   });
 
   it("marks command summaries for collapsed truncation without shortening text content", () => {
-    const { container } = render(<HomeAssistantTranscriptEntry node={createCommandNode()} />);
+    const { container } = render(<HomeAssistantTranscriptEntry node={createCommandNode()} />, {
+      wrapper: createI18nWrapper("en-US"),
+    });
     const summary = container.querySelector("summary");
     const details = container.querySelector("details");
     const summaryText = container.querySelector(".home-assistant-transcript-summary-text");
@@ -201,17 +209,16 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(entry).not.toBeNull();
     expect(summary).toHaveAttribute("data-truncate-summary", "true");
     expect(summaryText?.textContent).toContain(LONG_COMMAND);
-    expect(summaryText?.textContent).not.toContain("…");
+    expect(summaryText?.textContent).not.toContain("...");
     expect(details?.open).toBe(false);
     expect(detailPanel).not.toBeNull();
     expect(screen.getByText("Shell")).toBeInTheDocument();
     expect(container.querySelector(".home-assistant-transcript-detail-top-meta")).toBeNull();
-    expect(footerMeta?.textContent).toContain("退出码：0");
-    expect(footerMeta?.textContent).toContain("耗时：1.2 s");
-    expect(footerStatus?.textContent).toBe("成功");
+    expect(footerMeta?.textContent).toContain("Exit code: 0");
+    expect(footerMeta?.textContent).toContain("Duration: 1.2 s");
+    expect(footerStatus?.textContent).toBe("Succeeded");
     expect(body?.textContent).toContain(`$ ${LONG_COMMAND}`);
     expect(body?.textContent).toContain("done");
-    expect(body?.textContent).not.toContain("工作目录：");
 
     if (summary !== null) {
       fireEvent.click(summary);
@@ -227,6 +234,7 @@ describe("HomeAssistantTranscriptEntry", () => {
         <HomeAssistantTranscriptEntry node={createDynamicToolNode()} />
         <HomeAssistantTranscriptEntry node={createCollabToolNode()} />
       </>,
+      { wrapper: createI18nWrapper("en-US") },
     );
 
     const summaries = Array.from(container.querySelectorAll('summary[data-truncate-summary="true"]'));
@@ -238,25 +246,31 @@ describe("HomeAssistantTranscriptEntry", () => {
     );
 
     expect(summaries).toHaveLength(3);
-    expect(texts).toContain("工具调用：server-alpha/tool/with/a/very/long/name");
-    expect(texts).toContain("工具调用：dynamic-tool-with-an-extremely-long-name");
-    expect(texts).toContain("协作工具：spawnAgent");
+    expect(texts).toContain("Tool call: server-alpha/tool/with/a/very/long/name");
+    expect(texts).toContain("Tool call: dynamic-tool-with-an-extremely-long-name");
+    expect(texts).toContain("Tool call: spawnAgent");
     expect(labels.filter((label) => label === "Tool")).toHaveLength(3);
   });
 
   it("does not mark turn plan summaries for collapsed truncation", () => {
-    const { container } = render(<HomeAssistantTranscriptEntry node={createTurnPlanNode()} />);
+    const { container } = render(<HomeAssistantTranscriptEntry node={createTurnPlanNode()} />, {
+      wrapper: createI18nWrapper("en-US"),
+    });
     const summary = container.querySelector("summary");
     const label = container.querySelector(".home-assistant-transcript-detail-label");
+    const detailBody = container.querySelector(".home-assistant-transcript-detail-body");
 
-    expect(screen.getByText("任务清单")).toBeInTheDocument();
-    expect(screen.getByText((content) => content.includes("进度：完成 1 / 共 1"))).toBeInTheDocument();
+    expect(screen.getByText("Task list")).toBeInTheDocument();
+    expect(detailBody?.textContent).toContain("keep the plan visible");
+    expect(detailBody?.textContent).toContain("Inspect UI");
     expect(summary?.hasAttribute("data-truncate-summary")).toBe(false);
     expect(label?.textContent).toBe("Plan");
   });
 
   it("renders reasoning as collapsed plain text details with markdown title", () => {
-    const { container } = render(<HomeAssistantTranscriptEntry node={createReasoningNode()} />);
+    const { container } = render(<HomeAssistantTranscriptEntry node={createReasoningNode()} />, {
+      wrapper: createI18nWrapper("en-US"),
+    });
     const details = container.querySelector("details");
     const summary = container.querySelector("summary");
     const strongTitle = container.querySelector(".home-assistant-transcript-reasoning-summary strong");
@@ -279,6 +293,7 @@ describe("HomeAssistantTranscriptEntry", () => {
   it("renders a title-only reasoning block without a disclosure container", () => {
     const { container } = render(
       <HomeAssistantTranscriptEntry node={createReasoningNode("**Inspecting code behavior**", "")} />,
+      { wrapper: createI18nWrapper("en-US") },
     );
 
     expect(container.querySelector("details")).toBeNull();

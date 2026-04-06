@@ -6,6 +6,8 @@ use crate::wsl_support::{
     is_windows_path_like, linux_path_to_unc_path, resolve_default_wsl_context,
 };
 
+const APP_PLUS_CODEX_HOME_DIR: &str = ".codex-app-plus";
+
 #[derive(Debug, Clone)]
 pub struct AgentFsPath {
     pub display_path: String,
@@ -20,10 +22,15 @@ pub fn resolve_codex_home_relative_path(
     agent_environment: AgentEnvironment,
     relative_path: &str,
 ) -> AppResult<AgentFsPath> {
+    let mapped_relative = map_to_app_plus_codex_home(relative_path);
     match agent_environment {
-        AgentEnvironment::WindowsNative => resolve_windows_home_relative_path(relative_path),
-        AgentEnvironment::Wsl => resolve_wsl_home_relative_path(relative_path),
+        AgentEnvironment::WindowsNative => resolve_windows_home_relative_path(&mapped_relative),
+        AgentEnvironment::Wsl => resolve_wsl_home_relative_path(&mapped_relative),
     }
+}
+
+pub fn codex_home_dir_name() -> &'static str {
+    APP_PLUS_CODEX_HOME_DIR
 }
 
 pub fn resolve_host_path_for_agent_path(
@@ -79,15 +86,39 @@ fn join_linux_path(base_path: &str, relative_path: &str) -> String {
     }
 }
 
+fn map_to_app_plus_codex_home(relative_path: &str) -> String {
+    let normalized = relative_path.trim().replace('\\', "/");
+    let stripped = if normalized == ".codex" {
+        ""
+    } else if let Some(value) = normalized.strip_prefix(".codex/") {
+        value
+    } else {
+        normalized.as_str()
+    };
+    if stripped.is_empty() {
+        APP_PLUS_CODEX_HOME_DIR.to_string()
+    } else {
+        format!("{APP_PLUS_CODEX_HOME_DIR}/{stripped}")
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::join_linux_path;
+    use super::{join_linux_path, map_to_app_plus_codex_home};
 
     #[test]
     fn joins_linux_paths_without_duplicate_separators() {
         assert_eq!(
             join_linux_path("/home/me/", "/.codex/AGENTS.md"),
             "/home/me/.codex/AGENTS.md"
+        );
+    }
+
+    #[test]
+    fn remaps_legacy_codex_home_to_app_plus_home() {
+        assert_eq!(
+            map_to_app_plus_codex_home(".codex/config.toml"),
+            ".codex-app-plus/config.toml"
         );
     }
 }

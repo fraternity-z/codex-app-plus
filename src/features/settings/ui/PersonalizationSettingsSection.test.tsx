@@ -82,7 +82,7 @@ describe("PersonalizationSettingsSection", () => {
       expectedVersion: "u1",
     });
     expect(screen.getByRole("button", { name: "回答风格：务实" })).toBeInTheDocument();
-    expect(screen.getByText("已同步到 Codex 全局 config.toml。")).toBeInTheDocument();
+    expect(screen.getByText("已同步到 Codex App Plus 的 config.toml。")).toBeInTheDocument();
   });
 
   it("writes instructions back to the user AGENTS file", async () => {

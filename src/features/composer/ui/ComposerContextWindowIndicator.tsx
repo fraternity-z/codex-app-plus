@@ -3,17 +3,17 @@ import { selectConversationContextWindowUsage, formatContextWindowTokenCount } f
 import { useAppSelector } from "../../../state/store";
 
 const TEXT = {
-  title: "背景信息窗口：",
-  label: "查看上下文窗口信息",
-  labelAutoCompact: "查看上下文窗口信息（已检测到自动压缩配置）",
+  title: "Context window:",
+  label: "View context window details",
+  labelAutoCompact: "View context window details (auto-compact detected)",
 };
 
 function formatUsageSummary(usedPercent: number, remainingPercent: number): string {
-  return `${usedPercent}% 已用（剩余 ${remainingPercent}%）`;
+  return `${usedPercent}% used (${remainingPercent}% remaining)`;
 }
 
 function formatUsageDetails(usedTokens: number, totalTokens: number): string {
-  return `已用 ${formatContextWindowTokenCount(usedTokens)} 标记，共 ${formatContextWindowTokenCount(totalTokens)}`;
+  return `${formatContextWindowTokenCount(usedTokens)} tokens used, ${formatContextWindowTokenCount(totalTokens)} total`;
 }
 
 export function ComposerContextWindowIndicator(): JSX.Element | null {

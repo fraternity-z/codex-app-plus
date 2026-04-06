@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { GitStatusOutput } from "../../../bridge/types";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import type { GitNotice, WorkspaceGitController } from "../../git/model/types";
 import { ComposerFooterBranchPopover } from "./ComposerFooterBranchPopover";
 
@@ -53,6 +54,7 @@ function renderPopover(options: RenderOptions = {}) {
     const [selectedBranch, setSelectedBranch] = useState("");
     const [newBranchName, setNewBranchName] = useState("");
     const [notice, setNotice] = useState<GitNotice | null>(null);
+    const errorRef = useRef<string | null>(options.error ?? null);
     const status = options.status === undefined ? createStatus() : options.status;
 
     const controller: WorkspaceGitController = {
@@ -61,7 +63,9 @@ function renderPopover(options: RenderOptions = {}) {
       status,
       statusLoaded: status !== null,
       hasRepository: status?.isRepository ?? false,
-      error: options.error ?? null,
+      get error() {
+        return errorRef.current;
+      },
       notice,
       commitDialogOpen: false,
       commitDialogError: null,
@@ -89,18 +93,21 @@ function renderPopover(options: RenderOptions = {}) {
       checkoutBranch: vi.fn(async (branchName: string) => {
         calls.push(`checkout:${branchName}`);
         if (options.checkoutSucceeds === false) {
+          errorRef.current = "checkout failed";
           setNotice({ kind: "error", text: "checkout failed" });
-          return false
+          return false;
         }
-        return true
+        return true;
       }),
       deleteBranch: vi.fn(async (branchName: string, force?: boolean) => {
         calls.push(force ? `delete-force:${branchName}` : `delete:${branchName}`);
         const response = deleteResponses.shift();
         if (response && !response.success) {
+          errorRef.current = response.errorText ?? "delete failed";
           setNotice({ kind: "error", text: response.errorText ?? "delete failed" });
           return false;
         }
+        errorRef.current = null;
         return true;
       }),
       createBranchFromName: vi.fn().mockResolvedValue(true),
@@ -109,11 +116,13 @@ function renderPopover(options: RenderOptions = {}) {
         const branchName = newBranchName.trim();
         calls.push(`create:${branchName}`);
         if (options.createSucceeds === false) {
+          errorRef.current = "create failed";
           setNotice({ kind: "error", text: "create failed" });
-          return false
+          return false;
         }
+        errorRef.current = null;
         setNewBranchName("");
-        return true
+        return true;
       }),
       ensureBranchRefs: vi.fn().mockResolvedValue(undefined),
       ensureRemoteUrl: vi.fn().mockResolvedValue(undefined),
@@ -128,10 +137,23 @@ function renderPopover(options: RenderOptions = {}) {
       setNewBranchName,
     };
 
-    return <ComposerFooterBranchPopover controller={controller} selectedThreadId={options.selectedThreadId === undefined ? "thread-1" : options.selectedThreadId} selectedThreadBranch={options.selectedThreadBranch ?? null} onUpdateThreadBranch={onUpdateThreadBranch} onClose={onClose} />;
+    return (
+      <ComposerFooterBranchPopover
+        controller={controller}
+        selectedThreadId={options.selectedThreadId === undefined ? "thread-1" : options.selectedThreadId}
+        selectedThreadBranch={options.selectedThreadBranch ?? null}
+        onUpdateThreadBranch={onUpdateThreadBranch}
+        onClose={onClose}
+      />
+    );
   }
 
-  return { ...render(<Harness />), calls, onClose, onUpdateThreadBranch };
+  return {
+    ...render(<Harness />, { wrapper: createI18nWrapper("en-US") }),
+    calls,
+    onClose,
+    onUpdateThreadBranch,
+  };
 }
 
 describe("ComposerFooterBranchPopover", () => {
@@ -175,7 +197,9 @@ describe("ComposerFooterBranchPopover", () => {
     const { container, calls, onClose } = renderPopover();
 
     fireEvent.click(container.querySelector(".branch-create") as HTMLButtonElement);
-    fireEvent.change(container.querySelector('.branch-create-panel .branch-search-input') as HTMLInputElement, { target: { value: "feature/new-branch" } });
+    fireEvent.change(container.querySelector('.branch-create-panel .branch-search-input') as HTMLInputElement, {
+      target: { value: "feature/new-branch" },
+    });
     fireEvent.click(container.querySelector(".branch-create-primary") as HTMLButtonElement);
 
     await waitFor(() => {
@@ -185,7 +209,9 @@ describe("ComposerFooterBranchPopover", () => {
   });
 
   it("keeps the popover open and shows an error when metadata update fails", async () => {
-    const { calls, container, onClose } = renderPopover({ metadataHandler: async () => { throw new Error("metadata failed"); } });
+    const { calls, container, onClose } = renderPopover({
+      metadataHandler: async () => { throw new Error("metadata failed"); },
+    });
 
     fireEvent.click(screen.getByRole("menuitem", { name: /feature\/ui/ }));
 
@@ -198,17 +224,17 @@ describe("ComposerFooterBranchPopover", () => {
 
   it("renders loading and non-repository states explicitly", () => {
     const loadingView = renderPopover({ loading: true, status: null });
-    expect(screen.getByText("\u6b63\u5728\u8bfb\u53d6 Git \u5206\u652f")).toBeInTheDocument();
+    expect(screen.getByText("Loading Git branches")).toBeInTheDocument();
     loadingView.unmount();
 
     renderPopover({ status: createStatus({ isRepository: false, repoRoot: null }) });
-    expect(screen.getByText("\u5f53\u524d\u5de5\u4f5c\u533a\u4e0d\u662f Git \u4ed3\u5e93")).toBeInTheDocument();
+    expect(screen.getByText("The current workspace is not a Git repository")).toBeInTheDocument();
   });
 
   it("shows loading while branch refs are still lazy-loading", () => {
     renderPopover({ branchRefsLoaded: false, branchRefsLoading: true });
 
-    expect(screen.getByText("\u6b63\u5728\u8bfb\u53d6 Git \u5206\u652f")).toBeInTheDocument();
+    expect(screen.getByText("Loading Git branches")).toBeInTheDocument();
   });
 
   it("deletes a local branch from the context menu after confirmation", async () => {
@@ -217,10 +243,10 @@ describe("ComposerFooterBranchPopover", () => {
     const { calls } = renderPopover({ selectedThreadBranch: "feature/agent" });
 
     fireEvent.contextMenu(screen.getByRole("menuitem", { name: /feature\/ui/ }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "删除分支" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Delete branch" }));
 
     await waitFor(() => {
-      expect(confirm).toHaveBeenCalledWith("确定删除分支 feature/ui 吗？");
+      expect(confirm).toHaveBeenCalledWith("Delete branch feature/ui?");
       expect(calls).toContain("delete:feature/ui");
     });
   });
@@ -230,7 +256,7 @@ describe("ComposerFooterBranchPopover", () => {
     const branchButtons = container.querySelectorAll(".branch-item");
 
     fireEvent.contextMenu(branchButtons[0]!.parentElement as HTMLElement);
-    expect(screen.getByRole("menuitem", { name: "删除分支" })).toBeDisabled();
+    expect(screen.queryByRole("menuitem", { name: "Delete branch" })).toBeNull();
   });
 
   it("offers force delete when branch is not fully merged", async () => {
@@ -239,16 +265,16 @@ describe("ComposerFooterBranchPopover", () => {
       .mockReturnValueOnce(true);
     vi.stubGlobal("confirm", confirm);
     const { container, calls } = renderPopover({
-      deleteResponses: [{ success: false, errorText: "git branch -d feature/ui 执行失败: error: the branch 'feature/ui' is not fully merged" }],
+      deleteResponses: [{ success: false, errorText: "git branch -d feature/ui failed: error: the branch 'feature/ui' is not fully merged" }],
     });
 
     const branchButtons = container.querySelectorAll(".branch-item");
     fireEvent.contextMenu(branchButtons[2]!.parentElement as HTMLElement);
-    fireEvent.click(screen.getByRole("menuitem", { name: "删除分支" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Delete branch" }));
 
     await waitFor(() => {
-      expect(confirm).toHaveBeenNthCalledWith(1, "确定删除分支 feature/ui 吗？");
-      expect(confirm).toHaveBeenNthCalledWith(2, "分支 feature/ui 尚未合并，是否强制删除？");
+      expect(confirm).toHaveBeenNthCalledWith(1, "Delete branch feature/ui?");
+      expect(confirm).toHaveBeenNthCalledWith(2, "Branch feature/ui is not fully merged. Force delete it?");
       expect(calls).toContain("delete:feature/ui");
       expect(calls).toContain("delete-force:feature/ui");
     });
@@ -260,16 +286,19 @@ describe("ComposerFooterBranchPopover", () => {
     const { calls } = renderPopover({ selectedThreadBranch: "feature/agent" });
 
     fireEvent.contextMenu(screen.getByRole("menuitem", { name: /feature\/ui/ }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "删除分支" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Delete branch" }));
 
     await waitFor(() => {
-      expect(confirm).toHaveBeenCalledWith("确定删除分支 feature/ui 吗？");
+      expect(confirm).toHaveBeenCalledWith("Delete branch feature/ui?");
     });
     expect(calls).not.toContain("delete:feature/ui");
   });
 
   it("falls back to HEAD when remembered branch is missing and skips metadata for drafts", async () => {
-    const { calls, container, onUpdateThreadBranch } = renderPopover({ selectedThreadId: null, selectedThreadBranch: "feature/missing" });
+    const { calls, container, onUpdateThreadBranch } = renderPopover({
+      selectedThreadId: null,
+      selectedThreadBranch: "feature/missing",
+    });
 
     expect(container.textContent).toContain("feature/missing");
     expect(container.textContent).toContain("main");

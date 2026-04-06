@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { QueuedFollowUp } from "../../../domain/timeline";
+import { useI18n } from "../../../i18n/useI18n";
 import { OfficialChevronRightIcon } from "../../shared/ui/officialIcons";
 import { getAttachmentLabel } from "../model/composerAttachments";
 import { AttachmentClip } from "./AttachmentClip";
@@ -12,9 +13,8 @@ interface ComposerQueuedFollowUpsPanelProps {
   readonly onClearQueuedFollowUps: () => void;
 }
 
-const QUEUE_TITLE = "排队发送";
-
 export function ComposerQueuedFollowUpsPanel(props: ComposerQueuedFollowUpsPanelProps): JSX.Element | null {
+  const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(false);
   const previousCountRef = useRef(props.queuedFollowUps.length);
 
@@ -33,8 +33,10 @@ export function ComposerQueuedFollowUpsPanel(props: ComposerQueuedFollowUpsPanel
     return null;
   }
 
+  const queueTitle = t("home.composer.followUpQueue.title");
+
   return (
-    <section className="home-turn-plan-drawer composer-queue-drawer" aria-label={QUEUE_TITLE}>
+    <section className="home-turn-plan-drawer composer-queue-drawer" aria-label={queueTitle}>
       <button
         type="button"
         className="home-turn-plan-handle"
@@ -42,17 +44,19 @@ export function ComposerQueuedFollowUpsPanel(props: ComposerQueuedFollowUpsPanel
         onClick={() => setCollapsed((current) => !current)}
       >
         <div className="home-turn-plan-handle-info">
-          <span className="home-turn-plan-title">{QUEUE_TITLE}</span>
-          <span className="home-turn-plan-progress">共 {props.queuedFollowUps.length} 条待发送</span>
+          <span className="home-turn-plan-title">{queueTitle}</span>
+          <span className="home-turn-plan-progress">
+            {t("home.composer.followUpQueue.count", { count: props.queuedFollowUps.length })}
+          </span>
         </div>
         <OfficialChevronRightIcon className="home-turn-plan-handle-icon" />
       </button>
       {collapsed ? null : (
         <div className="home-turn-plan-card composer-queue-card">
           <div className="home-turn-plan-summary composer-queue-summary">
-            <span>将按顺序自动继续对话</span>
+            <span>{t("home.composer.followUpQueue.autoContinue")}</span>
             <button type="button" className="composer-queue-clear" onClick={props.onClearQueuedFollowUps}>
-              清空
+              {t("home.composer.followUpQueue.clear")}
             </button>
           </div>
           <ol className="home-turn-plan-list">
@@ -60,7 +64,7 @@ export function ComposerQueuedFollowUpsPanel(props: ComposerQueuedFollowUpsPanel
               <li key={followUp.id} className="home-turn-plan-item composer-queue-item">
                 <span className="home-turn-plan-index">{index + 1}</span>
                 <div className="composer-queue-body">
-                  <p className="home-turn-plan-text composer-queue-text">{getFollowUpPreview(followUp)}</p>
+                  <p className="home-turn-plan-text composer-queue-text">{getFollowUpPreview(followUp, t)}</p>
                   {followUp.attachments.length === 0 ? null : (
                     <div className="composer-queue-attachments">
                       {followUp.attachments.map((attachment) => (
@@ -76,14 +80,14 @@ export function ComposerQueuedFollowUpsPanel(props: ComposerQueuedFollowUpsPanel
                     disabled={props.interruptPending && index === 0}
                     onClick={() => props.onPromoteQueuedFollowUp(followUp.id)}
                   >
-                    插队
+                    {t("home.composer.followUpQueue.promote")}
                   </button>
                   <button
                     type="button"
                     className="composer-queue-remove"
                     onClick={() => props.onRemoveQueuedFollowUp(followUp.id)}
                   >
-                    移除
+                    {t("home.composer.followUpQueue.remove")}
                   </button>
                 </div>
               </li>
@@ -95,10 +99,18 @@ export function ComposerQueuedFollowUpsPanel(props: ComposerQueuedFollowUpsPanel
   );
 }
 
-function getFollowUpPreview(followUp: QueuedFollowUp): string {
+function getFollowUpPreview(
+  followUp: QueuedFollowUp,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
   const text = followUp.text.trim();
   if (text.length > 0) {
     return text;
   }
-  return `包含 ${followUp.attachments.length} 个附件`;
+
+  const count = followUp.attachments.length;
+  if (count === 1) {
+    return t("home.composer.followUpQueue.includesOneAttachment");
+  }
+  return t("home.composer.followUpQueue.includesAttachments", { count });
 }

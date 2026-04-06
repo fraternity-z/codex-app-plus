@@ -34,7 +34,7 @@ export function useComposerPicker(
 
     const loadModels = async () => {
       try {
-        const nextModels = await listComposerModels(appServerClient);
+        const nextModels = await listComposerModels(appServerClient, configSnapshot);
         if (!cancelled) {
           setModels(nextModels);
         }
@@ -48,7 +48,7 @@ export function useComposerPicker(
     return () => {
       cancelled = true;
     };
-  }, [appServerClient, notifyError, ready]);
+  }, [appServerClient, configSnapshot, notifyError, ready]);
 
   return {
     models,

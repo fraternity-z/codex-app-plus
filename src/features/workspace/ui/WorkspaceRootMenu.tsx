@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { useI18n } from "../../../i18n/useI18n";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 
 interface WorkspaceRootMenuProps {
@@ -13,6 +14,7 @@ interface WorkspaceRootMenuProps {
 }
 
 export function WorkspaceRootMenu(props: WorkspaceRootMenuProps): JSX.Element {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const [pendingAction, setPendingAction] = useState<"remove" | "createWorktree" | "deleteWorktree" | null>(null);
 
@@ -42,19 +44,19 @@ export function WorkspaceRootMenu(props: WorkspaceRootMenuProps): JSX.Element {
   useToolbarMenuDismissal(true, containerRef, closeOverlay);
 
   return (
-    <div ref={containerRef} className="thread-context-menu workspace-root-menu" style={{ left: props.x, top: props.y }} role="menu" aria-label={`工作区 ${props.rootName} 更多操作`}>
+    <div ref={containerRef} className="thread-context-menu workspace-root-menu" style={{ left: props.x, top: props.y }} role="menu" aria-label={t("home.workspaceSection.rootMoreAria", { name: props.rootName })}>
       {props.onCreateWorktree ? (
         <button type="button" className="thread-context-menu-item" role="menuitem" onClick={() => void runAction("createWorktree", props.onCreateWorktree)} disabled={pendingAction !== null}>
-          {pendingAction === "createWorktree" ? "创建中..." : "创建工作树"}
+          {pendingAction === "createWorktree" ? "Creating..." : "Create worktree"}
         </button>
       ) : null}
       {props.canDeleteWorktree && props.onDeleteWorktree ? (
         <button type="button" className="thread-context-menu-item thread-context-menu-item-danger" role="menuitem" onClick={() => void runAction("deleteWorktree", props.onDeleteWorktree)} disabled={pendingAction !== null}>
-          {pendingAction === "deleteWorktree" ? "删除中..." : "删除工作树"}
+          {pendingAction === "deleteWorktree" ? "Deleting..." : "Delete worktree"}
         </button>
       ) : null}
       <button type="button" className="thread-context-menu-item thread-context-menu-item-danger" role="menuitem" onClick={() => void runAction("remove", props.onRemove)} disabled={pendingAction !== null}>
-        {pendingAction === "remove" ? "移除中..." : "从列表移除"}
+        {pendingAction === "remove" ? "Removing..." : "Remove from list"}
       </button>
     </div>
   );

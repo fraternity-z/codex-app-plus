@@ -6,6 +6,7 @@ import type { ThreadSummary } from "../../../domain/types";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import type { AppStoreApi } from "../../../state/store";
 import { AppStoreProvider, useAppDispatch } from "../../../state/store";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { createConversationFromThread } from "../../conversation/model/conversationState";
 import { HomeSidebar } from "./HomeSidebar";
 
@@ -133,7 +134,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
     );
   }
 
-  render(<Harness />);
+  render(<Harness />, { wrapper: createI18nWrapper() });
   return { onArchiveThread, onCreateThread, onOpenSkills, deleteCodexSession, request };
 }
 
@@ -310,6 +311,7 @@ describe("HomeSidebar", () => {
           />
         </Profiler>
       </AppStoreProvider>,
+      { wrapper: createI18nWrapper() },
     );
 
     const initialRenderCount = onRender.mock.calls.length;

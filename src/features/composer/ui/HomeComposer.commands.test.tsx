@@ -8,6 +8,7 @@ import { AppStoreProvider, useAppStore } from "../../../state/store";
 import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import { HomeComposer } from "./HomeComposer";
 import { INIT_COMMAND_PROMPT } from "../service/composerInitCommand";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 
 const MODELS: ReadonlyArray<ComposerModelOption> = [
   { id: "model-1", value: "gpt-5.2", label: "GPT-5.2", defaultEffort: "medium", supportedEfforts: ["minimal", "low", "medium", "high", "xhigh"], isDefault: true },
@@ -92,7 +93,7 @@ function ComposerHarness(props: {
 }
 
 function renderHarness(props?: Parameters<typeof ComposerHarness>[0]) {
-  return render(<AppStoreProvider><ComposerHarness {...props} /></AppStoreProvider>);
+  return render(<AppStoreProvider><ComposerHarness {...props} /></AppStoreProvider>, { wrapper: createI18nWrapper("en-US") });
 }
 
 describe("HomeComposer commands", () => {
@@ -428,6 +429,6 @@ describe("HomeComposer commands", () => {
 
     fireEvent.change(textarea, { target: { value: "@app", selectionStart: 4 } });
 
-    await waitFor(() => expect(screen.getAllByText("请先选择工作区后再使用 @ 文件提及。").length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText("Choose a workspace before using @ file mentions.").length).toBeGreaterThan(0));
   });
 });

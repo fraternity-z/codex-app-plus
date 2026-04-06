@@ -187,34 +187,34 @@ describe("ComposerFooter context window indicator", () => {
 
   it("shows the tooltip on hover and focus with official usage copy", async () => {
     render(<FooterHarness usage={DEFAULT_USAGE} />, { wrapper: Wrapper });
-    const trigger = await screen.findByLabelText("查看上下文窗口信息（已检测到自动压缩配置）");
+    const trigger = await screen.findByLabelText("View context window details (auto-compact detected)");
 
     fireEvent.mouseEnter(trigger);
 
-    expect(screen.getByText("背景信息窗口：")).toBeInTheDocument();
-    expect(screen.getByText("1% 已用（剩余 99%）")).toBeInTheDocument();
-    expect(screen.getByText("已用 3k 标记，共 258k")).toBeInTheDocument();
+    expect(screen.getByText("Context window:")).toBeInTheDocument();
+    expect(screen.getByText("1% used (99% remaining)")).toBeInTheDocument();
+    expect(screen.getByText("3k tokens used, 258k total")).toBeInTheDocument();
 
     fireEvent.mouseLeave(trigger);
-    expect(screen.queryByText("背景信息窗口：")).toBeNull();
+    expect(screen.queryByText("Context window:")).toBeNull();
 
     fireEvent.focus(trigger);
-    expect(screen.getByText("1% 已用（剩余 99%）")).toBeInTheDocument();
+    expect(screen.getByText("1% used (99% remaining)")).toBeInTheDocument();
   });
 
   it("keeps the tooltip within 100 percent when cumulative totals exceed the context window", async () => {
     render(<FooterHarness usage={OVER_WINDOW_USAGE} />, { wrapper: Wrapper });
-    const trigger = await screen.findByLabelText("查看上下文窗口信息（已检测到自动压缩配置）");
+    const trigger = await screen.findByLabelText("View context window details (auto-compact detected)");
 
     fireEvent.mouseEnter(trigger);
 
-    expect(screen.getByText("50% 已用（剩余 50%）")).toBeInTheDocument();
-    expect(screen.getByText("已用 64k 标记，共 128k")).toBeInTheDocument();
+    expect(screen.getByText("50% used (50% remaining)")).toBeInTheDocument();
+    expect(screen.getByText("64k tokens used, 128k total")).toBeInTheDocument();
   });
 
   it("keeps branch controls usable while the indicator exists", async () => {
     const { container } = render(<FooterHarness usage={DEFAULT_USAGE} />, { wrapper: Wrapper });
-    const trigger = await screen.findByLabelText("查看上下文窗口信息（已检测到自动压缩配置）");
+    const trigger = await screen.findByLabelText("View context window details (auto-compact detected)");
 
     fireEvent.mouseEnter(trigger);
     fireEvent.click(screen.getByRole("button", { name: /main/i }));

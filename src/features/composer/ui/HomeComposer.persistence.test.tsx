@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComposerModelOption } from "../model/composerPreferences";
 import { AppStoreProvider, useAppSelector } from "../../../state/store";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import { HomeComposer } from "./HomeComposer";
 
@@ -129,6 +130,7 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
       />
       <BannerProbe />
     </AppStoreProvider>,
+    { wrapper: createI18nWrapper("en-US") },
   );
 
   return { onSendTurn, onPersistComposerSelection };
@@ -152,7 +154,7 @@ describe("HomeComposer persistence", () => {
   it("persists the final model and resolved effort together when switching models", async () => {
     const { onPersistComposerSelection } = renderComposer();
 
-    fireEvent.click(screen.getByRole("button", { name: /选择模型/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Select model/ }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: "GPT-5.2" }));
 
     await waitFor(() => expect(onPersistComposerSelection).toHaveBeenCalledWith({ model: "gpt-5.2", effort: "high", serviceTier: null }));
@@ -161,8 +163,8 @@ describe("HomeComposer persistence", () => {
   it("persists effort changes without altering the current model", async () => {
     const { onPersistComposerSelection } = renderComposer({ defaultModel: "gpt-5.4", defaultEffort: "medium" });
 
-    fireEvent.click(screen.getByRole("button", { name: /选择思考强度/ }));
-    fireEvent.click(screen.getByRole("menuitemradio", { name: "高" }));
+    fireEvent.click(screen.getByRole("button", { name: /Select reasoning effort/ }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "High" }));
 
     await waitFor(() => expect(onPersistComposerSelection).toHaveBeenCalledWith({ model: "gpt-5.4", effort: "high", serviceTier: null }));
   });
@@ -174,7 +176,7 @@ describe("HomeComposer persistence", () => {
 
     renderComposer({ onPersistComposerSelection, onSendTurn });
 
-    fireEvent.click(screen.getByRole("button", { name: /选择模型/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Select model/ }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: "GPT-5.2" }));
 
     await waitFor(() => expect(screen.getByText("保存 Composer 配置失败")).toBeInTheDocument());

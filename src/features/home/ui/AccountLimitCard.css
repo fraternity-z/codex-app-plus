@@ -27,9 +27,20 @@
   min-width: 0;
 }
 
+.account-limit-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .account-limit-card-label {
   font-size: 13px;
   color: var(--text-soft);
+}
+
+.account-limit-card-caption {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
 }
 
 .account-limit-card-badge {

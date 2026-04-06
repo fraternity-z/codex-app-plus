@@ -62,7 +62,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   embeddedTerminalShell: "powerShell",
   embeddedTerminalUtf8: true,
   themeMode: DEFAULT_THEME_MODE,
-  uiLanguage: "auto",
+  uiLanguage: "en-US",
   threadDetailLevel: "commands",
   followUpQueueMode: "queue",
   composerEnterBehavior: "enter",

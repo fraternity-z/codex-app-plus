@@ -1,4 +1,5 @@
 import type { ComposerPermissionLevel } from "../model/composerPermission";
+import { useI18n } from "../../../i18n/useI18n";
 import { OfficialArrowTopRightIcon } from "../../shared/ui/officialIcons";
 
 export type PermissionLevel = ComposerPermissionLevel;
@@ -9,19 +10,22 @@ interface PermissionOption {
   readonly icon: string;
 }
 
-const PERMISSION_OPTIONS: ReadonlyArray<PermissionOption> = [
-  { key: "default", label: "默认权限", icon: "○" },
-  { key: "full", label: "完全访问权限", icon: "!" }
-];
-
-export function permissionLabel(level: PermissionLevel): string {
-  return level === "full" ? "完全访问权限" : "默认权限";
+export function permissionLabel(
+  level: PermissionLevel,
+  t?: (key: "home.composer.defaultPermission" | "home.composer.fullPermission") => string,
+): string {
+  if (t) {
+    return level === "full" ? t("home.composer.fullPermission") : t("home.composer.defaultPermission");
+  }
+  return level === "full" ? "Full access" : "Default permission";
 }
 
 export function WorkspacePopover(props: { readonly onClose: () => void }): JSX.Element {
+  const { t } = useI18n();
+
   return (
-    <div className="composer-footer-popover" role="menu" aria-label="使用位置">
-      <div className="composer-footer-popover-title">继续使用</div>
+    <div className="composer-footer-popover" role="menu" aria-label={t("home.composer.usageLocation")}>
+      <div className="composer-footer-popover-title">{t("home.composer.continueUsing")}</div>
       <button
         type="button"
         className="composer-footer-popover-item"
@@ -30,12 +34,12 @@ export function WorkspacePopover(props: { readonly onClose: () => void }): JSX.E
       >
         <span className="popover-item-left">
           <span className="popover-item-icon" aria-hidden="true">
-            ◆
+            {"\u25c6"}
           </span>
-          本地项目
+          {t("home.composer.localProject")}
         </span>
         <span className="popover-item-right popover-check" aria-hidden="true">
-          ✓
+          {"\u2713"}
         </span>
       </button>
       <button
@@ -46,9 +50,9 @@ export function WorkspacePopover(props: { readonly onClose: () => void }): JSX.E
       >
         <span className="popover-item-left">
           <span className="popover-item-icon" aria-hidden="true">
-            ○
+            {"\u25cb"}
           </span>
-          关联 Codex Web
+          {t("home.composer.linkCodexWeb")}
         </span>
         <OfficialArrowTopRightIcon className="popover-item-right popover-external" />
       </button>
@@ -60,9 +64,9 @@ export function WorkspacePopover(props: { readonly onClose: () => void }): JSX.E
       >
         <span className="popover-item-left">
           <span className="popover-item-icon" aria-hidden="true">
-            ○
+            {"\u25cb"}
           </span>
-          发送至云端
+          {t("home.composer.sendToCloud")}
         </span>
       </button>
     </div>
@@ -73,10 +77,16 @@ export function PermissionsPopover(props: {
   readonly selected: PermissionLevel;
   readonly onSelect: (level: PermissionLevel) => void;
 }): JSX.Element {
+  const { t } = useI18n();
   const { selected, onSelect } = props;
+  const permissionOptions: ReadonlyArray<PermissionOption> = [
+    { key: "default", label: t("home.composer.defaultPermission"), icon: "\u25cb" },
+    { key: "full", label: t("home.composer.fullPermission"), icon: "!" }
+  ];
+
   return (
-    <div className="composer-footer-popover composer-footer-popover-sm" role="menu" aria-label="权限级别">
-      {PERMISSION_OPTIONS.map((option) => (
+    <div className="composer-footer-popover composer-footer-popover-sm" role="menu" aria-label={t("home.composer.permissionLevel")}>
+      {permissionOptions.map((option) => (
         <button
           key={option.key}
           type="button"
@@ -92,7 +102,7 @@ export function PermissionsPopover(props: {
           </span>
           {option.key === selected ? (
             <span className="popover-item-right popover-check" aria-hidden="true">
-              ✓
+              {"\u2713"}
             </span>
           ) : null}
         </button>

@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::agent_environment::codex_home_dir_name;
 use crate::error::{AppError, AppResult};
 use crate::models::AppServerStartInput;
 use crate::proxy_environment::proxy_environment_assignments;
@@ -14,7 +15,6 @@ use super::CodexCli;
 const DEFAULT_WSL_CODEX_COMMAND: &str = "codex";
 const WSL_LOGIN_SHELL: &str = "bash";
 const WSL_LOGIN_EXEC_FLAG: &str = "-ic";
-const WSL_LOGIN_EXEC_SCRIPT: &str = "exec \"$@\"";
 const WSL_LOGIN_ARG0: &str = "codex-app-plus";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -81,22 +81,25 @@ fn build_wsl_exec_prefix(
         "--exec".to_string(),
         WSL_LOGIN_SHELL.to_string(),
         WSL_LOGIN_EXEC_FLAG.to_string(),
-        build_wsl_exec_script(proxy_settings),
+        build_wsl_exec_script(context, proxy_settings),
         WSL_LOGIN_ARG0.to_string(),
         program.to_string(),
     ]
 }
 
-fn build_wsl_exec_script(proxy_settings: &crate::models::ProxySettings) -> String {
-    let exports = proxy_environment_assignments(proxy_settings)
+fn build_wsl_exec_script(
+    context: &WslContext,
+    proxy_settings: &crate::models::ProxySettings,
+) -> String {
+    let codex_home = format!("{}/{}", context.home_path.trim_end_matches('/'), codex_home_dir_name());
+    let mut exports = vec![format!("export CODEX_HOME={};", shell_quote(&codex_home))];
+    exports.extend(
+        proxy_environment_assignments(proxy_settings)
         .into_iter()
         .map(|(key, value)| format!("export {key}={};", shell_quote(value.as_str())))
-        .collect::<Vec<_>>()
-        .join(" ");
-    if exports.is_empty() {
-        return WSL_LOGIN_EXEC_SCRIPT.to_string();
-    }
-    format!("{exports} exec \"$@\"")
+        .collect::<Vec<_>>(),
+    );
+    format!("{} exec \"$@\"", exports.join(" "))
 }
 
 fn shell_quote(value: &str) -> String {
@@ -172,7 +175,7 @@ mod tests {
                 "--exec",
                 "bash",
                 "-ic",
-                "exec \"$@\"",
+                "export CODEX_HOME='/home/me/.codex-app-plus'; exec \"$@\"",
                 "codex-app-plus",
                 "/usr/local/bin/codex",
             ]
@@ -220,6 +223,7 @@ mod tests {
         )
         .expect("launch spec");
 
+        assert!(spec.prefix_args[7].contains("export CODEX_HOME='/home/me/.codex-app-plus';"));
         assert!(spec.prefix_args[7].contains("export HTTP_PROXY='http://127.0.0.1:8080';"));
         assert!(spec.prefix_args[7].contains("export no_proxy='localhost';"));
         assert!(spec.prefix_args[7].contains("exec \"$@\""));

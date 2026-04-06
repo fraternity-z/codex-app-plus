@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { HostBridge, WorkspaceOpener } from "../../../bridge/types";
 import { useAppSelector } from "../../../state/store";
 import { AppStoreProvider } from "../../../state/store";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { WorkspaceOpenButton } from "./WorkspaceOpenButton";
 
 function createHostBridge(overrides?: {
@@ -98,7 +99,7 @@ function renderControlledButton(props: {
     );
   }
 
-  render(<Wrapper />);
+  render(<Wrapper />, { wrapper: createI18nWrapper() });
 }
 
 describe("WorkspaceOpenButton", () => {

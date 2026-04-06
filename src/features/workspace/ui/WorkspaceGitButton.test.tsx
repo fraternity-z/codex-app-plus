@@ -2,6 +2,7 @@ import type { ComponentProps } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { GitStatusOutput } from "../../../bridge/types";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { APP_PREFERENCES_STORAGE_KEY } from "../../settings/hooks/useAppPreferences";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { WorkspaceGitButton } from "./WorkspaceGitButton";
@@ -77,13 +78,29 @@ function renderButton(overrides?: Partial<ComponentProps<typeof WorkspaceGitButt
       controller={createController()}
       selectedRootPath="E:/code/project"
       {...overrides}
-    />
+    />,
+    { wrapper: createI18nWrapper() },
   );
 }
 
 describe("WorkspaceGitButton", () => {
   beforeEach(() => {
-    window.localStorage.clear();
+    const storage = new Map<string, string>();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => {
+          storage.set(key, value);
+        },
+        removeItem: (key: string) => {
+          storage.delete(key);
+        },
+        clear: () => {
+          storage.clear();
+        },
+      },
+    });
   });
 
   it("未选择工作区时禁用快捷入口", () => {

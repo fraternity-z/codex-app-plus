@@ -6,6 +6,7 @@ import { useAppSelector } from "../../../state/store";
 import { AppStoreProvider } from "../../../state/store";
 import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import { HomeComposer } from "./HomeComposer";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 
 const openMock = vi.fn();
 
@@ -138,6 +139,7 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
       <ComposerHarness />
       <BannerProbe />
     </AppStoreProvider>,
+    { wrapper: createI18nWrapper("en-US") },
   );
 
   return { onSendTurn };
@@ -207,7 +209,7 @@ describe("HomeComposer attachments", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
-    await waitFor(() => expect(screen.getByText("发送消息失败")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Failed to send message")).toBeInTheDocument());
     expect(screen.getByText("notes.md")).toBeInTheDocument();
     expect((textarea as HTMLTextAreaElement).value).toBe("");
     expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({
@@ -268,11 +270,11 @@ describe("HomeComposer attachments", () => {
     fireEvent.click(await screen.findByRole("switch", { name: "Toggle multi-agent" }));
 
     await waitFor(() => expect(onSetMultiAgentEnabled).toHaveBeenCalledWith(true));
-    expect(screen.getByText("正在重载 Codex…")).toBeInTheDocument();
+    expect(screen.getByText("Reloading Codex...")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Describe the task, ask a question, or queue a follow-up")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Send message" })).toBeDisabled();
 
     resolveToggleRef.current?.();
-    await waitFor(() => expect(screen.queryByText("正在重载 Codex…")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("Reloading Codex...")).toBeNull());
   });
 });

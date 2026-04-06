@@ -37,7 +37,8 @@ describe("composerInitCommand", () => {
         collaborationPreset: "default",
       }, {
         onSendTurn,
+        workspaceRequiredMessage: "Please choose a workspace first.",
       }),
-    ).rejects.toThrow("请先选择工作区。");
+    ).rejects.toThrow("Please choose a workspace first.");
   });
 });

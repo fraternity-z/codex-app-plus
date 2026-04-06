@@ -53,8 +53,8 @@ type WorkspaceConversationActions = Pick<
   | "updateThreadBranch"
 >;
 
-const APP_SERVER_NOT_READY_MESSAGE = "Codex 正在启动或未连接，请等待连接完成后再发送。";
-const STEER_UNAVAILABLE_MESSAGE = "当前 Codex 配置未启用 steer，运行中追发不可用。";
+const APP_SERVER_NOT_READY_MESSAGE = "Codex is still starting or not connected. Wait for the connection before sending.";
+const STEER_UNAVAILABLE_MESSAGE = "Steer is not enabled in the current Codex configuration, so active follow-ups are unavailable.";
 const SKILL_MENTION_PATTERN = /(?:^|[\s])\$[A-Za-z0-9_-]+/;
 
 function createAppServerNotReadyError(): Error {
@@ -158,7 +158,7 @@ export function useWorkspaceConversationController({
         type: "conversation/systemNoticeAdded",
         conversationId,
         turnId: null,
-        title: "恢复工作区会话失败",
+        title: "Failed to resume workspace conversation",
         detail: toErrorMessage(error),
         level: "error",
         source: "thread/resume",
@@ -184,7 +184,7 @@ export function useWorkspaceConversationController({
   const createThread = useCallback(async (createOptions?: CreateThreadOptions) => {
     const workspacePath = createOptions?.workspacePath ?? options.selectedRootPath;
     if (workspacePath === null) {
-      throw new Error("请先选择工作区。");
+      throw new Error("Please choose a workspace first.");
     }
     dispatch({ type: "conversation/draftOpened", draft: { workspacePath, createdAt: new Date().toISOString() } });
   }, [dispatch, options.selectedRootPath]);
@@ -230,7 +230,7 @@ export function useWorkspaceConversationController({
     }
     const workspacePath = options.selectedRootPath ?? store.getState().draftConversation?.workspacePath ?? null;
     if (workspacePath === null) {
-      throw new Error("请先选择工作区。");
+      throw new Error("Please choose a workspace first.");
     }
     const agentWorkspacePath = resolveAgentWorkspacePath(workspacePath, options.agentEnvironment);
     const prewarmedResponse = await consumePrewarmedThread(workspacePath);
@@ -508,3 +508,4 @@ export function useWorkspaceConversationController({
     updateThreadBranch,
   };
 }
+

@@ -2,6 +2,7 @@ import type { CollaborationPreset } from "../../../domain/timeline";
 import type { SendTurnOptions } from "../../conversation/hooks/workspaceConversationTypes";
 import type { ComposerPermissionLevel } from "../model/composerPermission";
 import type { ComposerSelection } from "../model/composerPreferences";
+
 export const INIT_COMMAND_PROMPT = `Generate a file named AGENTS.md that serves as a contributor guide for this repository.
 Your goal is to produce a clear, concise, and well-structured document with descriptive headings and actionable explanations for each section.
 Follow the outline below, but adapt as needed - add sections if relevant, and omit those that do not apply to this project.
@@ -38,7 +39,7 @@ Testing Guidelines
 
 Commit & Pull Request Guidelines
 
-- Summarize commit message conventions found in the project’s Git history.
+- Summarize commit message conventions found in the project's Git history.
 - Outline pull request requirements (descriptions, linked issues, screenshots, etc.).
 
 (Optional) Add other sections if relevant, such as Security & Configuration Tips, Architecture Overview, or Agent-Specific Instructions.`;
@@ -52,6 +53,7 @@ export interface InitSlashCommandContext {
 
 export interface InitSlashCommandDependencies {
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
+  readonly workspaceRequiredMessage?: string;
 }
 
 export async function executeInitSlashCommand(
@@ -59,7 +61,7 @@ export async function executeInitSlashCommand(
   deps: InitSlashCommandDependencies,
 ): Promise<void> {
   if (context.selectedRootPath === null) {
-    throw new Error("请先选择工作区。");
+    throw new Error(deps.workspaceRequiredMessage ?? "Please choose a workspace first.");
   }
 
   await deps.onSendTurn({

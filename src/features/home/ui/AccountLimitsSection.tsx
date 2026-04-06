@@ -1,8 +1,4 @@
-// 账户额度显示区域组件
-// 参考: spec/03-功能实现/20260404-1140-账户额度显示/plan.md
-
 import { memo, useCallback, useState } from "react";
-import type { AppServerClient } from "../../../protocol/appServerClient";
 import type { RateLimitSnapshot } from "../../../protocol/generated/v2/RateLimitSnapshot";
 import { useI18n } from "../../../i18n";
 import { buildAccountLimitCards } from "../model/homeAccountLimitsModel";
@@ -10,7 +6,6 @@ import { AccountLimitCard } from "./AccountLimitCard";
 import "./AccountLimitsSection.css";
 
 export interface AccountLimitsSectionProps {
-  readonly appServerClient: AppServerClient;
   readonly rateLimits: RateLimitSnapshot | null;
   className?: string;
 }
@@ -20,21 +15,16 @@ export const AccountLimitsSection = memo(function AccountLimitsSection({
   className,
 }: AccountLimitsSectionProps) {
   const { t } = useI18n();
-
-  // 展开/收起状态
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // 切换展开/收起
   const handleToggleExpand = useCallback(() => {
     setIsExpanded((prev) => !prev);
   }, []);
 
-  // 构建卡片数据 - 默认显示剩余额度
   const cards = buildAccountLimitCards(rateLimits, true, (key: string, params?: Record<string, string>) => {
-    return t(key as any, params as any);
+    return t(key as never, params as never);
   });
 
-  // 如果没有额度数据，隐藏整个区域
   if (!rateLimits || cards.length === 0) {
     return null;
   }
@@ -52,7 +42,7 @@ export const AccountLimitsSection = memo(function AccountLimitsSection({
         <span className="account-limits-arrow">{isExpanded ? "‹" : "›"}</span>
       </button>
 
-      {isExpanded && (
+      {isExpanded ? (
         <div className="account-limits-content">
           <div className="account-limits-grid">
             {cards.map((card) => (
@@ -60,7 +50,7 @@ export const AccountLimitsSection = memo(function AccountLimitsSection({
             ))}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 });

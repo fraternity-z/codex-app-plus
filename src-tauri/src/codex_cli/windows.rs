@@ -1,6 +1,7 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
+use crate::agent_environment::codex_home_dir_name;
 use crate::error::{AppError, AppResult};
 use crate::models::AppServerStartInput;
 use crate::proxy_environment::proxy_environment_assignments;
@@ -60,10 +61,11 @@ fn build_windows_cli(path: PathBuf) -> AppResult<CodexCli> {
     let extension = file_extension(&path);
     let path_text = display_path.clone();
     let proxy_settings = load_proxy_settings(crate::models::AgentEnvironment::WindowsNative)?;
-    let environment = proxy_environment_assignments(&proxy_settings)
+    let mut environment = proxy_environment_assignments(&proxy_settings)
         .into_iter()
         .map(|(key, value)| (key.to_string(), value))
         .collect::<Vec<_>>();
+    environment.push(("CODEX_HOME".to_string(), windows_codex_home_path()?));
 
     if extension == "cmd" || extension == "bat" {
         return Ok(CodexCli {
@@ -89,6 +91,12 @@ fn build_windows_cli(path: PathBuf) -> AppResult<CodexCli> {
         display_path,
         environment,
     })
+}
+
+fn windows_codex_home_path() -> AppResult<String> {
+    let home =
+        dirs::home_dir().ok_or_else(|| AppError::InvalidInput("无法解析用户目录".to_string()))?;
+    Ok(home.join(codex_home_dir_name()).display().to_string())
 }
 
 fn file_extension(path: &Path) -> String {

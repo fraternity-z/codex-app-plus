@@ -44,8 +44,7 @@ import {
   useSlashRuntimeState,
 } from "./composerCommandPaletteState";
 import { usePaletteTrigger, useBoundedSelection, usePaletteKeyboard } from "./usePaletteTrigger";
-
-const NO_WORKSPACE_MESSAGE = "请先选择工作区后再使用 @ 文件提及。";
+import { useI18n } from "../../../i18n/useI18n";
 
 interface SkillPaletteSession {
   readonly skills: ReadonlyArray<SkillMetadata>;
@@ -200,6 +199,7 @@ export function useComposerCommandPalette(
 }
 
 function useMentionPalette(options: UseComposerCommandPaletteOptions, dispatch: AppStoreApi["dispatch"], mode: PaletteMode, activeTrigger: ComposerActiveTrigger | null) {
+  const { t } = useI18n();
   const previousThreadIdRef = useRef(options.selectedThreadId);
   const previousRootPathRef = useRef(options.selectedRootPath);
   const refs = useMentionSessionRefs();
@@ -217,11 +217,11 @@ function useMentionPalette(options: UseComposerCommandPaletteOptions, dispatch: 
   useEffect(() => {
     if (mode !== "mention" || activeTrigger?.kind !== "mention") return void stop();
     if (options.selectedRootPath === null) {
-      setError(NO_WORKSPACE_MESSAGE);
+      setError(t("home.composer.workspaceRequiredForMentions"));
       return void stop();
     }
     void syncMentionSession({ composerCommandBridge: options.composerCommandBridge, dispatch, refs, setMentionSessionId: setSessionId, rootPath: options.selectedRootPath, query: activeTrigger.query, setPaletteError: setError });
-  }, [activeTrigger, dispatch, mode, options.composerCommandBridge, options.selectedRootPath, stop, refs]);
+  }, [activeTrigger, dispatch, mode, options.composerCommandBridge, options.selectedRootPath, refs, stop, t]);
 
   return { sessionId, error, clearError: () => setError(null), stop };
 }
@@ -275,6 +275,7 @@ function useMentionSessionRefs(): MentionSessionRefs {
 }
 
 function useSelectPaletteItem(options: UseComposerCommandPaletteOptions, trigger: ReturnType<typeof usePaletteTrigger>, mention: ReturnType<typeof useMentionPalette>, dismiss: () => Promise<void>, slashContext: SlashExecutionContext, slashDeps: SlashExecutionDependencies, customPrompts: ReadonlyArray<CustomPromptOutput>) {
+  const { t } = useI18n();
   return useCallback(async (item: ComposerCommandPaletteItem | null) => {
     if (item === null || item.disabled) return;
     try {
@@ -292,7 +293,7 @@ function useSelectPaletteItem(options: UseComposerCommandPaletteOptions, trigger
         banner: {
           id: `slash:error:${item.key}`,
           level: "error",
-          title: "Slash 命令执行失败",
+          title: t("home.composer.slashCommandFailed"),
           detail: toErrorMessage(error),
           source: "slash-command",
         },
@@ -454,3 +455,6 @@ function shouldSuppressSlashPalette(mode: PaletteMode, activeTrigger: ComposerAc
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
+
+
+

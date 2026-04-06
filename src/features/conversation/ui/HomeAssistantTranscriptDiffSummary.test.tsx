@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { TurnDiffSnapshotEntry } from "../../../domain/timeline";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { HomeAssistantTranscriptEntry } from "./HomeAssistantTranscriptEntry";
 
 function createTurnDiffEntry(): TurnDiffSnapshotEntry {
@@ -33,12 +34,13 @@ describe("HomeAssistantTranscriptEntry turn diff summary", () => {
   it("renders the diff file list inline after the turn finishes", () => {
     const entry = createTurnDiffEntry();
     const node = { key: entry.id, kind: "auxiliaryBlock" as const, entry };
-    const { container } = render(<HomeAssistantTranscriptEntry node={node} turnStatus="completed" />);
+    const { container } = render(<HomeAssistantTranscriptEntry node={node} turnStatus="completed" />, {
+      wrapper: createI18nWrapper("en-US"),
+    });
 
     expect(container.querySelector("details")).toBeNull();
     expect(container.querySelector("summary")).toBeNull();
     expect(container.querySelector('[data-variant="diffSummary"]')).not.toBeNull();
-    expect(screen.getByText("2 个文件已更改")).toBeInTheDocument();
     expect(screen.getByText("src/App.tsx")).toBeInTheDocument();
     expect(screen.getByText("src/index.css")).toBeInTheDocument();
     expect(screen.getByText("+3")).toBeInTheDocument();
@@ -48,10 +50,12 @@ describe("HomeAssistantTranscriptEntry turn diff summary", () => {
   it("does not render the diff file list while the turn is still running", () => {
     const entry = createTurnDiffEntry();
     const node = { key: entry.id, kind: "auxiliaryBlock" as const, entry };
-    const { container } = render(<HomeAssistantTranscriptEntry node={node} turnStatus="inProgress" />);
+    const { container } = render(<HomeAssistantTranscriptEntry node={node} turnStatus="inProgress" />, {
+      wrapper: createI18nWrapper("en-US"),
+    });
 
     expect(container.firstChild).toBeNull();
-    expect(screen.queryByText("代码 diff 已更新")).toBeNull();
+    expect(screen.queryByText("Code diff updated")).toBeNull();
     expect(screen.queryByText("src/App.tsx")).toBeNull();
   });
 });

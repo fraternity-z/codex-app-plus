@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import type { ComposerModelOption } from "../model/composerPreferences";
 import { ComposerModelControls } from "./ComposerModelControls";
 
@@ -24,7 +25,7 @@ const MODELS: ReadonlyArray<ComposerModelOption> = [
 ];
 
 describe("ComposerModelControls", () => {
-  it("shows the latest five models first and reveals the rest in Extra models", () => {
+  it("shows the latest five models first and reveals the rest in extra models", () => {
     render(
       <ComposerModelControls
         models={MODELS}
@@ -33,7 +34,8 @@ describe("ComposerModelControls", () => {
         supportedEfforts={["low", "medium", "high", "xhigh"]}
         onSelectModel={vi.fn()}
         onSelectEffort={vi.fn()}
-      />
+      />,
+      { wrapper: createI18nWrapper() },
     );
 
     fireEvent.click(screen.getByRole("button", { name: /选择模型/ }));
@@ -45,7 +47,7 @@ describe("ComposerModelControls", () => {
     expect(screen.getByRole("menuitemradio", { name: "GPT-5" })).toBeInTheDocument();
     expect(screen.queryByRole("menuitemradio", { name: "o3" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("menuitem", { name: /Extra models/ }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /额外模型/ }));
 
     expect(screen.getByRole("menuitemradio", { name: "o3" })).toBeInTheDocument();
     expect(screen.getByRole("menuitemradio", { name: "o1" })).toBeInTheDocument();
@@ -60,10 +62,11 @@ describe("ComposerModelControls", () => {
         supportedEfforts={["low", "medium", "high", "xhigh"]}
         onSelectModel={vi.fn()}
         onSelectEffort={vi.fn()}
-      />
+      />,
+      { wrapper: createI18nWrapper() },
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /选择思考强度/ }));
+    fireEvent.click(screen.getByRole("button", { name: /选择推理强度/ }));
 
     expect(screen.getByRole("menuitemradio", { name: "低" })).toBeInTheDocument();
     expect(screen.getByRole("menuitemradio", { name: "中" })).toBeInTheDocument();

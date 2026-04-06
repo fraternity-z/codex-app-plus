@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GitBranchRef, GitStatusOutput } from "../../../bridge/types";
+import { useI18n } from "../../../i18n/useI18n";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { OfficialCloseIcon, OfficialPlusIcon, OfficialWorktreeIcon } from "../../shared/ui/officialIcons";
 
@@ -13,35 +14,7 @@ interface ComposerFooterBranchPopoverProps {
 
 type BranchMode = "list" | "create";
 type BranchViewState = "loading" | "nonRepo" | "error" | "list";
-
-const TEXT = {
-  branch: "\u5206\u652f",
-  chooseBranch: "\u9009\u62e9\u5206\u652f",
-  searchBranch: "\u641c\u7d22\u5206\u652f",
-  currentBranch: "\u5f53\u524d\u68c0\u51fa\u5206\u652f",
-  localBranch: "\u672c\u5730\u5206\u652f",
-  deleteBranch: "\u5220\u9664\u5206\u652f",
-  deleteBranchConfirm: "确定删除分支 {branch} 吗？",
-  forceDeleteBranchConfirm: "分支 {branch} 尚未合并，是否强制删除？",
-  cannotDeleteProtectedBranch: "当前分支或受保护分支不允许删除",
-  loadingTitle: "\u6b63\u5728\u8bfb\u53d6 Git \u5206\u652f",
-  loadingBody: "\u7a0d\u7b49\u4e00\u4e0b\uff0c\u6b63\u5728\u5206\u6790\u5f53\u524d\u5de5\u4f5c\u533a\u7684\u5206\u652f\u4fe1\u606f\u3002",
-  nonRepoTitle: "\u5f53\u524d\u5de5\u4f5c\u533a\u4e0d\u662f Git \u4ed3\u5e93",
-  nonRepoBody: "\u8bf7\u5148\u521d\u59cb\u5316\u4ed3\u5e93\u6216\u5207\u6362\u5230\u5df2\u6709 Git \u5de5\u4f5c\u533a\u3002",
-  errorTitle: "\u8bfb\u53d6\u5206\u652f\u5931\u8d25",
-  unavailableBody: "\u8bf7\u9009\u62e9\u4e00\u4e2a\u5de5\u4f5c\u533a\u540e\u518d\u67e5\u770b\u53ef\u5207\u6362\u5206\u652f\u3002",
-  reload: "\u91cd\u65b0\u52a0\u8f7d",
-  noMatches: "\u6ca1\u6709\u5339\u914d\u7684\u5206\u652f",
-  createBranch: "\u521b\u5efa\u5e76\u68c0\u51fa\u65b0\u5206\u652f...",
-  createBranchTitle: "\u521b\u5efa\u5e76\u68c0\u51fa\u65b0\u5206\u652f",
-  createBranchHelp: "\u521b\u5efa\u540e\u4f1a\u7acb\u523b\u5207\u6362\u5230\u65b0\u5206\u652f\u3002",
-  backToList: "\u8fd4\u56de\u5206\u652f\u5217\u8868",
-  newBranchName: "\u65b0\u5206\u652f\u540d\u79f0",
-  newBranchPlaceholder: "\u8f93\u5165\u65b0\u5206\u652f\u540d\u79f0",
-  cancel: "\u53d6\u6d88",
-  createAndCheckout: "\u521b\u5efa\u5e76\u68c0\u51fa",
-  unknownBranch: "\u672a\u77e5\u5206\u652f",
-};
+type TranslateFn = ReturnType<typeof useI18n>["t"];
 
 function SearchIcon(props: { readonly className?: string }): JSX.Element {
   return (
@@ -63,7 +36,11 @@ function hasBranch(branches: ReadonlyArray<GitBranchRef>, branchName: string | n
   return branchName !== null && branches.some((branch) => branch.name === branchName);
 }
 
-function getPreferredBranch(controller: WorkspaceGitController, selectedThreadBranch: string | null): string {
+function getPreferredBranch(
+  controller: WorkspaceGitController,
+  selectedThreadBranch: string | null,
+  chooseBranchLabel: string,
+): string {
   const branches = controller.status?.branches ?? [];
   const currentBranch = getCurrentBranchName(controller.status);
   if (hasBranch(branches, selectedThreadBranch)) {
@@ -75,7 +52,7 @@ function getPreferredBranch(controller: WorkspaceGitController, selectedThreadBr
   if (hasBranch(branches, controller.selectedBranch)) {
     return controller.selectedBranch;
   }
-  return branches[0]?.name ?? currentBranch ?? TEXT.chooseBranch;
+  return branches[0]?.name ?? currentBranch ?? chooseBranchLabel;
 }
 
 function filterBranches(branches: ReadonlyArray<GitBranchRef>, query: string): ReadonlyArray<GitBranchRef> {
@@ -90,12 +67,12 @@ function canDeleteBranch(branch: GitBranchRef): boolean {
   return !branch.isCurrent && branch.name !== "main";
 }
 
-function formatDeleteBranchConfirm(branchName: string): string {
-  return TEXT.deleteBranchConfirm.replace("{branch}", branchName);
+function formatDeleteBranchConfirm(branchName: string, t: TranslateFn): string {
+  return t("home.composer.branchPopover.deleteBranchConfirm", { branch: branchName });
 }
 
-function formatForceDeleteBranchConfirm(branchName: string): string {
-  return TEXT.forceDeleteBranchConfirm.replace("{branch}", branchName);
+function formatForceDeleteBranchConfirm(branchName: string, t: TranslateFn): string {
+  return t("home.composer.branchPopover.forceDeleteBranchConfirm", { branch: branchName });
 }
 
 function shouldOfferForceDelete(errorText: string | null): boolean {
@@ -114,6 +91,7 @@ function BranchContextMenu(props: {
   readonly onDelete: () => void;
   readonly onClose: () => void;
 }): JSX.Element {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -142,9 +120,23 @@ function BranchContextMenu(props: {
   }, [props]);
 
   return (
-    <div ref={containerRef} className="thread-context-menu" style={{ left: props.x, top: props.y }} role="menu" aria-label={`${props.branchName} 分支操作`}>
-      <button type="button" className="thread-context-menu-item thread-context-menu-item-danger" role="menuitem" onClick={props.onDelete} disabled={!props.canDelete || props.deleting}>
-        {props.deleting ? "删除中..." : TEXT.deleteBranch}
+    <div
+      ref={containerRef}
+      className="thread-context-menu"
+      style={{ left: props.x, top: props.y }}
+      role="menu"
+      aria-label={t("home.composer.branchPopover.contextMenuAria", { branch: props.branchName })}
+    >
+      <button
+        type="button"
+        className="thread-context-menu-item thread-context-menu-item-danger"
+        role="menuitem"
+        onClick={props.onDelete}
+        disabled={!props.canDelete || props.deleting}
+      >
+        {props.deleting
+          ? t("home.composer.branchPopover.deletingBranch")
+          : t("home.composer.branchPopover.deleteBranch")}
       </button>
     </div>
   );
@@ -178,15 +170,21 @@ function getErrorText(controller: WorkspaceGitController, localError: string | n
   return controller.notice?.kind === "error" ? controller.notice.text : null;
 }
 
-function formatBranchMismatch(selectedThreadBranch: string, currentBranch: string): string {
-  return `\u8be5\u5bf9\u8bdd\u8bb0\u4f4f\u7684\u5206\u652f\u662f ${selectedThreadBranch}\uff0c\u5f53\u524d\u68c0\u51fa\u7684\u662f ${currentBranch}\u3002`;
+function formatBranchMismatch(selectedThreadBranch: string, currentBranch: string, t: TranslateFn): string {
+  return t("home.composer.branchPopover.branchMismatch", {
+    selected: selectedThreadBranch,
+    current: currentBranch,
+  });
 }
 
-function formatMissingThreadBranch(selectedThreadBranch: string, currentBranch: string | null): string {
+function formatMissingThreadBranch(selectedThreadBranch: string, currentBranch: string | null, t: TranslateFn): string {
   if (currentBranch === null) {
-    return `\u8be5\u5bf9\u8bdd\u8bb0\u4f4f\u7684\u5206\u652f ${selectedThreadBranch} \u5f53\u524d\u4e0d\u5728\u4ed3\u5e93\u4e2d\u3002`;
+    return t("home.composer.branchPopover.missingThreadBranch", { selected: selectedThreadBranch });
   }
-  return `\u8be5\u5bf9\u8bdd\u8bb0\u4f4f\u7684\u5206\u652f ${selectedThreadBranch} \u5f53\u524d\u4e0d\u5728\u4ed3\u5e93\u4e2d\uff0c\u5df2\u56de\u9000\u663e\u793a ${currentBranch}\u3002`;
+  return t("home.composer.branchPopover.missingThreadBranchFallback", {
+    selected: selectedThreadBranch,
+    current: currentBranch,
+  });
 }
 
 function BranchNotice(props: { readonly kind: "info" | "error"; readonly text: string }): JSX.Element {
@@ -204,16 +202,28 @@ function BranchEmptyState(props: {
     <div className="branch-state-card">
       <strong className="branch-state-title">{props.title}</strong>
       <p className="branch-state-body">{props.body}</p>
-      {props.actionLabel && props.onAction ? <button type="button" className="branch-state-action" onClick={props.onAction}>{props.actionLabel}</button> : null}
+      {props.actionLabel && props.onAction ? (
+        <button type="button" className="branch-state-action" onClick={props.onAction}>
+          {props.actionLabel}
+        </button>
+      ) : null}
     </div>
   );
 }
 
 function BranchSearchBar(props: { readonly query: string; readonly onChange: (value: string) => void }): JSX.Element {
+  const { t } = useI18n();
+  const label = t("home.composer.branchPopover.searchBranch");
   return (
     <div className="branch-search">
       <SearchIcon className="branch-search-icon" />
-      <input className="branch-search-input" value={props.query} onChange={(event) => props.onChange(event.target.value)} placeholder={TEXT.searchBranch} aria-label={TEXT.searchBranch} />
+      <input
+        className="branch-search-input"
+        value={props.query}
+        onChange={(event) => props.onChange(event.target.value)}
+        placeholder={label}
+        aria-label={label}
+      />
     </div>
   );
 }
@@ -226,7 +236,10 @@ function BranchListItem(props: {
   readonly onSelect: (branchName: string) => void;
   readonly onOpenMenu: (event: React.MouseEvent<HTMLDivElement>, branch: GitBranchRef) => void;
 }): JSX.Element {
-  const secondaryText = props.branch.upstream ?? (props.current ? TEXT.currentBranch : TEXT.localBranch);
+  const { t } = useI18n();
+  const secondaryText = props.branch.upstream ?? (
+    props.current ? t("home.composer.branchPopover.currentBranch") : t("home.composer.branchPopover.localBranch")
+  );
   return (
     <div
       onContextMenu={(event) => {
@@ -260,32 +273,50 @@ function CreateBranchView(props: {
   readonly onCancel: () => void;
   readonly onSubmit: () => void;
 }): JSX.Element {
+  const { t } = useI18n();
   const canSubmit = props.controller.newBranchName.trim().length > 0 && !props.busy;
   return (
     <div className="branch-create-panel">
       <div className="branch-create-header">
         <div>
-          <div className="branch-section-title">{TEXT.createBranchTitle}</div>
-          <p className="branch-create-help">{TEXT.createBranchHelp}</p>
+          <div className="branch-section-title">{t("home.composer.branchPopover.createBranchTitle")}</div>
+          <p className="branch-create-help">{t("home.composer.branchPopover.createBranchHelp")}</p>
         </div>
-        <button type="button" className="branch-create-icon-btn" onClick={props.onCancel} aria-label={TEXT.backToList}>
+        <button
+          type="button"
+          className="branch-create-icon-btn"
+          onClick={props.onCancel}
+          aria-label={t("home.composer.branchPopover.backToList")}
+        >
           <OfficialCloseIcon className="branch-create-close" />
         </button>
       </div>
       {props.errorText ? <BranchNotice kind="error" text={props.errorText} /> : null}
       <div className="branch-search branch-create-input-shell">
         <OfficialWorktreeIcon className="branch-search-icon" />
-        <input autoFocus className="branch-search-input" value={props.controller.newBranchName} onChange={(event) => props.controller.setNewBranchName(event.target.value)} placeholder={TEXT.newBranchPlaceholder} aria-label={TEXT.newBranchName} />
+        <input
+          autoFocus
+          className="branch-search-input"
+          value={props.controller.newBranchName}
+          onChange={(event) => props.controller.setNewBranchName(event.target.value)}
+          placeholder={t("home.composer.branchPopover.newBranchPlaceholder")}
+          aria-label={t("home.composer.branchPopover.newBranchName")}
+        />
       </div>
       <div className="branch-create-actions">
-        <button type="button" className="branch-create-secondary" disabled={props.busy} onClick={props.onCancel}>{TEXT.cancel}</button>
-        <button type="button" className="branch-create-primary" disabled={!canSubmit} onClick={props.onSubmit}>{TEXT.createAndCheckout}</button>
+        <button type="button" className="branch-create-secondary" disabled={props.busy} onClick={props.onCancel}>
+          {t("home.composer.branchPopover.cancel")}
+        </button>
+        <button type="button" className="branch-create-primary" disabled={!canSubmit} onClick={props.onSubmit}>
+          {t("home.composer.branchPopover.createAndCheckout")}
+        </button>
       </div>
     </div>
   );
 }
 
 export function ComposerFooterBranchPopover(props: ComposerFooterBranchPopoverProps): JSX.Element {
+  const { t } = useI18n();
   const [mode, setMode] = useState<BranchMode>("list");
   const [query, setQuery] = useState("");
   const [metadataError, setMetadataError] = useState<string | null>(null);
@@ -293,7 +324,11 @@ export function ComposerFooterBranchPopover(props: ComposerFooterBranchPopoverPr
   const [branchMenu, setBranchMenu] = useState<{ readonly branch: GitBranchRef; readonly x: number; readonly y: number } | null>(null);
   const branches = props.controller.status?.branches ?? [];
   const currentBranch = getCurrentBranchName(props.controller.status);
-  const preferredBranch = getPreferredBranch(props.controller, props.selectedThreadBranch);
+  const preferredBranch = getPreferredBranch(
+    props.controller,
+    props.selectedThreadBranch,
+    t("home.composer.branchPopover.chooseBranch"),
+  );
   const visibleBranches = useMemo(() => filterBranches(branches, query), [branches, query]);
   const busy = props.controller.pendingAction !== null || metadataPending;
   const errorText = getErrorText(props.controller, metadataError);
@@ -306,11 +341,7 @@ export function ComposerFooterBranchPopover(props: ComposerFooterBranchPopoverPr
       return;
     }
     void props.controller.ensureBranchRefs?.();
-  }, [
-    branchRefsLoaded,
-    props.controller.ensureBranchRefs,
-    props.controller.status?.isRepository,
-  ]);
+  }, [branchRefsLoaded, props.controller.ensureBranchRefs, props.controller.status?.isRepository]);
 
   useEffect(() => {
     if (branchMenu === null) {
@@ -340,7 +371,7 @@ export function ComposerFooterBranchPopover(props: ComposerFooterBranchPopoverPr
       await props.onUpdateThreadBranch(branchName);
       return true;
     } catch (error) {
-      setMetadataError(`\u5df2\u5207\u6362\u5de5\u4f5c\u533a\u5206\u652f\uff0c\u4f46\u5199\u5165\u5bf9\u8bdd\u5206\u652f\u5931\u8d25\uff1a${String(error)}`);
+      setMetadataError(t("home.composer.branchPopover.metadataUpdateFailed", { error: String(error) }));
       return false;
     } finally {
       setMetadataPending(false);
@@ -363,11 +394,11 @@ export function ComposerFooterBranchPopover(props: ComposerFooterBranchPopoverPr
     }
     const branchName = branchMenu.branch.name;
     if (!canDeleteBranch(branchMenu.branch)) {
-      setMetadataError(TEXT.cannotDeleteProtectedBranch);
+      setMetadataError(t("home.composer.branchPopover.cannotDeleteProtectedBranch"));
       closeBranchMenu();
       return;
     }
-    if (!window.confirm(formatDeleteBranchConfirm(branchName))) {
+    if (!window.confirm(formatDeleteBranchConfirm(branchName, t))) {
       closeBranchMenu();
       return;
     }
@@ -382,7 +413,7 @@ export function ComposerFooterBranchPopover(props: ComposerFooterBranchPopoverPr
       closeBranchMenu();
       return;
     }
-    if (!window.confirm(formatForceDeleteBranchConfirm(branchName))) {
+    if (!window.confirm(formatForceDeleteBranchConfirm(branchName, t))) {
       closeBranchMenu();
       return;
     }
@@ -403,36 +434,111 @@ export function ComposerFooterBranchPopover(props: ComposerFooterBranchPopoverPr
   };
 
   const deletingBranch = branchMenu !== null && props.controller.pendingAction === "删除分支";
+  const branchMenuLabel = t("home.composer.branchPopover.branch");
 
   if (mode === "create") {
-    return <div className="composer-footer-popover composer-branch-popover composer-footer-popover-right" role="menu" aria-label={TEXT.branch}><CreateBranchView controller={props.controller} busy={busy} errorText={errorText} onCancel={closeCreateMode} onSubmit={() => void handleCreateBranch()} /></div>;
+    return (
+      <div className="composer-footer-popover composer-branch-popover composer-footer-popover-right" role="menu" aria-label={branchMenuLabel}>
+        <CreateBranchView
+          controller={props.controller}
+          busy={busy}
+          errorText={errorText}
+          onCancel={closeCreateMode}
+          onSubmit={() => void handleCreateBranch()}
+        />
+      </div>
+    );
   }
 
   switch (getViewState(props.controller)) {
     case "loading":
-      return <div className="composer-footer-popover composer-branch-popover composer-footer-popover-right" role="menu" aria-label={TEXT.branch}><BranchEmptyState title={TEXT.loadingTitle} body={TEXT.loadingBody} /></div>;
+      return (
+        <div className="composer-footer-popover composer-branch-popover composer-footer-popover-right" role="menu" aria-label={branchMenuLabel}>
+          <BranchEmptyState
+            title={t("home.composer.branchPopover.loadingTitle")}
+            body={t("home.composer.branchPopover.loadingBody")}
+          />
+        </div>
+      );
     case "nonRepo":
-      return <div className="composer-footer-popover composer-branch-popover composer-footer-popover-right" role="menu" aria-label={TEXT.branch}><BranchEmptyState title={TEXT.nonRepoTitle} body={TEXT.nonRepoBody} /></div>;
+      return (
+        <div className="composer-footer-popover composer-branch-popover composer-footer-popover-right" role="menu" aria-label={branchMenuLabel}>
+          <BranchEmptyState
+            title={t("home.composer.branchPopover.nonRepoTitle")}
+            body={t("home.composer.branchPopover.nonRepoBody")}
+          />
+        </div>
+      );
     case "error":
-      return <div className="composer-footer-popover composer-branch-popover composer-footer-popover-right" role="menu" aria-label={TEXT.branch}><BranchEmptyState title={TEXT.errorTitle} body={errorText ?? TEXT.unavailableBody} actionLabel={TEXT.reload} onAction={() => void (props.controller.status?.isRepository ? props.controller.ensureBranchRefs?.() : props.controller.refresh())} /></div>;
+      return (
+        <div className="composer-footer-popover composer-branch-popover composer-footer-popover-right" role="menu" aria-label={branchMenuLabel}>
+          <BranchEmptyState
+            title={t("home.composer.branchPopover.errorTitle")}
+            body={errorText ?? t("home.composer.branchPopover.unavailableBody")}
+            actionLabel={t("home.composer.branchPopover.reload")}
+            onAction={() => void (props.controller.status?.isRepository ? props.controller.ensureBranchRefs?.() : props.controller.refresh())}
+          />
+        </div>
+      );
     case "list":
       return (
-        <div className="composer-footer-popover composer-branch-popover composer-footer-popover-right" role="menu" aria-label={TEXT.branch}>
+        <div className="composer-footer-popover composer-branch-popover composer-footer-popover-right" role="menu" aria-label={branchMenuLabel}>
           <BranchSearchBar query={query} onChange={setQuery} />
           {errorText ? <BranchNotice kind="error" text={errorText} /> : null}
-          {!errorText && rememberedBranchMissing ? <BranchNotice kind="info" text={formatMissingThreadBranch(props.selectedThreadBranch ?? "", currentBranch)} /> : null}
-          {!errorText && !rememberedBranchMissing && branchMismatch ? <BranchNotice kind="info" text={formatBranchMismatch(props.selectedThreadBranch ?? "", currentBranch ?? TEXT.unknownBranch)} /> : null}
-          <div className="branch-section-title">{TEXT.branch}</div>
+          {!errorText && rememberedBranchMissing ? (
+            <BranchNotice kind="info" text={formatMissingThreadBranch(props.selectedThreadBranch ?? "", currentBranch, t)} />
+          ) : null}
+          {!errorText && !rememberedBranchMissing && branchMismatch ? (
+            <BranchNotice
+              kind="info"
+              text={formatBranchMismatch(
+                props.selectedThreadBranch ?? "",
+                currentBranch ?? t("home.composer.branchPopover.unknownBranch"),
+                t,
+              )}
+            />
+          ) : null}
+          <div className="branch-section-title">{branchMenuLabel}</div>
           <div className="branch-list">
-            {visibleBranches.length === 0 ? <div className="branch-empty-list">{TEXT.noMatches}</div> : null}
-            {visibleBranches.map((branch) => <BranchListItem key={branch.name} branch={branch} selected={branch.name === preferredBranch} current={branch.name === currentBranch} disabled={busy} onSelect={(branchName) => void handleSelectBranch(branchName)} onOpenMenu={(event, nextBranch) => setBranchMenu({ branch: nextBranch, x: event.clientX, y: event.clientY })} />)}
+            {visibleBranches.length === 0 ? <div className="branch-empty-list">{t("home.composer.branchPopover.noMatches")}</div> : null}
+            {visibleBranches.map((branch) => (
+              <BranchListItem
+                key={branch.name}
+                branch={branch}
+                selected={branch.name === preferredBranch}
+                current={branch.name === currentBranch}
+                disabled={busy}
+                onSelect={(branchName) => void handleSelectBranch(branchName)}
+                onOpenMenu={(event, nextBranch) => setBranchMenu({ branch: nextBranch, x: event.clientX, y: event.clientY })}
+              />
+            ))}
           </div>
           <div className="branch-divider" />
-          <button type="button" className="branch-create" role="menuitem" disabled={busy} onClick={() => { props.controller.setNewBranchName(""); setMetadataError(null); setMode("create"); }}>
+          <button
+            type="button"
+            className="branch-create"
+            role="menuitem"
+            disabled={busy}
+            onClick={() => {
+              props.controller.setNewBranchName("");
+              setMetadataError(null);
+              setMode("create");
+            }}
+          >
             <OfficialPlusIcon className="branch-create-plus-icon" />
-            {TEXT.createBranch}
+            {t("home.composer.branchPopover.createBranch")}
           </button>
-          {branchMenu ? <BranchContextMenu x={branchMenu.x} y={branchMenu.y} branchName={branchMenu.branch.name} canDelete={canDeleteBranch(branchMenu.branch)} deleting={deletingBranch} onDelete={() => void handleDeleteBranch()} onClose={closeBranchMenu} /> : null}
+          {branchMenu ? (
+            <BranchContextMenu
+              x={branchMenu.x}
+              y={branchMenu.y}
+              branchName={branchMenu.branch.name}
+              canDelete={canDeleteBranch(branchMenu.branch)}
+              deleting={deletingBranch}
+              onDelete={() => void handleDeleteBranch()}
+              onClose={closeBranchMenu}
+            />
+          ) : null}
         </div>
       );
   }

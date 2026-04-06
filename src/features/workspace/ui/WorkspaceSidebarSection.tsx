@@ -10,6 +10,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { memo, useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useI18n } from "../../../i18n/useI18n";
 import { listThreadsForWorkspace } from "../model/workspaceThread";
 import type { WorkspaceRoot } from "../hooks/useWorkspaceRoots";
 import type { ThreadSummary } from "../../../domain/types";
@@ -84,23 +85,28 @@ interface ThreadMenuState {
   readonly y: number;
 }
 
-function formatThreadUpdatedAt(updatedAt: string): string {
+function formatThreadUpdatedAt(updatedAt: string, t: ReturnType<typeof useI18n>["t"]): string {
   const timestamp = Date.parse(updatedAt);
   if (Number.isNaN(timestamp)) {
     return "";
   }
   const elapsed = Date.now() - timestamp;
   if (elapsed >= 0 && elapsed < HOUR_IN_MS) {
-    return `${Math.max(1, Math.floor(elapsed / MINUTE_IN_MS))} 分钟前`;
+    return t("home.workspaceSection.minutesAgo", { count: Math.max(1, Math.floor(elapsed / MINUTE_IN_MS)) });
   }
   if (elapsed >= 0 && elapsed < DAY_IN_MS) {
-    return `${Math.max(1, Math.floor(elapsed / HOUR_IN_MS))} 小时前`;
+    return t("home.workspaceSection.hoursAgo", { count: Math.max(1, Math.floor(elapsed / HOUR_IN_MS)) });
   }
   return new Date(timestamp).toLocaleDateString([], { month: "numeric", day: "numeric" });
 }
 
-function getThreadLabel(thread: ThreadSummary): string { return thread.title.trim() || "未命名会话"; }
-function canArchiveThread(thread: ThreadSummary): boolean { return thread.source !== "codexData"; }
+function getThreadLabel(thread: ThreadSummary, t: ReturnType<typeof useI18n>["t"]): string {
+  return thread.title.trim() || t("home.workspaceSection.unnamedThread");
+}
+
+function canArchiveThread(thread: ThreadSummary): boolean {
+  return thread.source !== "codexData";
+}
 
 function createThreadsByRootId(roots: ReadonlyArray<WorkspaceRoot>, codexSessions: ReadonlyArray<ThreadSummary>) {
   return new Map(roots.map((root) => [root.id, listThreadsForWorkspace(codexSessions, root.path)]));
@@ -162,15 +168,21 @@ const WorkspaceThreadItem = memo(function WorkspaceThreadItem(props: {
   readonly onSelect: (threadId: string | null) => void;
   readonly onOpenMenu: (event: MouseEvent<HTMLButtonElement>, thread: ThreadSummary) => void;
 }): JSX.Element {
+  const { t } = useI18n();
   const className = props.selected ? "workspace-thread-button workspace-thread-button-active" : "workspace-thread-button";
-  const statusLabel = props.thread.status === "active" ? "运行中" : props.thread.queuedCount > 0 ? `队列 ${props.thread.queuedCount}` : null;
+  const statusLabel = props.thread.status === "active"
+    ? t("home.workspaceSection.running")
+    : props.thread.queuedCount > 0
+      ? t("home.workspaceSection.queued", { count: props.thread.queuedCount })
+      : null;
+
   return (
     <li>
       <button type="button" className={className} onClick={() => props.onSelect(props.thread.id)} onContextMenu={(event) => props.onOpenMenu(event, props.thread)}>
         <span className="workspace-thread-title-row">
-          <span className="workspace-thread-title">{getThreadLabel(props.thread)}</span>
+          <span className="workspace-thread-title">{getThreadLabel(props.thread, t)}</span>
           {statusLabel ? <span className="workspace-thread-badge">{statusLabel}</span> : null}
-          <span className="workspace-thread-meta">{formatThreadUpdatedAt(props.thread.updatedAt)}</span>
+          <span className="workspace-thread-meta">{formatThreadUpdatedAt(props.thread.updatedAt, t)}</span>
         </span>
       </button>
     </li>
@@ -178,6 +190,8 @@ const WorkspaceThreadItem = memo(function WorkspaceThreadItem(props: {
 });
 
 function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
+  const { t } = useI18n();
+
   const handleOpenMenu = useCallback((event: MouseEvent<HTMLButtonElement | HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -201,7 +215,7 @@ function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
         ref={props.setDragActivatorRef}
         type="button"
         className="workspace-root-button"
-        aria-label={props.expanded ? `收起工作区 ${props.root.name}` : `展开工作区 ${props.root.name}`}
+        aria-label={props.expanded ? t("home.workspaceSection.collapseRootAria", { name: props.root.name }) : t("home.workspaceSection.expandRootAria", { name: props.root.name })}
         onClick={() => props.onToggleExpanded(props.root.id)}
         {...props.dragAttributes}
         {...props.dragListeners}
@@ -210,10 +224,10 @@ function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
         <span className="thread-label">{props.root.name}</span>
       </button>
       <div className="workspace-root-actions">
-        <button type="button" className="thread-item-tools workspace-root-action" aria-label={`工作区更多操作 ${props.root.name}`} title={`工作区更多操作 ${props.root.name}`} onClick={handleOpenMenu} onContextMenu={handleOpenMenu}>
+        <button type="button" className="thread-item-tools workspace-root-action" aria-label={t("home.workspaceSection.rootMoreAria", { name: props.root.name })} title={t("home.workspaceSection.rootMoreAria", { name: props.root.name })} onClick={handleOpenMenu} onContextMenu={handleOpenMenu}>
           <WorkspaceMoreIcon className="workspace-root-action-icon" />
         </button>
-        <button type="button" className="thread-item-tools workspace-root-action" aria-label={`在工作区 ${props.root.name} 中创建新会话`} title={`在工作区 ${props.root.name} 中创建新会话`} onClick={handleCreateThread} onContextMenu={handleOpenMenu}>
+        <button type="button" className="thread-item-tools workspace-root-action" aria-label={t("home.workspaceSection.rootNewThreadAria", { name: props.root.name })} title={t("home.workspaceSection.rootNewThreadAria", { name: props.root.name })} onClick={handleCreateThread} onContextMenu={handleOpenMenu}>
           <WorkspaceNewThreadIcon className="workspace-root-action-icon" />
         </button>
       </div>
@@ -230,11 +244,15 @@ function WorkspaceThreadList(props: {
   readonly onOpenMenu: (event: MouseEvent<HTMLButtonElement>, thread: ThreadSummary) => void;
   readonly onToggleShowAllThreads: (rootId: string) => void;
 }): JSX.Element {
+  const { t } = useI18n();
+
   if (props.threads.length === 0) {
-    return <ul className="workspace-thread-list"><li className="workspace-thread-empty">暂无会话</li></ul>;
+    return <ul className="workspace-thread-list"><li className="workspace-thread-empty">{t("home.workspaceSection.emptyThreads")}</li></ul>;
   }
+
   const visibleThreads = props.showAllThreads ? props.threads : props.threads.slice(0, DEFAULT_VISIBLE_THREAD_COUNT);
   const hasHiddenThreads = visibleThreads.length < props.threads.length;
+
   return (
     <>
       <ul className="workspace-thread-list">
@@ -244,7 +262,9 @@ function WorkspaceThreadList(props: {
       </ul>
       {props.threads.length > DEFAULT_VISIBLE_THREAD_COUNT ? (
         <button type="button" className="workspace-thread-toggle" onClick={() => props.onToggleShowAllThreads(props.rootId)}>
-          {hasHiddenThreads ? `展开全部 ${props.threads.length} 条` : `收起到最近 ${DEFAULT_VISIBLE_THREAD_COUNT} 条`}
+          {hasHiddenThreads
+            ? t("home.workspaceSection.expandAll", { count: props.threads.length })
+            : t("home.workspaceSection.collapseRecent", { count: DEFAULT_VISIBLE_THREAD_COUNT })}
         </button>
       ) : null}
     </>
@@ -297,6 +317,7 @@ const SortableWorkspaceRootItem = memo(function SortableWorkspaceRootItem(props:
 });
 
 export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JSX.Element {
+  const { t } = useI18n();
   const { expandedRootIds, toggleExpanded } = useExpandedRootIds(props.roots);
   const [expandedThreadRootIds, setExpandedThreadRootIds] = useState<ReadonlyArray<string>>([]);
   const { menuState, openThreadMenu, closeMenu, handleArchiveThread, handleDeleteThread } = useThreadMenuState(props);
@@ -342,14 +363,14 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
   return (
     <section className="thread-section">
       <div className="thread-section-header">
-        <div className="thread-section-title">工作区</div>
+        <div className="thread-section-title">{t("settings.environment.workspacesTitle")}</div>
         <div className="thread-header-actions">
-          <button type="button" className="thread-header-btn" onClick={props.onAddRoot} aria-label="添加工作区">
+          <button type="button" className="thread-header-btn" onClick={props.onAddRoot} aria-label={t("home.workspaceSection.addAction")}>
             <OfficialFolderPlusIcon className="thread-header-icon" />
           </button>
         </div>
       </div>
-      {props.error !== null ? <div className="thread-section-status" role="alert">加载会话失败：{props.error}</div> : null}
+      {props.error !== null ? <div className="thread-section-status" role="alert">{t("home.workspaceSection.loadFailed", { error: props.error })}</div> : null}
       <DndContext
         sensors={dnd.sensors}
         collisionDetection={closestCenter}
@@ -380,7 +401,7 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
                 />
               </div>
             ))}
-            {props.roots.length === 0 ? <li className="thread-empty">暂无工作区，点击左上角添加</li> : null}
+            {props.roots.length === 0 ? <li className="thread-empty">{t("home.workspaceSection.emptyRoots")}</li> : null}
           </ul>
         </SortableContext>
         <DragOverlay>

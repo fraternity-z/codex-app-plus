@@ -1,5 +1,6 @@
 import type { CollaborationPreset } from "../../../domain/timeline";
 import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
+import { useI18n } from "../../../i18n/useI18n";
 
 interface ComposerAttachmentMenuProps {
   readonly collaborationPreset: CollaborationPreset;
@@ -15,19 +16,21 @@ interface ComposerAttachmentMenuProps {
 }
 
 export function ComposerAttachmentMenu(props: ComposerAttachmentMenuProps): JSX.Element {
+  const { t } = useI18n();
+
   return (
-    <div className="composer-attachment-popover" role="menu" aria-label="Add content">
+    <div className="composer-attachment-popover" role="menu" aria-label={t("home.composer.openAttachmentMenu")}>
       <button type="button" className="composer-attachment-item" role="menuitem" onClick={() => void props.onAddAttachments()}>
-        <span className="composer-attachment-item-content"><AttachmentIcon className="composer-attachment-icon" /><span>Add files and photos</span></span>
+        <span className="composer-attachment-item-content"><AttachmentIcon className="composer-attachment-icon" /><span>{t("home.composer.addFilesAndPhotos")}</span></span>
       </button>
       <div className="composer-attachment-separator" />
       <div className="composer-attachment-group">
         <PlanModeRow collaborationPreset={props.collaborationPreset} onToggle={() => props.onSelectCollaborationPreset(toggleCollaborationPreset(props.collaborationPreset))} />
       </div>
       <div className="composer-attachment-group">
-        <div className="composer-attachment-group-title">Service tier</div>
-        <div className="composer-attachment-choice-grid" role="group" aria-label="Service tier">
-          <MenuChoiceButton label="Auto" selected={props.serviceTier === null} onClick={() => props.onSelectServiceTier(null)} />
+        <div className="composer-attachment-group-title">{t("home.composer.serviceTier")}</div>
+        <div className="composer-attachment-choice-grid" role="group" aria-label={t("home.composer.serviceTier")}>
+          <MenuChoiceButton label={t("home.composer.serviceTierAuto")} selected={props.serviceTier === null} onClick={() => props.onSelectServiceTier(null)} />
           <MenuChoiceButton label="Fast" selected={props.serviceTier === "fast"} onClick={() => props.onSelectServiceTier("fast")} />
           <MenuChoiceButton label="Flex" selected={props.serviceTier === "flex"} onClick={() => props.onSelectServiceTier("flex")} />
         </div>
@@ -37,7 +40,7 @@ export function ComposerAttachmentMenu(props: ComposerAttachmentMenuProps): JSX.
           <div className="composer-attachment-separator" />
           <div className="composer-attachment-row">
             <span className="composer-attachment-item-content"><AgentsIcon className="composer-attachment-icon" /><span>Multi-agent</span></span>
-            <button type="button" className={props.multiAgentEnabled ? "composer-attachment-toggle composer-attachment-toggle-on" : "composer-attachment-toggle"} role="switch" aria-label="Toggle multi-agent" aria-checked={props.multiAgentEnabled} disabled={props.multiAgentDisabled} onClick={() => void props.onToggleMultiAgent()}><span className="composer-attachment-toggle-knob" /></button>
+            <button type="button" className={props.multiAgentEnabled ? "composer-attachment-toggle composer-attachment-toggle-on" : "composer-attachment-toggle"} role="switch" aria-label={t("home.composer.toggleMultiAgent")} aria-checked={props.multiAgentEnabled} disabled={props.multiAgentDisabled} onClick={() => void props.onToggleMultiAgent()}><span className="composer-attachment-toggle-knob" /></button>
           </div>
         </>
       ) : null}
@@ -49,20 +52,21 @@ function PlanModeRow(props: {
   readonly collaborationPreset: CollaborationPreset;
   readonly onToggle: () => void;
 }): JSX.Element {
+  const { t } = useI18n();
   const enabled = props.collaborationPreset === "plan";
   const toggleClassName = enabled
     ? "composer-attachment-toggle composer-attachment-mode-toggle composer-attachment-toggle-on composer-attachment-mode-toggle-on"
     : "composer-attachment-toggle composer-attachment-mode-toggle";
 
   return (
-    <div className="composer-attachment-mode-card" role="group" aria-label="计划模式">
+    <div className="composer-attachment-mode-card" role="group" aria-label={t("home.composer.planMode")}>
       <span className="composer-attachment-mode-copy">
         <span className="composer-attachment-mode-icon-wrap" aria-hidden="true">
           <PlanModeIcon className="composer-attachment-mode-icon" />
         </span>
-        <span className="composer-attachment-mode-label">计划模式</span>
+        <span className="composer-attachment-mode-label">{t("home.composer.planMode")}</span>
       </span>
-      <button type="button" className={toggleClassName} role="switch" aria-label="计划模式" aria-checked={enabled} onClick={props.onToggle}>
+      <button type="button" className={toggleClassName} role="switch" aria-label={t("home.composer.planMode")} aria-checked={enabled} onClick={props.onToggle}>
         <span className="composer-attachment-toggle-knob" />
       </button>
     </div>

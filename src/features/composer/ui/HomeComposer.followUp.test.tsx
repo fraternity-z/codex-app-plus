@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { QueuedFollowUp } from "../../../domain/timeline";
 import { AppStoreProvider } from "../../../state/store";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import type { ComposerModelOption } from "../model/composerPreferences";
 import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import { HomeComposer } from "./HomeComposer";
@@ -78,7 +79,7 @@ function createCommandBridge(): ComposerCommandBridge {
 function createQueuedFollowUp(overrides?: Partial<QueuedFollowUp>): QueuedFollowUp {
   return {
     id: "follow-1",
-    text: "继续处理失败测试",
+    text: "Continue fixing the failing test",
     attachments: [],
     model: "gpt-5.2",
     effort: "medium",
@@ -133,6 +134,7 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
         {...overrides}
       />
     </AppStoreProvider>,
+    { wrapper: createI18nWrapper("en-US") },
   );
 
   return { onSendTurn, onInterruptTurn, onPromoteQueuedFollowUp, onRemoveQueuedFollowUp, onClearQueuedFollowUps };
@@ -149,16 +151,16 @@ describe("HomeComposer follow-up", () => {
   });
 
   it("sends the draft while responding when text is present", async () => {
-    const { onSendTurn, onInterruptTurn } = renderComposer({ inputText: "继续分析这个错误", isResponding: true });
+    const { onSendTurn, onInterruptTurn } = renderComposer({ inputText: "Continue analyzing this error", isResponding: true });
 
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
-    await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({ text: "继续分析这个错误" })));
+    await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({ text: "Continue analyzing this error" })));
     expect(onInterruptTurn).not.toHaveBeenCalled();
   });
 
   it("sends from Enter while responding when a draft exists", async () => {
-    const { onSendTurn, onInterruptTurn } = renderComposer({ inputText: "继续分析这个错误", isResponding: true });
+    const { onSendTurn, onInterruptTurn } = renderComposer({ inputText: "Continue analyzing this error", isResponding: true });
 
     fireEvent.keyDown(screen.getByRole("textbox"), { key: "Enter" });
 
@@ -179,20 +181,20 @@ describe("HomeComposer follow-up", () => {
     const { onPromoteQueuedFollowUp, onRemoveQueuedFollowUp, onClearQueuedFollowUps } = renderComposer({
       queuedFollowUps: [
         createQueuedFollowUp(),
-        createQueuedFollowUp({ id: "follow-2", text: "马上转向继续", mode: "steer" }),
+        createQueuedFollowUp({ id: "follow-2", text: "Immediately switch over and continue", mode: "steer" }),
       ],
     });
 
-    expect(screen.getByText("继续处理失败测试")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "插队" })).toHaveLength(2);
+    expect(screen.getByText("Continue fixing the failing test")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Promote" })).toHaveLength(2);
 
-    fireEvent.click(screen.getByRole("button", { name: /排队发送.*共 2 条待发送/ }));
-    expect(screen.queryByText("继续处理失败测试")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Queued sends.*2 queued/ }));
+    expect(screen.queryByText("Continue fixing the failing test")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /排队发送.*共 2 条待发送/ }));
-    fireEvent.click(screen.getAllByRole("button", { name: "插队" })[1]);
-    fireEvent.click(screen.getAllByRole("button", { name: "移除" })[0]);
-    fireEvent.click(screen.getByRole("button", { name: "清空" }));
+    fireEvent.click(screen.getByRole("button", { name: /Queued sends.*2 queued/ }));
+    fireEvent.click(screen.getAllByRole("button", { name: "Promote" })[1]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Remove" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
 
     await waitFor(() => expect(onPromoteQueuedFollowUp).toHaveBeenCalledWith("follow-2"));
     expect(onRemoveQueuedFollowUp).toHaveBeenCalledWith("follow-1");
@@ -204,12 +206,34 @@ describe("HomeComposer follow-up", () => {
       interruptPending: true,
       queuedFollowUps: [
         createQueuedFollowUp(),
-        createQueuedFollowUp({ id: "follow-2", text: "下一个" }),
+        createQueuedFollowUp({ id: "follow-2", text: "Next item" }),
       ],
     });
 
-    const insertButtons = screen.getAllByRole("button", { name: "插队" });
+    const insertButtons = screen.getAllByRole("button", { name: "Promote" });
     expect(insertButtons[0]).toBeDisabled();
     expect(insertButtons[1]).toBeEnabled();
+  });
+
+  it("shows the english attachment summary for attachment-only queued follow-ups", () => {
+    renderComposer({
+      queuedFollowUps: [
+        createQueuedFollowUp({
+          text: "",
+          attachments: [
+            {
+              id: "attachment-1",
+              kind: "image",
+              source: "localImage",
+              value: "C:/tmp/image.png",
+              name: "image.png",
+            },
+          ],
+        }),
+      ],
+    });
+
+    expect(screen.getByText("Includes 1 attachment")).toBeInTheDocument();
+    expect(screen.getByText("image.png")).toBeInTheDocument();
   });
 });

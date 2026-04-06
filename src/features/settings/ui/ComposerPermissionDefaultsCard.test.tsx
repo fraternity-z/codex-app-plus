@@ -72,7 +72,7 @@ describe("ComposerPermissionDefaultsCard", () => {
   it("shows the app-local note for permission defaults", () => {
     renderCard();
 
-    expect(screen.getByText("这是应用内默认行为，影响后续新建线程和后续发送，不会改写 ~/.codex/config.toml。")).toBeInTheDocument();
+    expect(screen.getByText("这是应用内默认行为，影响后续新建线程和后续发送，不会改写 ~/.codex-app-plus/config.toml。")).toBeInTheDocument();
   });
 
   it("renders English copy when locale is en-US", () => {

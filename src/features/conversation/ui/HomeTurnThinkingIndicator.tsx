@@ -1,4 +1,4 @@
-const THINKING_LABEL = "正在思考";
+const THINKING_LABEL = "Thinking";
 
 export function HomeTurnThinkingIndicator(): JSX.Element {
   return (

@@ -1,12 +1,13 @@
 ﻿import { useState, type ComponentProps } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ComposerModelOption } from "../../composer/model/composerPreferences";
 import type { HostBridge } from "../../../bridge/types";
 import type { CollaborationPreset, TurnPlanSnapshotEntry } from "../../../domain/timeline";
 import type { ThreadSummary, TimelineEntry } from "../../../domain/types";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import { AppStoreProvider } from "../../../state/store";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { HomeView } from "./HomeView";
 const {
@@ -45,6 +46,7 @@ mockedUseVirtualizer.mockImplementation(({ count }: { readonly count: number }) 
 
 const DEFAULT_GIT_BRANCH_PREFIX = "codex/";
 const DEFAULT_GIT_PUSH_FORCE_WITH_LEASE = false;
+const I18nWrapper = createI18nWrapper("zh-CN");
 
 const MODELS: ReadonlyArray<ComposerModelOption> = [
   {
@@ -145,6 +147,30 @@ function createTurnPlanActivity(overrides?: Partial<TurnPlanSnapshotEntry>): Tur
       { step: "Adjust spacing", status: "pending" },
     ],
     ...overrides
+  };
+}
+
+function createStorageMock(): Storage {
+  const storage = new Map<string, string>();
+  return {
+    get length() {
+      return storage.size;
+    },
+    clear() {
+      storage.clear();
+    },
+    getItem(key: string) {
+      return storage.get(key) ?? null;
+    },
+    key(index: number) {
+      return Array.from(storage.keys())[index] ?? null;
+    },
+    removeItem(key: string) {
+      storage.delete(key);
+    },
+    setItem(key: string, value: string) {
+      storage.set(key, value);
+    },
   };
 }
 
@@ -312,7 +338,9 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
   }
 
   const renderResult = render(
-    <AppStoreProvider><HomeViewHarness {...restOverrides} /></AppStoreProvider>
+    <I18nWrapper>
+      <AppStoreProvider><HomeViewHarness {...restOverrides} /></AppStoreProvider>
+    </I18nWrapper>
   );
 
   return {
@@ -321,6 +349,13 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
   };
 }
 describe("HomeView", () => {
+  beforeEach(() => {
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: createStorageMock(),
+    });
+  });
+
   it("forwards git preferences to useWorkspaceGit", () => {
     renderHomeView({
       gitBranchPrefix: "feature/",
@@ -357,7 +392,7 @@ describe("HomeView", () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
     renderHomeView({ onSendTurn });
 
-    fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "打开附件菜单" }));
     const modeToggle = await screen.findByRole("switch", { name: "计划模式" });
     fireEvent.click(modeToggle);
 
@@ -376,7 +411,7 @@ describe("HomeView", () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
     renderHomeView({ onSendTurn });
 
-    fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "打开附件菜单" }));
 
     const modeToggle = await screen.findByRole("switch", { name: "计划模式" });
     expect(modeToggle).toHaveAttribute("aria-checked", "false");
@@ -395,7 +430,7 @@ describe("HomeView", () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
     renderHomeView({ onSendTurn });
 
-    fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "打开附件菜单" }));
     fireEvent.click(await screen.findByRole("button", { name: "Fast" }));
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
@@ -415,7 +450,7 @@ describe("HomeView", () => {
   it("does not render MCP shortcuts in the attachment menu", () => {
     renderHomeView();
 
-    fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "打开附件菜单" }));
 
     expect(screen.queryByText("MCP shortcuts")).toBeNull();
     expect(screen.queryByText("No MCP tools are currently available.")).toBeNull();
@@ -600,86 +635,88 @@ describe("HomeView", () => {
     expect(screen.queryByText("正在执行命令：pnpm test")).toBeNull();
 
     rerender(
-      <AppStoreProvider><HomeView
-        appServerClient={createAppServerClient()}
-        hostBridge={createHostBridge()}
-        busy={false}
-        inputText="请分析当前工作区"
-        roots={[{ id: "root-1", name: "FPGA", path: "E:/code/FPGA" }]}
-        selectedRootId="root-1"
-        selectedRootName="FPGA"
-        selectedRootPath="E:/code/FPGA"
-        onUpdateWorkspaceLaunchScripts={vi.fn()}
-        threads={[createThread()]}
-        selectedThread={createThread()}
-        selectedThreadId="thread-1"
-        activeTurnId={null}
-        isResponding={false}
-        interruptPending={false}
-        activities={activities}
-        banners={[]}
-        account={null}
-        rateLimits={null}
-        rateLimitSummary={null}
-        queuedFollowUps={[]}
-        draftActive={false}
-        selectedConversationLoading={false}
-        collaborationPreset="default"
-        models={MODELS}
-        defaultModel="gpt-5.2"
-        defaultEffort="xhigh"
-        workspaceOpener="vscode"
-        embeddedTerminalShell="powerShell"
-        gitBranchPrefix={DEFAULT_GIT_BRANCH_PREFIX}
-        gitPushForceWithLease={DEFAULT_GIT_PUSH_FORCE_WITH_LEASE}
-        threadDetailLevel="commands"
-        followUpQueueMode="queue"
-        composerEnterBehavior="enter"
-        composerPermissionLevel="default"
-        connectionStatus="connected"
-        fatalError={null}
-        authStatus="authenticated"
-        authMode="chatgpt"
-        authBusy={false}
-        authLoginPending={false}
-        retryScheduledAt={null}
-        workspaceSwitch={{
-          switchId: 0,
-          rootId: null,
-          rootPath: null,
-          phase: "idle",
-          startedAt: null,
-          completedAt: null,
-          durationMs: null,
-          error: null,
-        }}
-        settingsMenuOpen={false}
-        onToggleSettingsMenu={vi.fn()}
-        onDismissSettingsMenu={vi.fn()}
-        onOpenSettings={vi.fn()}
-        onOpenSkills={vi.fn()}
-        onSelectWorkspaceOpener={vi.fn()}
-        onSelectComposerPermissionLevel={vi.fn()}
-        onSelectRoot={vi.fn()}
-        onSelectThread={vi.fn()}
-        onSelectCollaborationPreset={vi.fn()}
-        onInputChange={vi.fn()}
-        onCreateThread={vi.fn().mockResolvedValue(undefined)}
-        onSendTurn={vi.fn().mockResolvedValue(undefined)}
-        onPersistComposerSelection={vi.fn().mockResolvedValue(undefined)}
-        onUpdateThreadBranch={vi.fn().mockResolvedValue(undefined)}
-        onInterruptTurn={vi.fn().mockResolvedValue(undefined)}
-        onPromoteQueuedFollowUp={vi.fn().mockResolvedValue(undefined)}
-        onAddRoot={vi.fn()}
-        onRemoveRoot={vi.fn()}
-        onRetryConnection={vi.fn().mockResolvedValue(undefined)}
-        onLogin={vi.fn().mockResolvedValue(undefined)}
-        onLogout={vi.fn().mockResolvedValue(undefined)}
-        onResolveServerRequest={vi.fn().mockResolvedValue(undefined)}
-        onRemoveQueuedFollowUp={vi.fn()}
-        onClearQueuedFollowUps={vi.fn()}
-        onDismissBanner={vi.fn()}
-      /></AppStoreProvider>
+      <I18nWrapper>
+        <AppStoreProvider><HomeView
+          appServerClient={createAppServerClient()}
+          hostBridge={createHostBridge()}
+          busy={false}
+          inputText="请分析当前工作区"
+          roots={[{ id: "root-1", name: "FPGA", path: "E:/code/FPGA" }]}
+          selectedRootId="root-1"
+          selectedRootName="FPGA"
+          selectedRootPath="E:/code/FPGA"
+          onUpdateWorkspaceLaunchScripts={vi.fn()}
+          threads={[createThread()]}
+          selectedThread={createThread()}
+          selectedThreadId="thread-1"
+          activeTurnId={null}
+          isResponding={false}
+          interruptPending={false}
+          activities={activities}
+          banners={[]}
+          account={null}
+          rateLimits={null}
+          rateLimitSummary={null}
+          queuedFollowUps={[]}
+          draftActive={false}
+          selectedConversationLoading={false}
+          collaborationPreset="default"
+          models={MODELS}
+          defaultModel="gpt-5.2"
+          defaultEffort="xhigh"
+          workspaceOpener="vscode"
+          embeddedTerminalShell="powerShell"
+          gitBranchPrefix={DEFAULT_GIT_BRANCH_PREFIX}
+          gitPushForceWithLease={DEFAULT_GIT_PUSH_FORCE_WITH_LEASE}
+          threadDetailLevel="commands"
+          followUpQueueMode="queue"
+          composerEnterBehavior="enter"
+          composerPermissionLevel="default"
+          connectionStatus="connected"
+          fatalError={null}
+          authStatus="authenticated"
+          authMode="chatgpt"
+          authBusy={false}
+          authLoginPending={false}
+          retryScheduledAt={null}
+          workspaceSwitch={{
+            switchId: 0,
+            rootId: null,
+            rootPath: null,
+            phase: "idle",
+            startedAt: null,
+            completedAt: null,
+            durationMs: null,
+            error: null,
+          }}
+          settingsMenuOpen={false}
+          onToggleSettingsMenu={vi.fn()}
+          onDismissSettingsMenu={vi.fn()}
+          onOpenSettings={vi.fn()}
+          onOpenSkills={vi.fn()}
+          onSelectWorkspaceOpener={vi.fn()}
+          onSelectComposerPermissionLevel={vi.fn()}
+          onSelectRoot={vi.fn()}
+          onSelectThread={vi.fn()}
+          onSelectCollaborationPreset={vi.fn()}
+          onInputChange={vi.fn()}
+          onCreateThread={vi.fn().mockResolvedValue(undefined)}
+          onSendTurn={vi.fn().mockResolvedValue(undefined)}
+          onPersistComposerSelection={vi.fn().mockResolvedValue(undefined)}
+          onUpdateThreadBranch={vi.fn().mockResolvedValue(undefined)}
+          onInterruptTurn={vi.fn().mockResolvedValue(undefined)}
+          onPromoteQueuedFollowUp={vi.fn().mockResolvedValue(undefined)}
+          onAddRoot={vi.fn()}
+          onRemoveRoot={vi.fn()}
+          onRetryConnection={vi.fn().mockResolvedValue(undefined)}
+          onLogin={vi.fn().mockResolvedValue(undefined)}
+          onLogout={vi.fn().mockResolvedValue(undefined)}
+          onResolveServerRequest={vi.fn().mockResolvedValue(undefined)}
+          onRemoveQueuedFollowUp={vi.fn()}
+          onClearQueuedFollowUps={vi.fn()}
+          onDismissBanner={vi.fn()}
+        /></AppStoreProvider>
+      </I18nWrapper>
     );
 
     expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
@@ -781,7 +818,8 @@ describe("HomeView", () => {
     });
 
     const heading = screen.getByRole("heading", { level: 1 });
-    expect(heading.textContent).toContain("…");
+    expect(heading.textContent).not.toBe(longTitle);
+    expect(heading.textContent ?? "").toMatch(/…|\.\.\./);
     expect(heading).toHaveAttribute("title", longTitle);
   });
 

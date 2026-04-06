@@ -41,7 +41,7 @@ function authStatusLabel(
 
 function selectedLanguageLabel(
   language: ReturnType<typeof useI18n>["language"],
-  t: ReturnType<typeof useI18n>["t"]
+  t: ReturnType<typeof useI18n>["t"],
 ): string {
   const options = createLanguageOptions(t);
   return options.find((option) => option.value === language)?.label ?? options[0]!.label;
@@ -59,10 +59,10 @@ export function SettingsPopover(props: SettingsPopoverProps): JSX.Element {
     <div className="settings-popover" role="menu" aria-label={t("home.settingsPopover.menuLabel")}>
       <div className="settings-popover-status">● {authStatusLabel(props.authStatus, props.authMode, props.account, t)}</div>
       <button type="button" className="settings-popover-item" onClick={props.onOpenSettings}>
-        <span>⚙ {t("home.settingsPopover.settings.action")}</span>
+        <span>{"\u2699 "}{t("home.settingsPopover.settings.action")}</span>
       </button>
       {props.authStatus === "authenticated" ? (
-        <AccountLimitsSection appServerClient={props.appServerClient} rateLimits={props.rateLimits} />
+        <AccountLimitsSection rateLimits={props.rateLimits} />
       ) : null}
       <button
         type="button"
@@ -71,8 +71,8 @@ export function SettingsPopover(props: SettingsPopoverProps): JSX.Element {
         aria-expanded={languageMenuOpen}
         onClick={toggleLanguageMenu}
       >
-        <span>● {t("home.settingsPopover.language.action")}</span>
-        <span>{`${currentLanguageLabel} ${languageMenuOpen ? "‹" : "›"}`}</span>
+        <span>{"\u25cf "}{t("home.settingsPopover.language.action")}</span>
+        <span>{`${currentLanguageLabel} ${languageMenuOpen ? "\u2039" : "\u203a"}`}</span>
       </button>
       {languageMenuOpen ? (
         <div className="settings-popover-submenu" role="menu" aria-label={t("home.settingsPopover.language.action")}>
@@ -93,7 +93,7 @@ export function SettingsPopover(props: SettingsPopoverProps): JSX.Element {
                   setLanguageMenuOpen(false);
                 }}
               >
-                <span className="settings-popover-submenu-check">{selected ? "✓" : ""}</span>
+                <span className="settings-popover-submenu-check">{selected ? "\u2713" : ""}</span>
                 <span>{option.label}</span>
               </button>
             );
@@ -102,11 +102,11 @@ export function SettingsPopover(props: SettingsPopoverProps): JSX.Element {
       ) : null}
       {showLogin ? (
         <button type="button" className="settings-popover-item" onClick={() => void props.onLogin()} disabled={props.authBusy}>
-          <span>{props.authLoginPending ? `→ ${t("home.settingsPopover.login.pending")}` : `→ ${t("home.settingsPopover.login.action")}`}</span>
+          <span>{props.authLoginPending ? `\u2192 ${t("home.settingsPopover.login.pending")}` : `\u2192 ${t("home.settingsPopover.login.action")}`}</span>
         </button>
       ) : (
         <button type="button" className="settings-popover-item settings-popover-danger" onClick={() => void props.onLogout()} disabled={props.authBusy}>
-          <span>{`→ ${t("home.settingsPopover.logout.action")}`}</span>
+          <span>{`\u2192 ${t("home.settingsPopover.logout.action")}`}</span>
         </button>
       )}
     </div>
