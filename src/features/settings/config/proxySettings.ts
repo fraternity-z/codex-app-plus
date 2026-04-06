@@ -14,9 +14,9 @@ export const EMPTY_PROXY_SETTINGS: ProxySettings = {
 export function normalizeProxySettings(settings: ProxySettings): ProxySettings {
   return {
     enabled: settings.enabled,
-    httpProxy: settings.httpProxy.trim(),
-    httpsProxy: settings.httpsProxy.trim(),
-    noProxy: settings.noProxy.trim(),
+    httpProxy: "",
+    httpsProxy: "",
+    noProxy: "",
   };
 }
 
@@ -26,25 +26,7 @@ export function hasProxySettingsChanges(
 ): boolean {
   const normalizedSaved = normalizeProxySettings(saved);
   const normalizedDraft = normalizeProxySettings(draft);
-  return normalizedSaved.enabled !== normalizedDraft.enabled
-    || normalizedSaved.httpProxy !== normalizedDraft.httpProxy
-    || normalizedSaved.httpsProxy !== normalizedDraft.httpsProxy
-    || normalizedSaved.noProxy !== normalizedDraft.noProxy;
-}
-
-export function isProxyUrl(value: string): boolean {
-  const normalized = value.trim();
-  if (normalized.length === 0) {
-    return true;
-  }
-  if (/\s/.test(normalized)) {
-    return false;
-  }
-  const [scheme, rest] = normalized.split("://");
-  if (scheme === undefined || rest === undefined) {
-    return false;
-  }
-  return scheme.length > 0 && rest.length > 0;
+  return normalizedSaved.enabled !== normalizedDraft.enabled;
 }
 
 export function buildProxySettingsInput(

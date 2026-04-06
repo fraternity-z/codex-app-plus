@@ -13,7 +13,7 @@ const APP_DIRECTORY: &str = "CodexAppPlus";
 const STORE_FILE_NAME: &str = "proxy-settings.json";
 const STORE_VERSION: u32 = 1;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ProxySettingsStore {
     version: u32,
@@ -65,26 +65,27 @@ fn read_store(path: &Path) -> AppResult<ProxySettingsStore> {
 
     let text = fs::read_to_string(path)?;
     let store = serde_json::from_str::<ProxySettingsStore>(&text)?;
-    validate_store(&store)?;
-    Ok(store)
+    normalize_store(store)
 }
 
 fn write_store(path: &Path, store: &ProxySettingsStore) -> AppResult<()> {
-    validate_store(store)?;
+    let store = normalize_store(store.clone())?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(path, serde_json::to_vec_pretty(store)?)?;
+    fs::write(path, serde_json::to_vec_pretty(&store)?)?;
     Ok(())
 }
 
-fn validate_store(store: &ProxySettingsStore) -> AppResult<()> {
+fn normalize_store(store: ProxySettingsStore) -> AppResult<ProxySettingsStore> {
     if store.version != STORE_VERSION {
         return Err(AppError::InvalidInput("不支持的代理设置存储版本".to_string()));
     }
-    store.windows_native.normalized()?;
-    store.wsl.normalized()?;
-    Ok(())
+    Ok(ProxySettingsStore {
+        version: store.version,
+        windows_native: store.windows_native.normalized()?,
+        wsl: store.wsl.normalized()?,
+    })
 }
 
 fn select_settings_slot(
@@ -119,51 +120,18 @@ pub(crate) trait ProxySettingsNormalization {
 
 impl ProxySettingsNormalization for ProxySettings {
     fn normalized(&self) -> AppResult<ProxySettings> {
-        let normalized = ProxySettings {
+        Ok(ProxySettings {
             enabled: self.enabled,
-            http_proxy: normalize_proxy_url("httpProxy", &self.http_proxy)?,
-            https_proxy: normalize_proxy_url("httpsProxy", &self.https_proxy)?,
-            no_proxy: self.no_proxy.trim().to_string(),
-        };
-        validate_required_proxy_url(&normalized)?;
-        Ok(normalized)
+            http_proxy: String::new(),
+            https_proxy: String::new(),
+            no_proxy: String::new(),
+        })
     }
-}
-
-fn validate_required_proxy_url(settings: &ProxySettings) -> AppResult<()> {
-    if settings.enabled
-        && settings.http_proxy.is_empty()
-        && settings.https_proxy.is_empty()
-    {
-        return Err(AppError::InvalidInput(
-            "启用代理时，至少需要填写 HTTP Proxy 或 HTTPS Proxy".to_string(),
-        ));
-    }
-    Ok(())
-}
-
-fn normalize_proxy_url(field: &str, value: &str) -> AppResult<String> {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        return Ok(String::new());
-    }
-    if trimmed.chars().any(char::is_whitespace) {
-        return Err(AppError::InvalidInput(format!("{field} 不能包含空白字符")));
-    }
-    let Some((scheme, rest)) = trimmed.split_once("://") else {
-        return Err(AppError::InvalidInput(format!("{field} 必须包含 URL 协议")));
-    };
-    if scheme.is_empty() || rest.is_empty() {
-        return Err(AppError::InvalidInput(format!("{field} 不是有效的代理 URL")));
-    }
-    Ok(trimmed.to_string())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        normalize_proxy_url, read_store, select_settings_slot, write_store, ProxySettingsStore,
-    };
+    use super::{read_store, select_settings_slot, write_store, ProxySettingsStore};
     use crate::models::{AgentEnvironment, ProxySettings};
     use crate::test_support::unique_temp_dir;
     use std::fs;
@@ -198,20 +166,17 @@ mod tests {
 
         assert_eq!(
             select_settings_slot(&restored, AgentEnvironment::WindowsNative),
-            &configured_settings()
+            &ProxySettings {
+                enabled: true,
+                http_proxy: String::new(),
+                https_proxy: String::new(),
+                no_proxy: String::new(),
+            }
         );
         assert_eq!(
             select_settings_slot(&restored, AgentEnvironment::Wsl),
             &ProxySettings::default()
         );
         fs::remove_file(path).ok();
-    }
-
-    #[test]
-    fn rejects_proxy_url_without_scheme() {
-        let error = normalize_proxy_url("httpProxy", "127.0.0.1:8080")
-            .expect_err("proxy url should be invalid");
-
-        assert!(error.to_string().contains("httpProxy 必须包含 URL 协议"));
     }
 }

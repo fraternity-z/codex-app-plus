@@ -37,46 +37,43 @@ describe("ProxySettingsCard", () => {
   it("loads and renders the current environment settings", async () => {
     renderCard();
 
-    expect(await screen.findByDisplayValue("http://127.0.0.1:8080")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "使用系统代理" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText(/当前正在编辑 WSL 的 Codex 代理配置/)).toBeInTheDocument();
+    expect(screen.getByText("自定义代理暂时下线：这条路径还有点问题，后续再重新设计。")).toBeInTheDocument();
   });
 
-  it("saves normalized proxy values and shows a restart note", async () => {
+  it("saves the selected proxy mode and clears custom values", async () => {
     const writeProxySettings = vi.fn().mockResolvedValue({
       settings: {
-        enabled: true,
-        httpProxy: "http://127.0.0.1:9000",
+        enabled: false,
+        httpProxy: "",
         httpsProxy: "",
-        noProxy: "localhost",
+        noProxy: "",
       },
     });
     renderCard({ writeProxySettings });
 
-    const input = await screen.findByLabelText("HTTP Proxy");
-    fireEvent.change(input, { target: { value: " http://127.0.0.1:9000 " } });
+    fireEvent.click(await screen.findByRole("button", { name: "不使用代理" }));
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
     await waitFor(() => {
       expect(writeProxySettings).toHaveBeenCalledWith({
         agentEnvironment: "wsl",
-        enabled: true,
-        httpProxy: "http://127.0.0.1:9000",
+        enabled: false,
+        httpProxy: "",
         httpsProxy: "",
-        noProxy: "localhost",
+        noProxy: "",
       });
     });
     expect(screen.getByText("保存后，当前 app-server / Codex 连接需要手动重启才会生效。")).toBeInTheDocument();
   });
 
-  it("blocks invalid proxy URLs before saving", async () => {
-    const writeProxySettings = vi.fn();
-    renderCard({ writeProxySettings });
+  it("does not render custom proxy fields", async () => {
+    renderCard();
 
-    const input = await screen.findByLabelText("HTTP Proxy");
-    fireEvent.change(input, { target: { value: "127.0.0.1:8080" } });
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
-
-    expect(await screen.findByText("HTTP Proxy 必须是带协议的 URL，例如 http://127.0.0.1:8080")).toBeInTheDocument();
-    expect(writeProxySettings).not.toHaveBeenCalled();
+    expect(await screen.findByRole("button", { name: "使用系统代理" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("HTTP Proxy")).toBeNull();
+    expect(screen.queryByLabelText("HTTPS Proxy")).toBeNull();
+    expect(screen.queryByLabelText("NO_PROXY")).toBeNull();
   });
 });

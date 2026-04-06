@@ -23,7 +23,7 @@ pub struct CodexCli {
     pub(crate) program: String,
     pub(crate) prefix_args: Vec<String>,
     pub(crate) display_path: String,
-    pub(crate) environment: Vec<(String, String)>,
+    pub(crate) environment: Vec<(String, Option<String>)>,
 }
 
 impl CodexCli {
@@ -92,7 +92,14 @@ impl CodexCli {
         command.args(&self.prefix_args);
         command.args(args);
         for (key, value) in &self.environment {
-            command.env(key, value);
+            match value {
+                Some(value) => {
+                    command.env(key, value);
+                }
+                None => {
+                    command.env_remove(key);
+                }
+            }
         }
         configure_background_tokio_command(&mut command);
         command

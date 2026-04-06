@@ -88,15 +88,18 @@ fn build_wsl_exec_prefix(
 }
 
 fn build_wsl_exec_script(proxy_settings: &crate::models::ProxySettings) -> String {
-    let exports = proxy_environment_assignments(proxy_settings)
+    let statements = proxy_environment_assignments(proxy_settings)
         .into_iter()
-        .map(|(key, value)| format!("export {key}={};", shell_quote(value.as_str())))
+        .map(|(key, value)| match value {
+            Some(value) => format!("export {key}={};", shell_quote(value.as_str())),
+            None => format!("unset {key};"),
+        })
         .collect::<Vec<_>>()
         .join(" ");
-    if exports.is_empty() {
+    if statements.is_empty() {
         return WSL_LOGIN_EXEC_SCRIPT.to_string();
     }
-    format!("{exports} exec \"$@\"")
+    format!("{statements} exec \"$@\"")
 }
 
 fn shell_quote(value: &str) -> String {
@@ -138,6 +141,8 @@ mod tests {
 
     use super::{build_launch_spec, resolve_wsl_codex_program};
 
+    const DISABLED_PROXY_EXEC_SCRIPT: &str = "unset HTTP_PROXY; unset http_proxy; unset HTTPS_PROXY; unset https_proxy; unset NO_PROXY; unset no_proxy; exec \"$@\"";
+
     fn wsl_context() -> WslContext {
         WslContext {
             distro_name: "Ubuntu".to_string(),
@@ -172,7 +177,7 @@ mod tests {
                 "--exec",
                 "bash",
                 "-ic",
-                "exec \"$@\"",
+                DISABLED_PROXY_EXEC_SCRIPT,
                 "codex-app-plus",
                 "/usr/local/bin/codex",
             ]
@@ -206,22 +211,63 @@ mod tests {
     }
 
     #[test]
-    fn injects_proxy_exports_into_wsl_launch_script() {
+    fn clears_proxy_exports_from_wsl_launch_script_when_disabled() {
+        let spec = build_launch_spec(
+            Path::new("wsl.exe"),
+            &wsl_context(),
+            "/usr/local/bin/codex",
+            &crate::models::ProxySettings::default(),
+        )
+        .expect("launch spec");
+
+        assert_eq!(spec.prefix_args[7], DISABLED_PROXY_EXEC_SCRIPT);
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn injects_system_proxy_exports_into_wsl_launch_script() {
+        let _guard = proxy_env_lock();
+        let original_http_proxy = std::env::var_os("HTTP_PROXY");
+        let original_https_proxy = std::env::var_os("HTTPS_PROXY");
+        let original_no_proxy = std::env::var_os("NO_PROXY");
+        std::env::set_var("HTTP_PROXY", "http://127.0.0.1:8080");
+        std::env::remove_var("HTTPS_PROXY");
+        std::env::set_var("NO_PROXY", "localhost");
+
         let spec = build_launch_spec(
             Path::new("wsl.exe"),
             &wsl_context(),
             "/usr/local/bin/codex",
             &crate::models::ProxySettings {
                 enabled: true,
-                http_proxy: "http://127.0.0.1:8080".to_string(),
+                http_proxy: String::new(),
                 https_proxy: String::new(),
-                no_proxy: "localhost".to_string(),
+                no_proxy: String::new(),
             },
         )
         .expect("launch spec");
 
+        restore_env("HTTP_PROXY", original_http_proxy);
+        restore_env("HTTPS_PROXY", original_https_proxy);
+        restore_env("NO_PROXY", original_no_proxy);
+
         assert!(spec.prefix_args[7].contains("export HTTP_PROXY='http://127.0.0.1:8080';"));
         assert!(spec.prefix_args[7].contains("export no_proxy='localhost';"));
         assert!(spec.prefix_args[7].contains("exec \"$@\""));
+    }
+
+    #[cfg(not(windows))]
+    fn proxy_env_lock() -> std::sync::MutexGuard<'static, ()> {
+        static LOCK: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
+        LOCK.get_or_init(|| std::sync::Mutex::new(())).lock().unwrap()
+    }
+
+    #[cfg(not(windows))]
+    fn restore_env(key: &str, value: Option<std::ffi::OsString>) {
+        if let Some(value) = value {
+            std::env::set_var(key, value);
+        } else {
+            std::env::remove_var(key);
+        }
     }
 }
