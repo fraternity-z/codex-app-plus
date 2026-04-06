@@ -46,6 +46,7 @@ interface AppControllerRuntimeState {
   readonly connectionStatus: AppState["connectionStatus"];
   readonly pendingRequestsById: AppState["pendingRequestsById"];
   readonly selectedConversationId: AppState["selectedConversationId"];
+  readonly windowsSandboxSetup: AppState["windowsSandboxSetup"];
 }
 
 function selectAppBootstrapState(state: AppState): AppBootstrapState {
@@ -142,6 +143,7 @@ function selectAppControllerRuntimeState(state: AppState): AppControllerRuntimeS
     connectionStatus: state.connectionStatus,
     pendingRequestsById: state.pendingRequestsById,
     selectedConversationId: state.selectedConversationId,
+    windowsSandboxSetup: state.windowsSandboxSetup,
   };
 }
 
@@ -149,7 +151,8 @@ function isAppControllerRuntimeStateEqual(left: AppControllerRuntimeState, right
   return Object.is(left.configSnapshot, right.configSnapshot)
     && left.connectionStatus === right.connectionStatus
     && Object.is(left.pendingRequestsById, right.pendingRequestsById)
-    && left.selectedConversationId === right.selectedConversationId;
+    && left.selectedConversationId === right.selectedConversationId
+    && Object.is(left.windowsSandboxSetup, right.windowsSandboxSetup);
 }
 
 export function useAppBootstrapState(): AppBootstrapState {
