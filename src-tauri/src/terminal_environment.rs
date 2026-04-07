@@ -1,6 +1,7 @@
 use portable_pty::CommandBuilder;
 
 const DEFAULT_UTF8_LOCALE: &str = "en_US.UTF-8";
+const DEFAULT_TERMINAL_TYPE: &str = "xterm-256color";
 const UTF8_ENV_KEYS: [&str; 3] = ["LANG", "LC_ALL", "LC_CTYPE"];
 
 #[cfg_attr(not(any(target_os = "windows", test)), allow(dead_code))]
@@ -8,14 +9,13 @@ fn build_utf8_environment_assignments(
     enforce_utf8: bool,
     read_env: impl Fn(&str) -> Option<String>,
 ) -> Vec<(&'static str, String)> {
+    let mut assignments = vec![("TERM", DEFAULT_TERMINAL_TYPE.to_string())];
     if !enforce_utf8 {
-        return Vec::new();
+        return assignments;
     }
     let locale = resolve_utf8_locale(read_env);
-    UTF8_ENV_KEYS
-        .iter()
-        .map(|key| (*key, locale.clone()))
-        .collect()
+    assignments.extend(UTF8_ENV_KEYS.iter().map(|key| (*key, locale.clone())));
+    assignments
 }
 
 #[cfg_attr(not(any(target_os = "windows", test)), allow(dead_code))]
@@ -37,15 +37,21 @@ fn contains_utf8_token(value: &str) -> bool {
 
 #[cfg(target_os = "windows")]
 pub fn apply_utf8_environment(command: &mut CommandBuilder, enforce_utf8: bool) {
+    apply_portable_environment(command, enforce_utf8);
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn apply_utf8_environment(command: &mut CommandBuilder, enforce_utf8: bool) {
+    apply_portable_environment(command, enforce_utf8);
+}
+
+fn apply_portable_environment(command: &mut CommandBuilder, enforce_utf8: bool) {
     for (key, value) in
         build_utf8_environment_assignments(enforce_utf8, |name| std::env::var(name).ok())
     {
         command.env(key, value);
     }
 }
-
-#[cfg(not(target_os = "windows"))]
-pub fn apply_utf8_environment(_command: &mut CommandBuilder, _enforce_utf8: bool) {}
 
 #[cfg(test)]
 mod tests {
@@ -83,10 +89,10 @@ mod tests {
     }
 
     #[test]
-    fn returns_no_assignments_when_utf8_is_disabled() {
+    fn keeps_terminal_type_when_utf8_is_disabled() {
         let assignments = build_utf8_environment_assignments(false, |_| None);
 
-        assert!(assignments.is_empty());
+        assert_eq!(assignments, vec![("TERM", "xterm-256color".to_string())]);
     }
 
     #[test]
@@ -99,6 +105,7 @@ mod tests {
         assert_eq!(
             assignments,
             vec![
+                ("TERM", "xterm-256color".to_string()),
                 ("LANG", "en_GB.UTF-8".to_string()),
                 ("LC_ALL", "en_GB.UTF-8".to_string()),
                 ("LC_CTYPE", "en_GB.UTF-8".to_string()),

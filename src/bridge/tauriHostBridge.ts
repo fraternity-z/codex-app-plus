@@ -273,8 +273,8 @@ export function createTauriHostBridge(): HostBridge {
         invokeWithInput("git_delete_branch", input)
     },
     terminal: {
-      createSession: (input?: TerminalCreateInput) =>
-        invokeWithOptionalInput<TerminalCreateInput, TerminalCreateOutput>(
+      createSession: (input: TerminalCreateInput) =>
+        invokeWithInput<TerminalCreateInput, TerminalCreateOutput>(
           "terminal_create_session",
           input
         ),

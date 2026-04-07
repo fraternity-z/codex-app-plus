@@ -17,7 +17,6 @@ use crate::proxy_settings::load_proxy_settings;
 use portable_pty::{native_pty_system, Child, ChildKiller, MasterPty, PtySize};
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use tauri::AppHandle;
 use terminal_environment::apply_utf8_environment;
@@ -33,6 +32,7 @@ struct TerminalSession {
     writer: Mutex<Box<dyn Write + Send>>,
     killer: Mutex<Box<dyn ChildKiller + Send + Sync>>,
     supervisor: ProcessSupervisor,
+    shell_label: String,
 }
 impl TerminalSession {
     fn new(
@@ -40,93 +40,68 @@ impl TerminalSession {
         writer: Box<dyn Write + Send>,
         killer: Box<dyn ChildKiller + Send + Sync>,
         supervisor: ProcessSupervisor,
+        shell_label: String,
     ) -> Self {
         Self {
             master: Mutex::new(master),
             writer: Mutex::new(writer),
             killer: Mutex::new(killer),
             supervisor,
+            shell_label,
         }
     }
 }
+#[derive(Clone)]
 pub struct TerminalManager {
-    next_session_id: AtomicU64,
     sessions: SessionMap,
 }
 impl TerminalManager {
     pub fn new() -> Self {
         Self {
-            next_session_id: AtomicU64::new(1),
             sessions: Arc::new(Mutex::new(HashMap::new())),
         }
     }
-    pub fn create_session(
+    pub async fn create_session(
         &self,
         app: AppHandle,
         input: TerminalCreateInput,
     ) -> AppResult<TerminalCreateOutput> {
-        let TerminalCreateInput {
-            cwd,
-            cols,
-            rows,
-            shell: requested_shell,
-            enforce_utf8,
-        } = input;
-        let session_id = self.allocate_session_id();
-        let shell = resolve_shell_config(requested_shell)?;
-        let pty_pair = create_pty_pair(cols, rows)?;
-        let supervisor = ProcessSupervisor::new("terminal-session")?;
-        let reader = pty_pair
-            .master
-            .try_clone_reader()
-            .map_err(map_terminal_error)?;
-        let writer = pty_pair.master.take_writer().map_err(map_terminal_error)?;
-        let mut child =
-            spawn_shell_process(pty_pair.slave, &shell, cwd, enforce_utf8.unwrap_or(true))?;
-        if let Err(error) = supervisor.assign_portable_child(child.as_ref()) {
-            terminate_portable_child(&mut child);
-            return Err(error);
-        }
-        let killer = child.clone_killer();
-        let session = Arc::new(TerminalSession::new(
-            pty_pair.master,
-            writer,
-            killer,
-            supervisor,
-        ));
-        insert_session(&self.sessions, session_id.clone(), session);
-        spawn_output_thread(app.clone(), session_id.clone(), reader);
-        spawn_wait_thread(app, self.sessions.clone(), session_id.clone(), child);
-        Ok(TerminalCreateOutput {
-            session_id,
-            shell: shell.label,
-        })
+        let sessions = self.sessions.clone();
+        tokio::task::spawn_blocking(move || create_session_blocking(app, sessions, input))
+            .await
+            .map_err(map_join_error)?
     }
-    pub fn write(&self, input: TerminalWriteInput) -> AppResult<()> {
+    pub async fn write(&self, input: TerminalWriteInput) -> AppResult<()> {
         if input.data.is_empty() {
             return Ok(());
         }
         let session = get_session(&self.sessions, &input.session_id)?;
-        let mut writer = lock_mutex(&session.writer, "terminal writer")?;
-        writer.write_all(input.data.as_bytes())?;
-        writer.flush()?;
-        Ok(())
+        tokio::task::spawn_blocking(move || {
+            let mut writer = lock_mutex(&session.writer, "terminal writer")?;
+            writer.write_all(input.data.as_bytes())?;
+            writer.flush()?;
+            Ok(())
+        })
+        .await
+        .map_err(map_join_error)?
     }
-    pub fn resize(&self, input: TerminalResizeInput) -> AppResult<()> {
+    pub async fn resize(&self, input: TerminalResizeInput) -> AppResult<()> {
         let session = get_session(&self.sessions, &input.session_id)?;
         let size = to_pty_size(input.cols, input.rows);
-        let master = lock_mutex(&session.master, "terminal master")?;
-        master.resize(size).map_err(map_terminal_error)
+        tokio::task::spawn_blocking(move || {
+            let master = lock_mutex(&session.master, "terminal master")?;
+            master.resize(size).map_err(map_terminal_error)
+        })
+        .await
+        .map_err(map_join_error)?
     }
-    pub fn close(&self, input: TerminalCloseInput) -> AppResult<()> {
+    pub async fn close(&self, input: TerminalCloseInput) -> AppResult<()> {
         let Some(session) = take_session(&self.sessions, &input.session_id)? else {
             return Ok(());
         };
-        kill_session(session)
-    }
-    fn allocate_session_id(&self) -> String {
-        let value = self.next_session_id.fetch_add(1, Ordering::Relaxed);
-        format!("terminal-{value}")
+        tokio::task::spawn_blocking(move || kill_session(session))
+            .await
+            .map_err(map_join_error)?
     }
 
     pub fn shutdown_all(&self) {
@@ -141,6 +116,71 @@ impl Drop for TerminalManager {
     fn drop(&mut self) {
         self.shutdown_all();
     }
+}
+
+fn create_session_blocking(
+    app: AppHandle,
+    sessions: SessionMap,
+    input: TerminalCreateInput,
+) -> AppResult<TerminalCreateOutput> {
+    let TerminalCreateInput {
+        root_key,
+        terminal_id,
+        cwd,
+        cols,
+        rows,
+        shell: requested_shell,
+        enforce_utf8,
+    } = input;
+    let session_id = terminal_session_key(&root_key, &terminal_id)?;
+    if let Some(existing) = find_session_if_present(&sessions, &session_id)? {
+        return Ok(TerminalCreateOutput {
+            session_id,
+            shell: existing.shell_label.clone(),
+        });
+    }
+    let shell = resolve_shell_config(requested_shell)?;
+    let pty_pair = create_pty_pair(cols, rows)?;
+    let supervisor = ProcessSupervisor::new("terminal-session")?;
+    let reader = pty_pair
+        .master
+        .try_clone_reader()
+        .map_err(map_terminal_error)?;
+    let writer = pty_pair.master.take_writer().map_err(map_terminal_error)?;
+    let mut child = spawn_shell_process(pty_pair.slave, &shell, cwd, enforce_utf8.unwrap_or(true))?;
+    if let Err(error) = supervisor.assign_portable_child(child.as_ref()) {
+        terminate_portable_child(&mut child);
+        return Err(error);
+    }
+    let killer = child.clone_killer();
+    let session = Arc::new(TerminalSession::new(
+        pty_pair.master,
+        writer,
+        killer,
+        supervisor,
+        shell.label.clone(),
+    ));
+    if let Some(existing) =
+        insert_session_if_absent(&sessions, session_id.clone(), session.clone())?
+    {
+        terminate_portable_child(&mut child);
+        return Ok(TerminalCreateOutput {
+            session_id,
+            shell: existing.shell_label.clone(),
+        });
+    }
+    spawn_output_thread(
+        app.clone(),
+        sessions.clone(),
+        session_id.clone(),
+        session.clone(),
+        reader,
+    );
+    spawn_wait_thread(app, sessions, session_id.clone(), session, child);
+    Ok(TerminalCreateOutput {
+        session_id,
+        shell: shell.label,
+    })
 }
 
 fn create_pty_pair(cols: Option<u16>, rows: Option<u16>) -> AppResult<portable_pty::PtyPair> {
@@ -193,35 +233,23 @@ fn normalize_cwd(cwd: Option<String>) -> AppResult<Option<PathBuf>> {
     Ok(Some(path))
 }
 
-const OUTPUT_THROTTLE_MS: u64 = 16;
-
-fn spawn_output_thread(app: AppHandle, session_id: String, mut reader: Box<dyn Read + Send>) {
+fn spawn_output_thread(
+    app: AppHandle,
+    sessions: SessionMap,
+    session_id: String,
+    session: Arc<TerminalSession>,
+    mut reader: Box<dyn Read + Send>,
+) {
     std::thread::spawn(move || {
         let mut buffer = [0_u8; OUTPUT_BUFFER_SIZE];
         let mut decoder = Utf8ChunkDecoder::new();
-        let mut pending_output = String::new();
-        let mut last_emit = std::time::Instant::now();
-        let throttle_duration = std::time::Duration::from_millis(OUTPUT_THROTTLE_MS);
 
         loop {
             match reader.read(&mut buffer) {
                 Ok(0) => break,
                 Ok(bytes_read) => {
                     if let Some(chunk) = decoder.decode(&buffer[..bytes_read]) {
-                        pending_output.push_str(&chunk);
-                    }
-
-                    if last_emit.elapsed() >= throttle_duration
-                        || pending_output.len() >= OUTPUT_BUFFER_SIZE
-                    {
-                        if !pending_output.is_empty() {
-                            let _ = emit_terminal_output(
-                                &app,
-                                session_id.clone(),
-                                std::mem::take(&mut pending_output),
-                            );
-                            last_emit = std::time::Instant::now();
-                        }
+                        emit_if_session_current(&app, &sessions, &session_id, &session, chunk);
                     }
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
@@ -230,10 +258,7 @@ fn spawn_output_thread(app: AppHandle, session_id: String, mut reader: Box<dyn R
         }
 
         if let Some(chunk) = decoder.finish() {
-            pending_output.push_str(&chunk);
-        }
-        if !pending_output.is_empty() {
-            let _ = emit_terminal_output(&app, session_id, pending_output);
+            emit_if_session_current(&app, &sessions, &session_id, &session, chunk);
         }
     });
 }
@@ -242,16 +267,20 @@ fn spawn_wait_thread(
     app: AppHandle,
     sessions: SessionMap,
     session_id: String,
+    session: Arc<TerminalSession>,
     mut child: Box<dyn Child + Send + Sync>,
 ) {
     std::thread::spawn(move || match child.wait() {
         Ok(status) => {
-            remove_session_if_present(&sessions, &session_id);
-            let _ = emit_terminal_exit(&app, session_id, Some(status.exit_code()));
+            if remove_session_if_current(&sessions, &session_id, &session) {
+                let _ = emit_terminal_exit(&app, session_id, Some(status.exit_code()));
+            }
         }
         Err(error) => {
-            remove_session_if_present(&sessions, &session_id);
-            let _ = emit_fatal(&app, format!("terminal process wait failed: {error}"));
+            if remove_session_if_current(&sessions, &session_id, &session) {
+                let _ = emit_fatal(&app, format!("terminal process wait failed: {error}"));
+                let _ = emit_terminal_exit(&app, session_id, None);
+            }
         }
     });
 }
@@ -263,10 +292,25 @@ fn get_session(sessions: &SessionMap, session_id: &str) -> AppResult<Arc<Termina
         .ok_or_else(|| AppError::InvalidInput(format!("terminal session not found: {session_id}")))
 }
 
-fn insert_session(sessions: &SessionMap, session_id: String, session: Arc<TerminalSession>) {
-    if let Ok(mut map) = sessions.lock() {
-        map.insert(session_id, session);
+fn find_session_if_present(
+    sessions: &SessionMap,
+    session_id: &str,
+) -> AppResult<Option<Arc<TerminalSession>>> {
+    let map = lock_mutex(sessions, "terminal session map")?;
+    Ok(map.get(session_id).cloned())
+}
+
+fn insert_session_if_absent(
+    sessions: &SessionMap,
+    session_id: String,
+    session: Arc<TerminalSession>,
+) -> AppResult<Option<Arc<TerminalSession>>> {
+    let mut map = lock_mutex(sessions, "terminal session map")?;
+    if let Some(existing) = map.get(&session_id) {
+        return Ok(Some(existing.clone()));
     }
+    map.insert(session_id, session);
+    Ok(None)
 }
 
 fn take_session(
@@ -277,9 +321,44 @@ fn take_session(
     Ok(map.remove(session_id))
 }
 
-fn remove_session_if_present(sessions: &SessionMap, session_id: &str) {
-    if let Ok(mut map) = sessions.lock() {
+fn remove_session_if_current(
+    sessions: &SessionMap,
+    session_id: &str,
+    session: &Arc<TerminalSession>,
+) -> bool {
+    let Ok(mut map) = sessions.lock() else {
+        return false;
+    };
+    let should_remove = map
+        .get(session_id)
+        .is_some_and(|current| Arc::ptr_eq(current, session));
+    if should_remove {
         map.remove(session_id);
+    }
+    should_remove
+}
+
+fn is_session_current(
+    sessions: &SessionMap,
+    session_id: &str,
+    session: &Arc<TerminalSession>,
+) -> bool {
+    let Ok(map) = sessions.lock() else {
+        return false;
+    };
+    map.get(session_id)
+        .is_some_and(|current| Arc::ptr_eq(current, session))
+}
+
+fn emit_if_session_current(
+    app: &AppHandle,
+    sessions: &SessionMap,
+    session_id: &str,
+    session: &Arc<TerminalSession>,
+    chunk: String,
+) {
+    if !chunk.is_empty() && is_session_current(sessions, session_id, session) {
+        let _ = emit_terminal_output(app, session_id.to_string(), chunk);
     }
 }
 
@@ -298,6 +377,26 @@ fn lock_mutex<'a, T>(mutex: &'a Mutex<T>, name: &str) -> AppResult<MutexGuard<'a
 
 fn map_terminal_error(error: impl std::fmt::Display) -> AppError {
     AppError::Io(error.to_string())
+}
+
+fn map_join_error(error: tokio::task::JoinError) -> AppError {
+    AppError::Protocol(format!("terminal task failed: {error}"))
+}
+
+fn terminal_session_key(root_key: &str, terminal_id: &str) -> AppResult<String> {
+    let root_key = root_key.trim();
+    let terminal_id = terminal_id.trim();
+    if root_key.is_empty() {
+        return Err(AppError::InvalidInput(
+            "terminal root key is required".to_string(),
+        ));
+    }
+    if terminal_id.is_empty() {
+        return Err(AppError::InvalidInput(
+            "terminal id is required".to_string(),
+        ));
+    }
+    Ok(format!("{root_key}:{terminal_id}"))
 }
 
 fn terminate_portable_child(child: &mut Box<dyn Child + Send + Sync>) {
@@ -327,5 +426,24 @@ fn to_pty_size(cols: u16, rows: u16) -> PtySize {
         rows: rows.max(1),
         pixel_width: ZERO_PIXELS,
         pixel_height: ZERO_PIXELS,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::terminal_session_key;
+
+    #[test]
+    fn builds_session_key_from_root_and_terminal_id() {
+        assert_eq!(
+            terminal_session_key("E:/code/project", "terminal-1").unwrap(),
+            "E:/code/project:terminal-1"
+        );
+    }
+
+    #[test]
+    fn rejects_missing_session_key_parts() {
+        assert!(terminal_session_key("", "terminal-1").is_err());
+        assert!(terminal_session_key("root-1", "").is_err());
     }
 }

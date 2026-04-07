@@ -132,6 +132,8 @@ describe("useTerminalOpenAction", () => {
     });
 
     expect(createSession).toHaveBeenCalledWith({
+      rootKey: "E:/code/project",
+      terminalId: "terminal",
       cwd: "E:/code/project",
       cols: 140,
       rows: 36,
@@ -172,6 +174,8 @@ describe("useTerminalOpenAction", () => {
     });
 
     expect(createSession).toHaveBeenCalledWith({
+      rootKey: "__terminal-root__",
+      terminalId: "terminal",
       cwd: undefined,
       cols: 120,
       rows: 32,

@@ -50,7 +50,7 @@ function createHostBridge(overrides: Partial<HostBridge> = {}): HostBridge {
   return {
     terminal: {
       createSession: vi.fn().mockResolvedValue({
-        sessionId: "session-1",
+        sessionId: "root-1:terminal-1",
         shell: "PowerShell",
       }),
       write: vi.fn().mockResolvedValue(undefined),
@@ -147,6 +147,8 @@ describe("useTerminalSession", () => {
 
     await waitFor(() => {
       expect(hostBridge.terminal.createSession).toHaveBeenCalledWith({
+        rootKey: "root-1",
+        terminalId: "terminal-1",
         cwd: "E:/code/codex-app-plus",
         cols: 120,
         rows: 32,
@@ -220,7 +222,7 @@ describe("useTerminalSession", () => {
       expect(hostBridge.terminal.resize).toHaveBeenCalledWith({
         cols: 120,
         rows: 32,
-        sessionId: "session-1",
+        sessionId: "root-1:terminal-1",
       });
     });
     expect(result.current.readyKey).toBe("root-1:terminal-1");
@@ -271,8 +273,8 @@ describe("useTerminalSession", () => {
   it("does not retain a stale readyKey after switching to a different tab", async () => {
     const hostBridge = createHostBridge();
     vi.mocked(hostBridge.terminal.createSession)
-      .mockResolvedValueOnce({ sessionId: "session-1", shell: "PowerShell" })
-      .mockResolvedValueOnce({ sessionId: "session-2", shell: "PowerShell" });
+      .mockResolvedValueOnce({ sessionId: "root-1:terminal-1", shell: "PowerShell" })
+      .mockResolvedValueOnce({ sessionId: "root-1:launch", shell: "PowerShell" });
     const { result, rerender } = renderHook(
       ({ activeTerminalId }: { readonly activeTerminalId: string }) =>
         useTerminalSession({

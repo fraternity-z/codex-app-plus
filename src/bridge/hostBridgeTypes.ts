@@ -151,7 +151,7 @@ export interface HostBridge {
     deleteBranch(input: GitDeleteBranchInput): Promise<void>;
   };
   readonly terminal: {
-    createSession(input?: TerminalCreateInput): Promise<TerminalCreateOutput>;
+    createSession(input: TerminalCreateInput): Promise<TerminalCreateOutput>;
     write(input: TerminalWriteInput): Promise<void>;
     resize(input: TerminalResizeInput): Promise<void>;
     closeSession(input: TerminalCloseInput): Promise<void>;

@@ -8,34 +8,34 @@ use crate::models::{
 use crate::terminal_manager::TerminalManager;
 
 #[tauri::command]
-pub fn terminal_create_session(
+pub async fn terminal_create_session(
     app: AppHandle,
     state: State<'_, TerminalManager>,
     input: TerminalCreateInput,
 ) -> Result<TerminalCreateOutput, String> {
-    to_result(state.create_session(app, input))
+    to_result(state.create_session(app, input).await)
 }
 
 #[tauri::command]
-pub fn terminal_write(
+pub async fn terminal_write(
     state: State<'_, TerminalManager>,
     input: TerminalWriteInput,
 ) -> Result<(), String> {
-    to_result(state.write(input))
+    to_result(state.write(input).await)
 }
 
 #[tauri::command]
-pub fn terminal_resize(
+pub async fn terminal_resize(
     state: State<'_, TerminalManager>,
     input: TerminalResizeInput,
 ) -> Result<(), String> {
-    to_result(state.resize(input))
+    to_result(state.resize(input).await)
 }
 
 #[tauri::command]
-pub fn terminal_close_session(
+pub async fn terminal_close_session(
     state: State<'_, TerminalManager>,
     input: TerminalCloseInput,
 ) -> Result<(), String> {
-    to_result(state.close(input))
+    to_result(state.close(input).await)
 }

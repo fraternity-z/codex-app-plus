@@ -47,3 +47,35 @@ impl Utf8ChunkDecoder {
         Some(output)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Utf8ChunkDecoder;
+
+    #[test]
+    fn decodes_split_multibyte_sequences() {
+        let mut decoder = Utf8ChunkDecoder::new();
+        let bytes = "你".as_bytes();
+
+        assert_eq!(decoder.decode(&bytes[..1]), None);
+        assert_eq!(decoder.decode(&bytes[1..]), Some("你".to_string()));
+        assert_eq!(decoder.finish(), None);
+    }
+
+    #[test]
+    fn replaces_invalid_bytes_without_stalling() {
+        let mut decoder = Utf8ChunkDecoder::new();
+
+        assert_eq!(decoder.decode(&[0xff, b'a']), Some("�a".to_string()));
+        assert_eq!(decoder.finish(), None);
+    }
+
+    #[test]
+    fn flushes_incomplete_sequence_on_finish() {
+        let mut decoder = Utf8ChunkDecoder::new();
+        let bytes = "你".as_bytes();
+
+        assert_eq!(decoder.decode(&bytes[..1]), None);
+        assert_eq!(decoder.finish(), Some("�".to_string()));
+    }
+}

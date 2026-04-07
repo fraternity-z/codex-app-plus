@@ -22,11 +22,11 @@ interface UseTerminalEventSubscriptionsOptions {
   readonly cleanupTerminalTab: (tabKey: string) => void;
   readonly hostBridge: HostBridge;
   readonly onSessionExitRef: MutableRefObject<((rootKey: string, terminalId: string) => void) | undefined>;
-  readonly orphanOutputBySessionIdRef: MutableRefObject<Map<string, string>>;
   readonly outputBuffersRef: MutableRefObject<Map<string, string>>;
+  readonly openedSessionsRef: MutableRefObject<Set<string>>;
+  readonly pendingSessionTabKeysRef: MutableRefObject<Set<string>>;
   readonly setMessage: Dispatch<SetStateAction<string>>;
   readonly setStatus: Dispatch<SetStateAction<TerminalStatus>>;
-  readonly tabKeyBySessionIdRef: MutableRefObject<Map<string, string>>;
   readonly terminalRef: MutableRefObject<Terminal | null>;
 }
 
@@ -41,7 +41,7 @@ interface UseTerminalInstanceOptions {
   readonly renderedTabKeyRef: MutableRefObject<string | null>;
   readonly resolvedTheme: ResolvedTheme;
   readonly scheduleFit: (callback?: () => void) => void;
-  readonly sessionIdByTabKeyRef: MutableRefObject<Map<string, string>>;
+  readonly openedSessionsRef: MutableRefObject<Set<string>>;
   readonly setContainerVersion: Dispatch<SetStateAction<number>>;
   readonly terminalRef: MutableRefObject<Terminal | null>;
 }
@@ -54,11 +54,11 @@ export function useTerminalEventSubscriptions(
     cleanupTerminalTab,
     hostBridge,
     onSessionExitRef,
-    orphanOutputBySessionIdRef,
     outputBuffersRef,
+    openedSessionsRef,
+    pendingSessionTabKeysRef,
     setMessage,
     setStatus,
-    tabKeyBySessionIdRef,
     terminalRef,
   } = options;
 
@@ -68,13 +68,11 @@ export function useTerminalEventSubscriptions(
     let disposeExit: (() => void) | null = null;
 
     const handleOutput = (payload: { readonly sessionId: string; readonly data: string }) => {
-      const tabKey = tabKeyBySessionIdRef.current.get(payload.sessionId);
-      if (tabKey === undefined) {
-        const orphanBuffer = appendBuffer(
-          orphanOutputBySessionIdRef.current.get(payload.sessionId),
-          payload.data,
-        );
-        orphanOutputBySessionIdRef.current.set(payload.sessionId, orphanBuffer);
+      const tabKey = payload.sessionId;
+      if (
+        !openedSessionsRef.current.has(tabKey)
+        && !pendingSessionTabKeysRef.current.has(tabKey)
+      ) {
         return;
       }
 
@@ -89,14 +87,13 @@ export function useTerminalEventSubscriptions(
     };
 
     const handleExit = (payload: { readonly sessionId: string }) => {
-      const tabKey = tabKeyBySessionIdRef.current.get(payload.sessionId);
-      if (tabKey === undefined) {
-        orphanOutputBySessionIdRef.current.delete(payload.sessionId);
+      const tabKey = payload.sessionId;
+      if (!openedSessionsRef.current.has(tabKey)) {
+        outputBuffersRef.current.delete(tabKey);
         return;
       }
 
-      tabKeyBySessionIdRef.current.delete(payload.sessionId);
-      orphanOutputBySessionIdRef.current.delete(payload.sessionId);
+      openedSessionsRef.current.delete(tabKey);
       cleanupTerminalTab(tabKey);
       const parsedTabKey = parseTabKey(tabKey);
       onSessionExitRef.current?.(parsedTabKey.rootKey, parsedTabKey.terminalId);
@@ -132,11 +129,11 @@ export function useTerminalEventSubscriptions(
     cleanupTerminalTab,
     hostBridge,
     onSessionExitRef,
-    orphanOutputBySessionIdRef,
     outputBuffersRef,
+    openedSessionsRef,
+    pendingSessionTabKeysRef,
     setMessage,
     setStatus,
-    tabKeyBySessionIdRef,
     terminalRef,
   ]);
 }
@@ -153,7 +150,7 @@ export function useTerminalInstance(options: UseTerminalInstanceOptions): void {
     renderedTabKeyRef,
     resolvedTheme,
     scheduleFit,
-    sessionIdByTabKeyRef,
+    openedSessionsRef,
     setContainerVersion,
     terminalRef,
   } = options;
@@ -194,12 +191,11 @@ export function useTerminalInstance(options: UseTerminalInstanceOptions): void {
       if (activeTabKey === null) {
         return;
       }
-      const sessionId = sessionIdByTabKeyRef.current.get(activeTabKey);
-      if (sessionId === undefined) {
+      if (!openedSessionsRef.current.has(activeTabKey)) {
         return;
       }
-      void hostBridge.terminal.write({ data, sessionId }).catch(() => {
-        sessionIdByTabKeyRef.current.delete(activeTabKey);
+      void hostBridge.terminal.write({ data, sessionId: activeTabKey }).catch(() => {
+        openedSessionsRef.current.delete(activeTabKey);
       });
     });
   }, [
@@ -213,7 +209,7 @@ export function useTerminalInstance(options: UseTerminalInstanceOptions): void {
     renderedTabKeyRef,
     resolvedTheme,
     scheduleFit,
-    sessionIdByTabKeyRef,
+    openedSessionsRef,
     setContainerVersion,
     terminalRef,
   ]);

@@ -431,6 +431,8 @@ pub enum EmbeddedTerminalShell {
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalCreateInput {
+    pub root_key: String,
+    pub terminal_id: String,
     pub cwd: Option<String>,
     pub cols: Option<u16>,
     pub rows: Option<u16>,

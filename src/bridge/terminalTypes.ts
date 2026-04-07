@@ -1,6 +1,8 @@
 import type { EmbeddedTerminalShell } from "./sharedTypes";
 
 export interface TerminalCreateInput {
+  readonly rootKey: string;
+  readonly terminalId: string;
   readonly cwd?: string;
   readonly cols?: number;
   readonly rows?: number;

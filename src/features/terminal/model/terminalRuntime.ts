@@ -63,7 +63,10 @@ function buildTerminalCreateInput(
   enforceUtf8: boolean,
   size: { readonly cols: number; readonly rows: number },
 ) {
+  const rootKey = cwd ?? "__terminal-root__";
   return {
+    rootKey,
+    terminalId: "terminal",
     cwd: cwd ?? undefined,
     cols: size.cols,
     rows: size.rows,
