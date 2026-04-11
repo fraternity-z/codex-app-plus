@@ -17,7 +17,7 @@ import type { UseWorkspaceConversationOptions, WorkspaceConversationController }
 
 const EMPTY_REQUESTS: ReadonlyArray<import("../../../domain/serverRequests").ReceivedServerRequest> = [];
 
-export type { SendTurnOptions, UseWorkspaceConversationOptions, WorkspaceConversationController } from "./workspaceConversationTypes";
+export type { RegenerateEditedUserMessageOptions, SendTurnOptions, UseWorkspaceConversationOptions, WorkspaceConversationController } from "./workspaceConversationTypes";
 
 export function useWorkspaceConversation(options: UseWorkspaceConversationOptions): WorkspaceConversationController {
   const store = useAppStoreApi();

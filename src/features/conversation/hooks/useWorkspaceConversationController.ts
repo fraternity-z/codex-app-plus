@@ -3,6 +3,7 @@ import type { ConversationState } from "../../../domain/conversation";
 import type { CollaborationPreset } from "../../../domain/timeline";
 import type { ThreadMetadataUpdateResponse } from "../../../protocol/generated/v2/ThreadMetadataUpdateResponse";
 import type { ThreadResumeResponse } from "../../../protocol/generated/v2/ThreadResumeResponse";
+import type { ThreadRollbackResponse } from "../../../protocol/generated/v2/ThreadRollbackResponse";
 import type { ThreadStartResponse } from "../../../protocol/generated/v2/ThreadStartResponse";
 import type { TurnInterruptParams } from "../../../protocol/generated/v2/TurnInterruptParams";
 import type { TurnStartParams } from "../../../protocol/generated/v2/TurnStartParams";
@@ -14,6 +15,7 @@ import {
   createThreadPermissionOverrides,
   createTurnPermissionOverrides,
 } from "../../composer/model/composerPermission";
+import { createComposerAttachmentsFromConversationAttachments } from "../../composer/model/composerAttachments";
 import { expandCustomPromptCommand } from "../../composer/model/customPromptTemplate";
 import { resolveAgentWorkspacePath } from "../../workspace/model/workspacePath";
 import { createConversationFromThread } from "../model/conversationState";
@@ -25,7 +27,7 @@ import { useThreadResourceCleanup } from "./useThreadResourceCleanup";
 import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsListResponse";
 import type { SkillMetadata } from "../../../protocol/generated/v2/SkillMetadata";
 import { buildInterruptedTurn, createInput, createQueuedFollowUp, mergeSkillsListResponses, resolveConversationCwd, resolveRequestedCollaborationMode, toErrorMessage } from "./workspaceConversationHelpers";
-import type { CreateThreadOptions, SendTurnOptions, UseWorkspaceConversationOptions, WorkspaceConversationController } from "./workspaceConversationTypes";
+import type { CreateThreadOptions, RegenerateEditedUserMessageOptions, SendTurnOptions, UseWorkspaceConversationOptions, WorkspaceConversationController } from "./workspaceConversationTypes";
 import { createHostBridgeAppServerClient } from "../../../protocol/appServerClient";
 
 type AppDispatch = ReturnType<typeof useAppDispatch>;
@@ -46,6 +48,7 @@ type WorkspaceConversationActions = Pick<
   | "createThread"
   | "interruptActiveTurn"
   | "promoteQueuedFollowUp"
+  | "regenerateFromEditedUserMessage"
   | "removeQueuedFollowUp"
   | "selectCollaborationPreset"
   | "selectThread"
@@ -54,7 +57,7 @@ type WorkspaceConversationActions = Pick<
 >;
 
 const APP_SERVER_NOT_READY_MESSAGE = "Codex is still starting or not connected. Wait for the connection before sending.";
-const STEER_UNAVAILABLE_MESSAGE = "Steer is not enabled in the current Codex configuration, so active follow-ups are unavailable.";
+const STEER_UNAVAILABLE_MESSAGE = "当前 Codex 配置未启用 steer，无法发送活动中的后续消息。";
 const SKILL_MENTION_PATTERN = /(?:^|[\s])\$[A-Za-z0-9_-]+/;
 
 function createAppServerNotReadyError(): Error {
@@ -387,6 +390,51 @@ export function useWorkspaceConversationController({
     dispatch({ type: "input/changed", value: "" });
   }, [dispatch, ensureConversationResumed, getConversation, options.followUpQueueMode, options.selectedRootPath, selectedConversation, startNewConversation, startTurn, steerTurn]);
 
+  const regenerateFromEditedUserMessage = useCallback(async (regenerateOptions: RegenerateEditedUserMessageOptions) => {
+    if (!appServerReady) {
+      throw createAppServerNotReadyError();
+    }
+    const expandedText = expandCustomPromptCommand(regenerateOptions.text, store.getState().customPrompts);
+    const text = expandedText === null ? regenerateOptions.text : expandedText;
+    const attachments = createComposerAttachmentsFromConversationAttachments(regenerateOptions.attachments);
+    if (text.trim().length === 0 && attachments.length === 0) {
+      return;
+    }
+
+    await ensureConversationResumed(regenerateOptions.threadId);
+    const conversation = getConversation(regenerateOptions.threadId);
+    if (conversation === null) {
+      throw new Error("Cannot edit a message from an unloaded conversation.");
+    }
+    if (isConversationStreaming(conversation) || getActiveTurnId(conversation) !== null) {
+      throw new Error("Wait for the current response to finish before editing a previous message.");
+    }
+
+    const turnIndex = conversation.turns.findIndex((turn) => turn.turnId === regenerateOptions.turnId);
+    if (turnIndex < 0) {
+      throw new Error("Cannot find the turn for the selected message.");
+    }
+
+    const numTurns = conversation.turns.length - turnIndex;
+    if (numTurns < 1) {
+      return;
+    }
+
+    dispatch({ type: "followUp/cleared", conversationId: regenerateOptions.threadId });
+    const response = await appServerClient.request("thread/rollback", {
+      threadId: regenerateOptions.threadId,
+      numTurns,
+    }) as ThreadRollbackResponse;
+    dispatch({ type: "conversation/loaded", conversationId: regenerateOptions.threadId, thread: response.thread });
+    await startTurn(regenerateOptions.threadId, {
+      text,
+      attachments,
+      selection: regenerateOptions.selection,
+      permissionLevel: regenerateOptions.permissionLevel,
+      collaborationPreset: regenerateOptions.collaborationPreset,
+    }, response.thread.cwd || conversation.cwd || options.selectedRootPath);
+  }, [appServerClient, appServerReady, dispatch, ensureConversationResumed, getConversation, options.selectedRootPath, startTurn, store]);
+
   const interruptActiveTurn = useCallback(async () => {
     if (selectedConversation === null || activeTurnId === null || selectedConversation.interruptRequestedTurnId === activeTurnId) {
       return;
@@ -501,6 +549,7 @@ export function useWorkspaceConversationController({
     createThread,
     interruptActiveTurn,
     promoteQueuedFollowUp,
+    regenerateFromEditedUserMessage,
     removeQueuedFollowUp,
     selectCollaborationPreset,
     selectThread,

@@ -6,7 +6,7 @@ import { useI18n, type MessageKey } from "../../../i18n";
 import { useComposerPicker } from "../../composer/hooks/useComposerPicker";
 import type { ComposerSelection } from "../../composer/model/composerPreferences";
 import { useWorkspaceConversation } from "../../conversation/hooks/useWorkspaceConversation";
-import type { SendTurnOptions } from "../../conversation/hooks/workspaceConversationTypes";
+import type { RegenerateEditedUserMessageOptions, SendTurnOptions } from "../../conversation/hooks/workspaceConversationTypes";
 import { readUserConfigWriteTarget } from "../../settings/config/configWriteTarget";
 import {
   selectMultiAgentFeatureState,
@@ -180,6 +180,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       onCreateThreadInRoot={actions.createWorkspaceThreadInRoot}
       onArchiveThread={props.controller.archiveThread}
       onSendTurn={actions.sendWorkspaceTurn}
+      onRegenerateFromEditedUserMessage={actions.regenerateEditedUserMessage}
       onPersistComposerSelection={actions.persistComposerSelection}
       multiAgentAvailable={multiAgentState.available}
       multiAgentEnabled={multiAgentState.enabled}
@@ -216,7 +217,7 @@ function useHomeScreenActions(args: {
   readonly controller: AppController;
   readonly conversation: Pick<
     ReturnType<typeof useWorkspaceConversation>,
-    "createThread" | "sendTurn" | "selectThread"
+    "createThread" | "regenerateFromEditedUserMessage" | "sendTurn" | "selectThread"
   >;
   readonly workspace: WorkspaceRootController;
   readonly hostBridge: HostBridge;
@@ -386,6 +387,14 @@ function useHomeScreenActions(args: {
     }
   }, [args.conversation, notifyAlertError, t]);
 
+  const regenerateEditedUserMessage = useCallback(async (options: RegenerateEditedUserMessageOptions) => {
+    try {
+      await args.conversation.regenerateFromEditedUserMessage(options);
+    } catch (error) {
+      notifyAlertError("app.alerts.sendTurnFailed", error, { logMessage: "编辑消息后重新生成失败" });
+    }
+  }, [args.conversation, notifyAlertError, t]);
+
   const persistComposerSelection = useCallback(async (selection: ComposerSelection) => {
     if (selection.model === null || selection.effort === null) {
       throw new Error(t("app.composer.invalidSelection"));
@@ -422,6 +431,7 @@ function useHomeScreenActions(args: {
     deleteWorktree,
     dismissBanner,
     persistComposerSelection,
+    regenerateEditedUserMessage,
     selectRoot,
     selectWorkspaceThread,
     sendWorkspaceTurn,
@@ -436,6 +446,7 @@ function useHomeScreenActions(args: {
     deleteWorktree,
     dismissBanner,
     persistComposerSelection,
+    regenerateEditedUserMessage,
     selectRoot,
     selectWorkspaceThread,
     sendWorkspaceTurn,

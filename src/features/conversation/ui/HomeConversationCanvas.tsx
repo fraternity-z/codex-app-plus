@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { ThreadDetailLevel } from "../../settings/hooks/useAppPreferences";
 import type {
@@ -8,12 +8,15 @@ import type {
   TimelineEntry,
 } from "../../../domain/types";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
+import type { ConversationMessage } from "../../../domain/timeline";
 import type { ConnectionRetryInfo } from "../../home/model/homeConnectionRetry";
+import { useI18n } from "../../../i18n";
 import {
   flattenConversationRenderGroup,
   splitActivitiesIntoRenderGroups,
 } from "../model/localConversationGroups";
 import { HomeConnectionStatusToast } from "../../home/ui/HomeConnectionStatusToast";
+import { HomeChatMessageActions } from "./HomeChatMessage";
 import { HomeTimelineEntry } from "./HomeTimelineEntry";
 import { HomeTurnThinkingIndicator } from "./HomeTurnThinkingIndicator";
 
@@ -37,6 +40,8 @@ interface HomeConversationCanvasProps {
   readonly retryScheduledAt: number | null;
   readonly busy: boolean;
   readonly onRetryConnection: () => Promise<void>;
+  readonly canEditMessages?: boolean;
+  readonly onEditUserMessage?: (message: ConversationMessage, text: string) => Promise<void>;
 }
 
 interface RenderGroup {
@@ -95,6 +100,7 @@ function useMeasuredRenderGroups(groups: ReadonlyArray<RenderGroup>) {
 export function HomeConversationCanvas(
   props: HomeConversationCanvasProps,
 ): JSX.Element {
+  const { t } = useI18n();
   const renderGroups = useMemo(
     () => createRenderGroups(
       props.activities,
@@ -108,6 +114,37 @@ export function HomeConversationCanvas(
   const { rowVirtualizer, scrollRef, setGroupRef } = useMeasuredRenderGroups(
     renderGroups,
   );
+  const copyTimeoutRef = useRef<number | null>(null);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+
+  const handleCopyText = useCallback(async (copyId: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedMessageId(copyId);
+      if (copyTimeoutRef.current !== null) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+      copyTimeoutRef.current = window.setTimeout(() => {
+        setCopiedMessageId(null);
+      }, 1200);
+    } catch {
+      // Clipboard writes can fail in restricted browser contexts.
+    }
+  }, []);
+
+  const handleCopyMessage = useCallback((message: ConversationMessage) => (
+    handleCopyText(message.id, message.text)
+  ), [handleCopyText]);
+
+  const handleEditUserMessage = useCallback((message: ConversationMessage, text: string) => (
+    props.onEditUserMessage?.(message, text) ?? Promise.resolve()
+  ), [props.onEditUserMessage]);
+
+  useEffect(() => () => {
+    if (copyTimeoutRef.current !== null) {
+      window.clearTimeout(copyTimeoutRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -135,6 +172,10 @@ export function HomeConversationCanvas(
               if (group === undefined) {
                 return null;
               }
+              const userNodes = group.nodes.filter((node) => node.kind === "userBubble");
+              const assistantNodes = group.nodes.filter((node) => node.kind !== "userBubble");
+              const assistantCopyText = createAssistantCopyText(group.nodes);
+              const assistantCopyId = `assistant:${group.key}`;
               return (
                 <div
                   key={group.key}
@@ -144,15 +185,48 @@ export function HomeConversationCanvas(
                   style={{ transform: `translate3d(0, ${virtualRow.start}px, 0)` }}
                 >
                   <section className="home-turn-group">
-                    {group.nodes.map((node) => (
+                    {userNodes.map((node) => (
                       <HomeTimelineEntry
                         key={node.key}
                         node={node}
                         turnStatus={group.turnStatus}
                         onResolveServerRequest={props.onResolveServerRequest}
+                        copiedMessageId={copiedMessageId}
+                        canEditMessages={props.canEditMessages === true && props.onEditUserMessage !== undefined}
+                        onCopyMessage={(message) => void handleCopyMessage(message)}
+                        onEditUserMessage={handleEditUserMessage}
                       />
                     ))}
-                    {group.showThinkingIndicator ? <HomeTurnThinkingIndicator /> : null}
+                    {assistantNodes.length > 0 || group.showThinkingIndicator ? (
+                      <div className="home-turn-assistant-flow">
+                        {assistantNodes.map((node) => (
+                          <HomeTimelineEntry
+                            key={node.key}
+                            node={node}
+                            turnStatus={group.turnStatus}
+                            onResolveServerRequest={props.onResolveServerRequest}
+                            copiedMessageId={copiedMessageId}
+                            canEditMessages={false}
+                            onCopyMessage={(message) => void handleCopyMessage(message)}
+                            onEditUserMessage={handleEditUserMessage}
+                          />
+                        ))}
+                        {assistantCopyText !== null ? (
+                          <HomeChatMessageActions
+                            assistant
+                            copied={copiedMessageId === assistantCopyId}
+                            canEdit={false}
+                            labels={{
+                              copy: t("app.conversation.copyMessage"),
+                              copied: t("app.conversation.messageCopied"),
+                              edit: t("app.conversation.editMessage"),
+                            }}
+                            onCopy={() => void handleCopyText(assistantCopyId, assistantCopyText)}
+                          />
+                        ) : null}
+                        {group.showThinkingIndicator ? <HomeTurnThinkingIndicator /> : null}
+                      </div>
+                    ) : null}
                   </section>
                 </div>
               );
@@ -186,6 +260,15 @@ function createRenderGroups(
       turnStatus: group.turnId === null ? null : turnStatuses[group.turnId] ?? null,
     }))
     .filter((group) => group.nodes.length > 0 || group.showThinkingIndicator);
+}
+
+function createAssistantCopyText(nodes: ReadonlyArray<RenderGroup["nodes"][number]>): string | null {
+  const parts = nodes
+    .filter((node): node is Extract<RenderGroup["nodes"][number], { kind: "assistantMessage" }> => node.kind === "assistantMessage")
+    .map((node) => node.message.text.trim())
+    .filter((text) => text.length > 0);
+
+  return parts.length === 0 ? null : parts.join("\n\n");
 }
 
 function createScrollKey(groups: ReadonlyArray<RenderGroup>): string {

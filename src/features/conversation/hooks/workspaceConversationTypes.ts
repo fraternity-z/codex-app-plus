@@ -1,6 +1,6 @@
 import type { AgentEnvironment, HostBridge } from "../../../bridge/types";
 import type { ComposerSelection } from "../../composer/model/composerPreferences";
-import type { CollaborationModePreset, CollaborationPreset, ComposerAttachment, FollowUpMode, QueuedFollowUp, ThreadSummary, TimelineEntry } from "../../../domain/timeline";
+import type { CollaborationModePreset, CollaborationPreset, ComposerAttachment, ConversationAttachment, FollowUpMode, QueuedFollowUp, ThreadSummary, TimelineEntry } from "../../../domain/timeline";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
 import type { ComposerPermissionLevel, ComposerPermissionSettings } from "../../composer/model/composerPermission";
 import type { AppServerClient } from "../../../protocol/appServerClient";
@@ -17,6 +17,16 @@ export interface SendTurnOptions {
 
 export interface CreateThreadOptions {
   readonly workspacePath?: string | null;
+}
+
+export interface RegenerateEditedUserMessageOptions {
+  readonly threadId: string;
+  readonly turnId: string;
+  readonly text: string;
+  readonly attachments: ReadonlyArray<ConversationAttachment>;
+  readonly selection: ComposerSelection;
+  readonly permissionLevel: ComposerPermissionLevel;
+  readonly collaborationPreset: CollaborationPreset;
 }
 
 export interface WorkspaceConversationController {
@@ -37,6 +47,7 @@ export interface WorkspaceConversationController {
   selectThread: (threadId: string | null) => void;
   selectCollaborationPreset: (preset: CollaborationPreset) => void;
   sendTurn: (options: SendTurnOptions) => Promise<void>;
+  regenerateFromEditedUserMessage: (options: RegenerateEditedUserMessageOptions) => Promise<void>;
   interruptActiveTurn: () => Promise<void>;
   updateThreadBranch: (branch: string) => Promise<void>;
   promoteQueuedFollowUp: (followUpId: string) => Promise<void>;

@@ -1,7 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ThreadDetailLevel } from "../../settings/hooks/useAppPreferences";
 import type { ConversationState, ConversationTurnState } from "../../../domain/conversation";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { syncCompletedTurn } from "../model/conversationState";
 import { mapConversationToTimelineEntries } from "../model/conversationTimeline";
 import type { ThreadSummary } from "../../../domain/types";
@@ -58,6 +60,8 @@ function renderCanvas(
     readonly activeTurnId?: string | null;
     readonly turnStatuses?: Readonly<Record<string, TurnStatus>>;
     readonly threadDetailLevel?: ThreadDetailLevel;
+    readonly canEditMessages?: boolean;
+    readonly onEditUserMessage?: ComponentProps<typeof HomeConversationCanvas>["onEditUserMessage"];
   },
 ) {
   return render(
@@ -75,7 +79,10 @@ function renderCanvas(
       retryScheduledAt={null}
       busy={false}
       onRetryConnection={vi.fn().mockResolvedValue(undefined)}
+      canEditMessages={options?.canEditMessages}
+      onEditUserMessage={options?.onEditUserMessage}
     />,
+    { wrapper: createI18nWrapper("zh-CN") },
   );
 }
 
@@ -204,6 +211,13 @@ const ASSISTANT_MESSAGE: TimelineEntry = {
   status: "done",
 };
 
+const SECOND_ASSISTANT_MESSAGE: TimelineEntry = {
+  ...ASSISTANT_MESSAGE,
+  id: "assistant-2",
+  itemId: "item-assistant-2",
+  text: "补充说明。",
+};
+
 const STREAMING_ASSISTANT_MESSAGE: TimelineEntry = {
   ...ASSISTANT_MESSAGE,
   id: "assistant-streaming-1",
@@ -280,7 +294,7 @@ describe("HomeConversationCanvas", () => {
   it("renders a single bottom thinking indicator immediately after user input", () => {
     const { container } = renderCanvas([USER_MESSAGE], { activeTurnId: "turn-1" });
 
-    expect(screen.getByText(/Thinking/)).toBeInTheDocument();
+    expect(screen.getByText(/正在思考|Thinking/)).toBeInTheDocument();
     expect(container.querySelector(".home-turn-thinking-indicator")).not.toBeNull();
     expect(container.querySelector(".home-assistant-transcript-thinking")).toBeNull();
     expect(container.querySelector(".home-thinking-block")).toBeNull();
@@ -294,32 +308,37 @@ describe("HomeConversationCanvas", () => {
     expect(container.querySelector('.home-assistant-transcript-summary[data-truncate-summary="true"]')).not.toBeNull();
     expect(container.querySelector(".home-assistant-transcript-details details[open]")).toBeNull();
     expect(container.querySelector(".home-request-card")).toBeNull();
-    expect(screen.queryByText(/Thinking/)).toBeNull();
+    expect(screen.queryByText(/正在思考|Thinking/)).toBeNull();
   });
 
   it("keeps reasoning, trace, and assistant reply in visual order", () => {
     const { container } = renderCanvas([USER_MESSAGE, REASONING_ENTRY, COMMAND_ENTRY, ASSISTANT_MESSAGE]);
     const group = container.querySelector(".home-turn-group");
     const classNames = Array.from(group?.children ?? []).map((element) => (element as HTMLElement).className);
+    const assistantFlow = container.querySelector(".home-turn-assistant-flow");
+    const assistantClassNames = Array.from(assistantFlow?.children ?? []).map((element) => (element as HTMLElement).className);
 
     expect(classNames[0]).toContain("home-chat-message-user");
-    expect(classNames[1]).toContain("home-assistant-transcript-reasoning");
-    expect(classNames[2]).toContain("home-assistant-transcript-details");
-    expect(classNames[3]).toContain("home-assistant-transcript-message");
-    expect(screen.queryByText(/Thinking/)).toBeNull();
+    expect(classNames[1]).toContain("home-turn-assistant-flow");
+    expect(assistantClassNames[0]).toContain("home-assistant-transcript-reasoning");
+    expect(assistantClassNames[1]).toContain("home-assistant-transcript-details");
+    expect(assistantClassNames[2]).toContain("home-assistant-transcript-message");
+    expect(assistantClassNames[3]).toContain("home-chat-message-actions");
+    expect(screen.queryByText(/正在思考|Thinking/)).toBeNull();
   });
 
   it("keeps the thinking indicator below streaming assistant content", () => {
     const { container } = renderCanvas([USER_MESSAGE, COMMAND_ENTRY, STREAMING_ASSISTANT_MESSAGE], { activeTurnId: "turn-1" });
-    const group = container.querySelector(".home-turn-group");
     const assistantMessage = container.querySelector(".home-assistant-transcript-message");
     const assistantChildren = Array.from(assistantMessage?.children ?? []).map((element) => (element as HTMLElement).className);
-    const classNames = Array.from(group?.children ?? []).map((element) => (element as HTMLElement).className);
+    const assistantFlow = container.querySelector(".home-turn-assistant-flow");
+    const classNames = Array.from(assistantFlow?.children ?? []).map((element) => (element as HTMLElement).className);
 
     expect(screen.getByText("正在输出正文")).toBeInTheDocument();
-    expect(screen.getByText(/Thinking/)).toBeInTheDocument();
+    expect(screen.getByText(/正在思考|Thinking/)).toBeInTheDocument();
     expect(assistantChildren[0]).toContain("home-chat-markdown-inline");
     expect(assistantChildren).toHaveLength(1);
+    expect(classNames[classNames.length - 2]).toContain("home-chat-message-actions");
     expect(classNames[classNames.length - 1]).toContain("home-turn-thinking-indicator");
   });
 
@@ -327,10 +346,14 @@ describe("HomeConversationCanvas", () => {
     const { container } = renderCanvas([USER_MESSAGE, COMMAND_ENTRY], { activeTurnId: "turn-1" });
     const group = container.querySelector(".home-turn-group");
     const classNames = Array.from(group?.children ?? []).map((element) => (element as HTMLElement).className);
+    const assistantFlow = container.querySelector(".home-turn-assistant-flow");
+    const assistantClassNames = Array.from(assistantFlow?.children ?? []).map((element) => (element as HTMLElement).className);
 
     expect(classNames[0]).toContain("home-chat-message-user");
-    expect(classNames[1]).toContain("home-assistant-transcript-details");
-    expect(classNames[2]).toContain("home-turn-thinking-indicator");
+    expect(classNames[1]).toContain("home-turn-assistant-flow");
+    expect(assistantClassNames[0]).toContain("home-assistant-transcript-details");
+    expect(assistantClassNames[1]).toContain("home-turn-thinking-indicator");
+    expect(container.querySelector(".home-turn-assistant-flow > .home-chat-message-actions")).toBeNull();
   });
 
   it("keeps turn diff snapshots hidden while the turn is still running", () => {
@@ -353,7 +376,7 @@ describe("HomeConversationCanvas", () => {
     renderCanvas([USER_MESSAGE, COMMAND_ENTRY], { activeTurnId: "turn-1", threadDetailLevel: "compact" });
 
     expect(screen.queryByText("正在执行命令：pnpm test")).toBeNull();
-    expect(screen.getByText(/Thinking/)).toBeInTheDocument();
+    expect(screen.getByText(/正在思考|Thinking/)).toBeInTheDocument();
   });
 
   it("shows raw responses and debug entries in full mode", () => {
@@ -367,11 +390,14 @@ describe("HomeConversationCanvas", () => {
     const { container } = renderCanvas([USER_MESSAGE, EMPTY_REASONING_ENTRY, COMMAND_ENTRY], { activeTurnId: "turn-1" });
     const group = container.querySelector(".home-turn-group");
     const classNames = Array.from(group?.children ?? []).map((element) => (element as HTMLElement).className);
+    const assistantFlow = container.querySelector(".home-turn-assistant-flow");
+    const assistantClassNames = Array.from(assistantFlow?.children ?? []).map((element) => (element as HTMLElement).className);
 
     expect(classNames[0]).toContain("home-chat-message-user");
-    expect(classNames[1]).toContain("home-assistant-transcript-reasoning");
-    expect(classNames[2]).toContain("home-assistant-transcript-details");
-    expect(classNames[3]).toContain("home-turn-thinking-indicator");
+    expect(classNames[1]).toContain("home-turn-assistant-flow");
+    expect(assistantClassNames[0]).toContain("home-assistant-transcript-reasoning");
+    expect(assistantClassNames[1]).toContain("home-assistant-transcript-details");
+    expect(assistantClassNames[2]).toContain("home-turn-thinking-indicator");
     expect(screen.queryByText("Thinking...")).toBeNull();
     expect(screen.queryByText("Thinking…")).toBeNull();
   });
@@ -381,6 +407,59 @@ describe("HomeConversationCanvas", () => {
 
     expect(container.querySelector(".home-chat-attachments img")).not.toBeNull();
     expect(screen.queryByText(/data:image\/png;base64/i)).toBeNull();
+  });
+
+  it("copies assistant reply text from its hover action", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    renderCanvas([USER_MESSAGE, ASSISTANT_MESSAGE]);
+    const copyButtons = screen.getAllByRole("button", { name: "复制消息" });
+    fireEvent.click(copyButtons[copyButtons.length - 1]);
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("已经完成。"));
+    expect(screen.getByRole("button", { name: "消息已复制" })).toBeInTheDocument();
+  });
+
+  it("copies only assistant text once for a full turn with tool output between messages", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    renderCanvas([USER_MESSAGE, ASSISTANT_MESSAGE, COMMAND_ENTRY, SECOND_ASSISTANT_MESSAGE]);
+    const copyButtons = screen.getAllByRole("button", { name: "复制消息" });
+
+    expect(copyButtons).toHaveLength(2);
+    fireEvent.click(copyButtons[1]);
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("已经完成。\n\n补充说明。"));
+    expect(writeText.mock.calls[0]?.[0]).not.toContain("pnpm test");
+    expect(writeText.mock.calls[0]?.[0]).not.toContain("running");
+  });
+
+  it("passes edited user messages through the canvas", async () => {
+    const onEditUserMessage = vi.fn().mockResolvedValue(undefined);
+
+    renderCanvas([USER_MESSAGE], { canEditMessages: true, onEditUserMessage });
+    fireEvent.click(screen.getByRole("button", { name: "编辑消息" }));
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "改写后的请求" } });
+    fireEvent.click(screen.getByRole("button", { name: "发送" }));
+
+    await waitFor(() => expect(onEditUserMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "user-1", turnId: "turn-1" }),
+      "改写后的请求",
+    ));
+  });
+
+  it("does not expose edit actions while message editing is disabled", () => {
+    renderCanvas([USER_MESSAGE], { canEditMessages: false });
+
+    expect(screen.queryByRole("button", { name: "编辑消息" })).toBeNull();
   });
 
   it("keeps the assistant reply visible when token usage exists on the turn", () => {

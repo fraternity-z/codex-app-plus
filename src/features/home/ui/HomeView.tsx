@@ -4,7 +4,7 @@ import type {
   ComposerModelOption,
   ComposerSelection,
 } from "../../composer/model/composerPreferences";
-import type { SendTurnOptions } from "../../conversation/hooks/useWorkspaceConversation";
+import type { RegenerateEditedUserMessageOptions, SendTurnOptions } from "../../conversation/hooks/useWorkspaceConversation";
 import type { ThreadDetailLevel } from "../../settings/hooks/useAppPreferences";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import type {
@@ -120,6 +120,7 @@ export interface HomeViewProps {
   readonly onCreateThreadInRoot?: (rootId: string) => Promise<void>;
   readonly onArchiveThread?: (threadId: string) => Promise<void>;
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
+  readonly onRegenerateFromEditedUserMessage?: (options: RegenerateEditedUserMessageOptions) => Promise<void>;
   readonly onPersistComposerSelection: (selection: ComposerSelection) => Promise<void>;
   readonly multiAgentAvailable?: boolean;
   readonly multiAgentEnabled?: boolean;

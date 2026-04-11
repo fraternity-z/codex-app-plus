@@ -26,6 +26,11 @@ export const enUS = {
     },
     conversation: {
       thinking: "Thinking",
+      copyMessage: "Copy message",
+      messageCopied: "Message copied",
+      editMessage: "Edit message",
+      cancelEdit: "Cancel",
+      sendEdit: "Send",
     },
   },
   settings: {

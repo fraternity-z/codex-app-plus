@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ComposerPermissionLevel } from "../../composer/model/composerPermission";
 import type { ComposerModelOption, ComposerSelection } from "../../composer/model/composerPreferences";
 import type { ThreadDetailLevel } from "../../settings/hooks/useAppPreferences";
-import type { SendTurnOptions } from "../../conversation/hooks/useWorkspaceConversation";
+import type { RegenerateEditedUserMessageOptions, SendTurnOptions } from "../../conversation/hooks/useWorkspaceConversation";
 import { FileLinkProvider, type FileLinkActions } from "../../conversation/hooks/fileLinkContext";
 import { useFileLinkOpener } from "../../conversation/hooks/useFileLinkOpener";
 import type { AgentEnvironment, HostBridge, WorkspaceOpener } from "../../../bridge/types";
@@ -19,6 +19,7 @@ import type {
 import type {
   CollaborationPreset,
   ComposerEnterBehavior,
+  ConversationMessage,
   FollowUpMode,
   QueuedFollowUp,
 } from "../../../domain/timeline";
@@ -98,6 +99,7 @@ export interface HomeViewMainContentProps {
   readonly onSelectCollaborationPreset: (preset: CollaborationPreset) => void;
   readonly onInputChange: (text: string) => void;
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
+  readonly onRegenerateFromEditedUserMessage: (options: RegenerateEditedUserMessageOptions) => Promise<void>;
   readonly onPersistComposerSelection: (selection: ComposerSelection) => Promise<void>;
   readonly multiAgentAvailable?: boolean;
   readonly multiAgentEnabled?: boolean;
@@ -222,6 +224,7 @@ interface HomeConversationSectionProps {
   readonly conversationActive: boolean;
   readonly fatalError: string | null;
   readonly onResolveServerRequest: (resolution: ServerRequestResolution) => Promise<void>;
+  readonly onEditUserMessage: (message: ConversationMessage, text: string) => Promise<void>;
   readonly onRetryConnection: () => Promise<void>;
   readonly onSelectRoot: (rootId: string) => void;
   readonly placeholder: { readonly title: string; readonly body: string } | null;
@@ -234,6 +237,7 @@ interface HomeConversationSectionProps {
   readonly threadDetailLevel: ThreadDetailLevel;
   readonly turnStatuses?: Readonly<Record<string, TurnStatus>>;
   readonly workspaceSwitch: WorkspaceSwitchState;
+  readonly canEditMessages: boolean;
 }
 
 const HomeConversationSection = memo(function HomeConversationSection(
@@ -261,6 +265,8 @@ const HomeConversationSection = memo(function HomeConversationSection(
       threadDetailLevel={props.threadDetailLevel}
       placeholder={props.placeholder}
       onResolveServerRequest={props.onResolveServerRequest}
+      canEditMessages={props.canEditMessages}
+      onEditUserMessage={props.onEditUserMessage}
       connectionStatus={props.connectionStatus}
       connectionRetryInfo={props.connectionRetryInfo}
       fatalError={props.fatalError}
@@ -435,6 +441,32 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
     setDismissedPlanPromptId(derivedState.latestPlanPrompt?.entryId ?? null);
   }, [derivedState.latestPlanPrompt]);
 
+  const editUserMessage = useCallback((message: ConversationMessage, text: string) => {
+    if (message.turnId === null) {
+      return Promise.resolve();
+    }
+    return props.onRegenerateFromEditedUserMessage({
+      threadId: message.threadId,
+      turnId: message.turnId,
+      text,
+      attachments: message.attachments ?? [],
+      selection: {
+        model: props.defaultModel,
+        effort: props.defaultEffort,
+        serviceTier: props.defaultServiceTier ?? null,
+      },
+      permissionLevel: props.composerPermissionLevel,
+      collaborationPreset: props.collaborationPreset,
+    });
+  }, [
+    props.collaborationPreset,
+    props.composerPermissionLevel,
+    props.defaultEffort,
+    props.defaultModel,
+    props.defaultServiceTier,
+    props.onRegenerateFromEditedUserMessage,
+  ]);
+
   return (
     <FileLinkProvider value={fileLinkActions}>
     <div className="replica-main">
@@ -467,6 +499,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
         conversationActive={derivedState.conversationActive}
         fatalError={props.fatalError}
         onResolveServerRequest={props.onResolveServerRequest}
+        onEditUserMessage={editUserMessage}
         onRetryConnection={props.onRetryConnection}
         onSelectRoot={props.onSelectRoot}
         placeholder={derivedState.placeholder}
@@ -479,6 +512,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
         threadDetailLevel={props.threadDetailLevel}
         turnStatuses={props.turnStatuses}
         workspaceSwitch={props.workspaceSwitch}
+        canEditMessages={!props.isResponding}
       />
       <HomeTurnPlanDrawer
         plan={derivedState.currentTurnPlan}

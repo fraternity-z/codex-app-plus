@@ -25,6 +25,11 @@ export const zhCN = {
     },
     conversation: {
       thinking: "正在思考",
+      copyMessage: "复制消息",
+      messageCopied: "消息已复制",
+      editMessage: "编辑消息",
+      cancelEdit: "取消",
+      sendEdit: "发送",
     },
   },
   settings: {

@@ -9,6 +9,7 @@ import type { HomeViewMainContentProps } from "./HomeViewMainContent";
 import type { HomeViewProps } from "./HomeView";
 
 const NOOP_ARCHIVE_THREAD = async () => undefined;
+const NOOP_REGENERATE_EDITED_MESSAGE = async () => undefined;
 
 export interface HomeViewUiState {
   readonly canShowDiffSidebar: boolean;
@@ -146,6 +147,7 @@ export function createHomeMainContentProps(
     onRemoveQueuedFollowUp: props.onRemoveQueuedFollowUp,
     onResolveServerRequest: props.onResolveServerRequest,
     onRetryConnection: props.onRetryConnection,
+    onRegenerateFromEditedUserMessage: props.onRegenerateFromEditedUserMessage ?? NOOP_REGENERATE_EDITED_MESSAGE,
     onSelectCollaborationPreset: props.onSelectCollaborationPreset,
     onSelectComposerPermissionLevel: props.onSelectComposerPermissionLevel,
     onSelectRoot: props.onSelectRoot,

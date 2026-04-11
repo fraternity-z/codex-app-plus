@@ -53,6 +53,10 @@ function createTurn(status: "inProgress" | "completed" = "inProgress") {
   return { id: "turn-1", items: [], status, error: null };
 }
 
+function createTurnWithId(id: string, status: "inProgress" | "completed" = "completed") {
+  return { ...createTurn(status), id };
+}
+
 function createThreadStartResponse(threadOverrides: Record<string, unknown> = {}) {
   return {
     requestId: "request-1",
@@ -482,6 +486,91 @@ describe("useWorkspaceConversation", () => {
     await expect(
       result.current.conversation.sendTurn(createSendOptions("/prompts:review-branch USER=Alice")),
     ).rejects.toThrow("缺少必填参数");
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("rolls back from an edited user message and starts a replacement turn", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: Record<string, unknown> }) => {
+      if (input.method === "thread/rollback") {
+        return { requestId: "request-rollback", result: { thread: createThread({ turns: [createTurnWithId("turn-1")] }) } };
+      }
+      if (input.method === "turn/start") {
+        return { requestId: "request-start", result: { turn: createTurnWithId("turn-new", "inProgress") } };
+      }
+      throw new Error(`unexpected method: ${input.method}`);
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({
+        type: "conversation/upserted",
+        conversation: createConversationFromThread(createThread({
+          turns: [
+            createTurnWithId("turn-1"),
+            createTurnWithId("turn-2"),
+            createTurnWithId("turn-3"),
+          ],
+        }), { resumeState: "resumed" }),
+      });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.regenerateFromEditedUserMessage({
+        threadId: "thread-1",
+        turnId: "turn-2",
+        text: "edited request",
+        attachments: [{ kind: "file", source: "mention", name: "notes.md", value: "E:/code/FPGA/notes.md" }],
+        selection: { model: "gpt-5.2", effort: "medium", serviceTier: null },
+        permissionLevel: "default",
+        collaborationPreset: "default",
+      });
+    });
+
+    expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      method: "thread/rollback",
+      params: { threadId: "thread-1", numTurns: 2 },
+    }));
+    expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      method: "turn/start",
+      params: expect.objectContaining({
+        threadId: "thread-1",
+        input: [
+          { type: "text", text: "edited request", text_elements: [] },
+          { type: "mention", name: "notes.md", path: "E:/code/FPGA/notes.md" },
+        ],
+      }),
+    }));
+  });
+
+  it("does not rollback an edited message while the conversation is streaming", async () => {
+    const request = vi.fn(async (input: { readonly method: string }) => {
+      throw new Error(`unexpected method: ${input.method}`);
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({
+        type: "conversation/upserted",
+        conversation: createConversationFromThread(createThread({
+          status: { type: "active" as const, activeFlags: [] },
+          turns: [createTurnWithId("turn-1", "inProgress")],
+        }), { resumeState: "resumed" }),
+      });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await expect(result.current.conversation.regenerateFromEditedUserMessage({
+      threadId: "thread-1",
+      turnId: "turn-1",
+      text: "edited request",
+      attachments: [],
+      selection: { model: "gpt-5.2", effort: "medium", serviceTier: null },
+      permissionLevel: "default",
+      collaborationPreset: "default",
+    })).rejects.toThrow("current response");
     expect(request).not.toHaveBeenCalled();
   });
 

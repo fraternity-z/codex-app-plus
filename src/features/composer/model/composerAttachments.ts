@@ -115,6 +115,30 @@ export function createComposerAttachmentsFromPaths(paths: ReadonlyArray<string>)
   return paths.map(createComposerAttachmentFromPath);
 }
 
+export function createComposerAttachmentsFromConversationAttachments(
+  attachments: ReadonlyArray<ConversationAttachment>,
+): ReadonlyArray<ComposerAttachment> {
+  return attachments.map((attachment) => {
+    if (attachment.kind === "image") {
+      return {
+        id: createComposerAttachmentId(),
+        kind: "image",
+        source: attachment.source === "localPath" ? "localImage" : "dataUrl",
+        value: attachment.value,
+        name: getAttachmentLabel(attachment),
+      };
+    }
+
+    return {
+      id: createComposerAttachmentId(),
+      kind: "file",
+      source: "mention",
+      value: attachment.value,
+      name: attachment.name,
+    };
+  });
+}
+
 export function partitionComposerPaths(paths: ReadonlyArray<string>): ComposerPathPartition {
   const imagePaths: Array<string> = [];
   const filePaths: Array<string> = [];
