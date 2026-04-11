@@ -1,7 +1,11 @@
 .composer-area {
   --composer-focus-border: #cdbcfb;
-  --composer-focus-ring: rgba(205, 188, 251, 0.2);
-  --composer-focus-depth: rgba(181, 157, 239, 0.16);
+  --composer-card-shadow:
+    0 6px 12px -8px rgba(15, 23, 42, 0.16),
+    0 2px 4px -3px rgba(15, 23, 42, 0.08);
+  --composer-focus-shadow:
+    0 8px 18px -10px rgba(15, 23, 42, 0.22),
+    0 3px 8px -5px rgba(15, 23, 42, 0.12);
   --composer-button-bg: #ffffff;
   --composer-button-bg-hover: #faf7ff;
   --composer-button-border: rgba(203, 213, 225, 0.92);
@@ -14,8 +18,12 @@
 
 html[data-theme="dark"] .composer-area {
   --composer-focus-border: #b89fff;
-  --composer-focus-ring: rgba(184, 159, 255, 0.22);
-  --composer-focus-depth: rgba(119, 90, 186, 0.26);
+  --composer-card-shadow:
+    0 14px 28px -24px rgba(0, 0, 0, 0.72),
+    0 4px 10px -10px rgba(0, 0, 0, 0.42);
+  --composer-focus-shadow:
+    0 18px 36px -26px rgba(0, 0, 0, 0.84),
+    0 6px 16px -12px rgba(0, 0, 0, 0.54);
   --composer-button-bg: #ffffff;
   --composer-button-bg-hover: #f8f3ff;
   --composer-button-border: rgba(255, 255, 255, 0.08);
@@ -124,6 +132,14 @@ html[data-theme="dark"] .composer-area {
   background: var(--surface-hover);
 }
 
+.composer-mini-btn,
+.composer-select-trigger,
+.composer-mini-btn-active,
+.composer-select-trigger-active {
+  border-color: transparent;
+  background: var(--surface-panel);
+}
+
 .plan-request-notes {
   background: var(--surface-panel);
 }
@@ -141,14 +157,12 @@ html[data-theme="dark"] .composer-area {
 
 .composer-card {
   background: var(--surface-panel);
+  box-shadow: var(--composer-card-shadow);
 }
 
 .composer-card:focus-within {
-  border-color: var(--composer-focus-border);
-  box-shadow:
-    0 0 0 2px var(--composer-focus-ring),
-    0 10px 24px -20px var(--composer-focus-depth),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border-color: var(--border-light);
+  box-shadow: var(--composer-focus-shadow);
 }
 
 .composer-reload-overlay {
