@@ -57,6 +57,17 @@ function createCommandNode(command = LONG_COMMAND): Extract<AssistantNode, { kin
   return createTraceNode(item);
 }
 
+function createCommandNodeWithStatus(
+  command: string,
+  status: CommandExecutionEntry["status"],
+): Extract<AssistantNode, { kind: "traceItem" }> {
+  const node = createCommandNode(command);
+  if (node.item.kind !== "commandExecution") {
+    throw new Error("Expected commandExecution node");
+  }
+  return { ...node, item: { ...node.item, status } };
+}
+
 function createMcpToolNode(): Extract<AssistantNode, { kind: "traceItem" }> {
   const item: McpToolCallEntry = {
     id: "mcp-1",
@@ -225,6 +236,32 @@ describe("HomeAssistantTranscriptEntry", () => {
     }
 
     expect(details?.open).toBe(true);
+  });
+
+  it("highlights read command file names in the summary", () => {
+    const { container } = render(
+      <HomeAssistantTranscriptEntry node={createCommandNode("Get-Content src/i18n/messages/schema.ts")} />,
+      { wrapper: createI18nWrapper("zh-CN") },
+    );
+
+    const fileName = screen.getByText("schema.ts", { selector: ".home-assistant-transcript-file-name" });
+    const summaryText = container.querySelector(".home-assistant-transcript-summary-text");
+
+    expect(fileName).toHaveClass("home-assistant-transcript-file-name");
+    expect(summaryText?.textContent).toBe("已读取文件 schema.ts");
+    expect(summaryText?.textContent).not.toContain("src/i18n/messages/schema.ts");
+  });
+
+  it("uses concise completed copy for searches inside a path", () => {
+    const { container } = render(
+      <HomeAssistantTranscriptEntry node={createCommandNodeWithStatus("rg -n \"ConversationPane|ControlBar\" src", "completed")} />,
+      { wrapper: createI18nWrapper("zh-CN") },
+    );
+
+    const summaryText = container.querySelector(".home-assistant-transcript-summary-text");
+
+    expect(container.querySelector(".home-assistant-transcript-file-name")).toBeNull();
+    expect(summaryText?.textContent).toBe("在 src 中搜寻完毕");
   });
 
   it("marks MCP, dynamic, and collab tool summaries for collapsed truncation", () => {

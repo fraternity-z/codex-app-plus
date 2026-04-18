@@ -3,6 +3,7 @@ import type { FileUpdateChange } from "../../../protocol/generated/v2/FileUpdate
 import type { MessageKey } from "../../../i18n/messages/schema";
 import type { TranslationParams } from "../../../i18n/types";
 import type { AuxiliaryBlock, ConversationRenderNode, TraceEntry } from "./localConversationGroups";
+import { classifyCommand, type CommandIntent } from "./commandIntent";
 import { createTurnPlanDetailLines, createTurnPlanModel } from "./homeTurnPlanModel";
 import {
   createDetailPanel,
@@ -18,6 +19,7 @@ import {
 import { formatFileChangeSummary, getFileChangeDisplayName } from "./fileChangeSummary";
 
 type TranslateFn = (key: MessageKey, params?: TranslationParams) => string;
+type CommandExecutionStatus = Extract<TraceEntry, { kind: "commandExecution" }>["status"];
 
 interface MessageEntryModel {
   readonly key: string;
@@ -43,6 +45,13 @@ interface DetailsEntryModel {
 }
 
 export type AssistantTranscriptEntryModel = MessageEntryModel | LineEntryModel | DetailsEntryModel;
+
+export interface CommandSummaryParts {
+  readonly text: string;
+  readonly prefix: string;
+  readonly fileName: string | null;
+  readonly suffix: string;
+}
 
 interface DetailsModelOptions {
   readonly key: string;
@@ -360,10 +369,113 @@ function createDetailBlockPanel(options: DetailBlockOptions): AssistantTranscrip
 }
 
 function createCommandSummary(command: string, status: string, t: TranslateFn): string {
+  const parts = createCommandSummaryParts(command, status as CommandExecutionStatus, t);
+  if (parts !== null) return parts.text;
   if (status === "completed") return t("home.conversation.transcript.commandCompleted", { command });
   if (status === "failed") return t("home.conversation.transcript.commandFailed", { command });
   if (status === "declined") return t("home.conversation.transcript.commandDeclined", { command });
   return t("home.conversation.transcript.commandRunning", { command });
+}
+
+export function createCommandSummaryParts(
+  command: string,
+  status: CommandExecutionStatus,
+  t: TranslateFn,
+): CommandSummaryParts | null {
+  const intent = classifyCommand(command);
+  if (intent === null) return null;
+  if (intent.kind === "readFile") {
+    return createReadCommandSummaryParts([intent.path], status, t);
+  }
+  if (intent.kind === "readFiles") {
+    return createReadCommandSummaryParts(intent.paths, status, t);
+  }
+  if (intent.kind === "searchContent" && intent.path !== null) {
+    return createPlainCommandSummaryParts(renderSearchContentInPathSummary(intent.path, status, t));
+  }
+  const action = renderCommandIntent(intent, t);
+  if (action === null) return null;
+  return createPlainCommandSummaryParts(renderCommandActionSummary(action, status, t));
+}
+
+function renderCommandIntent(intent: CommandIntent, t: TranslateFn): string | null {
+  if (intent.kind === "readFile") {
+    return t("home.conversation.transcript.commandIntent.readFile", { path: intent.path });
+  }
+  if (intent.kind === "readFiles") {
+    return t("home.conversation.transcript.commandIntent.readFiles", { paths: formatIntentPathList(intent.paths) });
+  }
+  if (intent.kind === "editFile") {
+    return intent.path === null
+      ? t("home.conversation.transcript.commandIntent.editFileUnspecified")
+      : t("home.conversation.transcript.commandIntent.editFile", { path: intent.path });
+  }
+  if (intent.kind === "listDir") {
+    return intent.path === null
+      ? t("home.conversation.transcript.commandIntent.listRoot")
+      : t("home.conversation.transcript.commandIntent.listPath", { path: intent.path });
+  }
+  if (intent.kind === "searchContent") {
+    return intent.path === null
+      ? t("home.conversation.transcript.commandIntent.searchContent", { pattern: intent.pattern })
+      : t("home.conversation.transcript.commandIntent.searchContentInPath", { pattern: intent.pattern, path: intent.path });
+  }
+  if (intent.path === null && intent.pattern === null) {
+    return t("home.conversation.transcript.commandIntent.searchFiles");
+  }
+  if (intent.path !== null && intent.pattern !== null) {
+    return t("home.conversation.transcript.commandIntent.searchFilesInPathByPattern", { path: intent.path, pattern: intent.pattern });
+  }
+  if (intent.pattern !== null) {
+    return t("home.conversation.transcript.commandIntent.searchFilesByPattern", { pattern: intent.pattern });
+  }
+  return t("home.conversation.transcript.commandIntent.searchFilesInPath", { path: intent.path ?? "" });
+}
+
+function createReadCommandSummaryParts(
+  paths: readonly string[],
+  status: CommandExecutionStatus,
+  t: TranslateFn,
+): CommandSummaryParts {
+  const fileName = getFileChangeDisplayName(paths[0] ?? "");
+  const prefix = readCommandPrefix(status, t);
+  const suffix = paths.length > 1
+    ? t("home.conversation.transcript.commandIntentSummary.read.moreFilesSuffix", { count: paths.length })
+    : "";
+  return { text: `${prefix}${fileName}${suffix}`, prefix, fileName, suffix };
+}
+
+function readCommandPrefix(status: CommandExecutionStatus, t: TranslateFn): string {
+  if (status === "completed") return t("home.conversation.transcript.commandIntentSummary.read.completedPrefix");
+  if (status === "failed") return t("home.conversation.transcript.commandIntentSummary.read.failedPrefix");
+  if (status === "declined") return t("home.conversation.transcript.commandIntentSummary.read.declinedPrefix");
+  return t("home.conversation.transcript.commandIntentSummary.read.runningPrefix");
+}
+
+function renderSearchContentInPathSummary(path: string, status: CommandExecutionStatus, t: TranslateFn): string {
+  if (status === "completed") return t("home.conversation.transcript.commandIntentSummary.searchContentInPath.completed", { path });
+  if (status === "failed") return t("home.conversation.transcript.commandIntentSummary.searchContentInPath.failed", { path });
+  if (status === "declined") return t("home.conversation.transcript.commandIntentSummary.searchContentInPath.declined", { path });
+  return t("home.conversation.transcript.commandIntentSummary.searchContentInPath.running", { path });
+}
+
+function renderCommandActionSummary(action: string, status: CommandExecutionStatus, t: TranslateFn): string {
+  if (status === "completed") return t("home.conversation.transcript.commandIntentCompleted", { action });
+  if (status === "failed") return t("home.conversation.transcript.commandIntentFailed", { action });
+  if (status === "declined") return t("home.conversation.transcript.commandIntentDeclined", { action });
+  return t("home.conversation.transcript.commandIntentRunning", { action });
+}
+
+function createPlainCommandSummaryParts(text: string): CommandSummaryParts {
+  return { text, prefix: text, fileName: null, suffix: "" };
+}
+
+function formatIntentPathList(paths: readonly string[]): string {
+  try {
+    return new Intl.ListFormat(undefined, { style: "long", type: "conjunction" }).format([...paths]);
+  } catch {
+    return paths.join(", ");
+  }
 }
 
 function formatCommandFooterStatus(status: string, t: TranslateFn): string {

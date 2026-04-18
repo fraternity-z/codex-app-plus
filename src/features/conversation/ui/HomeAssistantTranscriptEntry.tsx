@@ -1,6 +1,6 @@
 import { ConversationMessageContent } from "./ConversationMessageContent";
 import type { ConversationRenderNode } from "../model/localConversationGroups";
-import { createAssistantTranscriptEntryModel } from "../model/assistantTranscript";
+import { createAssistantTranscriptEntryModel, createCommandSummaryParts } from "../model/assistantTranscript";
 import { createDetailPanel } from "../model/assistantTranscriptDetailModel";
 import { createFileChangeSummaryParts } from "../model/fileChangeSummary";
 import { HomeAssistantTranscriptDetailBlock } from "./HomeAssistantTranscriptDetailBlock";
@@ -43,7 +43,7 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
   const model = createAssistantTranscriptEntryModel(props.node, t);
   const truncateSummaryWhenCollapsed = model.kind === "details" && model.truncateSummaryWhenCollapsed === true;
   const traceEntry = props.node.kind === "traceItem";
-  const summaryContent = model.kind === "message" ? null : createSummaryContent(props.node, model.summary);
+  const summaryContent = model.kind === "message" ? null : createSummaryContent(props.node, model.summary, t);
 
   if (model.kind === "message" && model.message) {
     if (model.message.text.trim().length === 0) {
@@ -109,13 +109,29 @@ function TranscriptMarkdown(props: { readonly className: string; readonly text: 
   return <MarkdownRenderer className={props.className} markdown={props.text} variant={props.variant} />;
 }
 
-function createSummaryContent(node: AssistantNode, summary: string): JSX.Element | string {
-  if (node.kind !== "traceItem" || node.item.kind !== "fileChange") {
+function createSummaryContent(node: AssistantNode, summary: string, t: ReturnType<typeof useI18n>["t"]): JSX.Element | string {
+  if (node.kind !== "traceItem") {
     return summary;
   }
-  const parts = createFileChangeSummaryParts(node.item.status, node.item.changes);
-  if (parts.fileName === null) {
-    return parts.text;
+  if (node.item.kind === "fileChange") {
+    const parts = createFileChangeSummaryParts(node.item.status, node.item.changes);
+    if (parts.fileName === null) {
+      return parts.text;
+    }
+    return (
+      <>
+        {parts.prefix}
+        <span className="home-assistant-transcript-file-name">{parts.fileName}</span>
+        {parts.suffix}
+      </>
+    );
+  }
+  if (node.item.kind !== "commandExecution") {
+    return summary;
+  }
+  const parts = createCommandSummaryParts(node.item.command, node.item.status, t);
+  if (parts === null || parts.fileName === null) {
+    return summary;
   }
   return (
     <>
