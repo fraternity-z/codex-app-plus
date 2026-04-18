@@ -1,6 +1,7 @@
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { memo, useMemo } from "react";
 import type { GitWorkspaceDiffOutput, GitWorkspaceDiffSection } from "../../../bridge/types";
+import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
 import { parseUnifiedDiffCached } from "../model/diffPreviewModel";
 import { GitDiffCodeView } from "./GitDiffCodeView";
 import {
@@ -20,6 +21,7 @@ interface WorkspaceDiffViewerCardProps {
   readonly onToggleExpanded: (key: string) => void;
   readonly onUnstagePaths: (paths: ReadonlyArray<string>) => Promise<void>;
   readonly showSectionLabel: boolean;
+  readonly viewStyle?: DiffViewStyle;
 }
 
 const SECTION_LABELS: Readonly<Record<GitWorkspaceDiffSection, string>> = Object.freeze({
@@ -135,6 +137,7 @@ function FileBody(props: {
   readonly diff: string;
   readonly expanded: boolean;
   readonly path: string;
+  readonly viewStyle: DiffViewStyle;
 }): JSX.Element | null {
   const parsedDiff = useMemo(() => {
     if (!props.expanded) {
@@ -148,7 +151,7 @@ function FileBody(props: {
   }
   return (
     <div className="workspace-diff-file-body">
-      <GitDiffCodeView parsed={parsedDiff} path={props.path} />
+      <GitDiffCodeView parsed={parsedDiff} path={props.path} viewStyle={props.viewStyle} />
     </div>
   );
 }
@@ -197,7 +200,12 @@ export const WorkspaceDiffViewerCard = memo(function WorkspaceDiffViewerCard(
         <DiffSummary item={props.item} />
         <FileActions {...props} />
       </header>
-      <FileBody diff={props.item.diff} expanded={props.expanded} path={props.item.path} />
+      <FileBody
+        diff={props.item.diff}
+        expanded={props.expanded}
+        path={props.item.path}
+        viewStyle={props.viewStyle ?? "unified"}
+      />
     </article>
   );
 });

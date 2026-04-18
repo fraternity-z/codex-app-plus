@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import type { HostBridge } from "../../../bridge/types";
+import { useCallback, useEffect, useState } from "react";
+import type { GitWorkspaceDiffOutput, HostBridge } from "../../../bridge/types";
+import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
 import { OfficialCloseIcon } from "../../shared/ui/officialIcons";
 import { useWorkspaceDiffViewer } from "../hooks/useWorkspaceDiffViewer";
 import { getGitViewState, type GitViewState } from "../model/gitViewState";
@@ -10,9 +11,18 @@ import {
   type GitChangeScope,
 } from "./GitChangeBrowser";
 import { GitStateCard } from "./GitStateCard";
-import { GitDiffIcon, GitRefreshIcon } from "./gitIcons";
+import {
+  GitDiffCollapseIcon,
+  GitDiffExpandIcon,
+  GitDiffIcon,
+  GitDiffSplitViewIcon,
+  GitDiffUnifiedViewIcon,
+  GitRefreshIcon,
+} from "./gitIcons";
 import { WorkspaceDiffScopeSelector } from "./WorkspaceDiffScopeSelector";
 import { WorkspaceDiffViewer } from "./WorkspaceDiffViewer";
+import { WorkspaceDiffFileList } from "./WorkspaceDiffFileList";
+import type { MouseEvent as ReactMouseEvent } from "react";
 
 interface WorkspaceDiffSidebarProps {
   readonly hostBridge: HostBridge;
@@ -21,6 +31,16 @@ interface WorkspaceDiffSidebarProps {
   readonly selectedRootPath: string | null;
   readonly controller: WorkspaceGitController;
   readonly onClose: () => void;
+  readonly expanded?: boolean;
+  readonly onToggleExpanded?: () => void;
+  readonly diffStyle?: DiffViewStyle;
+  readonly onToggleDiffStyle?: () => void;
+  readonly selectedDiffPath?: string | null;
+  readonly onSelectDiffPath?: (path: string | null) => void;
+  readonly onDiffItemsChange?: (items: ReadonlyArray<GitWorkspaceDiffOutput>) => void;
+  readonly onResizeStart?: (event: ReactMouseEvent) => void;
+  readonly canResize?: boolean;
+  readonly isResizing?: boolean;
 }
 
 function useDiffScope(open: boolean, controller: WorkspaceGitController): [GitChangeScope, (scope: GitChangeScope) => void] {
@@ -61,7 +81,7 @@ function DiffChangeSummary(props: {
   );
 }
 
-function DiffSidebarHeader(props: {
+interface DiffSidebarHeaderProps {
   readonly controller: WorkspaceGitController;
   readonly files: number;
   readonly additions: number;
@@ -71,9 +91,23 @@ function DiffSidebarHeader(props: {
   readonly onRefresh: () => Promise<void>;
   readonly onScopeChange?: (scope: GitChangeScope) => void;
   readonly onClose: () => void;
-}): JSX.Element {
+  readonly expanded?: boolean;
+  readonly onToggleExpanded?: () => void;
+  readonly diffStyle?: DiffViewStyle;
+  readonly onToggleDiffStyle?: () => void;
+  readonly allowDiffStyleToggle?: boolean;
+}
+
+function DiffSidebarHeader(props: DiffSidebarHeaderProps): JSX.Element {
   const options = getGitChangeScopeOptions(props.controller);
   const showSelector = props.scope !== undefined && props.onScopeChange !== undefined && options.length > 0;
+  const diffStyle = props.diffStyle ?? "unified";
+  const expanded = props.expanded ?? false;
+  const diffStyleLabel = diffStyle === "split" ? "切换为统一差异" : "切换为拆分差异";
+  const DiffStyleIcon = diffStyle === "split" ? GitDiffUnifiedViewIcon : GitDiffSplitViewIcon;
+  const expandLabel = expanded ? "收起差异预览面板" : "展开差异预览到对话区";
+  const ExpandIcon = expanded ? GitDiffCollapseIcon : GitDiffExpandIcon;
+  const allowDiffStyleToggle = props.allowDiffStyleToggle ?? false;
   return (
     <header className="workspace-diff-sidebar-header">
       <div className="workspace-diff-sidebar-title-wrap">
@@ -98,6 +132,30 @@ function DiffSidebarHeader(props: {
         )}
       </div>
       <div className="workspace-diff-sidebar-actions">
+        {props.onToggleDiffStyle === undefined || !allowDiffStyleToggle ? null : (
+          <button
+            type="button"
+            className="workspace-diff-sidebar-close"
+            aria-label={diffStyleLabel}
+            aria-pressed={diffStyle === "split"}
+            title={diffStyleLabel}
+            onClick={props.onToggleDiffStyle}
+          >
+            <DiffStyleIcon className="workspace-diff-sidebar-close-icon" />
+          </button>
+        )}
+        {props.onToggleExpanded === undefined ? null : (
+          <button
+            type="button"
+            className="workspace-diff-sidebar-close"
+            aria-label={expandLabel}
+            aria-pressed={expanded}
+            title={expandLabel}
+            onClick={props.onToggleExpanded}
+          >
+            <ExpandIcon className="workspace-diff-sidebar-close-icon" />
+          </button>
+        )}
         <button type="button" className="workspace-diff-sidebar-close" aria-label="刷新差异" onClick={() => void props.onRefresh()}>
           <GitRefreshIcon className="workspace-diff-sidebar-close-icon" />
         </button>
@@ -114,6 +172,27 @@ function DiffSidebarState(props: { readonly viewState: GitViewState }): JSX.Elem
     <div className="workspace-diff-sidebar-content">
       <GitStateCard {...props.viewState} className="git-state-card workspace-diff-sidebar-state-card" />
     </div>
+  );
+}
+
+function ResizeHandle(props: {
+  readonly onMouseDown?: (event: ReactMouseEvent) => void;
+  readonly active: boolean;
+}): JSX.Element | null {
+  if (props.onMouseDown === undefined) {
+    return null;
+  }
+  const className = props.active
+    ? "workspace-diff-sidebar-resize workspace-diff-sidebar-resize-active"
+    : "workspace-diff-sidebar-resize";
+  return (
+    <div
+      className={className}
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="拖动以调整差异面板宽度"
+      onMouseDown={props.onMouseDown}
+    />
   );
 }
 
@@ -136,12 +215,46 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
     status: props.controller.status,
   });
   const busy = props.controller.loading || props.controller.pendingAction !== null;
+  const expanded = props.expanded ?? false;
+  const diffStyle = props.diffStyle ?? "unified";
+  const effectiveDiffStyle = expanded ? diffStyle : "unified";
+  const canResize = (props.canResize ?? true) && !expanded;
+  const isResizing = props.isResizing ?? false;
+  const selectedDiffPath = props.selectedDiffPath ?? null;
+  const { onDiffItemsChange, onSelectDiffPath } = props;
+
+  useEffect(() => {
+    onDiffItemsChange?.(diffViewer.items);
+  }, [diffViewer.items, onDiffItemsChange]);
+
+  useEffect(() => {
+    if (!expanded) {
+      return;
+    }
+    if (selectedDiffPath !== null && diffViewer.items.some((item) => item.path === selectedDiffPath)) {
+      return;
+    }
+    const next = diffViewer.items[0]?.path ?? null;
+    onSelectDiffPath?.(next);
+  }, [diffViewer.items, expanded, onSelectDiffPath, selectedDiffPath]);
+
+  const handleSelectFile = useCallback(
+    (path: string) => {
+      onSelectDiffPath?.(path);
+    },
+    [onSelectDiffPath],
+  );
+
   if (!props.open || props.selectedRootPath === null) {
     return null;
   }
+  const asideClass = expanded
+    ? "workspace-diff-sidebar workspace-diff-sidebar-open workspace-diff-sidebar-expanded"
+    : "workspace-diff-sidebar workspace-diff-sidebar-open";
   if (viewState !== null) {
     return (
-      <aside className="workspace-diff-sidebar workspace-diff-sidebar-open" aria-label="工作区差异侧栏">
+      <aside className={asideClass} aria-label="工作区差异侧栏">
+        <ResizeHandle onMouseDown={canResize ? props.onResizeStart : undefined} active={isResizing} />
         <DiffSidebarHeader
           controller={props.controller}
           additions={0}
@@ -150,13 +263,19 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
           loading={props.controller.loading}
           onRefresh={props.controller.refresh}
           onClose={props.onClose}
+          expanded={expanded}
+          onToggleExpanded={props.onToggleExpanded}
+          diffStyle={effectiveDiffStyle}
+          onToggleDiffStyle={props.onToggleDiffStyle}
+          allowDiffStyleToggle={expanded}
         />
         <DiffSidebarState viewState={viewState} />
       </aside>
     );
   }
   return (
-    <aside className="workspace-diff-sidebar workspace-diff-sidebar-open" aria-label="工作区差异侧栏">
+    <aside className={asideClass} aria-label="工作区差异侧栏">
+      <ResizeHandle onMouseDown={canResize ? props.onResizeStart : undefined} active={isResizing} />
       <DiffSidebarHeader
         controller={props.controller}
         additions={diffViewer.summary.additions}
@@ -167,6 +286,11 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
         onRefresh={() => refreshSidebar(props.controller, diffViewer.refresh)}
         onScopeChange={setScope}
         onClose={props.onClose}
+        expanded={expanded}
+        onToggleExpanded={props.onToggleExpanded}
+        diffStyle={effectiveDiffStyle}
+        onToggleDiffStyle={props.onToggleDiffStyle}
+        allowDiffStyleToggle={expanded}
       />
       <div className="workspace-diff-sidebar-content workspace-diff-sidebar-content-stream">
         {props.controller.notice !== null ? (
@@ -174,16 +298,26 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
             {props.controller.notice.text}
           </div>
         ) : null}
-        <WorkspaceDiffViewer
-          busy={busy}
-          error={diffViewer.error}
-          items={diffViewer.items}
-          loading={diffViewer.loading}
-          onDiscardPaths={props.controller.discardPaths}
-          onStagePaths={props.controller.stagePaths}
-          onUnstagePaths={props.controller.unstagePaths}
-          showSectionLabel={scope === "all"}
-        />
+        {expanded ? (
+          <WorkspaceDiffFileList
+            items={diffViewer.items}
+            onSelect={handleSelectFile}
+            selectedDiffPath={selectedDiffPath}
+            showSectionLabel={scope === "all"}
+          />
+        ) : (
+          <WorkspaceDiffViewer
+            busy={busy}
+            error={diffViewer.error}
+            items={diffViewer.items}
+            loading={diffViewer.loading}
+            onDiscardPaths={props.controller.discardPaths}
+            onStagePaths={props.controller.stagePaths}
+            onUnstagePaths={props.controller.unstagePaths}
+            showSectionLabel={scope === "all"}
+            viewStyle={effectiveDiffStyle}
+          />
+        )}
       </div>
     </aside>
   );

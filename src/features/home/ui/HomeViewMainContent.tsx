@@ -5,7 +5,9 @@ import type { ThreadDetailLevel } from "../../settings/hooks/useAppPreferences";
 import type { RegenerateEditedUserMessageOptions, SendTurnOptions } from "../../conversation/hooks/useWorkspaceConversation";
 import { FileLinkProvider, type FileLinkActions } from "../../conversation/hooks/fileLinkContext";
 import { useFileLinkOpener } from "../../conversation/hooks/useFileLinkOpener";
-import type { AgentEnvironment, HostBridge, WorkspaceOpener } from "../../../bridge/types";
+import type { AgentEnvironment, GitWorkspaceDiffOutput, HostBridge, WorkspaceOpener } from "../../../bridge/types";
+import type { DiffViewStyle } from "../../git/hooks/useDiffSidebarLayout";
+import { WorkspaceDiffConversationPreview } from "../../git/ui/WorkspaceDiffConversationPreview";
 import type {
   AccountSummary,
   AppState,
@@ -117,6 +119,10 @@ export interface HomeViewMainContentProps {
   readonly onToggleTerminal: () => void;
   readonly onRetryConnection: () => Promise<void>;
   readonly onDismissBanner: (bannerId: string) => void;
+  readonly diffItems: ReadonlyArray<GitWorkspaceDiffOutput>;
+  readonly diffPreviewVisible: boolean;
+  readonly diffPreviewStyle: DiffViewStyle;
+  readonly diffPreviewSelectedPath: string | null;
 }
 
 function alwaysEqual<T>(_left: T, _right: T): boolean {
@@ -469,7 +475,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
 
   return (
     <FileLinkProvider value={fileLinkActions}>
-    <div className="replica-main">
+    <div className={props.diffPreviewVisible ? "replica-main replica-main-diff-preview-active" : "replica-main"}>
       <HomeToolbarSection
         hostBridge={props.hostBridge}
         conversationActive={derivedState.conversationActive}
@@ -490,30 +496,32 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
         banners={props.banners}
         onDismissBanner={props.onDismissBanner}
       />
-      <HomeConversationSection
-        activities={derivedState.renderableActivities}
-        activeTurnId={props.activeTurnId}
-        busy={props.busy}
-        connectionRetryInfo={props.connectionRetryInfo}
-        connectionStatus={props.connectionStatus}
-        conversationActive={derivedState.conversationActive}
-        fatalError={props.fatalError}
-        onResolveServerRequest={props.onResolveServerRequest}
-        onEditUserMessage={editUserMessage}
-        onRetryConnection={props.onRetryConnection}
-        onSelectRoot={props.onSelectRoot}
-        placeholder={derivedState.placeholder}
-        retryScheduledAt={props.retryScheduledAt}
-        roots={props.roots}
-        selectedRootId={props.selectedRootId}
-        selectedRootName={props.selectedRootName}
-        selectedRootPath={props.selectedRootPath}
-        selectedThread={props.selectedThread}
-        threadDetailLevel={props.threadDetailLevel}
-        turnStatuses={props.turnStatuses}
-        workspaceSwitch={props.workspaceSwitch}
-        canEditMessages={!props.isResponding}
-      />
+      <div className={props.diffPreviewVisible ? "home-main-stage home-main-stage-diff-active" : "home-main-stage"}>
+        <HomeConversationSection
+          activities={derivedState.renderableActivities}
+          activeTurnId={props.activeTurnId}
+          busy={props.busy}
+          connectionRetryInfo={props.connectionRetryInfo}
+          connectionStatus={props.connectionStatus}
+          conversationActive={derivedState.conversationActive}
+          fatalError={props.fatalError}
+          onResolveServerRequest={props.onResolveServerRequest}
+          onEditUserMessage={editUserMessage}
+          onRetryConnection={props.onRetryConnection}
+          onSelectRoot={props.onSelectRoot}
+          placeholder={derivedState.placeholder}
+          retryScheduledAt={props.retryScheduledAt}
+          roots={props.roots}
+          selectedRootId={props.selectedRootId}
+          selectedRootName={props.selectedRootName}
+          selectedRootPath={props.selectedRootPath}
+          selectedThread={props.selectedThread}
+          threadDetailLevel={props.threadDetailLevel}
+          turnStatuses={props.turnStatuses}
+          workspaceSwitch={props.workspaceSwitch}
+          canEditMessages={!props.isResponding}
+        />
+      </div>
       <HomeTurnPlanDrawer
         plan={derivedState.currentTurnPlan}
         collapsed={planDrawerCollapsed}
@@ -578,6 +586,15 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           selectedThread={props.selectedThread}
         />
       )}
+      {props.diffPreviewVisible ? (
+        <div className="home-main-overlay">
+          <WorkspaceDiffConversationPreview
+            items={props.diffItems}
+            selectedDiffPath={props.diffPreviewSelectedPath}
+            diffStyle={props.diffPreviewStyle}
+          />
+        </div>
+      ) : null}
     </div>
     </FileLinkProvider>
   );

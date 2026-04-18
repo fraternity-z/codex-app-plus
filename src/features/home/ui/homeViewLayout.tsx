@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 import type { TimelineEntry } from "../../../domain/types";
+import type { GitWorkspaceDiffOutput } from "../../../bridge/types";
 import type { ConnectionRetryInfo } from "../model/homeConnectionRetry";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { OfficialSidebarToggleIcon } from "../../shared/ui/officialIcons";
@@ -7,6 +9,7 @@ import type { WorkspaceLaunchScriptsState } from "../hooks/useWorkspaceLaunchScr
 import type { HomeSidebarProps } from "./HomeSidebar";
 import type { HomeViewMainContentProps } from "./HomeViewMainContent";
 import type { HomeViewProps } from "./HomeView";
+import type { DiffSidebarLayoutState } from "../../git/hooks/useDiffSidebarLayout";
 
 const NOOP_ARCHIVE_THREAD = async () => undefined;
 const NOOP_REGENERATE_EDITED_MESSAGE = async () => undefined;
@@ -51,8 +54,24 @@ export function useHomeViewUiState(selectedRootPath: string | null): HomeViewUiS
   };
 }
 
-export function createReplicaAppClassName(diffSidebarOpen: boolean): string {
-  return diffSidebarOpen ? "replica-app replica-app-with-diff-sidebar" : "replica-app";
+export function createReplicaAppClassName(diffSidebarOpen: boolean, diffSidebarExpanded: boolean): string {
+  if (!diffSidebarOpen) {
+    return "replica-app";
+  }
+  if (diffSidebarExpanded) {
+    return "replica-app replica-app-with-diff-sidebar replica-app-with-diff-sidebar-expanded";
+  }
+  return "replica-app replica-app-with-diff-sidebar";
+}
+
+export function createReplicaAppStyle(
+  diffSidebarOpen: boolean,
+  width: number,
+): CSSProperties {
+  if (!diffSidebarOpen) {
+    return {};
+  }
+  return { ["--replica-diff-sidebar-width" as "width"]: `${width}px` } as CSSProperties;
 }
 
 export function createHomeSidebarProps(
@@ -106,6 +125,8 @@ export function createHomeMainContentProps(
   diffOpen: boolean,
   onToggleTerminal: () => void,
   onToggleDiff: () => void,
+  diffLayout: DiffSidebarLayoutState,
+  diffItems: ReadonlyArray<GitWorkspaceDiffOutput>,
 ): HomeViewMainContentProps {
   return {
     account: props.account,
@@ -171,6 +192,10 @@ export function createHomeMainContentProps(
     turnStatuses: props.turnStatuses,
     workspaceOpener: props.workspaceOpener,
     workspaceSwitch: props.workspaceSwitch,
+    diffItems,
+    diffPreviewVisible: diffOpen && diffLayout.expanded,
+    diffPreviewStyle: diffLayout.diffStyle,
+    diffPreviewSelectedPath: diffLayout.selectedDiffPath,
   };
 }
 

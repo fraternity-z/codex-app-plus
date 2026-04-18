@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { GitWorkspaceDiffOutput } from "../../../bridge/types";
+import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
 import { createGitDiffKey } from "../model/gitDiffKey";
 import { WorkspaceDiffViewerCard } from "./WorkspaceDiffViewerCard";
 
@@ -17,6 +18,7 @@ interface WorkspaceDiffViewerProps {
   readonly onStagePaths: (paths: ReadonlyArray<string>) => Promise<void>;
   readonly onUnstagePaths: (paths: ReadonlyArray<string>) => Promise<void>;
   readonly showSectionLabel: boolean;
+  readonly viewStyle?: DiffViewStyle;
 }
 
 function createItemKey(item: GitWorkspaceDiffOutput): string {
@@ -179,6 +181,7 @@ export function WorkspaceDiffViewer(props: WorkspaceDiffViewerProps): JSX.Elemen
                     onToggleExpanded={toggleCollapsed}
                     onUnstagePaths={props.onUnstagePaths}
                     showSectionLabel={props.showSectionLabel}
+                    viewStyle={props.viewStyle ?? "unified"}
                   />
                 </div>
               );

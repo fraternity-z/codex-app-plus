@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type {
   GitStatusOutput,
@@ -112,7 +113,11 @@ function createHostBridge(getWorkspaceDiffs: ReturnType<typeof vi.fn>): HostBrid
   return { git: { getWorkspaceDiffs } } as unknown as HostBridge;
 }
 
-function renderSidebar(controller: WorkspaceGitController, hostBridge: HostBridge) {
+function renderSidebar(
+  controller: WorkspaceGitController,
+  hostBridge: HostBridge,
+  overrides?: Partial<ComponentProps<typeof WorkspaceDiffSidebar>>,
+) {
   return render(
     <WorkspaceDiffSidebar
       hostBridge={hostBridge}
@@ -121,6 +126,7 @@ function renderSidebar(controller: WorkspaceGitController, hostBridge: HostBridg
       selectedRootPath="E:/code/project"
       controller={controller}
       onClose={vi.fn()}
+      {...overrides}
     />,
   );
 }
@@ -152,6 +158,28 @@ describe("WorkspaceDiffSidebar", () => {
 
     expect(screen.getByRole("button", { name: "选择差异分组" })).toHaveTextContent("未暂存");
     expect(screen.getByRole("button", { name: "选择差异分组" })).toHaveTextContent("1");
+  });
+
+  it("forces unified diff in the collapsed sidebar and hides the split toggle", async () => {
+    const { container } = renderSidebar(
+      createController({ status: createStatus({ unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }] }) }),
+      createHostBridge(vi.fn().mockResolvedValue([createViewerDiff()])),
+      { diffStyle: "split", onToggleDiffStyle: vi.fn() },
+    );
+
+    expect(screen.queryByRole("button", { name: "切换为统一差异" })).toBeNull();
+    await screen.findByRole("button", { name: "折叠 src/App.tsx" });
+    expect(container.querySelector(".workspace-diff-code-scroll-split")).toBeNull();
+  });
+
+  it("shows the split toggle only in expanded preview mode", () => {
+    renderSidebar(
+      createController({ status: createStatus() }),
+      createHostBridge(vi.fn().mockResolvedValue([])),
+      { expanded: true, diffStyle: "split", onToggleDiffStyle: vi.fn() },
+    );
+
+    expect(screen.getByRole("button", { name: "切换为统一差异" })).toBeInTheDocument();
   });
 
   it("loads batch diffs and renders the continuous viewer", async () => {

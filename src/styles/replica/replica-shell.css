@@ -1,5 +1,6 @@
 .replica-app {
   --replica-sidebar-width: 300px;
+  --replica-diff-sidebar-width: 388px;
   position: relative;
   display: grid;
   grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr);
@@ -10,7 +11,7 @@
 }
 
 .replica-app-with-diff-sidebar {
-  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) 388px;
+  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) var(--replica-diff-sidebar-width);
 }
 
 .replica-app:has(.sidebar-collapsed) {
@@ -18,7 +19,11 @@
 }
 
 .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
-  grid-template-columns: 0 minmax(0, 1fr) 388px;
+  grid-template-columns: 0 minmax(0, 1fr) var(--replica-diff-sidebar-width);
+}
+
+.replica-app:has(.workspace-diff-sidebar-resize-active) {
+  transition: none;
 }
 
 .replica-app:has(.sidebar-collapsed) .main-toolbar {
@@ -270,6 +275,8 @@
     calc(100% - (var(--conversation-column-gutter) + var(--conversation-column-gutter)))
   );
   --user-message-max-width: 80%;
+  position: relative;
+  isolation: isolate;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -347,11 +354,11 @@
   }
 
   .replica-app-with-diff-sidebar {
-    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) 340px;
+    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) var(--replica-diff-sidebar-width);
   }
 
   .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
-    grid-template-columns: 0 minmax(0, 1fr) 340px;
+    grid-template-columns: 0 minmax(0, 1fr) var(--replica-diff-sidebar-width);
   }
 }
 

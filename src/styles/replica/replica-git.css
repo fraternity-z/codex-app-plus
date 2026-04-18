@@ -522,6 +522,15 @@
   background: #f3f3f3;
 }
 
+.workspace-diff-sidebar-close[aria-pressed="true"] {
+  background: var(--surface-active);
+  color: var(--text-main);
+}
+
+.workspace-diff-sidebar-close[aria-pressed="true"]:hover {
+  background: var(--surface-hover);
+}
+
 .workspace-diff-sidebar-content {
   flex: 1 1 auto;
   min-height: 0;

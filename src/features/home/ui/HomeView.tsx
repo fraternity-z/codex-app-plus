@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import type { ComposerPermissionLevel } from "../../composer/model/composerPermission";
 import type {
   ComposerModelOption,
@@ -10,6 +10,7 @@ import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import type {
   AgentEnvironment,
   EmbeddedTerminalShell,
+  GitWorkspaceDiffOutput,
   HostBridge,
   WorkspaceOpener,
   GitWorktreeEntry,
@@ -35,6 +36,7 @@ import type { ResolvedTheme } from "../../../domain/theme";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
 import { useWorkspaceGit } from "../../git/hooks/useWorkspaceGit";
+import { useDiffSidebarLayout } from "../../git/hooks/useDiffSidebarLayout";
 import { useWorkspaceSwitchTracker } from "../hooks/useWorkspaceSwitchTracker";
 import { useTerminalController } from "../../terminal/hooks/useTerminalController";
 import { TerminalDock } from "../../terminal/ui/TerminalDock";
@@ -49,6 +51,7 @@ import {
   createHomeMainContentProps,
   createHomeSidebarProps,
   createReplicaAppClassName,
+  createReplicaAppStyle,
   SidebarCollapseButton,
   useHomeViewUiState,
 } from "./homeViewLayout";
@@ -148,6 +151,8 @@ export interface HomeViewProps {
 
 export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Element {
   const uiState = useHomeViewUiState(props.selectedRootPath);
+  const diffLayout = useDiffSidebarLayout();
+  const [diffItems, setDiffItems] = useState<ReadonlyArray<GitWorkspaceDiffOutput>>([]);
   const selectedRoot = useMemo(
     () => props.roots.find((root) => root.id === props.selectedRootId) ?? null,
     [props.roots, props.selectedRootId],
@@ -211,12 +216,17 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
       uiState.canShowDiffSidebar,
       toggleTerminal,
       uiState.toggleDiffSidebar,
+      diffLayout,
+      diffItems,
     ),
-    [props, gitController, launchState, filteredActivities, retryInfo, uiState.openTerminal, uiState.canShowDiffSidebar, toggleTerminal, uiState.toggleDiffSidebar],
+    [props, gitController, launchState, filteredActivities, retryInfo, uiState.openTerminal, uiState.canShowDiffSidebar, toggleTerminal, uiState.toggleDiffSidebar, diffLayout, diffItems],
   );
 
   return (
-    <div className={createReplicaAppClassName(uiState.canShowDiffSidebar)}>
+    <div
+      className={createReplicaAppClassName(uiState.canShowDiffSidebar, diffLayout.expanded)}
+      style={createReplicaAppStyle(uiState.canShowDiffSidebar, diffLayout.width)}
+    >
       <HomeSidebar {...sidebarProps} />
       <HomeViewMainContent {...contentProps} />
       {uiState.canShowDiffSidebar ? (
@@ -226,6 +236,21 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
           selectedRootName={props.selectedRootName}
           selectedRootPath={props.selectedRootPath}
           onClose={uiState.closeDiffSidebar}
+          expanded={diffLayout.expanded}
+          onToggleExpanded={() => {
+            if (!diffLayout.expanded) {
+              diffLayout.resetWidth();
+            }
+            diffLayout.toggleExpanded();
+          }}
+          diffStyle={diffLayout.diffStyle}
+          onToggleDiffStyle={diffLayout.toggleDiffStyle}
+          selectedDiffPath={diffLayout.selectedDiffPath}
+          onSelectDiffPath={diffLayout.setSelectedDiffPath}
+          onDiffItemsChange={setDiffItems}
+          onResizeStart={diffLayout.startResize}
+          canResize={!diffLayout.expanded}
+          isResizing={diffLayout.isResizing}
         />
       ) : null}
       <TerminalDock

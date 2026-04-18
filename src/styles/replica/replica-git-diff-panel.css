@@ -1,15 +1,6 @@
 .replica-app {
-  --replica-diff-sidebar-width: clamp(440px, 34vw, 620px);
   --replica-code-font-family: var(--app-code-font-family);
   --replica-code-font-size: var(--app-code-font-size);
-}
-
-.replica-app-with-diff-sidebar {
-  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) var(--replica-diff-sidebar-width);
-}
-
-.replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
-  grid-template-columns: 0 minmax(0, 1fr) var(--replica-diff-sidebar-width);
 }
 
 .workspace-diff-sidebar-header {
@@ -253,7 +244,6 @@
   font-size: 13px;
 }
 
-.workspace-diff-code-scroll,
 .workspace-diff-raw {
   overflow-x: auto;
   overflow-y: auto;
@@ -352,10 +342,6 @@
 }
 
 @media (max-width: 1080px) {
-  .replica-app {
-    --replica-diff-sidebar-width: clamp(320px, 38vw, 420px);
-  }
-
   .replica-app-with-diff-sidebar {
     grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) var(--replica-diff-sidebar-width);
   }
