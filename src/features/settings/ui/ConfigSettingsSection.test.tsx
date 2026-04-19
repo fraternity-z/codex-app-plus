@@ -28,7 +28,7 @@ function createBaseProps(
     login: vi.fn().mockResolvedValue(undefined),
     readProxySettings: vi.fn().mockResolvedValue({
       settings: {
-        enabled: false,
+        mode: "disabled",
         httpProxy: "",
         httpsProxy: "",
         noProxy: "",
@@ -50,7 +50,7 @@ function createBaseProps(
     }),
     writeProxySettings: vi.fn().mockResolvedValue({
       settings: {
-        enabled: false,
+        mode: "disabled",
         httpProxy: "",
         httpsProxy: "",
         noProxy: "",

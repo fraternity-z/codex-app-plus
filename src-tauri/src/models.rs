@@ -21,13 +21,61 @@ pub struct AppServerStartInput {
     pub codex_path: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ProxyMode {
+    Disabled,
+    System,
+    Custom,
+}
+
+impl Default for ProxyMode {
+    fn default() -> Self {
+        Self::Disabled
+    }
+}
+
+#[derive(Debug, Serialize, Clone, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ProxySettings {
-    pub enabled: bool,
+    pub mode: ProxyMode,
     pub http_proxy: String,
     pub https_proxy: String,
     pub no_proxy: String,
+}
+
+impl<'de> Deserialize<'de> for ProxySettings {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Raw {
+            #[serde(default)]
+            mode: Option<ProxyMode>,
+            #[serde(default)]
+            enabled: Option<bool>,
+            #[serde(default)]
+            http_proxy: String,
+            #[serde(default)]
+            https_proxy: String,
+            #[serde(default)]
+            no_proxy: String,
+        }
+
+        let raw = Raw::deserialize(deserializer)?;
+        let mode = raw.mode.unwrap_or_else(|| match raw.enabled {
+            Some(true) => ProxyMode::System,
+            _ => ProxyMode::Disabled,
+        });
+        Ok(ProxySettings {
+            mode,
+            http_proxy: raw.http_proxy,
+            https_proxy: raw.https_proxy,
+            no_proxy: raw.no_proxy,
+        })
+    }
 }
 
 #[derive(Debug, Deserialize)]

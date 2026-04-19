@@ -1,17 +1,20 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   AgentEnvironment,
+  ProxyMode,
+  ProxySettings,
   ReadProxySettingsOutput,
   UpdateProxySettingsInput,
   UpdateProxySettingsOutput,
 } from "../../../bridge/types";
-import { useI18n, type MessageKey } from "../../../i18n";
+import { useI18n } from "../../../i18n";
 import {
   buildProxySettingsInput,
   EMPTY_PROXY_SETTINGS,
   hasProxySettingsChanges,
+  validateProxySettings,
 } from "../config/proxySettings";
-import { SettingsToggleButtonGroup } from "./SettingsToggleButtonGroup";
+import { SettingsSelectRow, type SettingsSelectOption } from "./SettingsSelectRow";
 
 interface ProxySettingsCardProps {
   readonly agentEnvironment: AgentEnvironment;
@@ -25,30 +28,14 @@ interface ProxySettingsCardProps {
 }
 
 interface Feedback {
-  readonly kind: "idle" | "error" | "success";
+  readonly kind: "idle" | "error";
   readonly message: string;
 }
 
 const EMPTY_FEEDBACK: Feedback = { kind: "idle", message: "" };
-type ProxyMode = "disabled" | "system";
-
-const AGENT_ENVIRONMENT_LABEL_KEYS: Record<AgentEnvironment, MessageKey> = {
-  windowsNative: "settings.general.agentEnvironment.options.windowsNative",
-  wsl: "settings.general.agentEnvironment.options.wsl",
-};
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function feedbackClassName(kind: Feedback["kind"]): string {
-  if (kind === "success") {
-    return "settings-status-note settings-status-note-success";
-  }
-  if (kind === "error") {
-    return "settings-status-note settings-status-note-error";
-  }
-  return "settings-status-note";
 }
 
 export function ProxySettingsCard(props: ProxySettingsCardProps): JSX.Element {
@@ -94,96 +81,165 @@ export function ProxySettingsCard(props: ProxySettingsCardProps): JSX.Element {
     };
   }, [props.agentEnvironment, t]);
 
-  const dirty = hasProxySettingsChanges(savedSettings, draftSettings);
-  const actionDisabled = props.busy || loading || saving || !dirty;
-  const environmentLabel = t(AGENT_ENVIRONMENT_LABEL_KEYS[props.agentEnvironment]);
-  const proxyMode: ProxyMode = draftSettings.enabled ? "system" : "disabled";
-  const proxyModeStatusNote = draftSettings.enabled
-    ? t("settings.config.proxy.systemOnNote")
-    : t("settings.config.proxy.disabledNote");
+  const validation = validateProxySettings(draftSettings);
+  const title = t("settings.config.proxy.title");
 
-  const updateDraft = useCallback(
-    (patch: Partial<typeof draftSettings>) => {
-      setDraftSettings((current) => ({ ...current, ...patch }));
+  const modeOptions = useMemo<ReadonlyArray<SettingsSelectOption<ProxyMode>>>(
+    () => [
+      { value: "disabled", label: t("settings.config.proxy.disabledOption") },
+      { value: "system", label: t("settings.config.proxy.systemOption") },
+      { value: "custom", label: t("settings.config.proxy.customOption") },
+    ],
+    [t],
+  );
+
+  const persist = useCallback(
+    async (next: ProxySettings) => {
+      setSaving(true);
       setFeedback(EMPTY_FEEDBACK);
+      try {
+        const output = await props.writeProxySettings(
+          buildProxySettingsInput(props.agentEnvironment, next),
+        );
+        setSavedSettings(output.settings);
+        setDraftSettings(output.settings);
+      } catch (error) {
+        setFeedback({ kind: "error", message: toErrorMessage(error) });
+      } finally {
+        setSaving(false);
+      }
     },
-    [],
+    [props.agentEnvironment, props.writeProxySettings],
+  );
+
+  const commitIfReady = useCallback(
+    (next: ProxySettings) => {
+      if (validateProxySettings(next).kind !== "valid") {
+        return;
+      }
+      if (!hasProxySettingsChanges(savedSettings, next)) {
+        return;
+      }
+      void persist(next);
+    },
+    [persist, savedSettings],
   );
 
   const updateProxyMode = useCallback(
     (mode: ProxyMode) => {
-      updateDraft({
-        enabled: mode === "system",
-        httpProxy: "",
-        httpsProxy: "",
-        noProxy: "",
-      });
+      const next: ProxySettings =
+        mode === "custom"
+          ? {
+              mode: "custom",
+              httpProxy:
+                savedSettings.mode === "custom" ? savedSettings.httpProxy : "",
+              httpsProxy:
+                savedSettings.mode === "custom" ? savedSettings.httpsProxy : "",
+              noProxy:
+                savedSettings.mode === "custom" ? savedSettings.noProxy : "",
+            }
+          : { mode, httpProxy: "", httpsProxy: "", noProxy: "" };
+      setDraftSettings(next);
+      setFeedback(EMPTY_FEEDBACK);
+      commitIfReady(next);
     },
-    [updateDraft],
+    [commitIfReady, savedSettings],
   );
 
-  const handleSave = useCallback(async () => {
-    setSaving(true);
+  const updateCustomField = useCallback((patch: Partial<ProxySettings>) => {
+    setDraftSettings((current) => ({ ...current, ...patch }));
     setFeedback(EMPTY_FEEDBACK);
-    try {
-      const output = await props.writeProxySettings(
-        buildProxySettingsInput(props.agentEnvironment, draftSettings),
-      );
-      setSavedSettings(output.settings);
-      setDraftSettings(output.settings);
-      setFeedback({
-        kind: "success",
-        message: t("settings.config.proxy.savedMessage"),
-      });
-    } catch (error) {
-      setFeedback({ kind: "error", message: toErrorMessage(error) });
-    } finally {
-      setSaving(false);
-    }
-  }, [
-    draftSettings,
-    props.agentEnvironment,
-    props.writeProxySettings,
-    t,
-  ]);
+  }, []);
+
+  const commitCustomField = useCallback(() => {
+    commitIfReady(draftSettings);
+  }, [commitIfReady, draftSettings]);
+
+  const inputsDisabled = props.busy || loading || saving;
 
   return (
     <section className="settings-card settings-config-card">
       <div className="settings-section-head">
-        <strong>{t("settings.config.proxy.title")}</strong>
-        <button
-          type="button"
-          className="settings-head-action"
-          disabled={actionDisabled}
-          onClick={() => void handleSave()}
-        >
-          {saving ? t("settings.config.proxy.saving") : t("settings.config.proxy.saveAction")}
-        </button>
+        <strong>{title}</strong>
+        <SettingsSelectRow
+          layout="inline"
+          label={title}
+          value={draftSettings.mode}
+          options={modeOptions}
+          disabled={inputsDisabled}
+          onChange={updateProxyMode}
+        />
       </div>
-      <p className="settings-note settings-note-pad">{t("settings.config.proxy.description")}</p>
-      <p className="settings-note settings-note-pad">
-        {t("settings.config.proxy.currentEnvironmentNote", { environment: environmentLabel })}
-      </p>
-      <SettingsToggleButtonGroup
-        label={t("settings.config.proxy.modeLabel")}
-        description={t("settings.config.proxy.modeDescription")}
-        value={proxyMode}
-        options={[
-          { value: "disabled", label: t("settings.config.proxy.disabledOption") },
-          { value: "system", label: t("settings.config.proxy.systemOption") },
-        ]}
-        disabled={props.busy || loading || saving}
-        statusNote={proxyModeStatusNote}
-        onChange={updateProxyMode}
-      />
-      <p className="settings-note settings-note-pad">{t("settings.config.proxy.customProxyDeferredNote")}</p>
+      {draftSettings.mode === "custom" ? (
+        <div className="settings-custom-proxy-fields">
+          <label className="settings-field">
+            <span className="settings-field-label">
+              {t("settings.config.proxy.customHttpLabel")}
+            </span>
+            <input
+              className="settings-text-input"
+              type="text"
+              value={draftSettings.httpProxy}
+              placeholder={t("settings.config.proxy.customHttpPlaceholder")}
+              disabled={inputsDisabled}
+              onChange={(event) =>
+                updateCustomField({ httpProxy: event.currentTarget.value })
+              }
+              onBlur={commitCustomField}
+              aria-label={t("settings.config.proxy.customHttpLabel")}
+            />
+          </label>
+          <label className="settings-field">
+            <span className="settings-field-label">
+              {t("settings.config.proxy.customHttpsLabel")}
+            </span>
+            <input
+              className="settings-text-input"
+              type="text"
+              value={draftSettings.httpsProxy}
+              placeholder={t("settings.config.proxy.customHttpsPlaceholder")}
+              disabled={inputsDisabled}
+              onChange={(event) =>
+                updateCustomField({ httpsProxy: event.currentTarget.value })
+              }
+              onBlur={commitCustomField}
+              aria-label={t("settings.config.proxy.customHttpsLabel")}
+            />
+          </label>
+          <label className="settings-field">
+            <span className="settings-field-label">
+              {t("settings.config.proxy.customNoProxyLabel")}
+            </span>
+            <input
+              className="settings-text-input"
+              type="text"
+              value={draftSettings.noProxy}
+              placeholder={t("settings.config.proxy.customNoProxyPlaceholder")}
+              disabled={inputsDisabled}
+              onChange={(event) =>
+                updateCustomField({ noProxy: event.currentTarget.value })
+              }
+              onBlur={commitCustomField}
+              aria-label={t("settings.config.proxy.customNoProxyLabel")}
+            />
+          </label>
+          {validation.kind === "empty" ? (
+            <p className="settings-status-note settings-status-note-error">
+              {t("settings.config.proxy.customEmptyError")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <p className="settings-note settings-note-pad">{t("settings.config.proxy.hostRuntimeNote")}</p>
       <p className="settings-note settings-note-pad">{t("settings.config.proxy.manualRestartNote")}</p>
       {loading ? (
         <p className="settings-status-note">{t("settings.config.proxy.loading")}</p>
       ) : null}
-      {feedback.kind !== "idle" ? (
-        <p className={feedbackClassName(feedback.kind)}>{feedback.message}</p>
+      {saving ? (
+        <p className="settings-status-note">{t("settings.config.proxy.applying")}</p>
+      ) : null}
+      {feedback.kind === "error" ? (
+        <p className="settings-status-note settings-status-note-error">{feedback.message}</p>
       ) : null}
     </section>
   );

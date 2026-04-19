@@ -79,7 +79,7 @@ function createHostBridge(): HostBridge {
       writeAgentConfig: vi.fn().mockResolvedValue({ content: "" }),
       readProxySettings: vi.fn().mockResolvedValue({
         settings: {
-          enabled: false,
+          mode: "disabled",
           httpProxy: "",
           httpsProxy: "",
           noProxy: ""
@@ -91,7 +91,7 @@ function createHostBridge(): HostBridge {
       }),
       writeProxySettings: vi.fn().mockResolvedValue({
         settings: {
-          enabled: false,
+          mode: "disabled",
           httpProxy: "",
           httpsProxy: "",
           noProxy: ""

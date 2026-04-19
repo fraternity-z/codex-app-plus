@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    AgentEnvironment, ProxySettings, ReadProxySettingsInput, ReadProxySettingsOutput,
+    AgentEnvironment, ProxyMode, ProxySettings, ReadProxySettingsInput, ReadProxySettingsOutput,
     UpdateProxySettingsInput, UpdateProxySettingsOutput,
 };
 
@@ -120,25 +120,44 @@ pub(crate) trait ProxySettingsNormalization {
 
 impl ProxySettingsNormalization for ProxySettings {
     fn normalized(&self) -> AppResult<ProxySettings> {
-        Ok(ProxySettings {
-            enabled: self.enabled,
-            http_proxy: String::new(),
-            https_proxy: String::new(),
-            no_proxy: String::new(),
-        })
+        match self.mode {
+            ProxyMode::Disabled | ProxyMode::System => Ok(ProxySettings {
+                mode: self.mode,
+                http_proxy: String::new(),
+                https_proxy: String::new(),
+                no_proxy: String::new(),
+            }),
+            ProxyMode::Custom => {
+                let http_proxy = self.http_proxy.trim().to_string();
+                let https_proxy = self.https_proxy.trim().to_string();
+                let no_proxy = self.no_proxy.trim().to_string();
+                if http_proxy.is_empty() && https_proxy.is_empty() {
+                    return Err(AppError::InvalidInput(
+                        "自定义代理至少需要填写 HTTP 或 HTTPS 代理地址。".to_string(),
+                    ));
+                }
+                Ok(ProxySettings {
+                    mode: ProxyMode::Custom,
+                    http_proxy,
+                    https_proxy,
+                    no_proxy,
+                })
+            }
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{read_store, select_settings_slot, write_store, ProxySettingsStore};
-    use crate::models::{AgentEnvironment, ProxySettings};
+    use crate::models::{AgentEnvironment, ProxyMode, ProxySettings};
+    use crate::proxy_settings::ProxySettingsNormalization;
     use crate::test_support::unique_temp_dir;
     use std::fs;
 
     fn configured_settings() -> ProxySettings {
         ProxySettings {
-            enabled: true,
+            mode: ProxyMode::Custom,
             http_proxy: "http://127.0.0.1:8080".to_string(),
             https_proxy: "https://127.0.0.1:8443".to_string(),
             no_proxy: "localhost".to_string(),
@@ -151,12 +170,12 @@ mod tests {
 
         let store = read_store(&path).expect("default store");
 
-        assert!(!store.windows_native.enabled);
-        assert!(!store.wsl.enabled);
+        assert_eq!(store.windows_native.mode, ProxyMode::Disabled);
+        assert_eq!(store.wsl.mode, ProxyMode::Disabled);
     }
 
     #[test]
-    fn writes_and_reads_environment_specific_proxy_settings() {
+    fn writes_and_reads_custom_proxy_settings_per_environment() {
         let path = unique_temp_dir("codex-app-plus", "proxy-write").join("proxy.json");
         let mut store = ProxySettingsStore::default();
         store.windows_native = configured_settings();
@@ -166,17 +185,93 @@ mod tests {
 
         assert_eq!(
             select_settings_slot(&restored, AgentEnvironment::WindowsNative),
-            &ProxySettings {
-                enabled: true,
-                http_proxy: String::new(),
-                https_proxy: String::new(),
-                no_proxy: String::new(),
-            }
+            &configured_settings(),
         );
         assert_eq!(
             select_settings_slot(&restored, AgentEnvironment::Wsl),
             &ProxySettings::default()
         );
         fs::remove_file(path).ok();
+    }
+
+    #[test]
+    fn legacy_enabled_flag_migrates_to_mode() {
+        let path = unique_temp_dir("codex-app-plus", "proxy-legacy").join("proxy.json");
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).expect("create parent");
+        }
+        fs::write(
+            &path,
+            r#"{"version":1,"windowsNative":{"enabled":true,"httpProxy":"","httpsProxy":"","noProxy":""},"wsl":{"enabled":false,"httpProxy":"","httpsProxy":"","noProxy":""}}"#,
+        )
+        .expect("seed legacy store");
+
+        let restored = read_store(&path).expect("read legacy store");
+
+        assert_eq!(
+            select_settings_slot(&restored, AgentEnvironment::WindowsNative).mode,
+            ProxyMode::System,
+        );
+        assert_eq!(
+            select_settings_slot(&restored, AgentEnvironment::Wsl).mode,
+            ProxyMode::Disabled,
+        );
+        fs::remove_file(path).ok();
+    }
+
+    #[test]
+    fn custom_mode_requires_http_or_https_value() {
+        let result = ProxySettings {
+            mode: ProxyMode::Custom,
+            http_proxy: String::new(),
+            https_proxy: String::new(),
+            no_proxy: "localhost".to_string(),
+        }
+        .normalized();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn custom_mode_trims_and_preserves_values() {
+        let normalized = ProxySettings {
+            mode: ProxyMode::Custom,
+            http_proxy: "  http://127.0.0.1:7890  ".to_string(),
+            https_proxy: String::new(),
+            no_proxy: " localhost ".to_string(),
+        }
+        .normalized()
+        .expect("normalized custom settings");
+
+        assert_eq!(
+            normalized,
+            ProxySettings {
+                mode: ProxyMode::Custom,
+                http_proxy: "http://127.0.0.1:7890".to_string(),
+                https_proxy: String::new(),
+                no_proxy: "localhost".to_string(),
+            }
+        );
+    }
+
+    #[test]
+    fn system_mode_drops_custom_fields() {
+        let normalized = ProxySettings {
+            mode: ProxyMode::System,
+            http_proxy: "http://ignored".to_string(),
+            https_proxy: "http://ignored".to_string(),
+            no_proxy: "ignored".to_string(),
+        }
+        .normalized()
+        .expect("normalized system settings");
+
+        assert_eq!(
+            normalized,
+            ProxySettings {
+                mode: ProxyMode::System,
+                http_proxy: String::new(),
+                https_proxy: String::new(),
+                no_proxy: String::new(),
+            }
+        );
     }
 }

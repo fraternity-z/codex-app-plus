@@ -2,7 +2,7 @@ use portable_pty::CommandBuilder;
 use std::env;
 use std::process::Command as StdCommand;
 
-use crate::models::ProxySettings;
+use crate::models::{ProxyMode, ProxySettings};
 
 const HTTP_PROXY_KEYS: [&str; 2] = ["HTTP_PROXY", "http_proxy"];
 const HTTPS_PROXY_KEYS: [&str; 2] = ["HTTPS_PROXY", "https_proxy"];
@@ -28,14 +28,18 @@ struct SystemProxyValues {
 pub(crate) fn proxy_environment_assignments(
     settings: &ProxySettings,
 ) -> Vec<ProxyEnvironmentEdit> {
-    if !settings.enabled {
-        return ALL_PROXY_KEYS
+    match settings.mode {
+        ProxyMode::Disabled => ALL_PROXY_KEYS
             .iter()
             .map(|key| (*key, None))
-            .collect::<Vec<_>>();
+            .collect::<Vec<_>>(),
+        ProxyMode::System => proxy_environment_edits_from_values(&system_proxy_values()),
+        ProxyMode::Custom => proxy_environment_edits_from_values(&SystemProxyValues {
+            http_proxy: settings.http_proxy.clone(),
+            https_proxy: settings.https_proxy.clone(),
+            no_proxy: settings.no_proxy.clone(),
+        }),
     }
-
-    proxy_environment_edits_from_values(&system_proxy_values())
 }
 
 pub(crate) fn apply_std_proxy_environment(
@@ -314,7 +318,7 @@ mod tests {
         proxy_environment_edits_from_values, system_proxy_values_from_windows_proxy_config,
         SystemProxyValues,
     };
-    use crate::models::ProxySettings;
+    use crate::models::{ProxyMode, ProxySettings};
     use std::collections::BTreeMap;
     use std::process::Command as StdCommand;
 
@@ -325,6 +329,50 @@ mod tests {
             vec![
                 ("HTTP_PROXY", None),
                 ("http_proxy", None),
+                ("HTTPS_PROXY", None),
+                ("https_proxy", None),
+                ("NO_PROXY", None),
+                ("no_proxy", None),
+            ]
+        );
+    }
+
+    #[test]
+    fn custom_mode_uses_settings_values() {
+        let assignments = proxy_environment_assignments(&ProxySettings {
+            mode: ProxyMode::Custom,
+            http_proxy: "http://127.0.0.1:7890".to_string(),
+            https_proxy: "http://127.0.0.1:7890".to_string(),
+            no_proxy: "localhost".to_string(),
+        });
+
+        assert_eq!(
+            assignments,
+            vec![
+                ("HTTP_PROXY", Some("http://127.0.0.1:7890".to_string())),
+                ("http_proxy", Some("http://127.0.0.1:7890".to_string())),
+                ("HTTPS_PROXY", Some("http://127.0.0.1:7890".to_string())),
+                ("https_proxy", Some("http://127.0.0.1:7890".to_string())),
+                ("NO_PROXY", Some("localhost".to_string())),
+                ("no_proxy", Some("localhost".to_string())),
+            ]
+        );
+    }
+
+    #[test]
+    fn custom_mode_clears_unset_values() {
+        let assignments = proxy_environment_assignments(&ProxySettings {
+            mode: ProxyMode::Custom,
+            http_proxy: "http://127.0.0.1:7890".to_string(),
+            https_proxy: String::new(),
+            no_proxy: String::new(),
+        });
+
+        assert_eq!(
+            assignments,
+            vec![
+                ("HTTP_PROXY", Some("http://127.0.0.1:7890".to_string())),
+                ("http_proxy", Some("http://127.0.0.1:7890".to_string())),
                 ("HTTPS_PROXY", None),
                 ("https_proxy", None),
                 ("NO_PROXY", None),

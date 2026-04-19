@@ -82,7 +82,7 @@ function createBaseProps(
     writeAgentConfig: vi.fn().mockResolvedValue({ content: "" }),
     readProxySettings: vi.fn().mockResolvedValue({
       settings: {
-        enabled: false,
+        mode: "disabled",
         httpProxy: "",
         httpsProxy: "",
         noProxy: "",
@@ -91,7 +91,7 @@ function createBaseProps(
     writeGlobalAgentInstructions: vi.fn().mockResolvedValue({ path: "~/.codex/AGENTS.md", content: "" }),
     writeProxySettings: vi.fn().mockResolvedValue({
       settings: {
-        enabled: false,
+        mode: "disabled",
         httpProxy: "",
         httpsProxy: "",
         noProxy: "",

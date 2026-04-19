@@ -64,6 +64,33 @@
   flex: 0 0 auto;
 }
 
+.settings-inline-select {
+  display: contents;
+}
+
+.settings-custom-proxy-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 18px 16px;
+}
+
+.settings-custom-proxy-fields .settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-custom-proxy-fields .settings-field-label {
+  font-size: var(--app-ui-font-size-compact);
+  color: #475569;
+  font-weight: 500;
+}
+
+.settings-custom-proxy-fields .settings-text-input {
+  width: 100%;
+}
+
 .settings-text-input {
   width: 200px;
   height: 34px;
@@ -1175,6 +1202,10 @@ html[data-theme="dark"] .settings-dialog-textarea {
   border-color: var(--border-light);
   background: var(--surface-panel-muted);
   color: var(--text-main);
+}
+
+html[data-theme="dark"] .settings-custom-proxy-fields .settings-field-label {
+  color: var(--text-subtle);
 }
 
 html[data-theme="dark"] .settings-head-action:hover,

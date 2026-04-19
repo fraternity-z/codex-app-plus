@@ -239,7 +239,7 @@ mod tests {
             &wsl_context(),
             "/usr/local/bin/codex",
             &crate::models::ProxySettings {
-                enabled: true,
+                mode: crate::models::ProxyMode::System,
                 http_proxy: String::new(),
                 https_proxy: String::new(),
                 no_proxy: String::new(),

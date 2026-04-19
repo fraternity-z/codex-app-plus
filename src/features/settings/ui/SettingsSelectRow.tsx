@@ -15,12 +15,13 @@ export interface SettingsSelectOption<T extends string> {
 
 interface SettingsSelectRowProps<T extends string> {
   readonly label: string;
-  readonly description: string;
+  readonly description?: string;
   readonly value: T;
   readonly options: ReadonlyArray<SettingsSelectOption<T>>;
   readonly onChange: (value: T) => void;
   readonly statusNote?: string;
   readonly disabled?: boolean;
+  readonly layout?: "row" | "inline";
 }
 
 function findSelectedOption<T extends string>(
@@ -127,12 +128,14 @@ export function SettingsSelectRow<T extends string>(props: SettingsSelectRowProp
   }, [handleSelect, menuLayout, menuOpen, props.label, props.options, props.value]);
 
   return (
-    <div className="settings-row">
-      <div className="settings-row-copy">
-        <strong>{props.label}</strong>
-        <p>{props.description}</p>
-        {props.statusNote ? <p className="settings-row-note">{props.statusNote}</p> : null}
-      </div>
+    <div className={props.layout === "inline" ? "settings-inline-select" : "settings-row"}>
+      {props.layout === "inline" ? null : (
+        <div className="settings-row-copy">
+          <strong>{props.label}</strong>
+          {props.description ? <p>{props.description}</p> : null}
+          {props.statusNote ? <p className="settings-row-note">{props.statusNote}</p> : null}
+        </div>
+      )}
       <div
         className="settings-row-control"
         data-menu-open={menuOpen ? "true" : undefined}

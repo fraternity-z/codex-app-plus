@@ -145,8 +145,10 @@ export interface UpdateGlobalAgentInstructionsInput {
   readonly content: string;
 }
 
+export type ProxyMode = "disabled" | "system" | "custom";
+
 export interface ProxySettings {
-  readonly enabled: boolean;
+  readonly mode: ProxyMode;
   readonly httpProxy: string;
   readonly httpsProxy: string;
   readonly noProxy: string;
