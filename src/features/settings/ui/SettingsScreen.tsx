@@ -197,8 +197,6 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     onOpenConfigToml: openConfigToml,
     onOpenExternal: (url: string) => props.hostBridge.app.openExternal(url),
     refreshConfigSnapshot: props.controller.refreshConfigSnapshot,
-    refreshAuthState: props.controller.refreshAuthState,
-    login: props.controller.login,
     readGlobalAgentInstructions: () =>
       props.hostBridge.app.readGlobalAgentInstructions({
         agentEnvironment: props.preferences.agentEnvironment,
@@ -218,14 +216,6 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
       props.hostBridge.app.readProxySettings(input),
     writeProxySettings: (input) =>
       props.hostBridge.app.writeProxySettings(input),
-    getCodexAuthModeState: () =>
-      props.hostBridge.app.getCodexAuthModeState({
-        agentEnvironment: props.preferences.agentEnvironment,
-      }),
-    activateCodexChatgpt: () =>
-      props.hostBridge.app.activateCodexChatgpt({
-        agentEnvironment: props.preferences.agentEnvironment,
-      }),
     refreshMcpData: props.controller.refreshMcpData,
     listArchivedThreads: props.controller.listArchivedThreads,
     unarchiveThread: props.controller.unarchiveThread,

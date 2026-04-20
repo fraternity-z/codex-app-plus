@@ -5,8 +5,6 @@ import type { ResolvedTheme } from "../../../domain/theme";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import type {
   AgentEnvironment,
-  CodexAuthModeStateOutput,
-  CodexAuthSwitchResult,
   GlobalAgentInstructionsOutput,
   ReadProxySettingsOutput,
   UpdateProxySettingsInput,
@@ -73,8 +71,6 @@ export interface SettingsViewProps {
   onOpenConfigToml: () => Promise<void>;
   onOpenExternal: (url: string) => Promise<void>;
   refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
-  refreshAuthState: () => Promise<void>;
-  login: () => Promise<void>;
   readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
   getAgentsSettings: () => Promise<import("../../../bridge/types").AgentsSettingsOutput>;
   createAgent: (input: import("../../../bridge/types").CreateAgentInput) => Promise<import("../../../bridge/types").AgentsSettingsOutput>;
@@ -87,8 +83,6 @@ export interface SettingsViewProps {
     input: UpdateGlobalAgentInstructionsInput
   ) => Promise<GlobalAgentInstructionsOutput>;
   writeProxySettings: (input: UpdateProxySettingsInput) => Promise<UpdateProxySettingsOutput>;
-  getCodexAuthModeState: () => Promise<CodexAuthModeStateOutput>;
-  activateCodexChatgpt: () => Promise<CodexAuthSwitchResult>;
   refreshMcpData: () => Promise<McpRefreshResult>;
   listArchivedThreads: () => Promise<ReadonlyArray<import("../../../domain/types").ThreadSummary>>;
   unarchiveThread: (threadId: string) => Promise<void>;
@@ -205,18 +199,10 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
         <ConfigSettingsSection
           agentEnvironment={props.preferences.agentEnvironment}
           busy={props.busy}
-          configSnapshot={props.configSnapshot}
           onOpenConfigToml={props.onOpenConfigToml}
           onOpenExternal={props.onOpenExternal}
-          refreshConfigSnapshot={props.refreshConfigSnapshot}
-          refreshAuthState={props.refreshAuthState}
-          login={props.login}
           readProxySettings={props.readProxySettings}
-          getCodexAuthModeState={props.getCodexAuthModeState}
-          activateCodexChatgpt={props.activateCodexChatgpt}
           writeProxySettings={props.writeProxySettings}
-          batchWriteConfig={props.batchWriteConfig}
-          writeConfigValue={props.writeConfigValue}
         />
       </>
     );

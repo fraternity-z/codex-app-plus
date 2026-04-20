@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { type Locale } from "../../../i18n";
@@ -20,12 +20,8 @@ function createBaseProps(
   return {
     agentEnvironment: "windowsNative",
     busy: false,
-    configSnapshot: { config: {} },
     onOpenConfigToml: vi.fn().mockResolvedValue(undefined),
     onOpenExternal: vi.fn().mockResolvedValue(undefined),
-    refreshConfigSnapshot: vi.fn().mockResolvedValue(undefined),
-    refreshAuthState: vi.fn().mockResolvedValue(undefined),
-    login: vi.fn().mockResolvedValue(undefined),
     readProxySettings: vi.fn().mockResolvedValue({
       settings: {
         mode: "disabled",
@@ -33,20 +29,6 @@ function createBaseProps(
         httpsProxy: "",
         noProxy: "",
       },
-    }),
-    getCodexAuthModeState: vi.fn().mockResolvedValue({
-      activeMode: "chatgpt",
-      activeProviderId: null,
-      activeProviderKey: null,
-      oauthSnapshotAvailable: false,
-    }),
-    activateCodexChatgpt: vi.fn().mockResolvedValue({
-      mode: "chatgpt",
-      providerId: null,
-      providerKey: null,
-      authPath: "C:/Users/Administrator/.codex/auth.json",
-      configPath: "C:/Users/Administrator/.codex/config.toml",
-      restoredFromSnapshot: false,
     }),
     writeProxySettings: vi.fn().mockResolvedValue({
       settings: {
@@ -56,8 +38,6 @@ function createBaseProps(
         noProxy: "",
       },
     }),
-    batchWriteConfig: vi.fn().mockResolvedValue({}),
-    writeConfigValue: vi.fn().mockResolvedValue({}),
     ...overrides,
   };
 }
@@ -77,20 +57,5 @@ describe("ConfigSettingsSection", () => {
     expect(await screen.findByText("Config")).toBeInTheDocument();
     expect(screen.getByText("Open config file")).toBeInTheDocument();
     expect(screen.getByText("Proxy")).toBeInTheDocument();
-  });
-
-  it("writes the Windows Sandbox config when toggled on", async () => {
-    const batchWriteConfig = vi.fn().mockResolvedValue({});
-    renderSection(createBaseProps({
-      batchWriteConfig,
-    }));
-
-    fireEvent.click(screen.getByRole("switch", { name: "Windows 沙盒" }));
-
-    await waitFor(() => {
-      expect(batchWriteConfig).toHaveBeenCalledWith(expect.objectContaining({
-        edits: [{ keyPath: "windows.sandbox", mergeStrategy: "replace", value: "unelevated" }],
-      }));
-    });
   });
 });
