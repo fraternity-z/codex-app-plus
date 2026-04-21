@@ -290,7 +290,11 @@ async function toggleRealtime(argumentsText: string, context: SlashExecutionCont
   }
   const prompt = argumentsText.trim();
   if (prompt.length === 0) throw new Error("启动实时会话前，请在命令后输入提示词。");
-  await deps.composerCommandBridge.request("thread/realtime/start", { threadId: context.selectedThreadId, prompt });
+  await deps.composerCommandBridge.request("thread/realtime/start", {
+    threadId: context.selectedThreadId,
+    outputModality: "text",
+    prompt
+  });
   pushThreadNotice(deps.dispatch, context.selectedThreadId, "已启动实时会话", prompt, "info", "thread/realtime/start");
 }
 

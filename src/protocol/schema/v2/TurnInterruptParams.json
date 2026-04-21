@@ -1,11 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "TurnInterruptParams",
-  "type": "object",
-  "required": [
-    "threadId",
-    "turnId"
-  ],
   "properties": {
     "threadId": {
       "type": "string"
@@ -13,5 +7,11 @@
     "turnId": {
       "type": "string"
     }
-  }
+  },
+  "required": [
+    "threadId",
+    "turnId"
+  ],
+  "title": "TurnInterruptParams",
+  "type": "object"
 }

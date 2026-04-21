@@ -205,6 +205,16 @@
   word-break: break-word;
 }
 
+.home-trace-image-preview {
+  width: min(420px, 100%);
+  max-height: 360px;
+  display: block;
+  object-fit: contain;
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  background: var(--surface-panel-muted);
+}
+
 .home-request-question {
   display: flex;
   flex-direction: column;

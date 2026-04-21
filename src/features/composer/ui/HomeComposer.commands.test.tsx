@@ -48,7 +48,19 @@ function ComposerHarness(props: {
   const composerCommandBridge = useMemo<ComposerCommandBridge>(() => ({
     startFuzzySession: vi.fn().mockResolvedValue(undefined),
     updateFuzzySession: vi.fn(async ({ sessionId, query }) => {
-      dispatch({ type: "fuzzySearch/updated", sessionId, query, files: [{ root: "E:/code/codex-app-plus", path: "src/App.tsx", file_name: "App.tsx", score: 1, indices: null }] });
+      dispatch({
+        type: "fuzzySearch/updated",
+        sessionId,
+        query,
+        files: [{
+          root: "E:/code/codex-app-plus",
+          path: "src/App.tsx",
+          match_type: "file",
+          file_name: "App.tsx",
+          score: 1,
+          indices: null
+        }]
+      });
     }),
     stopFuzzySession: vi.fn().mockResolvedValue(undefined),
     request: props.request ?? vi.fn().mockResolvedValue({}),
@@ -242,7 +254,7 @@ describe("HomeComposer commands", () => {
   it("executes /plugins through the official request path", async () => {
     const request = vi.fn(async (method: string) => {
       if (method === "plugin/list") {
-        return { marketplaces: [], remoteSyncError: null };
+        return { marketplaces: [], marketplaceLoadErrors: [], featuredPluginIds: [] };
       }
       return {};
     });
@@ -254,7 +266,6 @@ describe("HomeComposer commands", () => {
 
     await waitFor(() => expect(request).toHaveBeenCalledWith("plugin/list", {
       cwds: ["E:/code/codex-app-plus"],
-      forceRemoteSync: true,
     }));
     expect((textarea as HTMLTextAreaElement).value).toBe("");
   });

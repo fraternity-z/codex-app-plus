@@ -4,6 +4,7 @@ import type { ReceivedNotification } from "../../../domain/types";
 import type { PluginInstallResponse } from "../../../protocol/generated/v2/PluginInstallResponse";
 import type { PluginListResponse } from "../../../protocol/generated/v2/PluginListResponse";
 import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsListResponse";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { SkillsView } from "./SkillsView";
 
 function createInstalledSkillsResponse(enabled = true): SkillsListResponse {
@@ -55,12 +56,16 @@ function createMarketplacePluginsResponse(): PluginListResponse {
           defaultPrompt: null,
           brandColor: "#0ea5e9",
           composerIcon: null,
+          composerIconUrl: null,
           logo: null,
+          logoUrl: null,
           screenshots: [],
+          screenshotUrls: [],
         },
       }],
     }],
-    remoteSyncError: null,
+    marketplaceLoadErrors: [],
+    featuredPluginIds: [],
   };
 }
 
@@ -95,6 +100,7 @@ function renderSkillsView(overrides?: {
       writeSkillConfig={writeSkillConfig}
       installMarketplacePlugin={installMarketplacePlugin}
     />,
+    { wrapper: createI18nWrapper() },
   );
 
   return { ...view, listSkills, listMarketplacePlugins, writeSkillConfig, installMarketplacePlugin };
@@ -133,7 +139,6 @@ describe("SkillsView", () => {
     await waitFor(() => expect(installMarketplacePlugin).toHaveBeenCalledWith({
       marketplacePath: "C:/Users/Administrator/.codex/plugins/marketplaces/official",
       pluginName: "figma",
-      forceRemoteSync: true,
     }));
     expect(await screen.findByText("Word Docs")).toBeInTheDocument();
   });

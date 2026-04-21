@@ -1,8 +1,10 @@
+import { convertFileSrc } from "@tauri-apps/api/core";
 import type {
   CollabAgentToolCallEntry,
   CommandExecutionEntry,
   DynamicToolCallEntry,
   FileChangeEntry,
+  ImageGenerationEntry,
   ImageViewEntry,
   McpToolCallEntry,
   WebSearchEntry,
@@ -44,6 +46,7 @@ function renderTraceBody(entry: TraceEntry): JSX.Element {
   if (entry.kind === "collabAgentToolCall") return <CollabTraceDetails entry={entry} />;
   if (entry.kind === "webSearch") return <WebSearchTraceDetails entry={entry} />;
   if (entry.kind === "imageView") return <ImageTraceDetails entry={entry} />;
+  if (entry.kind === "imageGeneration") return <ImageGenerationTraceDetails entry={entry} />;
   return <FileTraceDetails entry={entry} />;
 }
 
@@ -74,6 +77,11 @@ function ImageTraceDetails(props: { readonly entry: ImageViewEntry }): JSX.Eleme
   return <div className="home-trace-summary-grid"><TraceSummary label="Image path" value={props.entry.path} /><TraceSummary label="Preview" value="Open in the thread view" /></div>;
 }
 
+function ImageGenerationTraceDetails(props: { readonly entry: ImageGenerationEntry }): JSX.Element {
+  const previewSrc = createImageGenerationPreviewSource(props.entry);
+  return <><div className="home-trace-summary-grid"><TraceSummary label="Prompt" value={props.entry.revisedPrompt ?? props.entry.itemId ?? props.entry.id} /><TraceSummary label="Saved path" value={props.entry.savedPath ?? "Not saved"} /><TraceSummary label="Result" value={formatImageResult(props.entry.result)} /></div>{previewSrc === null ? null : <img className="home-trace-image-preview" src={previewSrc} alt="Generated image preview" />}</>;
+}
+
 function FileTraceDetails(props: { readonly entry: FileChangeEntry }): JSX.Element {
   const previewPaths = props.entry.changes.slice(0, MAX_FILE_ITEMS);
   const hiddenCount = props.entry.changes.length - previewPaths.length;
@@ -92,6 +100,7 @@ function formatTraceTitle(entry: TraceEntry): string {
   if (entry.kind === "collabAgentToolCall") return `Collab agent · ${entry.tool}`;
   if (entry.kind === "webSearch") return "Web search";
   if (entry.kind === "imageView") return "Image preview";
+  if (entry.kind === "imageGeneration") return "Generated image";
   return "File change";
 }
 
@@ -102,6 +111,7 @@ function formatTraceMeta(entry: TraceEntry): string | null {
   if (entry.kind === "collabAgentToolCall") return `${entry.receiverThreadIds.length} target(s)`;
   if (entry.kind === "webSearch") return entry.action?.type ?? null;
   if (entry.kind === "imageView") return null;
+  if (entry.kind === "imageGeneration") return entry.savedPath === null ? null : "saved";
   return `${entry.changes.length} change(s)`;
 }
 
@@ -111,7 +121,22 @@ function formatTraceStatus(entry: TraceEntry): string {
   if (entry.kind === "mcpToolCall") return entry.status;
   if (entry.kind === "dynamicToolCall") return entry.status;
   if (entry.kind === "collabAgentToolCall") return entry.status;
+  if (entry.kind === "imageGeneration") return entry.status;
   return "completed";
+}
+
+function createImageGenerationPreviewSource(entry: ImageGenerationEntry): string | null {
+  if (entry.savedPath !== null) {
+    return convertFileSrc(entry.savedPath);
+  }
+  if (entry.result.trim().length === 0) {
+    return null;
+  }
+  return entry.result.startsWith("data:image/") ? entry.result : `data:image/png;base64,${entry.result}`;
+}
+
+function formatImageResult(result: string): string {
+  return result.trim().length === 0 ? "No image payload" : `${result.length} base64 chars`;
 }
 
 function formatDuration(durationMs: number | null): string {

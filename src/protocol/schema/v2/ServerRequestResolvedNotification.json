@@ -1,11 +1,18 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ServerRequestResolvedNotification",
-  "type": "object",
-  "required": [
-    "requestId",
-    "threadId"
-  ],
+  "definitions": {
+    "RequestId": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "format": "int64",
+          "type": "integer"
+        }
+      ]
+    }
+  },
   "properties": {
     "requestId": {
       "$ref": "#/definitions/RequestId"
@@ -14,17 +21,10 @@
       "type": "string"
     }
   },
-  "definitions": {
-    "RequestId": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "integer",
-          "format": "int64"
-        }
-      ]
-    }
-  }
+  "required": [
+    "requestId",
+    "threadId"
+  ],
+  "title": "ServerRequestResolvedNotification",
+  "type": "object"
 }

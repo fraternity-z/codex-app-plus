@@ -105,12 +105,32 @@ function createTraceModel(key: string, entry: TraceEntry, t: TranslateFn): Assis
       detailPanel: createDetailBlockPanel({ body: entry.action === null ? null : safeJson(entry.action), label: "Search" }),
     });
   }
+  if (entry.kind === "imageGeneration") {
+    const detail = entry.revisedPrompt ?? entry.itemId ?? entry.id;
+    return createDetailsModel({
+      key,
+      summary: t("home.conversation.transcript.imageGeneration", { detail }),
+      detailPanel: createDetailBlockPanel({
+        body: joinDetailLines([
+          entry.revisedPrompt === null ? null : `Prompt: ${entry.revisedPrompt}`,
+          entry.savedPath === null ? null : `Saved path: ${entry.savedPath}`,
+          formatImageGenerationResult(entry.result),
+        ]),
+        label: "Image",
+        footerStatus: formatToolFooterStatus(entry.status, t),
+      }),
+    });
+  }
 
   return createDetailsModel({
     key,
     summary: t("home.conversation.transcript.viewImage", { path: entry.path }),
     detailPanel: null,
   });
+}
+
+function formatImageGenerationResult(result: string): string | null {
+  return result.trim().length === 0 ? null : `Result: ${result.length} base64 chars`;
 }
 
 function createCommandTraceModel(

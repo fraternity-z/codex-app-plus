@@ -42,7 +42,19 @@ export function createItemState(item: ThreadItem) {
 
 export function createSkeletonItem(itemId: string, target: ConversationTextDelta["target"] | ConversationOutputDelta["target"], cwd: string | null): ThreadItem {
   if (target === "commandExecution") {
-    return { type: "commandExecution", id: itemId, command: "", cwd: cwd ?? "", processId: null, status: "inProgress", commandActions: [], aggregatedOutput: "", exitCode: null, durationMs: null };
+    return {
+      type: "commandExecution",
+      id: itemId,
+      command: "",
+      cwd: cwd ?? "",
+      processId: null,
+      source: "agent",
+      status: "inProgress",
+      commandActions: [],
+      aggregatedOutput: "",
+      exitCode: null,
+      durationMs: null
+    };
   }
   if (target === "fileChange") {
     return { type: "fileChange", id: itemId, changes: [], status: "inProgress" };
@@ -64,7 +76,7 @@ function createTurnState(turn: Turn, params: ConversationTurnParams | null): Con
     error: turn.error,
     params,
     items: turn.items.map(createItemState),
-    turnStartedAtMs: Date.now(),
+    turnStartedAtMs: turn.startedAt === null ? Date.now() : turn.startedAt * 1000,
     planExplanation: null,
     planSteps: [],
     diff: null,

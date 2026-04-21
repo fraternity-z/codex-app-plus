@@ -324,6 +324,9 @@ function createTraceScrollKey(
   if (node.item.kind === "webSearch") {
     return `${node.key}:${node.item.query}:${node.item.action?.type ?? "none"}`;
   }
+  if (node.item.kind === "imageGeneration") {
+    return `${node.key}:${node.item.status}:${node.item.savedPath ?? "none"}:${node.item.result.length}`;
+  }
   return `${node.key}:${node.item.path}`;
 }
 

@@ -14,6 +14,7 @@ describe("composerPaletteData", () => {
         files: [{
           root: "E:/code/codex-app-plus",
           path: "src/App.tsx",
+          match_type: "file",
           file_name: "App.tsx",
           score: 1,
           indices: null,

@@ -32,6 +32,7 @@ function createCommandItem(id: string, outputText: string): ConversationTurnStat
       command: "dir",
       cwd: "E:/code/codex-app-plus",
       processId: null,
+      source: "agent",
       status: "inProgress",
       commandActions: [],
       aggregatedOutput: outputText,

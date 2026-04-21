@@ -10,6 +10,7 @@ import { OutputDeltaQueue } from "../../features/conversation/model/outputDeltaQ
 function createThread(overrides: Record<string, unknown> = {}) {
   return {
     id: "thread-1",
+    forkedFromId: null,
     preview: "Inspect workspace",
     ephemeral: false,
     modelProvider: "openai",

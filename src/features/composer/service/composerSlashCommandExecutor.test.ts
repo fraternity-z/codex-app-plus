@@ -78,7 +78,7 @@ describe("composerSlashCommandExecutor", () => {
   it("lists plugins through plugin/list", async () => {
     const request = vi.fn(async (method: string) => {
       if (method === "plugin/list") {
-        return { marketplaces: [], remoteSyncError: null };
+        return { marketplaces: [], marketplaceLoadErrors: [], featuredPluginIds: [] };
       }
       return {};
     });
@@ -88,7 +88,6 @@ describe("composerSlashCommandExecutor", () => {
 
     expect(request).toHaveBeenCalledWith("plugin/list", {
       cwds: ["E:/code/codex-app-plus"],
-      forceRemoteSync: true,
     });
   });
 });

@@ -156,6 +156,13 @@ export interface ImageViewEntry extends TimelineBase {
   readonly kind: "imageView";
   readonly path: string;
 }
+export interface ImageGenerationEntry extends TimelineBase {
+  readonly kind: "imageGeneration";
+  readonly status: string;
+  readonly revisedPrompt: string | null;
+  readonly result: string;
+  readonly savedPath: string | null;
+}
 export interface TurnPlanSnapshotEntry extends TimelineBase {
   readonly kind: "turnPlanSnapshot";
   readonly explanation: string | null;
@@ -262,6 +269,7 @@ export type TimelineEntry =
   | CollabAgentToolCallEntry
   | WebSearchEntry
   | ImageViewEntry
+  | ImageGenerationEntry
   | TurnPlanSnapshotEntry
   | TurnDiffSnapshotEntry
   | ReviewModeEntry

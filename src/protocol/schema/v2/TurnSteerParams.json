@@ -1,60 +1,34 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "TurnSteerParams",
-  "type": "object",
-  "required": [
-    "expectedTurnId",
-    "input",
-    "threadId"
-  ],
-  "properties": {
-    "expectedTurnId": {
-      "description": "Required active turn id precondition. The request fails when it does not match the currently active turn.",
-      "type": "string"
-    },
-    "input": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/UserInput"
-      }
-    },
-    "threadId": {
-      "type": "string"
-    }
-  },
   "definitions": {
     "ByteRange": {
-      "type": "object",
+      "properties": {
+        "end": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        },
+        "start": {
+          "format": "uint",
+          "minimum": 0.0,
+          "type": "integer"
+        }
+      },
       "required": [
         "end",
         "start"
       ],
-      "properties": {
-        "end": {
-          "type": "integer",
-          "format": "uint",
-          "minimum": 0.0
-        },
-        "start": {
-          "type": "integer",
-          "format": "uint",
-          "minimum": 0.0
-        }
-      }
+      "type": "object"
     },
     "TextElement": {
-      "type": "object",
-      "required": [
-        "byteRange"
-      ],
       "properties": {
         "byteRange": {
-          "description": "Byte range in the parent `text` buffer that this element occupies.",
           "allOf": [
             {
               "$ref": "#/definitions/ByteRange"
             }
-          ]
+          ],
+          "description": "Byte range in the parent `text` buffer that this element occupies."
         },
         "placeholder": {
           "description": "Optional human-readable placeholder for the element, displayed in the UI.",
@@ -63,85 +37,83 @@
             "null"
           ]
         }
-      }
+      },
+      "required": [
+        "byteRange"
+      ],
+      "type": "object"
     },
     "UserInput": {
       "oneOf": [
         {
-          "type": "object",
-          "required": [
-            "text",
-            "type"
-          ],
           "properties": {
             "text": {
               "type": "string"
             },
             "text_elements": {
-              "description": "UI-defined spans within `text` used to render or persist special elements.",
               "default": [],
-              "type": "array",
+              "description": "UI-defined spans within `text` used to render or persist special elements.",
               "items": {
                 "$ref": "#/definitions/TextElement"
-              }
+              },
+              "type": "array"
             },
             "type": {
-              "type": "string",
               "enum": [
                 "text"
               ],
-              "title": "TextUserInputType"
+              "title": "TextUserInputType",
+              "type": "string"
             }
           },
-          "title": "TextUserInput"
+          "required": [
+            "text",
+            "type"
+          ],
+          "title": "TextUserInput",
+          "type": "object"
         },
         {
-          "type": "object",
-          "required": [
-            "type",
-            "url"
-          ],
           "properties": {
             "type": {
-              "type": "string",
               "enum": [
                 "image"
               ],
-              "title": "ImageUserInputType"
+              "title": "ImageUserInputType",
+              "type": "string"
             },
             "url": {
               "type": "string"
             }
           },
-          "title": "ImageUserInput"
+          "required": [
+            "type",
+            "url"
+          ],
+          "title": "ImageUserInput",
+          "type": "object"
         },
         {
-          "type": "object",
-          "required": [
-            "path",
-            "type"
-          ],
           "properties": {
             "path": {
               "type": "string"
             },
             "type": {
-              "type": "string",
               "enum": [
                 "localImage"
               ],
-              "title": "LocalImageUserInputType"
+              "title": "LocalImageUserInputType",
+              "type": "string"
             }
           },
-          "title": "LocalImageUserInput"
-        },
-        {
-          "type": "object",
           "required": [
-            "name",
             "path",
             "type"
           ],
+          "title": "LocalImageUserInput",
+          "type": "object"
+        },
+        {
           "properties": {
             "name": {
               "type": "string"
@@ -150,22 +122,22 @@
               "type": "string"
             },
             "type": {
-              "type": "string",
               "enum": [
                 "skill"
               ],
-              "title": "SkillUserInputType"
+              "title": "SkillUserInputType",
+              "type": "string"
             }
           },
-          "title": "SkillUserInput"
-        },
-        {
-          "type": "object",
           "required": [
             "name",
             "path",
             "type"
           ],
+          "title": "SkillUserInput",
+          "type": "object"
+        },
+        {
           "properties": {
             "name": {
               "type": "string"
@@ -174,16 +146,54 @@
               "type": "string"
             },
             "type": {
-              "type": "string",
               "enum": [
                 "mention"
               ],
-              "title": "MentionUserInputType"
+              "title": "MentionUserInputType",
+              "type": "string"
             }
           },
-          "title": "MentionUserInput"
+          "required": [
+            "name",
+            "path",
+            "type"
+          ],
+          "title": "MentionUserInput",
+          "type": "object"
         }
       ]
     }
-  }
+  },
+  "properties": {
+    "expectedTurnId": {
+      "description": "Required active turn id precondition. The request fails when it does not match the currently active turn.",
+      "type": "string"
+    },
+    "input": {
+      "items": {
+        "$ref": "#/definitions/UserInput"
+      },
+      "type": "array"
+    },
+    "responsesapiClientMetadata": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Optional turn-scoped Responses API client metadata.",
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "threadId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "expectedTurnId",
+    "input",
+    "threadId"
+  ],
+  "title": "TurnSteerParams",
+  "type": "object"
 }

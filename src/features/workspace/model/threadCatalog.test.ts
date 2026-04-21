@@ -5,6 +5,7 @@ import { listAllThreads, mapCodexSessionsToThreads, mergeThreadCatalogs } from "
 function createRpcThread(overrides?: Partial<{ readonly id: string; readonly updatedAt: number; readonly name: string | null; readonly cwd: string | null }>) {
   return {
     id: overrides?.id ?? "thread-1",
+    forkedFromId: null,
     preview: "preview",
     ephemeral: false,
     modelProvider: "openai",

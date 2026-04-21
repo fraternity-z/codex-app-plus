@@ -1,53 +1,34 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "PermissionsRequestApprovalResponse",
-  "type": "object",
-  "required": [
-    "permissions"
-  ],
-  "properties": {
-    "permissions": {
-      "$ref": "#/definitions/GrantedPermissionProfile"
-    },
-    "scope": {
-      "default": "turn",
-      "allOf": [
-        {
-          "$ref": "#/definitions/PermissionGrantScope"
-        }
-      ]
-    }
-  },
   "definitions": {
     "AbsolutePathBuf": {
       "description": "A path that is guaranteed to be absolute and normalized (though it is not guaranteed to be canonicalized or exist on the filesystem).\n\nIMPORTANT: When deserializing an `AbsolutePathBuf`, a base path must be set using [AbsolutePathBufGuard::new]. If no base path is set, the deserialization will fail unless the path being deserialized is already absolute.",
       "type": "string"
     },
     "AdditionalFileSystemPermissions": {
-      "type": "object",
       "properties": {
         "read": {
+          "items": {
+            "$ref": "#/definitions/AbsolutePathBuf"
+          },
           "type": [
             "array",
             "null"
-          ],
-          "items": {
-            "$ref": "#/definitions/AbsolutePathBuf"
-          }
+          ]
         },
         "write": {
+          "items": {
+            "$ref": "#/definitions/AbsolutePathBuf"
+          },
           "type": [
             "array",
             "null"
-          ],
-          "items": {
-            "$ref": "#/definitions/AbsolutePathBuf"
-          }
+          ]
         }
-      }
+      },
+      "type": "object"
     },
     "AdditionalNetworkPermissions": {
-      "type": "object",
       "properties": {
         "enabled": {
           "type": [
@@ -55,10 +36,10 @@
             "null"
           ]
         }
-      }
+      },
+      "type": "object"
     },
     "GrantedPermissionProfile": {
-      "type": "object",
       "properties": {
         "fileSystem": {
           "anyOf": [
@@ -80,14 +61,33 @@
             }
           ]
         }
-      }
+      },
+      "type": "object"
     },
     "PermissionGrantScope": {
-      "type": "string",
       "enum": [
         "turn",
         "session"
-      ]
+      ],
+      "type": "string"
     }
-  }
+  },
+  "properties": {
+    "permissions": {
+      "$ref": "#/definitions/GrantedPermissionProfile"
+    },
+    "scope": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/PermissionGrantScope"
+        }
+      ],
+      "default": "turn"
+    }
+  },
+  "required": [
+    "permissions"
+  ],
+  "title": "PermissionsRequestApprovalResponse",
+  "type": "object"
 }

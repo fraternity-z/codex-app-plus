@@ -1,44 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ListMcpServerStatusResponse",
-  "type": "object",
-  "required": [
-    "data"
-  ],
-  "properties": {
-    "data": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/McpServerStatus"
-      }
-    },
-    "nextCursor": {
-      "description": "Opaque cursor to pass to the next call to continue after the last item. If None, there are no more items to return.",
-      "type": [
-        "string",
-        "null"
-      ]
-    }
-  },
   "definitions": {
     "McpAuthStatus": {
-      "type": "string",
       "enum": [
         "unsupported",
         "notLoggedIn",
         "bearerToken",
         "oAuth"
-      ]
+      ],
+      "type": "string"
     },
     "McpServerStatus": {
-      "type": "object",
-      "required": [
-        "authStatus",
-        "name",
-        "resourceTemplates",
-        "resources",
-        "tools"
-      ],
       "properties": {
         "authStatus": {
           "$ref": "#/definitions/McpAuthStatus"
@@ -47,32 +19,35 @@
           "type": "string"
         },
         "resourceTemplates": {
-          "type": "array",
           "items": {
             "$ref": "#/definitions/ResourceTemplate"
-          }
+          },
+          "type": "array"
         },
         "resources": {
-          "type": "array",
           "items": {
             "$ref": "#/definitions/Resource"
-          }
+          },
+          "type": "array"
         },
         "tools": {
-          "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/Tool"
-          }
+          },
+          "type": "object"
         }
-      }
+      },
+      "required": [
+        "authStatus",
+        "name",
+        "resourceTemplates",
+        "resources",
+        "tools"
+      ],
+      "type": "object"
     },
     "Resource": {
       "description": "A known resource that the server is capable of reading.",
-      "type": "object",
-      "required": [
-        "name",
-        "uri"
-      ],
       "properties": {
         "_meta": true,
         "annotations": true,
@@ -83,11 +58,11 @@
           ]
         },
         "icons": {
+          "items": true,
           "type": [
             "array",
             "null"
-          ],
-          "items": true
+          ]
         },
         "mimeType": {
           "type": [
@@ -99,11 +74,11 @@
           "type": "string"
         },
         "size": {
+          "format": "int64",
           "type": [
             "integer",
             "null"
-          ],
-          "format": "int64"
+          ]
         },
         "title": {
           "type": [
@@ -114,15 +89,15 @@
         "uri": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "name",
+        "uri"
+      ],
+      "type": "object"
     },
     "ResourceTemplate": {
       "description": "A template description for resources available on the server.",
-      "type": "object",
-      "required": [
-        "name",
-        "uriTemplate"
-      ],
       "properties": {
         "annotations": true,
         "description": {
@@ -149,15 +124,15 @@
         "uriTemplate": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "name",
+        "uriTemplate"
+      ],
+      "type": "object"
     },
     "Tool": {
       "description": "Definition for a tool the client can call.",
-      "type": "object",
-      "required": [
-        "inputSchema",
-        "name"
-      ],
       "properties": {
         "_meta": true,
         "annotations": true,
@@ -168,11 +143,11 @@
           ]
         },
         "icons": {
+          "items": true,
           "type": [
             "array",
             "null"
-          ],
-          "items": true
+          ]
         },
         "inputSchema": true,
         "name": {
@@ -185,7 +160,32 @@
             "null"
           ]
         }
-      }
+      },
+      "required": [
+        "inputSchema",
+        "name"
+      ],
+      "type": "object"
     }
-  }
+  },
+  "properties": {
+    "data": {
+      "items": {
+        "$ref": "#/definitions/McpServerStatus"
+      },
+      "type": "array"
+    },
+    "nextCursor": {
+      "description": "Opaque cursor to pass to the next call to continue after the last item. If None, there are no more items to return.",
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "data"
+  ],
+  "title": "ListMcpServerStatusResponse",
+  "type": "object"
 }

@@ -1,12 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ContextCompactedNotification",
   "description": "Deprecated: Use `ContextCompaction` item type instead.",
-  "type": "object",
-  "required": [
-    "threadId",
-    "turnId"
-  ],
   "properties": {
     "threadId": {
       "type": "string"
@@ -14,5 +8,11 @@
     "turnId": {
       "type": "string"
     }
-  }
+  },
+  "required": [
+    "threadId",
+    "turnId"
+  ],
+  "title": "ContextCompactedNotification",
+  "type": "object"
 }

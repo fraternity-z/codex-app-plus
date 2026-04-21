@@ -1,12 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ThreadRealtimeStartedNotification",
+  "definitions": {
+    "RealtimeConversationVersion": {
+      "enum": [
+        "v1",
+        "v2"
+      ],
+      "type": "string"
+    }
+  },
   "description": "EXPERIMENTAL - emitted when thread realtime startup is accepted.",
-  "type": "object",
-  "required": [
-    "threadId",
-    "version"
-  ],
   "properties": {
     "sessionId": {
       "type": [
@@ -21,13 +24,10 @@
       "$ref": "#/definitions/RealtimeConversationVersion"
     }
   },
-  "definitions": {
-    "RealtimeConversationVersion": {
-      "type": "string",
-      "enum": [
-        "v1",
-        "v2"
-      ]
-    }
-  }
+  "required": [
+    "threadId",
+    "version"
+  ],
+  "title": "ThreadRealtimeStartedNotification",
+  "type": "object"
 }

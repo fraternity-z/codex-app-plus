@@ -1,11 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ChatgptAuthTokensRefreshResponse",
-  "type": "object",
-  "required": [
-    "accessToken",
-    "chatgptAccountId"
-  ],
   "properties": {
     "accessToken": {
       "type": "string"
@@ -19,5 +13,11 @@
         "null"
       ]
     }
-  }
+  },
+  "required": [
+    "accessToken",
+    "chatgptAccountId"
+  ],
+  "title": "ChatgptAuthTokensRefreshResponse",
+  "type": "object"
 }

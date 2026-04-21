@@ -4,6 +4,7 @@ import type {
   ConversationMessage,
   DebugEntry,
   FileChangeEntry,
+  ImageGenerationEntry,
   PendingApprovalEntry,
   PendingUserInputEntry,
   PlanEntry,
@@ -116,6 +117,20 @@ function mapThreadItem(threadId: string, turnId: string, item: ThreadItem): Time
       durationMs: item.durationMs,
       progress: []
     };
+  }
+
+  if (item.type === "imageGeneration") {
+    return {
+      id: createTimelineId(threadId, turnId, item.id, "imageGeneration"),
+      kind: "imageGeneration",
+      threadId,
+      turnId,
+      itemId: item.id,
+      status: item.status,
+      revisedPrompt: item.revisedPrompt,
+      result: item.result,
+      savedPath: item.savedPath ?? null,
+    } satisfies ImageGenerationEntry;
   }
 
   return createDebugEntry(threadId, turnId, item.id, `item:${item.type}`, item);

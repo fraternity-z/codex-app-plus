@@ -1,7 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ExperimentalFeatureListParams",
-  "type": "object",
   "properties": {
     "cursor": {
       "description": "Opaque pagination cursor returned by a previous call.",
@@ -12,12 +10,14 @@
     },
     "limit": {
       "description": "Optional page size; defaults to a reasonable server-side value.",
+      "format": "uint32",
+      "minimum": 0.0,
       "type": [
         "integer",
         "null"
-      ],
-      "format": "uint32",
-      "minimum": 0.0
+      ]
     }
-  }
+  },
+  "title": "ExperimentalFeatureListParams",
+  "type": "object"
 }

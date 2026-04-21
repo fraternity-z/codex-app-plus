@@ -67,6 +67,5 @@ export async function listAllPlugins(
 ): Promise<PluginListResponse> {
   return (await bridge.request("plugin/list", {
     cwds: selectedRootPath === null ? undefined : [selectedRootPath],
-    forceRemoteSync: true,
   })) as PluginListResponse;
 }

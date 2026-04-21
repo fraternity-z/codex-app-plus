@@ -173,6 +173,9 @@ function mapSearchOrImageEntry(
   if (item.type === "imageView") {
     return { id: createEntryId(conversationId, turn.turnId, item.id, "imageView"), kind: "imageView", threadId: conversationId, turnId: turn.turnId, itemId: item.id, path: item.path };
   }
+  if (item.type === "imageGeneration") {
+    return { id: createEntryId(conversationId, turn.turnId, item.id, "imageGeneration"), kind: "imageGeneration", threadId: conversationId, turnId: turn.turnId, itemId: item.id, status: item.status, revisedPrompt: item.revisedPrompt, result: item.result, savedPath: item.savedPath ?? null };
+  }
 
   return null;
 }

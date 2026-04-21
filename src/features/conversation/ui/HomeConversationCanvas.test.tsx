@@ -138,6 +138,9 @@ function createNotificationTurn(overrides: Partial<Turn> = {}): Turn {
     items: [],
     status: "completed",
     error: null,
+    startedAt: 1,
+    completedAt: 2,
+    durationMs: 1000,
     ...overrides,
   };
 }

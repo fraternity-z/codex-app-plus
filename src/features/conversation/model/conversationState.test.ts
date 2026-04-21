@@ -67,6 +67,9 @@ function createNotificationTurn(overrides: Partial<Turn> = {}): Turn {
     items: [],
     status: "completed",
     error: null,
+    startedAt: 1,
+    completedAt: 2,
+    durationMs: 1000,
     ...overrides,
   };
 }
@@ -76,6 +79,7 @@ describe("conversationState", () => {
   it("preserves branch when creating and hydrating from thread metadata", () => {
     const thread = {
       id: "thread-1",
+      forkedFromId: null,
       preview: "thread preview",
       ephemeral: false,
       modelProvider: "openai",

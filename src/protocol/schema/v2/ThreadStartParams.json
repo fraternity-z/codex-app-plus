@@ -1,7 +1,115 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ThreadStartParams",
-  "type": "object",
+  "definitions": {
+    "ApprovalsReviewer": {
+      "description": "Configures who approval requests are routed to for review. Examples include sandbox escapes, blocked network access, MCP approval prompts, and ARC escalations. Defaults to `user`. `guardian_subagent` uses a carefully prompted subagent to gather relevant context and apply a risk-based decision framework before approving or denying the request.",
+      "enum": [
+        "user",
+        "guardian_subagent"
+      ],
+      "type": "string"
+    },
+    "AskForApproval": {
+      "oneOf": [
+        {
+          "enum": [
+            "untrusted",
+            "on-failure",
+            "on-request",
+            "never"
+          ],
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "granular": {
+              "properties": {
+                "mcp_elicitations": {
+                  "type": "boolean"
+                },
+                "request_permissions": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "rules": {
+                  "type": "boolean"
+                },
+                "sandbox_approval": {
+                  "type": "boolean"
+                },
+                "skill_approval": {
+                  "default": false,
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "mcp_elicitations",
+                "rules",
+                "sandbox_approval"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "granular"
+          ],
+          "title": "GranularAskForApproval",
+          "type": "object"
+        }
+      ]
+    },
+    "DynamicToolSpec": {
+      "properties": {
+        "deferLoading": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "inputSchema": true,
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "inputSchema",
+        "name"
+      ],
+      "type": "object"
+    },
+    "Personality": {
+      "enum": [
+        "none",
+        "friendly",
+        "pragmatic"
+      ],
+      "type": "string"
+    },
+    "SandboxMode": {
+      "enum": [
+        "read-only",
+        "workspace-write",
+        "danger-full-access"
+      ],
+      "type": "string"
+    },
+    "ServiceTier": {
+      "enum": [
+        "fast",
+        "flex"
+      ],
+      "type": "string"
+    },
+    "ThreadStartSource": {
+      "enum": [
+        "startup",
+        "clear"
+      ],
+      "type": "string"
+    }
+  },
   "properties": {
     "approvalPolicy": {
       "anyOf": [
@@ -14,7 +122,6 @@
       ]
     },
     "approvalsReviewer": {
-      "description": "Override where approval requests are routed for review on this thread and subsequent turns.",
       "anyOf": [
         {
           "$ref": "#/definitions/ApprovalsReviewer"
@@ -22,7 +129,8 @@
         {
           "type": "null"
         }
-      ]
+      ],
+      "description": "Override where approval requests are routed for review on this thread and subsequent turns."
     },
     "baseInstructions": {
       "type": [
@@ -31,11 +139,11 @@
       ]
     },
     "config": {
+      "additionalProperties": true,
       "type": [
         "object",
         "null"
-      ],
-      "additionalProperties": true
+      ]
     },
     "cwd": {
       "type": [
@@ -50,13 +158,13 @@
       ]
     },
     "dynamicTools": {
+      "items": {
+        "$ref": "#/definitions/DynamicToolSpec"
+      },
       "type": [
         "array",
         "null"
-      ],
-      "items": {
-        "$ref": "#/definitions/DynamicToolSpec"
-      }
+      ]
     },
     "ephemeral": {
       "type": [
@@ -65,8 +173,8 @@
       ]
     },
     "experimentalRawEvents": {
-      "description": "If true, opt into emitting raw Responses API items on the event stream. This is for internal use only (e.g. Codex Cloud).",
       "default": false,
+      "description": "If true, opt into emitting raw Responses API items on the event stream. This is for internal use only (e.g. Codex Cloud).",
       "type": "boolean"
     },
     "mockExperimentalField": {
@@ -89,8 +197,8 @@
       ]
     },
     "persistExtendedHistory": {
-      "description": "If true, persist additional rollout EventMsg variants required to reconstruct a richer thread history on resume/fork/read.",
       "default": false,
+      "description": "If true, persist additional rollout EventMsg variants required to reconstruct a richer thread history on resume/fork/read.",
       "type": "boolean"
     },
     "personality": {
@@ -135,109 +243,18 @@
           "type": "null"
         }
       ]
+    },
+    "sessionStartSource": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ThreadStartSource"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
-  "definitions": {
-    "ApprovalsReviewer": {
-      "description": "Configures who approval requests are routed to for review. Examples include sandbox escapes, blocked network access, MCP approval prompts, and ARC escalations. Defaults to `user`. `guardian_subagent` uses a carefully prompted subagent to gather relevant context and apply a risk-based decision framework before approving or denying the request.",
-      "type": "string",
-      "enum": [
-        "user",
-        "guardian_subagent"
-      ]
-    },
-    "AskForApproval": {
-      "oneOf": [
-        {
-          "type": "string",
-          "enum": [
-            "untrusted",
-            "on-failure",
-            "on-request",
-            "never"
-          ]
-        },
-        {
-          "type": "object",
-          "required": [
-            "granular"
-          ],
-          "properties": {
-            "granular": {
-              "type": "object",
-              "required": [
-                "mcp_elicitations",
-                "rules",
-                "sandbox_approval"
-              ],
-              "properties": {
-                "mcp_elicitations": {
-                  "type": "boolean"
-                },
-                "request_permissions": {
-                  "default": false,
-                  "type": "boolean"
-                },
-                "rules": {
-                  "type": "boolean"
-                },
-                "sandbox_approval": {
-                  "type": "boolean"
-                },
-                "skill_approval": {
-                  "default": false,
-                  "type": "boolean"
-                }
-              }
-            }
-          },
-          "additionalProperties": false,
-          "title": "GranularAskForApproval"
-        }
-      ]
-    },
-    "DynamicToolSpec": {
-      "type": "object",
-      "required": [
-        "description",
-        "inputSchema",
-        "name"
-      ],
-      "properties": {
-        "deferLoading": {
-          "type": "boolean"
-        },
-        "description": {
-          "type": "string"
-        },
-        "inputSchema": true,
-        "name": {
-          "type": "string"
-        }
-      }
-    },
-    "Personality": {
-      "type": "string",
-      "enum": [
-        "none",
-        "friendly",
-        "pragmatic"
-      ]
-    },
-    "SandboxMode": {
-      "type": "string",
-      "enum": [
-        "read-only",
-        "workspace-write",
-        "danger-full-access"
-      ]
-    },
-    "ServiceTier": {
-      "type": "string",
-      "enum": [
-        "fast",
-        "flex"
-      ]
-    }
-  }
+  "title": "ThreadStartParams",
+  "type": "object"
 }

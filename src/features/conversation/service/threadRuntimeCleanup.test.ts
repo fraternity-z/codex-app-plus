@@ -6,6 +6,7 @@ import { collectDescendantThreadIds, forceCloseThreadRuntime, type ThreadRuntime
 function createThread(overrides: Record<string, unknown> = {}) {
   return {
     id: "thread-1",
+    forkedFromId: null,
     preview: "thread",
     ephemeral: false,
     modelProvider: "openai",
@@ -34,6 +35,9 @@ function createCollabTurn(senderThreadId: string, receiverThreadIds: ReadonlyArr
     id: `turn-${senderThreadId}`,
     status: "completed" as const,
     error: null,
+    startedAt: 1,
+    completedAt: 2,
+    durationMs: 1000,
     items: [{
       type: "collabAgentToolCall" as const,
       id: `collab-${senderThreadId}`,
@@ -85,7 +89,7 @@ describe("threadRuntimeCleanup", () => {
     const conversation = createConversation({
       id: "thread-2",
       status: { type: "active" as const, activeFlags: [] },
-      turns: [{ id: "turn-2", status: "inProgress" as const, error: null, items: [] }],
+      turns: [{ id: "turn-2", status: "inProgress" as const, error: null, items: [], startedAt: 1, completedAt: null, durationMs: null }],
     });
 
     await forceCloseThreadRuntime("thread-2", conversation, transport);
@@ -104,6 +108,6 @@ describe("threadRuntimeCleanup", () => {
       unsubscribeThread: vi.fn().mockRejectedValue(new Error("thread not found")),
     };
 
-    await expect(forceCloseThreadRuntime("thread-2", createConversation({ id: "thread-2", turns: [{ id: "turn-2", status: "inProgress" as const, error: null, items: [] }] }), transport)).resolves.toBeUndefined();
+    await expect(forceCloseThreadRuntime("thread-2", createConversation({ id: "thread-2", turns: [{ id: "turn-2", status: "inProgress" as const, error: null, items: [], startedAt: 1, completedAt: null, durationMs: null }] }), transport)).resolves.toBeUndefined();
   });
 });

@@ -16,6 +16,7 @@ function Wrapper(props: PropsWithChildren): JSX.Element {
 function createThreadData(id: string, overrides: Record<string, unknown> = {}) {
   return {
     id,
+    forkedFromId: null,
     preview: "",
     ephemeral: false,
     modelProvider: "openai",
@@ -36,7 +37,7 @@ function createThreadData(id: string, overrides: Record<string, unknown> = {}) {
 }
 
 function createTurnData(id: string) {
-  return { id, items: [], status: "inProgress" as const, error: null };
+  return { id, items: [], status: "inProgress" as const, error: null, startedAt: 1, completedAt: null, durationMs: null };
 }
 
 function createSendOptions(text: string) {

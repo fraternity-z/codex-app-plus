@@ -1,12 +1,14 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ConfigValueWriteParams",
-  "type": "object",
-  "required": [
-    "keyPath",
-    "mergeStrategy",
-    "value"
-  ],
+  "definitions": {
+    "MergeStrategy": {
+      "enum": [
+        "replace",
+        "upsert"
+      ],
+      "type": "string"
+    }
+  },
   "properties": {
     "expectedVersion": {
       "type": [
@@ -29,13 +31,11 @@
     },
     "value": true
   },
-  "definitions": {
-    "MergeStrategy": {
-      "type": "string",
-      "enum": [
-        "replace",
-        "upsert"
-      ]
-    }
-  }
+  "required": [
+    "keyPath",
+    "mergeStrategy",
+    "value"
+  ],
+  "title": "ConfigValueWriteParams",
+  "type": "object"
 }

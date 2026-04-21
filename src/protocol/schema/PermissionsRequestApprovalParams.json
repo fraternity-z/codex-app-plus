@@ -1,63 +1,34 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "PermissionsRequestApprovalParams",
-  "type": "object",
-  "required": [
-    "itemId",
-    "permissions",
-    "threadId",
-    "turnId"
-  ],
-  "properties": {
-    "itemId": {
-      "type": "string"
-    },
-    "permissions": {
-      "$ref": "#/definitions/RequestPermissionProfile"
-    },
-    "reason": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "threadId": {
-      "type": "string"
-    },
-    "turnId": {
-      "type": "string"
-    }
-  },
   "definitions": {
     "AbsolutePathBuf": {
       "description": "A path that is guaranteed to be absolute and normalized (though it is not guaranteed to be canonicalized or exist on the filesystem).\n\nIMPORTANT: When deserializing an `AbsolutePathBuf`, a base path must be set using [AbsolutePathBufGuard::new]. If no base path is set, the deserialization will fail unless the path being deserialized is already absolute.",
       "type": "string"
     },
     "AdditionalFileSystemPermissions": {
-      "type": "object",
       "properties": {
         "read": {
+          "items": {
+            "$ref": "#/definitions/AbsolutePathBuf"
+          },
           "type": [
             "array",
             "null"
-          ],
-          "items": {
-            "$ref": "#/definitions/AbsolutePathBuf"
-          }
+          ]
         },
         "write": {
+          "items": {
+            "$ref": "#/definitions/AbsolutePathBuf"
+          },
           "type": [
             "array",
             "null"
-          ],
-          "items": {
-            "$ref": "#/definitions/AbsolutePathBuf"
-          }
+          ]
         }
-      }
+      },
+      "type": "object"
     },
     "AdditionalNetworkPermissions": {
-      "type": "object",
       "properties": {
         "enabled": {
           "type": [
@@ -65,10 +36,11 @@
             "null"
           ]
         }
-      }
+      },
+      "type": "object"
     },
     "RequestPermissionProfile": {
-      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "fileSystem": {
           "anyOf": [
@@ -91,7 +63,35 @@
           ]
         }
       },
-      "additionalProperties": false
+      "type": "object"
     }
-  }
+  },
+  "properties": {
+    "itemId": {
+      "type": "string"
+    },
+    "permissions": {
+      "$ref": "#/definitions/RequestPermissionProfile"
+    },
+    "reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "threadId": {
+      "type": "string"
+    },
+    "turnId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "itemId",
+    "permissions",
+    "threadId",
+    "turnId"
+  ],
+  "title": "PermissionsRequestApprovalParams",
+  "type": "object"
 }

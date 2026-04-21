@@ -628,6 +628,7 @@ export const enUS = {
         duration: "Duration: {value}",
         exitCode: "Exit code: {value}",
         fuzzySearch: "Fuzzy search: {query}",
+        imageGeneration: "Generated image: {detail}",
         planDraft: "Plan draft",
         planDraftUpdating: "Plan draft updating",
         realtimeAudio: "Realtime audio chunk #{index}: {sampleRate} Hz, {channels} channels",

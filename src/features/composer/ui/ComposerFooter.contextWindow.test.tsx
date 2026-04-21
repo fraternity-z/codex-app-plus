@@ -8,6 +8,7 @@ import type { ThreadTokenUsage } from "../../../protocol/generated/v2/ThreadToke
 import type { WorkspaceGitController } from "../../git/model/types";
 import { ComposerFooter } from "./ComposerFooter";
 import { AppStoreProvider, useAppStore } from "../../../state/store";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 
 const DEFAULT_USAGE: ThreadTokenUsage = {
   total: { totalTokens: 39000, inputTokens: 36000, cachedInputTokens: 0, outputTokens: 3000, reasoningOutputTokens: 0 },
@@ -21,13 +22,20 @@ const OVER_WINDOW_USAGE: ThreadTokenUsage = {
   modelContextWindow: 128000,
 };
 
+const I18nWrapper = createI18nWrapper();
+
 function Wrapper(props: PropsWithChildren): JSX.Element {
-  return <AppStoreProvider>{props.children}</AppStoreProvider>;
+  return (
+    <I18nWrapper>
+      <AppStoreProvider>{props.children}</AppStoreProvider>
+    </I18nWrapper>
+  );
 }
 
 function createThread() {
   return {
     id: "thread-1",
+    forkedFromId: null,
     preview: "分析当前工作区",
     ephemeral: false,
     modelProvider: "openai",

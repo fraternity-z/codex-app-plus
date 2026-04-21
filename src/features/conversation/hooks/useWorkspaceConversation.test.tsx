@@ -30,6 +30,7 @@ function Wrapper(props: PropsWithChildren): JSX.Element {
 function createThread(overrides: Record<string, unknown> = {}) {
   return {
     id: "thread-1",
+    forkedFromId: null,
     preview: "请分析当前工作区",
     ephemeral: false,
     modelProvider: "openai",
@@ -50,7 +51,15 @@ function createThread(overrides: Record<string, unknown> = {}) {
 }
 
 function createTurn(status: "inProgress" | "completed" = "inProgress") {
-  return { id: "turn-1", items: [], status, error: null };
+  return {
+    id: "turn-1",
+    items: [],
+    status,
+    error: null,
+    startedAt: 1,
+    completedAt: status === "completed" ? 2 : null,
+    durationMs: status === "completed" ? 1000 : null
+  };
 }
 
 function createTurnWithId(id: string, status: "inProgress" | "completed" = "completed") {
@@ -82,6 +91,9 @@ function createCollabTurn(childThreadId: string, status: "completed" | "errored"
     id: "turn-1",
     status: "completed" as const,
     error: null,
+    startedAt: 1,
+    completedAt: 2,
+    durationMs: 1000,
     items: [{
       type: "collabAgentToolCall" as const,
       id: "collab-1",
@@ -107,6 +119,9 @@ function createRunningCollabTurn(
     id: `turn-${senderThreadId}`,
     status: "completed" as const,
     error: null,
+    startedAt: 1,
+    completedAt: 2,
+    durationMs: 1000,
     items: [{
       type: "collabAgentToolCall" as const,
       id: `collab-${senderThreadId}`,
@@ -250,7 +265,12 @@ describe("useWorkspaceConversation", () => {
 
     act(() => {
       result.current.store.dispatch({ type: "fuzzySearch/updated", sessionId: createComposerFuzzySessionId(), query: "app", files: [] });
-      result.current.store.dispatch({ type: "fuzzySearch/updated", sessionId: "plain-session", query: "app", files: [{ root: "E:/code/FPGA", path: "src/App.tsx", file_name: "App.tsx", score: 1, indices: null }] });
+      result.current.store.dispatch({
+        type: "fuzzySearch/updated",
+        sessionId: "plain-session",
+        query: "app",
+        files: [{ root: "E:/code/FPGA", path: "src/App.tsx", match_type: "file", file_name: "App.tsx", score: 1, indices: null }]
+      });
     });
 
     expect(result.current.conversation.activities.filter((entry) => entry.kind === "fuzzySearch")).toHaveLength(1);

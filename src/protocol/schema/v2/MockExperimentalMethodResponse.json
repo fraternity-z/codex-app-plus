@@ -1,7 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "MockExperimentalMethodResponse",
-  "type": "object",
   "properties": {
     "echoed": {
       "description": "Echoes the input `value`.",
@@ -10,5 +8,7 @@
         "null"
       ]
     }
-  }
+  },
+  "title": "MockExperimentalMethodResponse",
+  "type": "object"
 }

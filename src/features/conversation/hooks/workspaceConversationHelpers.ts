@@ -53,6 +53,9 @@ export function buildInterruptedTurn(conversation: ConversationState | null, tur
     items: turn.items.map((itemState) => itemState.item),
     status: "interrupted",
     error: null,
+    startedAt: turn.turnStartedAtMs === null ? null : Math.floor(turn.turnStartedAtMs / 1000),
+    completedAt: null,
+    durationMs: null,
   };
 }
 

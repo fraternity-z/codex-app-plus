@@ -63,8 +63,10 @@ export function formatPluginSummary(response: PluginListResponse): string {
   const installed = plugins.filter((plugin) => plugin.installed).length;
   const enabled = plugins.filter((plugin) => plugin.enabled).length;
   const marketplaceSummary = response.marketplaces.map((marketplace) => `${marketplace.name} (${marketplace.plugins.length})`);
-  const remoteSync = response.remoteSyncError === null ? "" : `；远端同步错误：${response.remoteSyncError}`;
-  return `共 ${plugins.length} 个插件，已安装 ${installed} 个，已启用 ${enabled} 个；市场：${formatNames(marketplaceSummary)}${remoteSync}`;
+  const loadErrors = response.marketplaceLoadErrors.length === 0
+    ? ""
+    : `；加载错误：${formatNames(response.marketplaceLoadErrors.map((error) => `${error.marketplacePath}: ${error.message}`))}`;
+  return `共 ${plugins.length} 个插件，已安装 ${installed} 个，已启用 ${enabled} 个；市场：${formatNames(marketplaceSummary)}${loadErrors}`;
 }
 
 function formatNames(items: ReadonlyArray<string>): string {

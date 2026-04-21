@@ -627,6 +627,7 @@ export const zhCN = {
         duration: "耗时：{value}",
         exitCode: "退出码：{value}",
         fuzzySearch: "模糊搜索：{query}",
+        imageGeneration: "生成图片：{detail}",
         planDraft: "计划草稿",
         planDraftUpdating: "计划草稿更新中",
         realtimeAudio: "Realtime 音频块 #{index}：{sampleRate} Hz，{channels} 声道",

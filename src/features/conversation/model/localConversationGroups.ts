@@ -7,6 +7,7 @@ import type {
   DynamicToolCallEntry,
   FileChangeEntry,
   FuzzySearchEntry,
+  ImageGenerationEntry,
   ImageViewEntry,
   McpToolCallEntry,
   PendingApprovalEntry,
@@ -37,7 +38,8 @@ export type TraceEntry =
   | DynamicToolCallEntry
   | CollabAgentToolCallEntry
   | WebSearchEntry
-  | ImageViewEntry;
+  | ImageViewEntry
+  | ImageGenerationEntry;
 
 export type RequestBlock =
   | PendingApprovalEntry
@@ -273,7 +275,8 @@ function isTraceEntry(entry: TimelineEntry): entry is TraceEntry {
     || entry.kind === "dynamicToolCall"
     || entry.kind === "collabAgentToolCall"
     || entry.kind === "webSearch"
-    || entry.kind === "imageView";
+    || entry.kind === "imageView"
+    || entry.kind === "imageGeneration";
 }
 
 function isRequestBlock(entry: TimelineEntry): entry is RequestBlock {

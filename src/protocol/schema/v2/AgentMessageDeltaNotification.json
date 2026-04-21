@@ -1,13 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "AgentMessageDeltaNotification",
-  "type": "object",
-  "required": [
-    "delta",
-    "itemId",
-    "threadId",
-    "turnId"
-  ],
   "properties": {
     "delta": {
       "type": "string"
@@ -21,5 +13,13 @@
     "turnId": {
       "type": "string"
     }
-  }
+  },
+  "required": [
+    "delta",
+    "itemId",
+    "threadId",
+    "turnId"
+  ],
+  "title": "AgentMessageDeltaNotification",
+  "type": "object"
 }

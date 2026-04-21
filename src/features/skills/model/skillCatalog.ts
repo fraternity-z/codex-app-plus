@@ -19,7 +19,8 @@ export interface MarketplacePluginCard {
   readonly name: string;
   readonly description: string;
   readonly pluginName: string;
-  readonly marketplacePath: string;
+  readonly marketplaceName: string;
+  readonly marketplacePath: string | null;
   readonly icon: string | null;
   readonly brandColor: string | null;
 }
@@ -50,15 +51,21 @@ export function createMarketplacePluginCards(
 ): ReadonlyArray<MarketplacePluginCard> {
   const cards = response.marketplaces.flatMap((marketplace) => marketplace.plugins
     .filter((plugin) => !plugin.installed && plugin.installPolicy !== "NOT_AVAILABLE")
-    .map((plugin) => ({
-      id: plugin.id,
-      name: resolvePluginName(plugin.name, plugin.interface?.displayName ?? null),
-      description: resolvePluginDescription(plugin.interface?.shortDescription ?? null, plugin.name),
-      pluginName: plugin.name,
-      marketplacePath: marketplace.path,
-      icon: plugin.interface?.logo ?? plugin.interface?.composerIcon ?? null,
-      brandColor: plugin.interface?.brandColor ?? null,
-    })));
+      .map((plugin) => ({
+        id: plugin.id,
+        name: resolvePluginName(plugin.name, plugin.interface?.displayName ?? null),
+        description: resolvePluginDescription(plugin.interface?.shortDescription ?? null, plugin.name),
+        pluginName: plugin.name,
+        marketplaceName: marketplace.name,
+        marketplacePath: marketplace.path,
+        icon:
+          plugin.interface?.logoUrl
+          ?? plugin.interface?.composerIconUrl
+          ?? plugin.interface?.logo
+          ?? plugin.interface?.composerIcon
+          ?? null,
+        brandColor: plugin.interface?.brandColor ?? null,
+      })));
   return cards.sort(compareNamedItems);
 }
 

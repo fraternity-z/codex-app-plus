@@ -53,6 +53,7 @@ function createThread(
 ): Thread {
   return {
     id: "thread-1",
+    forkedFromId: null,
     preview: "Preview",
     ephemeral: false,
     modelProvider: "openai",
@@ -80,6 +81,9 @@ function createTurn(
     items: [],
     status: "inProgress",
     error: null,
+    startedAt: 1,
+    completedAt: null,
+    durationMs: null,
     ...overrides,
   };
 }

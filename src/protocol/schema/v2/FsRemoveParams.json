@@ -1,11 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "FsRemoveParams",
+  "definitions": {
+    "AbsolutePathBuf": {
+      "description": "A path that is guaranteed to be absolute and normalized (though it is not guaranteed to be canonicalized or exist on the filesystem).\n\nIMPORTANT: When deserializing an `AbsolutePathBuf`, a base path must be set using [AbsolutePathBufGuard::new]. If no base path is set, the deserialization will fail unless the path being deserialized is already absolute.",
+      "type": "string"
+    }
+  },
   "description": "Remove a file or directory tree from the host filesystem.",
-  "type": "object",
-  "required": [
-    "path"
-  ],
   "properties": {
     "force": {
       "description": "Whether missing paths should be ignored. Defaults to `true`.",
@@ -15,12 +16,12 @@
       ]
     },
     "path": {
-      "description": "Absolute path to remove.",
       "allOf": [
         {
           "$ref": "#/definitions/AbsolutePathBuf"
         }
-      ]
+      ],
+      "description": "Absolute path to remove."
     },
     "recursive": {
       "description": "Whether directory removal should recurse. Defaults to `true`.",
@@ -30,10 +31,9 @@
       ]
     }
   },
-  "definitions": {
-    "AbsolutePathBuf": {
-      "description": "A path that is guaranteed to be absolute and normalized (though it is not guaranteed to be canonicalized or exist on the filesystem).\n\nIMPORTANT: When deserializing an `AbsolutePathBuf`, a base path must be set using [AbsolutePathBufGuard::new]. If no base path is set, the deserialization will fail unless the path being deserialized is already absolute.",
-      "type": "string"
-    }
-  }
+  "required": [
+    "path"
+  ],
+  "title": "FsRemoveParams",
+  "type": "object"
 }

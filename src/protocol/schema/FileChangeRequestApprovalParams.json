@@ -1,12 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "FileChangeRequestApprovalParams",
-  "type": "object",
-  "required": [
-    "itemId",
-    "threadId",
-    "turnId"
-  ],
   "properties": {
     "grantRoot": {
       "description": "[UNSTABLE] When set, the agent is asking the user to allow writes under this root for the remainder of the session (unclear if this is honored today).",
@@ -31,5 +24,12 @@
     "turnId": {
       "type": "string"
     }
-  }
+  },
+  "required": [
+    "itemId",
+    "threadId",
+    "turnId"
+  ],
+  "title": "FileChangeRequestApprovalParams",
+  "type": "object"
 }

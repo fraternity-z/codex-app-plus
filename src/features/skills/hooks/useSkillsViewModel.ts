@@ -122,7 +122,7 @@ export function useSkillsViewModel(options: SkillsViewModelOptions): SkillsViewM
       setRecommendedState({
         data: createMarketplacePluginCards(response),
         loading: false,
-        error: response.remoteSyncError,
+        error: formatMarketplaceLoadErrors(response),
       });
     } catch (error) {
       setRecommendedState((current) => ({ ...current, loading: false, error: toErrorMessage(error) }));
@@ -157,11 +157,17 @@ export function useSkillsViewModel(options: SkillsViewModelOptions): SkillsViewM
     setActionError(null);
     setInstallingIds((current) => ({ ...current, [skill.id]: true }));
     try {
-      await installMarketplacePlugin({
-        marketplacePath: skill.marketplacePath,
-        pluginName: skill.pluginName,
-        forceRemoteSync: true,
-      });
+      await installMarketplacePlugin(
+        skill.marketplacePath === null
+          ? {
+            remoteMarketplaceName: skill.marketplaceName,
+            pluginName: skill.pluginName,
+          }
+          : {
+            marketplacePath: skill.marketplacePath,
+            pluginName: skill.pluginName,
+          },
+      );
       await refreshInstalled(true);
       await refreshRecommended();
     } catch (error) {
@@ -242,9 +248,9 @@ function createSkillsListParams(selectedRootPath: string | null, forceReload: bo
 
 function createPluginListParams(selectedRootPath: string | null): PluginListParams {
   if (selectedRootPath === null) {
-    return { forceRemoteSync: true };
+    return {};
   }
-  return { cwds: [selectedRootPath], forceRemoteSync: true };
+  return { cwds: [selectedRootPath] };
 }
 
 function findLastSkillsChangedIndex(notifications: ReadonlyArray<ReceivedNotification>): number {
@@ -267,4 +273,13 @@ function omitRecordKey(record: Readonly<Record<string, boolean>>, key: string): 
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function formatMarketplaceLoadErrors(response: PluginListResponse): string | null {
+  if (response.marketplaceLoadErrors.length === 0) {
+    return null;
+  }
+  return response.marketplaceLoadErrors
+    .map((error) => `${error.marketplacePath}: ${error.message}`)
+    .join("；");
 }

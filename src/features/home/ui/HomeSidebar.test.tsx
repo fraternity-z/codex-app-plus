@@ -31,6 +31,7 @@ function createThread(source: ThreadSummary["source"]): ThreadSummary {
 function createRuntimeThread(overrides: Record<string, unknown> = {}) {
   return {
     id: "thread-1",
+    forkedFromId: null,
     preview: "thread",
     ephemeral: false,
     modelProvider: "openai",
@@ -59,6 +60,9 @@ function createRunningCollabTurn(senderThreadId: string, childThreadIds: Readonl
     id: `turn-${senderThreadId}`,
     status: "completed" as const,
     error: null,
+    startedAt: 1,
+    completedAt: 2,
+    durationMs: 1000,
     items: [{
       type: "collabAgentToolCall" as const,
       id: `collab-${senderThreadId}`,
@@ -183,7 +187,7 @@ describe("HomeSidebar", () => {
     renderSidebar(createThread("codexData"), { onRemoveRoot });
 
     fireEvent.click(screen.getByRole("button", { name: "工作区更多操作 FPGA" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "从列表移除" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Remove from list" }));
 
     await waitFor(() => expect(onRemoveRoot).toHaveBeenCalledWith(ROOT.id));
   });
@@ -236,7 +240,7 @@ describe("HomeSidebar", () => {
           conversation: createConversationFromThread(createRuntimeThread({
             id: "thread-rpc",
             status: { type: "active" as const, activeFlags: [] },
-            turns: [createRunningCollabTurn("thread-rpc", ["thread-child"]), { id: "turn-1", status: "inProgress" as const, error: null, items: [] }],
+            turns: [createRunningCollabTurn("thread-rpc", ["thread-child"]), { id: "turn-1", status: "inProgress" as const, error: null, items: [], startedAt: 1, completedAt: null, durationMs: null }],
           }), { resumeState: "resumed" })
         });
         dispatch({
@@ -245,7 +249,7 @@ describe("HomeSidebar", () => {
             id: "thread-child",
             source: createSubAgentSource("thread-rpc"),
             status: { type: "active" as const, activeFlags: [] },
-            turns: [{ id: "turn-1", status: "inProgress" as const, error: null, items: [] }],
+            turns: [{ id: "turn-1", status: "inProgress" as const, error: null, items: [], startedAt: 1, completedAt: null, durationMs: null }],
           }), { resumeState: "resumed" })
         });
       },

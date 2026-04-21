@@ -1,39 +1,25 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "SkillsListResponse",
-  "type": "object",
-  "required": [
-    "data"
-  ],
-  "properties": {
-    "data": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/SkillsListEntry"
-      }
-    }
-  },
   "definitions": {
+    "AbsolutePathBuf": {
+      "description": "A path that is guaranteed to be absolute and normalized (though it is not guaranteed to be canonicalized or exist on the filesystem).\n\nIMPORTANT: When deserializing an `AbsolutePathBuf`, a base path must be set using [AbsolutePathBufGuard::new]. If no base path is set, the deserialization will fail unless the path being deserialized is already absolute.",
+      "type": "string"
+    },
     "SkillDependencies": {
-      "type": "object",
+      "properties": {
+        "tools": {
+          "items": {
+            "$ref": "#/definitions/SkillToolDependency"
+          },
+          "type": "array"
+        }
+      },
       "required": [
         "tools"
       ],
-      "properties": {
-        "tools": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/SkillToolDependency"
-          }
-        }
-      }
+      "type": "object"
     },
     "SkillErrorInfo": {
-      "type": "object",
-      "required": [
-        "message",
-        "path"
-      ],
       "properties": {
         "message": {
           "type": "string"
@@ -41,10 +27,14 @@
         "path": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "message",
+        "path"
+      ],
+      "type": "object"
     },
     "SkillInterface": {
-      "type": "object",
       "properties": {
         "brandColor": {
           "type": [
@@ -65,15 +55,23 @@
           ]
         },
         "iconLarge": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AbsolutePathBuf"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "iconSmall": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AbsolutePathBuf"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "shortDescription": {
@@ -82,17 +80,10 @@
             "null"
           ]
         }
-      }
+      },
+      "type": "object"
     },
     "SkillMetadata": {
-      "type": "object",
-      "required": [
-        "description",
-        "enabled",
-        "name",
-        "path",
-        "scope"
-      ],
       "properties": {
         "dependencies": {
           "anyOf": [
@@ -124,7 +115,7 @@
           "type": "string"
         },
         "path": {
-          "type": "string"
+          "$ref": "#/definitions/AbsolutePathBuf"
         },
         "scope": {
           "$ref": "#/definitions/SkillScope"
@@ -136,23 +127,26 @@
             "null"
           ]
         }
-      }
+      },
+      "required": [
+        "description",
+        "enabled",
+        "name",
+        "path",
+        "scope"
+      ],
+      "type": "object"
     },
     "SkillScope": {
-      "type": "string",
       "enum": [
         "user",
         "repo",
         "system",
         "admin"
-      ]
+      ],
+      "type": "string"
     },
     "SkillToolDependency": {
-      "type": "object",
-      "required": [
-        "type",
-        "value"
-      ],
       "properties": {
         "command": {
           "type": [
@@ -184,32 +178,50 @@
         "value": {
           "type": "string"
         }
-      }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "type": "object"
     },
     "SkillsListEntry": {
-      "type": "object",
-      "required": [
-        "cwd",
-        "errors",
-        "skills"
-      ],
       "properties": {
         "cwd": {
           "type": "string"
         },
         "errors": {
-          "type": "array",
           "items": {
             "$ref": "#/definitions/SkillErrorInfo"
-          }
+          },
+          "type": "array"
         },
         "skills": {
-          "type": "array",
           "items": {
             "$ref": "#/definitions/SkillMetadata"
-          }
+          },
+          "type": "array"
         }
-      }
+      },
+      "required": [
+        "cwd",
+        "errors",
+        "skills"
+      ],
+      "type": "object"
     }
-  }
+  },
+  "properties": {
+    "data": {
+      "items": {
+        "$ref": "#/definitions/SkillsListEntry"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "data"
+  ],
+  "title": "SkillsListResponse",
+  "type": "object"
 }

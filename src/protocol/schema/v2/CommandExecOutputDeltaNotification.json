@@ -1,14 +1,27 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "CommandExecOutputDeltaNotification",
+  "definitions": {
+    "CommandExecOutputStream": {
+      "description": "Stream label for `command/exec/outputDelta` notifications.",
+      "oneOf": [
+        {
+          "description": "stdout stream. PTY mode multiplexes terminal output here.",
+          "enum": [
+            "stdout"
+          ],
+          "type": "string"
+        },
+        {
+          "description": "stderr stream.",
+          "enum": [
+            "stderr"
+          ],
+          "type": "string"
+        }
+      ]
+    }
+  },
   "description": "Base64-encoded output chunk emitted for a streaming `command/exec` request.\n\nThese notifications are connection-scoped. If the originating connection closes, the server terminates the process.",
-  "type": "object",
-  "required": [
-    "capReached",
-    "deltaBase64",
-    "processId",
-    "stream"
-  ],
   "properties": {
     "capReached": {
       "description": "`true` on the final streamed chunk for a stream when `outputBytesCap` truncated later output on that stream.",
@@ -23,33 +36,20 @@
       "type": "string"
     },
     "stream": {
-      "description": "Output stream for this chunk.",
       "allOf": [
         {
           "$ref": "#/definitions/CommandExecOutputStream"
         }
-      ]
+      ],
+      "description": "Output stream for this chunk."
     }
   },
-  "definitions": {
-    "CommandExecOutputStream": {
-      "description": "Stream label for `command/exec/outputDelta` notifications.",
-      "oneOf": [
-        {
-          "description": "stdout stream. PTY mode multiplexes terminal output here.",
-          "type": "string",
-          "enum": [
-            "stdout"
-          ]
-        },
-        {
-          "description": "stderr stream.",
-          "type": "string",
-          "enum": [
-            "stderr"
-          ]
-        }
-      ]
-    }
-  }
+  "required": [
+    "capReached",
+    "deltaBase64",
+    "processId",
+    "stream"
+  ],
+  "title": "CommandExecOutputDeltaNotification",
+  "type": "object"
 }
