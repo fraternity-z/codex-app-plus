@@ -330,6 +330,24 @@ describe("HomeConversationCanvas", () => {
     expect(screen.queryByText(/正在思考|Thinking/)).toBeNull();
   });
 
+  it("keeps the context compaction divider between assistant messages", () => {
+    const activities = createConversationActivities(createConversationTurn({
+      items: [
+        { item: { type: "agentMessage", id: "assistant-1", text: "压缩前", phase: null, memoryCitation: null }, approvalRequestId: null, outputText: "", terminalInteractions: [], rawResponse: null, progressMessages: [] },
+        { item: { type: "contextCompaction", id: "context-compaction-1" }, approvalRequestId: null, outputText: "", terminalInteractions: [], rawResponse: null, progressMessages: [] },
+        { item: { type: "agentMessage", id: "assistant-2", text: "压缩后继续", phase: null, memoryCitation: null }, approvalRequestId: null, outputText: "", terminalInteractions: [], rawResponse: null, progressMessages: [] },
+      ],
+    }));
+    const { container } = renderCanvas(activities);
+    const assistantFlow = container.querySelector(".home-turn-assistant-flow");
+    const assistantClassNames = Array.from(assistantFlow?.children ?? []).map((element) => (element as HTMLElement).className);
+
+    expect(screen.getByText("背景信息已自动压缩")).toBeInTheDocument();
+    expect(assistantClassNames[0]).toContain("home-assistant-transcript-message");
+    expect(assistantClassNames[1]).toContain("home-assistant-transcript-divider");
+    expect(assistantClassNames[2]).toContain("home-assistant-transcript-message");
+  });
+
   it("keeps the thinking indicator below streaming assistant content", () => {
     const { container } = renderCanvas([USER_MESSAGE, COMMAND_ENTRY, STREAMING_ASSISTANT_MESSAGE], { activeTurnId: "turn-1" });
     const assistantMessage = container.querySelector(".home-assistant-transcript-message");

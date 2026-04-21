@@ -111,9 +111,6 @@ export function applyAppServerNotification(context: NotificationContext, method:
     if (payload.item.type === "exitedReviewMode") {
       dispatch({ type: "conversation/reviewModeChanged", conversationId: payload.threadId, turnId: payload.turnId, itemId: payload.item.id, state: "exited", review: payload.item.review });
     }
-    if (payload.item.type === "contextCompaction") {
-      dispatch({ type: "conversation/contextCompacted", conversationId: payload.threadId, turnId: payload.turnId });
-    }
     return;
   }
   if (method === "item/completed") {
@@ -126,9 +123,6 @@ export function applyAppServerNotification(context: NotificationContext, method:
     }
     if (payload.item.type === "exitedReviewMode") {
       dispatch({ type: "conversation/reviewModeChanged", conversationId: payload.threadId, turnId: payload.turnId, itemId: payload.item.id, state: "exited", review: payload.item.review });
-    }
-    if (payload.item.type === "contextCompaction") {
-      dispatch({ type: "conversation/contextCompacted", conversationId: payload.threadId, turnId: payload.turnId });
     }
     return;
   }

@@ -622,7 +622,7 @@ export const zhCN = {
         commandDeclined: "命令已拒绝：{command}",
         commandFailed: "命令失败：{command}",
         commandRunning: "正在执行命令：{command}",
-        contextCompacted: "上下文已压缩",
+        contextCompacted: "背景信息已自动压缩",
         debug: "调试：{title}",
         duration: "耗时：{value}",
         exitCode: "退出码：{value}",

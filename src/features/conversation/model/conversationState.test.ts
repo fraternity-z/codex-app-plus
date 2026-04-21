@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import type { ConversationState, ConversationTurnState } from "../../../domain/conversation";
 import type { Turn } from "../../../protocol/generated/v2/Turn";
 import type { ThreadTokenUsage } from "../../../protocol/generated/v2/ThreadTokenUsage";
-import { createConversationFromThread, hydrateConversationFromThread, setConversationTokenUsage, syncCompletedTurn, syncStartedTurn } from "./conversationState";
+import {
+  appendConversationContextCompaction,
+  createConversationFromThread,
+  hydrateConversationFromThread,
+  setConversationTokenUsage,
+  syncCompletedTurn,
+  syncStartedTurn,
+  upsertConversationItem,
+} from "./conversationState";
 
 const TOKEN_USAGE: ThreadTokenUsage = {
   total: { totalTokens: 14996, inputTokens: 14791, cachedInputTokens: 0, outputTokens: 205, reasoningOutputTokens: 0 },
@@ -165,5 +173,14 @@ describe("conversationState", () => {
     expect(nextTurn?.items).toHaveLength(1);
     expect(nextTurn?.items[0]?.item.type).toBe("agentMessage");
     expect(nextTurn?.items[0]?.item.type === "agentMessage" ? nextTurn.items[0].item.text : null).toBe("server final reply");
+  });
+
+  it("drops deprecated fallback compactions once the real contextCompaction item arrives", () => {
+    const conversation = appendConversationContextCompaction(createConversation(), "turn-1");
+    const nextConversation = upsertConversationItem(conversation, "turn-1", { type: "contextCompaction", id: "context-compaction-1" });
+    const [nextTurn] = nextConversation.turns;
+
+    expect(nextTurn?.contextCompactions).toEqual([]);
+    expect(nextTurn?.items.some((itemState) => itemState.item.type === "contextCompaction")).toBe(true);
   });
 });

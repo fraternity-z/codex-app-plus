@@ -121,4 +121,38 @@ describe("conversationTimeline", () => {
     expect(kinds).not.toContain("tokenUsage");
     expect(entries[1]?.kind === "agentMessage" ? entries[1].text : null).toBe("assistant reply");
   });
+
+  it("keeps context compaction items inline with the assistant flow", () => {
+    const conversation = createConversation([
+      createTurn({
+        params: { input: [{ type: "text", text: "hello", text_elements: [] }], cwd: null, model: null, effort: null, serviceTier: null, collaborationMode: null },
+        items: [
+          { item: { type: "agentMessage", id: "assistant-1", text: "压缩前", phase: null, memoryCitation: null }, approvalRequestId: null, outputText: "", terminalInteractions: [], rawResponse: null, progressMessages: [] },
+          { item: { type: "contextCompaction", id: "context-compaction-1" }, approvalRequestId: null, outputText: "", terminalInteractions: [], rawResponse: null, progressMessages: [] },
+          { item: { type: "agentMessage", id: "assistant-2", text: "压缩后继续", phase: null, memoryCitation: null }, approvalRequestId: null, outputText: "", terminalInteractions: [], rawResponse: null, progressMessages: [] },
+        ],
+      }),
+    ]);
+
+    const entries = mapConversationToTimelineEntries(conversation, []);
+
+    expect(getKinds(entries)).toEqual(["userMessage", "agentMessage", "contextCompaction", "agentMessage"]);
+  });
+
+  it("inserts deprecated compaction notices at their anchored position", () => {
+    const conversation = createConversation([
+      createTurn({
+        params: { input: [{ type: "text", text: "hello", text_elements: [] }], cwd: null, model: null, effort: null, serviceTier: null, collaborationMode: null },
+        items: [
+          { item: { type: "agentMessage", id: "assistant-1", text: "压缩前", phase: null, memoryCitation: null }, approvalRequestId: null, outputText: "", terminalInteractions: [], rawResponse: null, progressMessages: [] },
+          { item: { type: "agentMessage", id: "assistant-2", text: "压缩后继续", phase: null, memoryCitation: null }, approvalRequestId: null, outputText: "", terminalInteractions: [], rawResponse: null, progressMessages: [] },
+        ],
+        contextCompactions: [{ id: "context-fallback-1", itemId: null, afterItemId: "assistant-1" }],
+      }),
+    ]);
+
+    const entries = mapConversationToTimelineEntries(conversation, []);
+
+    expect(getKinds(entries)).toEqual(["userMessage", "agentMessage", "contextCompaction", "agentMessage"]);
+  });
 });

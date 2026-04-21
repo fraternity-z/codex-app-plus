@@ -119,6 +119,9 @@ function mapMessageLikeEntry(
   if (item.type === "reasoning") {
     return { id: createEntryId(conversationId, turn.turnId, item.id, "reasoning"), kind: "reasoning", threadId: conversationId, turnId: turn.turnId, itemId: item.id, summary: [...item.summary], content: [...item.content] };
   }
+  if (item.type === "contextCompaction") {
+    return { id: createEntryId(conversationId, turn.turnId, item.id, "contextCompaction"), kind: "contextCompaction", threadId: conversationId, turnId: turn.turnId, itemId: item.id };
+  }
 
   return null;
 }
@@ -203,7 +206,6 @@ function appendTurnArtifacts(
     entries.push({ id: createEntryId(conversationId, turn.turnId, null, "turnDiff"), kind: "turnDiffSnapshot", threadId: conversationId, turnId: turn.turnId, itemId: null, diff: turn.diff });
   }
   turn.reviewStates.forEach((reviewState) => entries.push({ id: createEntryId(conversationId, turn.turnId, reviewState.itemId, reviewState.state), kind: "reviewMode", threadId: conversationId, turnId: turn.turnId, itemId: reviewState.itemId, state: reviewState.state, review: reviewState.review }));
-  turn.contextCompactions.forEach((compaction) => entries.push({ id: createEntryId(conversationId, turn.turnId, compaction.itemId, compaction.id), kind: "contextCompaction", threadId: conversationId, turnId: turn.turnId, itemId: compaction.itemId }));
   turn.notices.forEach((notice) => entries.push({ id: createEntryId(conversationId, turn.turnId, notice.itemId, notice.id), kind: "systemNotice", threadId: conversationId, turnId: turn.turnId, itemId: notice.itemId, level: notice.level, title: notice.title, detail: notice.detail, source: notice.source }));
   turn.rawResponses.forEach((item, index) => entries.push(mapRawResponseEntry(conversationId, turn.turnId, index, item)));
   if (turn.error !== null) {
@@ -211,15 +213,34 @@ function appendTurnArtifacts(
   }
 }
 
+function appendAnchoredContextCompactions(
+  entries: Array<TimelineEntry>,
+  conversationId: string,
+  turn: ConversationTurnState,
+  afterItemId: string | null,
+): void {
+  turn.contextCompactions
+    .filter((compaction) => compaction.afterItemId === afterItemId)
+    .forEach((compaction) => entries.push({
+      id: createEntryId(conversationId, turn.turnId, compaction.itemId, compaction.id),
+      kind: "contextCompaction",
+      threadId: conversationId,
+      turnId: turn.turnId,
+      itemId: compaction.itemId,
+    }));
+}
+
 export function mapConversationTurnToTimelineEntries(conversation: ConversationState, turn: ConversationTurnState): Array<TimelineEntry> {
   const entries: Array<TimelineEntry> = [];
   appendInitialUserEntry(entries, conversation.id, turn);
+  appendAnchoredContextCompactions(entries, conversation.id, turn, null);
 
   for (const itemState of turn.items) {
     const entry = mapTurnItemEntry(conversation.id, turn, itemState);
     if (entry !== null) {
       entries.push(entry);
     }
+    appendAnchoredContextCompactions(entries, conversation.id, turn, itemState.item.id);
   }
 
   appendTurnArtifacts(entries, conversation.id, turn);

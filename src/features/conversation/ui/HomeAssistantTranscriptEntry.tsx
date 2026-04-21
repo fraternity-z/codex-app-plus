@@ -39,6 +39,19 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
       </section>
     );
   }
+  if (props.node.kind === "auxiliaryBlock" && props.node.entry.kind === "contextCompaction") {
+    const label = t("home.conversation.transcript.contextCompacted");
+    return (
+      <div className="home-assistant-transcript-entry home-assistant-transcript-divider" role="note" aria-label={label}>
+        <span className="home-assistant-transcript-divider-line" aria-hidden="true" />
+        <span className="home-assistant-transcript-divider-label">
+          <span className="home-assistant-transcript-divider-icon" aria-hidden="true">↳</span>
+          <span>{label}</span>
+        </span>
+        <span className="home-assistant-transcript-divider-line" aria-hidden="true" />
+      </div>
+    );
+  }
 
   const model = createAssistantTranscriptEntryModel(props.node, t);
   const truncateSummaryWhenCollapsed = model.kind === "details" && model.truncateSummaryWhenCollapsed === true;

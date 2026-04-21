@@ -49,6 +49,7 @@ export interface ConversationReviewState {
 export interface ConversationContextCompaction {
   readonly id: string;
   readonly itemId: string | null;
+  readonly afterItemId: string | null;
 }
 
 export interface ConversationTurnState {

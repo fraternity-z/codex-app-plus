@@ -144,9 +144,30 @@ function appendNotice(turn: ConversationTurnState, notice: ConversationSystemNot
 function appendReviewState(turn: ConversationTurnState, reviewState: ConversationReviewState): ConversationTurnState {
   return { ...turn, reviewStates: [...turn.reviewStates, reviewState] };
 }
+
+function getLastTurnItemId(turn: ConversationTurnState): string | null {
+  return turn.items[turn.items.length - 1]?.item.id ?? null;
+}
+
+function turnHasContextCompactionItem(turn: ConversationTurnState): boolean {
+  return turn.items.some((itemState) => itemState.item.type === "contextCompaction");
+}
+
 function appendContextCompaction(turn: ConversationTurnState, compaction: ConversationContextCompaction): ConversationTurnState {
+  if (compaction.itemId === null && turnHasContextCompactionItem(turn)) {
+    return turn;
+  }
+  if (turn.contextCompactions.some((entry) => entry.itemId === compaction.itemId && entry.afterItemId === compaction.afterItemId)) {
+    return turn;
+  }
   return { ...turn, contextCompactions: [...turn.contextCompactions, compaction] };
 }
+
+function clearContextCompactionFallbacks(turn: ConversationTurnState, afterItemId: string | null): ConversationTurnState {
+  const contextCompactions = turn.contextCompactions.filter((entry) => entry.afterItemId !== afterItemId);
+  return contextCompactions.length === turn.contextCompactions.length ? turn : { ...turn, contextCompactions };
+}
+
 function mergeSparseTurnState(currentTurn: ConversationTurnState, turn: Turn): ConversationTurnState {
   const nextTurn = createTurnState(turn, currentTurn.params);
   return {
@@ -240,7 +261,12 @@ export function syncCompletedTurn(conversation: ConversationState, turn: Turn): 
 }
 
 export function upsertConversationItem(conversation: ConversationState, turnId: string, item: ThreadItem): ConversationState {
-  return updateTurn(conversation, turnId, (turn) => upsertTurnItem(turn, item));
+  return updateTurn(conversation, turnId, (turn) => {
+    const existingItem = turn.items.find((itemState) => itemState.item.id === item.id);
+    const fallbackAnchor = item.type === "contextCompaction" && existingItem === undefined ? getLastTurnItemId(turn) : null;
+    const nextTurn = upsertTurnItem(turn, item);
+    return item.type === "contextCompaction" ? clearContextCompactionFallbacks(nextTurn, fallbackAnchor) : nextTurn;
+  });
 }
 
 export function appendConversationTerminalInteraction(conversation: ConversationState, turnId: string, itemId: string, stdin: string): ConversationState {
@@ -274,7 +300,11 @@ export function appendConversationReviewState(conversation: ConversationState, t
 }
 
 export function appendConversationContextCompaction(conversation: ConversationState, turnId: string): ConversationState {
-  return updateTurn(conversation, turnId, (turn) => appendContextCompaction(turn, { id: createNoticeId("context-compaction"), itemId: null }));
+  return updateTurn(conversation, turnId, (turn) => appendContextCompaction(turn, {
+    id: createNoticeId("context-compaction"),
+    itemId: null,
+    afterItemId: getLastTurnItemId(turn),
+  }));
 }
 
 export function setConversationTokenUsage(conversation: ConversationState, turnId: string, usage: ThreadTokenUsage): ConversationState {

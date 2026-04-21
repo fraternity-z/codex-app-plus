@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type {
   CollabAgentToolCallEntry,
   CommandExecutionEntry,
+  ContextCompactionEntry,
   ConversationMessage,
   DynamicToolCallEntry,
   McpToolCallEntry,
@@ -157,6 +158,18 @@ function createPlanDraftNode(): Extract<AssistantNode, { kind: "auxiliaryBlock" 
   return { key: entry.id, kind: "auxiliaryBlock", entry };
 }
 
+function createContextCompactionNode(): Extract<AssistantNode, { kind: "auxiliaryBlock" }> {
+  const entry: ContextCompactionEntry = {
+    id: "context-compaction-1",
+    kind: "contextCompaction",
+    threadId: "thread-1",
+    turnId: "turn-1",
+    itemId: "item-context-compaction",
+  };
+
+  return { key: entry.id, kind: "auxiliaryBlock", entry };
+}
+
 function createReasoningNode(
   titleMarkdown = "**Inspecting code behavior**",
   bodyMarkdown = "I need to inspect the component before patching it.",
@@ -194,6 +207,15 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(container.querySelector(".home-plan-draft-card")).not.toBeNull();
     expect(screen.getByText("Plan draft")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Plan doc" })).toBeInTheDocument();
+  });
+
+  it("renders context compaction as a divider line", () => {
+    const { container } = render(<HomeAssistantTranscriptEntry node={createContextCompactionNode()} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(container.querySelector(".home-assistant-transcript-divider")).not.toBeNull();
+    expect(screen.getByText("背景信息已自动压缩")).toBeInTheDocument();
   });
 
   it("omits empty assistant message placeholders", () => {

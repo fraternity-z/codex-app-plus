@@ -19,6 +19,34 @@
   color: var(--text-muted);
 }
 
+.home-assistant-transcript-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.4;
+}
+
+.home-assistant-transcript-divider-line {
+  flex: 1 1 0;
+  min-width: 24px;
+  height: 1px;
+  background: var(--border-light);
+}
+
+.home-assistant-transcript-divider-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.home-assistant-transcript-divider-icon {
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
 .home-assistant-transcript-message .home-chat-markdown {
   color: var(--text-main);
 }
