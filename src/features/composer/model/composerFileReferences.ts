@@ -22,8 +22,12 @@ export function parseComposerFileReferenceDraft(inputText: string): ComposerFile
     filePaths.push(filePath);
   }
 
+  if (filePaths.length > 0 && bodyLines.length > 0 && bodyLines[bodyLines.length - 1]?.trim().length === 0) {
+    bodyLines.pop();
+  }
+
   return {
-    bodyText: trimTrailingBlankLines(bodyLines).join("\n"),
+    bodyText: bodyLines.join("\n"),
     filePaths: uniqueFilePaths(filePaths),
   };
 }
@@ -32,15 +36,14 @@ export function serializeComposerFileReferenceDraft(
   bodyText: string,
   filePaths: ReadonlyArray<string>,
 ): string {
-  const trimmedBodyText = bodyText.trimEnd();
   const serializedMarkers = uniqueFilePaths(filePaths).map(encodeComposerFileReferenceMarker);
   if (serializedMarkers.length === 0) {
-    return trimmedBodyText;
+    return bodyText;
   }
-  if (trimmedBodyText.length === 0) {
+  if (bodyText.length === 0) {
     return serializedMarkers.join("\n");
   }
-  return `${trimmedBodyText}\n${serializedMarkers.join("\n")}`;
+  return `${bodyText}\n\n${serializedMarkers.join("\n")}`;
 }
 
 export function expandComposerFileReferenceDraft(inputText: string): string {
@@ -133,14 +136,6 @@ function decodeTextFromBase64(value: string): string | null {
   } catch {
     return null;
   }
-}
-
-function trimTrailingBlankLines(lines: ReadonlyArray<string>): ReadonlyArray<string> {
-  const nextLines = [...lines];
-  while (nextLines.length > 0 && nextLines[nextLines.length - 1]?.trim().length === 0) {
-    nextLines.pop();
-  }
-  return nextLines;
 }
 
 function uniqueFilePaths(filePaths: ReadonlyArray<string>): ReadonlyArray<string> {
