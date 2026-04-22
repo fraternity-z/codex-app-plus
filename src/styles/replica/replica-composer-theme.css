@@ -106,6 +106,14 @@ html[data-theme="dark"] .composer-area {
   color: var(--text-soft);
 }
 
+.attachment-clip,
+.attachment-clip-image,
+.attachment-clip-file {
+  background: var(--surface-panel);
+  border-color: var(--border-light);
+  color: var(--text-main);
+}
+
 .plan-request-option[data-selected="true"],
 .composer-mini-btn-active,
 .composer-select-trigger-active,
@@ -180,13 +188,16 @@ html[data-theme="dark"] .composer-area {
 }
 
 .attachment-clip {
-  color: var(--text-soft);
+  color: var(--text-main);
 }
 
-.attachment-clip-image {
-  background: var(--info-bg);
-  border-color: rgba(96, 165, 250, 0.32);
-  color: var(--info-fg);
+.attachment-clip-main {
+  color: inherit;
+}
+
+.attachment-clip-thumb {
+  border-color: color-mix(in srgb, var(--border-light) 75%, transparent);
+  background: var(--surface-panel-muted);
 }
 
 .composer-select-menu-separator,

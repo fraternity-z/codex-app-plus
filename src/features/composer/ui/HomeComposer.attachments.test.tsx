@@ -1,4 +1,5 @@
 import { createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { useState, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ComposerModelOption } from "../model/composerPreferences";
@@ -12,6 +13,10 @@ const openMock = vi.fn();
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
   open: (...args: Array<unknown>) => openMock(...args),
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  convertFileSrc: vi.fn((path: string) => `asset://${path}`),
 }));
 
 const MODELS: ReadonlyArray<ComposerModelOption> = [{
@@ -147,6 +152,7 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
 
 beforeEach(() => {
   openMock.mockReset();
+  vi.mocked(convertFileSrc).mockClear();
 });
 
 afterEach(() => {
@@ -167,6 +173,43 @@ describe("HomeComposer attachments", () => {
     expect(screen.getByText("notes.md")).toBeInTheDocument();
     expect((textarea as HTMLTextAreaElement).value).toBe("");
     expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled();
+  });
+
+  it("shows image chips with tiny thumbnails and closes preview via backdrop or Escape", async () => {
+    openMock.mockResolvedValue(["E:/code/codex-app-plus/image.png"]);
+    renderComposer();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Add files and photos/i }));
+
+    const clipTrigger = await screen.findByRole("button", { name: "Generated image preview" });
+    const thumb = screen.getByRole("img", { name: "Generated image" });
+
+    expect(thumb).toHaveAttribute("src", "asset://E:/code/codex-app-plus/image.png");
+    expect(convertFileSrc).toHaveBeenCalledWith("E:/code/codex-app-plus/image.png");
+
+    fireEvent.click(clipTrigger);
+    expect(screen.getByRole("dialog", { name: "Generated image preview" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("presentation"));
+    expect(screen.queryByRole("dialog", { name: "Generated image preview" })).toBeNull();
+
+    fireEvent.click(clipTrigger);
+    expect(screen.getByRole("dialog", { name: "Generated image preview" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Generated image preview" })).toBeNull();
+  });
+
+  it("renders non-image chips without thumbnail preview trigger", async () => {
+    openMock.mockResolvedValue(["E:/code/codex-app-plus/notes.md"]);
+    renderComposer();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Add files and photos/i }));
+
+    await waitFor(() => expect(screen.getByText("notes.md")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "Generated image preview" })).toBeNull();
+    expect(convertFileSrc).not.toHaveBeenCalled();
   });
 
   it("handles pasted images as clips without injecting base64 text", async () => {

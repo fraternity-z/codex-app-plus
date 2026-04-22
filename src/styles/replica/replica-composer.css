@@ -295,23 +295,52 @@
   max-width: 100%;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border: 1px solid #d8dbe2;
+  gap: 4px;
+  border: 1px solid var(--border-light);
   border-radius: 999px;
-  background: #f8fafc;
-  color: #4b5563;
-  padding: 4px 10px;
+  background: var(--surface-panel);
+  color: var(--text-main);
+  padding: 3px 8px;
 }
 
 .attachment-clip-image {
-  background: #eff6ff;
-  border-color: #c7ddff;
-  color: #2457a6;
+  background: var(--surface-panel);
+  border-color: var(--border-light);
+  color: var(--text-main);
 }
 
 .attachment-clip-file {
-  background: #f8fafc;
-  border-color: #d8dbe2;
+  background: var(--surface-panel);
+  border-color: var(--border-light);
+}
+
+.attachment-clip-main {
+  min-width: 0;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.attachment-clip-main:focus-visible {
+  outline: 2px solid color-mix(in srgb, #3b82f6 50%, transparent);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
+.attachment-clip-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  display: block;
+  object-fit: cover;
+  border: 1px solid color-mix(in srgb, var(--border-light) 75%, transparent);
+  background: var(--surface-panel-muted);
 }
 
 .attachment-clip-label {
@@ -330,6 +359,15 @@
   cursor: pointer;
   line-height: 1;
   padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.attachment-clip:hover .attachment-clip-remove,
+.attachment-clip:focus-within .attachment-clip-remove {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .attachment-clip-remove:hover {

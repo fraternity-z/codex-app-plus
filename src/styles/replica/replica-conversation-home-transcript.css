@@ -118,26 +118,6 @@
   box-shadow: var(--shadow-lg);
 }
 
-.home-assistant-transcript-image-dialog-close {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  z-index: 1;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--border-light);
-  border-radius: 999px;
-  background: var(--surface-panel);
-  color: var(--text-main);
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: var(--shadow-md);
-}
-
-.home-assistant-transcript-image-dialog-close:hover {
-  background: var(--surface-hover);
-}
 
 .home-assistant-transcript-reasoning-details {
   display: block;
