@@ -28,6 +28,7 @@ import { ConfigSettingsSection } from "./ConfigSettingsSection";
 import { GeneralSettingsSection } from "./GeneralSettingsSection";
 import { GitSettingsSection } from "./GitSettingsSection";
 import { PersonalizationSettingsSection } from "./PersonalizationSettingsSection";
+import { SettingsNavIcon, type SettingsNavIconKind } from "./settingsNavIcons";
 import {
   EnvironmentContent,
   PlaceholderContent,
@@ -96,24 +97,24 @@ export interface SettingsViewProps {
 interface NavItem {
   readonly key: SettingsSection;
   readonly label: string;
-  readonly icon: string;
+  readonly icon: SettingsNavIconKind;
 }
 
 const NAV_ITEM_DEFINITIONS: ReadonlyArray<{
   readonly key: SettingsSection;
-  readonly icon: string;
+  readonly icon: SettingsNavIconKind;
   readonly labelKey: MessageKey;
 }> = [
-  { key: "general", labelKey: "settings.nav.general", icon: "●" },
-  { key: "appearance", labelKey: "settings.nav.appearance", icon: "◐" },
-  { key: "config", labelKey: "settings.nav.config", icon: "⚙" },
-  { key: "agents", labelKey: "settings.nav.agents", icon: "◉" },
-  { key: "personalization", labelKey: "settings.nav.personalization", icon: "◌" },
-  { key: "mcp", labelKey: "settings.nav.mcp", icon: "✣" },
-  { key: "git", labelKey: "settings.nav.git", icon: "⑂" },
-  { key: "environment", labelKey: "settings.nav.environment", icon: "◍" },
-  { key: "worktree", labelKey: "settings.nav.worktree", icon: "▣" },
-  { key: "about", labelKey: "settings.nav.about", icon: "ⓘ" },
+  { key: "general", labelKey: "settings.nav.general", icon: "general" },
+  { key: "appearance", labelKey: "settings.nav.appearance", icon: "appearance" },
+  { key: "config", labelKey: "settings.nav.config", icon: "config" },
+  { key: "agents", labelKey: "settings.nav.agents", icon: "agents" },
+  { key: "personalization", labelKey: "settings.nav.personalization", icon: "personalization" },
+  { key: "mcp", labelKey: "settings.nav.mcp", icon: "mcp" },
+  { key: "git", labelKey: "settings.nav.git", icon: "git" },
+  { key: "environment", labelKey: "settings.nav.environment", icon: "environment" },
+  { key: "worktree", labelKey: "settings.nav.worktree", icon: "worktree" },
+  { key: "about", labelKey: "settings.nav.about", icon: "about" },
 ];
 function createNavItems(t: (key: MessageKey) => string): ReadonlyArray<NavItem> {
   return NAV_ITEM_DEFINITIONS.map((item) => ({
@@ -144,7 +145,7 @@ function SettingsSidebar(props: {
         ].filter(Boolean).join(" ")}
         onClick={comingSoon ? undefined : () => props.onSelectSection(item.key)}
       >
-        <span className="settings-nav-icon">{item.icon}</span>
+        <span className="settings-nav-icon"><SettingsNavIcon className="settings-nav-icon-svg" kind={item.icon} /></span>
         <span>{item.label}</span>
         {comingSoon && <span className="settings-nav-coming-soon-badge">Coming Soon</span>}
       </button>

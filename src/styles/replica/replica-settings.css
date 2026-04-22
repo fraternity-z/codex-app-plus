@@ -72,12 +72,27 @@
 
 .settings-nav-icon {
   width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-subtle);
-  text-align: center;
+  flex: 0 0 16px;
+}
+
+.settings-nav-icon-svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .settings-nav-item:hover {
   background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+.settings-nav-item:hover .settings-nav-icon,
+.settings-nav-item-active .settings-nav-icon {
   color: var(--text-main);
 }
 
