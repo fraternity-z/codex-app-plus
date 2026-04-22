@@ -271,6 +271,40 @@
 .composer-attachment-draft {
   padding: 12px 12px 0;
 }
+.composer-input-wrap {
+  position: relative;
+}
+.composer-input-has-badge {
+  color: transparent !important;
+  caret-color: var(--text-main);
+}
+.composer-input-has-badge::selection {
+  color: transparent;
+  background: rgba(59, 130, 246, 0.25);
+}
+.composer-skill-badge-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  padding: 14px 15px 8px;
+  font-size: var(--app-ui-font-size-base);
+  line-height: var(--composer-input-line-height);
+  color: var(--text-main);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.composer-skill-badge {
+  background: #ede9fe;
+  color: #7c3aed;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  font-weight: inherit;
+  white-space: nowrap;
+}
 .composer-input {
   width: 100%;
   min-height: var(--composer-input-min-height);

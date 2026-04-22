@@ -28,9 +28,19 @@
   min-width: 0;
 }
 
+.window-titlebar-nav-group {
+  display: inline-flex;
+  align-items: stretch;
+}
+
 .window-titlebar-sidebar-icon {
   width: 18px;
   height: 18px;
+}
+
+.window-titlebar-nav-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .window-titlebar-controls {
@@ -52,6 +62,10 @@
   flex-shrink: 0;
 }
 
+.window-titlebar-nav-button {
+  width: 38px;
+}
+
 .window-titlebar-button svg {
   width: 12px;
   height: 12px;
@@ -66,6 +80,16 @@
 .window-titlebar-button:hover {
   background: var(--surface-hover);
   color: var(--text-main);
+}
+
+.window-titlebar-button:disabled {
+  color: var(--text-faint);
+  cursor: default;
+}
+
+.window-titlebar-button:disabled:hover {
+  background: transparent;
+  color: var(--text-faint);
 }
 
 .window-titlebar-sidebar-toggle:focus-visible,

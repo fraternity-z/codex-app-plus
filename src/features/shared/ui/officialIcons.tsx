@@ -40,6 +40,44 @@ export function OfficialChevronRightIcon(props: IconProps): JSX.Element {
   );
 }
 
+export function OfficialArrowLeftIcon(props: IconProps): JSX.Element {
+  return (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M11.831 4.21484C12.0907 4.47454 12.0907 4.89655 11.831 5.15625L6.98727 10L11.831 14.8438C12.0907 15.1034 12.0907 15.5255 11.831 15.7852C11.5713 16.0449 11.1493 16.0449 10.8896 15.7852L5.57418 10.4697C5.31448 10.21 5.31448 9.78996 5.57418 9.53027L10.8896 4.21484C11.1493 3.95514 11.5713 3.95514 11.831 4.21484Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+export function OfficialArrowRightIcon(props: IconProps): JSX.Element {
+  return (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M8.16901 4.21484C8.4287 3.95514 8.85071 3.95514 9.11041 4.21484L14.4258 9.53027C14.6855 9.78996 14.6855 10.21 14.4258 10.4697L9.11041 15.7852C8.85071 16.0449 8.4287 16.0449 8.16901 15.7852C7.90931 15.5255 7.90931 15.1034 8.16901 14.8438L13.0128 10L8.16901 5.15625C7.90931 4.89655 7.90931 4.47454 8.16901 4.21484Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export function OfficialSidebarToggleIcon(props: IconProps): JSX.Element {
   return (
     <svg

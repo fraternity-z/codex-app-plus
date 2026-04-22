@@ -127,10 +127,8 @@ function SettingsSidebar(props: {
   readonly collapsed: boolean;
   readonly navItems: ReadonlyArray<NavItem>;
   readonly section: SettingsSection;
-  onBackHome: () => void;
   onSelectSection: (section: SettingsSection) => void;
 }): JSX.Element {
-  const { t } = useI18n();
   const getItem = (key: SettingsSection) => props.navItems.find((i) => i.key === key)!;
   const renderNavItem = (key: SettingsSection, comingSoon = false) => {
     const item = getItem(key);
@@ -153,9 +151,6 @@ function SettingsSidebar(props: {
   };
   return (
     <aside className="settings-sidebar" aria-hidden={props.collapsed}>
-      <button type="button" className="settings-back-app" onClick={props.onBackHome}>
-        ← {t("settings.sidebar.backToApp")}
-      </button>
       <nav className="settings-nav">
         {renderNavItem("general")}
         {renderNavItem("appearance")}
@@ -283,7 +278,6 @@ export function SettingsView(props: SettingsViewProps): JSX.Element {
         collapsed={props.sidebarCollapsed}
         navItems={navItems}
         section={props.section}
-        onBackHome={props.onBackHome}
         onSelectSection={props.onSelectSection}
       />
       <main className="settings-main">

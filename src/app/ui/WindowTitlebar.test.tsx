@@ -81,6 +81,40 @@ describe("WindowTitlebar", () => {
     expect(controlWindow).not.toHaveBeenCalled();
   });
 
+  it("renders back and forward navigation buttons", () => {
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: "Win32",
+    });
+    const controlWindow = vi.fn().mockResolvedValue(undefined);
+    const onGoBack = vi.fn();
+    const onGoForward = vi.fn();
+
+    render(
+      <WindowTitlebar
+        hostBridge={createHostBridge(controlWindow)}
+        navigationControl={{
+          canGoBack: true,
+          canGoForward: false,
+          onGoBack,
+          onGoForward,
+        }}
+      />,
+    );
+
+    const backButton = screen.getByRole("button", { name: "返回上一页" });
+    const forwardButton = screen.getByRole("button", { name: "前进到下一页" });
+
+    expect(backButton).toBeEnabled();
+    expect(forwardButton).toBeDisabled();
+
+    fireEvent.click(backButton);
+    fireEvent.click(forwardButton);
+
+    expect(onGoBack).toHaveBeenCalledTimes(1);
+    expect(onGoForward).not.toHaveBeenCalled();
+  });
+
   it("starts dragging when pressing the titlebar content", () => {
     Object.defineProperty(window.navigator, "platform", {
       configurable: true,

@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import type { HostBridge } from "../bridge/types";
 import { useAppBootstrapState } from "./controller/appControllerState";
 import { useAppController } from "./controller/useAppController";
-import { AppScreenContent, type AppScreen } from "./ui/AppScreenContent";
+import { AppScreenContent } from "./ui/AppScreenContent";
 import { useDismissStartupScreen } from "./startupScreen";
 import { useAppCodeStyleVariables } from "./useAppCodeStyleVariables";
 import { useAppAppearanceVariables } from "./useAppAppearanceVariables";
@@ -15,6 +15,14 @@ import { useAppNotificationsController } from "../features/notifications/hooks/u
 import type { SettingsSection } from "../features/settings/ui/SettingsView";
 import { useWorkspaceRoots } from "../features/workspace/hooks/useWorkspaceRoots";
 import { useAppStoreApi } from "../state/store";
+import {
+  canGoBackScreen,
+  canGoForwardScreen,
+  createScreenHistoryState,
+  goBackScreen,
+  goForwardScreen,
+  pushScreenHistory,
+} from "./model/screenHistory";
 
 const SKILLS_LEARN_MORE_URL = "https://openai.com/index/introducing-the-codex-app/";
 
@@ -29,8 +37,9 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const bootstrapState = useAppBootstrapState();
   const controller = useAppController(hostBridge, preferences.agentEnvironment);
   const workspace = useWorkspaceRoots(hostBridge.app);
-  const [screen, setScreen] = useState<AppScreen>("home");
+  const [screenHistory, setScreenHistory] = useState(() => createScreenHistoryState("home"));
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const screen = screenHistory.current;
   const authBusy = bootstrapState.bootstrapBusy || bootstrapState.authLoginPending;
   const shouldShowAuthChoice = bootstrapState.authStatus === "needs_login" && screen === "home";
 
@@ -44,11 +53,11 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   );
 
   const backHome = useCallback(() => {
-    setScreen("home");
+    setScreenHistory((current) => pushScreenHistory(current, "home"));
     setSettingsMenuOpen(false);
   }, []);
   const openSettingsSection = useCallback((section: SettingsSection) => {
-    setScreen(section);
+    setScreenHistory((current) => pushScreenHistory(current, section));
     setSettingsMenuOpen(false);
   }, []);
   const openSettings = useCallback(() => {
@@ -58,7 +67,15 @@ export function App({ hostBridge }: AppProps): JSX.Element {
     openSettingsSection("config");
   }, [openSettingsSection]);
   const openSkills = useCallback(() => {
-    setScreen("skills");
+    setScreenHistory((current) => pushScreenHistory(current, "skills"));
+    setSettingsMenuOpen(false);
+  }, []);
+  const goBack = useCallback(() => {
+    setScreenHistory((current) => goBackScreen(current));
+    setSettingsMenuOpen(false);
+  }, []);
+  const goForward = useCallback(() => {
+    setScreenHistory((current) => goForwardScreen(current));
     setSettingsMenuOpen(false);
   }, []);
 
@@ -70,11 +87,15 @@ export function App({ hostBridge }: AppProps): JSX.Element {
         preferences={preferences}
         resolvedTheme={resolvedTheme}
         screen={screen}
+        canGoBack={canGoBackScreen(screenHistory)}
+        canGoForward={canGoForwardScreen(screenHistory)}
         settingsMenuOpen={settingsMenuOpen}
         shouldShowAuthChoice={shouldShowAuthChoice}
         workspace={workspace}
         authBusy={authBusy}
         authLoginPending={bootstrapState.authLoginPending}
+        onGoBack={goBack}
+        onGoForward={goForward}
         onBackHome={backHome}
         onDismissSettingsMenu={() => setSettingsMenuOpen(false)}
         onOpenApiKeySettings={openApiKeySettings}

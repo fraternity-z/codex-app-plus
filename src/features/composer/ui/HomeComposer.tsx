@@ -27,6 +27,7 @@ import { useComposerTextareaAutosize } from "../hooks/useComposerTextareaAutosiz
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
 import { useI18n } from "../../../i18n/useI18n";
+import { ComposerSkillBadgeOverlay, detectSkillBadge } from "./ComposerSkillBadge";
 
 const MIN_TRIMMED_MESSAGE_LENGTH = 1;
 const MAX_COMPOSER_INPUT_EXTRA_ROWS = 3;
@@ -134,6 +135,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     : interactionDisabled || !appServerReady || !canSend;
   const buttonLabel = showInterruptAction ? "Stop response" : "Send message";
 
+  const skillBadgeMatch = useMemo(() => detectSkillBadge(composerBodyText, commandPalette.open), [composerBodyText, commandPalette.open]);
   useComposerTextareaAutosize({ textareaRef: commandPalette.textareaRef, value: composerBodyText, maxExtraRows: MAX_COMPOSER_INPUT_EXTRA_ROWS });
   useToolbarMenuDismissal(commandPalette.open, containerRef, () => void commandPalette.dismiss());
 
@@ -178,7 +180,10 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
           {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label={t("home.composer.closeAttachmentMenu")} onClick={() => setMenuOpen(false)} /> : null}
           {commandPalette.open ? <ComposerCommandPalette open={true} title={commandPalette.title} items={commandPalette.items} selectedIndex={commandPalette.selectedIndex} onSelectItem={commandPalette.onSelectItem} onHoverItem={commandPalette.onHoverItem} /> : null}
           <ComposerDraftChips attachments={attachments} filePaths={fileReferencePaths} onRemoveAttachment={removeAttachment} onRemoveFilePath={removeFileReference} />
-          <textarea ref={commandPalette.textareaRef} rows={1} className="composer-input" placeholder={getComposerPlaceholder(props.selectedRootPath)} value={composerBodyText} disabled={interactionDisabled} onPaste={(event) => void handlePaste(event)} onSelect={commandPalette.syncFromTextareaSelection} onKeyDown={(event) => handleInputKeyDown(event, props, attachments.length > 0 || fileReferencePaths.length > 0, commandPalette.handleKeyDown, submit)} onChange={(event) => handleInputChange(event.currentTarget.value, event.currentTarget.selectionStart, updateComposerBodyText, commandPalette.syncFromTextInput)} />
+          <div className="composer-input-wrap">
+            {skillBadgeMatch !== null ? <ComposerSkillBadgeOverlay text={composerBodyText} match={skillBadgeMatch} textareaRef={commandPalette.textareaRef} /> : null}
+            <textarea ref={commandPalette.textareaRef} rows={1} className={skillBadgeMatch !== null ? "composer-input composer-input-has-badge" : "composer-input"} placeholder={getComposerPlaceholder(props.selectedRootPath)} value={composerBodyText} disabled={interactionDisabled} onPaste={(event) => void handlePaste(event)} onSelect={commandPalette.syncFromTextareaSelection} onKeyDown={(event) => handleInputKeyDown(event, props, attachments.length > 0 || fileReferencePaths.length > 0, commandPalette.handleKeyDown, submit)} onChange={(event) => handleInputChange(event.currentTarget.value, event.currentTarget.selectionStart, updateComposerBodyText, commandPalette.syncFromTextInput)} />
+          </div>
           <div className="composer-bar">
             <div className="composer-left">
               <div className="composer-plus-anchor">

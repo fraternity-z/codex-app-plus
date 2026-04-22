@@ -1,6 +1,9 @@
 import { type MouseEvent, useCallback } from "react";
 import type { HostBridge } from "../../bridge/types";
-import { OfficialCloseIcon, OfficialSidebarToggleIcon } from "../../features/shared/ui/officialIcons";
+import {
+  OfficialCloseIcon,
+  OfficialSidebarToggleIcon,
+} from "../../features/shared/ui/officialIcons";
 
 const WINDOW_CONTROL_SELECTOR = "[data-window-control='true']";
 
@@ -11,8 +14,16 @@ interface WindowTitlebarSidebarControl {
   readonly onToggle: () => void;
 }
 
+interface WindowTitlebarNavigationControl {
+  readonly canGoBack: boolean;
+  readonly canGoForward: boolean;
+  readonly onGoBack: () => void;
+  readonly onGoForward: () => void;
+}
+
 interface WindowTitlebarProps {
   readonly hostBridge: HostBridge;
+  readonly navigationControl?: WindowTitlebarNavigationControl | null;
   readonly sidebarControl?: WindowTitlebarSidebarControl | null;
 }
 
@@ -29,6 +40,7 @@ function ChromeButton(props: {
   readonly ariaLabel: string;
   readonly ariaPressed?: boolean;
   readonly className?: string;
+  readonly disabled?: boolean;
   readonly onClick: () => void;
   readonly children: JSX.Element;
 }): JSX.Element {
@@ -38,6 +50,7 @@ function ChromeButton(props: {
       className={props.className ?? "window-titlebar-button"}
       aria-label={props.ariaLabel}
       aria-pressed={props.ariaPressed}
+      disabled={props.disabled}
       data-window-control="true"
       onClick={props.onClick}
     >
@@ -62,6 +75,22 @@ function MaximizeIcon(): JSX.Element {
   return (
     <svg viewBox="0 0 10 10" aria-hidden="true">
       <rect x="1.8" y="1.8" width="6.4" height="6.4" rx="0.6" fill="none" stroke="currentColor" strokeWidth="1.05" />
+    </svg>
+  );
+}
+
+function BackIcon(): JSX.Element {
+  return (
+    <svg className="window-titlebar-nav-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M13 8H3M3 8L7 4M3 8L7 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ForwardIcon(): JSX.Element {
+  return (
+    <svg className="window-titlebar-nav-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -108,6 +137,26 @@ export function WindowTitlebar(props: WindowTitlebarProps): JSX.Element | null {
         >
           <OfficialSidebarToggleIcon className="window-titlebar-sidebar-icon" />
         </ChromeButton>
+      ) : null}
+      {props.navigationControl ? (
+        <div className="window-titlebar-nav-group" data-window-control="true">
+          <ChromeButton
+            ariaLabel="返回上一页"
+            className="window-titlebar-button window-titlebar-nav-button"
+            disabled={!props.navigationControl.canGoBack}
+            onClick={props.navigationControl.onGoBack}
+          >
+            <BackIcon />
+          </ChromeButton>
+          <ChromeButton
+            ariaLabel="前进到下一页"
+            className="window-titlebar-button window-titlebar-nav-button"
+            disabled={!props.navigationControl.canGoForward}
+            onClick={props.navigationControl.onGoForward}
+          >
+            <ForwardIcon />
+          </ChromeButton>
+        </div>
       ) : null}
       <div className="window-titlebar-drag-spacer" aria-hidden="true" />
       <div className="window-titlebar-controls" data-window-control="true">

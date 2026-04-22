@@ -27,6 +27,12 @@ vi.mock("../../features/skills/ui/SkillsScreen", () => ({
 
 vi.mock("./WindowTitlebar", () => ({
   WindowTitlebar: (props: {
+    readonly navigationControl?: {
+      readonly canGoBack: boolean;
+      readonly canGoForward: boolean;
+      readonly onGoBack: () => void;
+      readonly onGoForward: () => void;
+    } | null;
     readonly sidebarControl?: {
       readonly collapsed: boolean;
       readonly collapseLabel: string;
@@ -35,6 +41,26 @@ vi.mock("./WindowTitlebar", () => ({
     } | null;
   }) => (
     <div data-testid="window-titlebar">
+      {props.navigationControl ? (
+        <>
+          <button
+            type="button"
+            aria-label="返回上一页"
+            disabled={!props.navigationControl.canGoBack}
+            onClick={props.navigationControl.onGoBack}
+          >
+            go back
+          </button>
+          <button
+            type="button"
+            aria-label="前进到下一页"
+            disabled={!props.navigationControl.canGoForward}
+            onClick={props.navigationControl.onGoForward}
+          >
+            go forward
+          </button>
+        </>
+      ) : null}
       {props.sidebarControl ? (
         <button
           type="button"
@@ -109,11 +135,15 @@ function createProps(
     preferences: createPreferences(),
     resolvedTheme: "light",
     screen: "home",
+    canGoBack: false,
+    canGoForward: false,
     settingsMenuOpen: false,
     shouldShowAuthChoice: false,
     workspace: createWorkspace(),
     authBusy: false,
     authLoginPending: false,
+    onGoBack: vi.fn(),
+    onGoForward: vi.fn(),
     onBackHome: vi.fn(),
     onDismissSettingsMenu: vi.fn(),
     onOpenApiKeySettings: vi.fn(),
@@ -175,5 +205,30 @@ describe("AppScreenContent", () => {
 
     expect(screen.getByTestId("settings-screen")).toHaveTextContent("settings collapsed:true");
     expect(screen.getByRole("button", { name: "展开设置侧边栏" })).toBeInTheDocument();
+  });
+
+  it("passes navigation actions to the titlebar", () => {
+    const onGoBack = vi.fn();
+    const onGoForward = vi.fn();
+
+    render(
+      <AppScreenContent
+        {...createProps({
+          canGoBack: true,
+          canGoForward: false,
+          onGoBack,
+          onGoForward,
+        })}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "返回上一页" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "前进到下一页" })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "返回上一页" }));
+    fireEvent.click(screen.getByRole("button", { name: "前进到下一页" }));
+
+    expect(onGoBack).toHaveBeenCalledTimes(1);
+    expect(onGoForward).not.toHaveBeenCalled();
   });
 });

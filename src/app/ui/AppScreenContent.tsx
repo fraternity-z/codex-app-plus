@@ -20,11 +20,15 @@ interface AppScreenContentProps {
   readonly preferences: AppPreferencesController;
   readonly resolvedTheme: ResolvedTheme;
   readonly screen: AppScreen;
+  readonly canGoBack: boolean;
+  readonly canGoForward: boolean;
   readonly settingsMenuOpen: boolean;
   readonly shouldShowAuthChoice: boolean;
   readonly workspace: WorkspaceRootController;
   readonly authBusy: boolean;
   readonly authLoginPending: boolean;
+  readonly onGoBack: () => void;
+  readonly onGoForward: () => void;
   readonly onBackHome: () => void;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenApiKeySettings: () => void;
@@ -73,7 +77,16 @@ export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
 
   return (
     <div className="app-shell">
-      <WindowTitlebar hostBridge={props.hostBridge} sidebarControl={titlebarSidebarControl} />
+      <WindowTitlebar
+        hostBridge={props.hostBridge}
+        navigationControl={{
+          canGoBack: props.canGoBack,
+          canGoForward: props.canGoForward,
+          onGoBack: props.onGoBack,
+          onGoForward: props.onGoForward,
+        }}
+        sidebarControl={titlebarSidebarControl}
+      />
       <div className="app-shell-body">
         {renderScreen({
           ...props,

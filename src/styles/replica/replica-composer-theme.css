@@ -187,6 +187,20 @@ html[data-theme="dark"] .composer-area {
   color: var(--text-subtle);
 }
 
+.composer-input-has-badge {
+  caret-color: var(--text-main);
+}
+
+.composer-skill-badge {
+  background: rgba(124, 58, 237, 0.12);
+  color: #8b5cf6;
+}
+
+html[data-theme="dark"] .composer-skill-badge {
+  background: rgba(139, 92, 246, 0.18);
+  color: #a78bfa;
+}
+
 .attachment-clip {
   color: var(--text-main);
 }
