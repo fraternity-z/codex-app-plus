@@ -1,8 +1,10 @@
-import { memo, useCallback, useMemo } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import { collectDescendantThreadIds, createRpcThreadRuntimeCleanupTransport, forceCloseThreadRuntime, reportThreadCleanupError } from "../../conversation/service/threadRuntimeCleanup";
-import type { HostBridge, GitWorktreeEntry } from "../../../bridge/types";
+import type { AgentEnvironment, HostBridge, GitWorktreeEntry } from "../../../bridge/types";
 import type { AuthStatus, ThreadSummary, AccountSummary } from "../../../domain/types";
+import type { CodexSessionSearchResultOutput } from "../../../bridge/types";
 import type { RateLimitSnapshot } from "../../../protocol/generated/v2/RateLimitSnapshot";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import { useAppDispatch, useAppStoreApi } from "../../../state/store";
@@ -11,9 +13,11 @@ import { OfficialSettingsGearIcon } from "../../shared/ui/officialIcons";
 import { useI18n } from "../../../i18n/useI18n";
 import { SettingsPopover } from "./SettingsPopover";
 import { WorkspaceSidebarSection } from "../../workspace/ui/WorkspaceSidebarSection";
+import { threadBelongsToWorkspace } from "../../workspace/model/workspaceThread";
 
 export interface HomeSidebarProps {
   readonly appServerClient: AppServerClient;
+  readonly agentEnvironment: AgentEnvironment;
   readonly hostBridge: HostBridge;
   readonly roots: ReadonlyArray<WorkspaceRoot>;
   readonly codexSessions: ReadonlyArray<ThreadSummary>;
@@ -50,6 +54,7 @@ export interface HomeSidebarProps {
 
 function SidebarNav(props: {
   readonly onCreateThread: () => Promise<void>;
+  readonly onOpenSearch: () => void;
   readonly onOpenSkills: () => void;
 }): JSX.Element {
   const { t } = useI18n();
@@ -60,6 +65,10 @@ function SidebarNav(props: {
         <SidebarIcon kind="new-thread" />
         <span>{t("home.sidebar.newThread")}</span>
       </button>
+      <button type="button" className="sidebar-nav-item" onClick={props.onOpenSearch}>
+        <SidebarIcon kind="search" />
+        <span>{t("home.sidebar.search")}</span>
+      </button>
       <button type="button" className="sidebar-nav-item" onClick={props.onOpenSkills}>
         <SidebarIcon kind="skills" />
         <span>{t("home.sidebar.skills")}</span>
@@ -68,8 +77,141 @@ function SidebarNav(props: {
   );
 }
 
+function findRootIdForSession(
+  roots: ReadonlyArray<WorkspaceRoot>,
+  session: Pick<CodexSessionSearchResultOutput, "cwd">,
+): string | null {
+  return roots.find((root) => threadBelongsToWorkspace(session.cwd, root.path))?.id ?? null;
+}
+
+function formatSearchPreview(
+  value: string,
+  maxLength = 96,
+): string {
+  const trimmed = value.replace(/\s+/g, " ").trim();
+  if (trimmed.length <= maxLength) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, maxLength - 1)}…`;
+}
+
+function formatSearchHighlight(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function SearchMatchPreview(props: { readonly match: CodexSessionSearchResultOutput["matches"][number] }): JSX.Element {
+  const lineText = props.match.lineText;
+  const startIndex = Math.max(0, props.match.startColumn - 1);
+  const endIndex = Math.max(startIndex, props.match.endColumn - 1);
+  const before = lineText.slice(0, startIndex);
+  const highlight = lineText.slice(startIndex, endIndex);
+  const after = lineText.slice(endIndex);
+
+  return (
+    <span className="sidebar-search-result-preview">
+      {formatSearchPreview(before)}
+      <mark>{formatSearchHighlight(highlight)}</mark>
+      {formatSearchPreview(after)}
+    </span>
+  );
+}
+
+function SearchDialog(props: {
+  readonly open: boolean;
+  readonly loading: boolean;
+  readonly error: string | null;
+  readonly query: string;
+  readonly results: ReadonlyArray<CodexSessionSearchResultOutput>;
+  readonly roots: ReadonlyArray<WorkspaceRoot>;
+  readonly onChangeQuery: (value: string) => void;
+  readonly onClose: () => void;
+  readonly onOpenResult: (result: CodexSessionSearchResultOutput, rootId: string) => void;
+}): JSX.Element | null {
+  const { t } = useI18n();
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!props.open) {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => inputRef.current?.focus(), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [props.open]);
+
+  if (!props.open) {
+    return null;
+  }
+
+  const trimmedQuery = props.query.trim();
+  const visibleResults = props.results
+    .map((result) => ({ result, rootId: findRootIdForSession(props.roots, result) }))
+    .filter((entry) => entry.rootId !== null) as ReadonlyArray<{ readonly result: CodexSessionSearchResultOutput; readonly rootId: string }>;
+  const emptyState = trimmedQuery.length === 0
+    ? t("home.sidebar.searchDialog.hint")
+    : props.loading
+      ? t("home.sidebar.searchDialog.loading")
+      : props.error !== null
+        ? t("home.sidebar.searchDialog.error", { error: props.error })
+        : visibleResults.length === 0
+          ? t("home.sidebar.searchDialog.empty")
+          : null;
+
+  return createPortal(
+    <div className="sidebar-search-backdrop" role="presentation" onClick={props.onClose}>
+      <section
+        className="sidebar-search-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("home.sidebar.searchDialog.title")}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <label className="sidebar-search-input-shell">
+          <SidebarIcon kind="search" />
+          <input
+            ref={inputRef}
+            className="sidebar-search-input"
+            type="search"
+            value={props.query}
+            onChange={(event) => props.onChangeQuery(event.target.value)}
+            placeholder={t("home.sidebar.searchDialog.placeholder")}
+            aria-label={t("home.sidebar.searchDialog.placeholder")}
+          />
+        </label>
+        {emptyState !== null ? (
+          <div className="sidebar-search-empty" role={props.error !== null ? "alert" : undefined}>
+            {emptyState}
+          </div>
+        ) : (
+          <ul className="sidebar-search-results" role="list">
+            {visibleResults.map(({ result, rootId }) => {
+              const match = result.matches[0] ?? null;
+              return (
+                <li key={result.id}>
+                  <button
+                    type="button"
+                    className="sidebar-search-result"
+                    onClick={() => props.onOpenResult(result, rootId)}
+                  >
+                    <span className="sidebar-search-result-title-row">
+                      <span className="sidebar-search-result-title">{result.title.trim() || t("home.sidebar.searchDialog.untitled")}</span>
+                      <span className="sidebar-search-result-meta">{result.cwd.split(/[\\/]/).filter(Boolean).pop() ?? result.cwd}</span>
+                    </span>
+                    {match !== null ? <SearchMatchPreview match={match} /> : null}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
 function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
   const {
+    agentEnvironment,
     appServerClient,
     authBusy,
     authLoginPending,
@@ -107,6 +249,11 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
   const dispatch = useAppDispatch();
   const store = useAppStoreApi();
   const { t } = useI18n();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<ReadonlyArray<CodexSessionSearchResultOutput>>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const sidebarClassName = collapsed ? "replica-sidebar sidebar-collapsed" : "replica-sidebar";
   const cleanupTransport = useMemo(
     () => createRpcThreadRuntimeCleanupTransport(appServerClient),
@@ -150,10 +297,85 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
     clearSelectedThread(thread.id);
   }, [cleanupTransport, clearSelectedThread, dispatch, hostBridge, store]);
 
+  useEffect(() => {
+    if (!searchOpen) {
+      return;
+    }
+    const trimmedQuery = searchQuery.trim();
+    if (trimmedQuery.length === 0) {
+      setSearchLoading(false);
+      setSearchError(null);
+      setSearchResults([]);
+      return;
+    }
+
+    let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      setSearchLoading(true);
+      setSearchError(null);
+      void hostBridge.app.searchCodexSessions({
+        agentEnvironment,
+        query: trimmedQuery,
+        limit: 20,
+      }).then((results) => {
+        if (cancelled) {
+          return;
+        }
+        setSearchResults(results);
+        setSearchLoading(false);
+      }).catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setSearchResults([]);
+        setSearchLoading(false);
+        setSearchError(error instanceof Error ? error.message : String(error));
+      });
+    }, 180);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [agentEnvironment, hostBridge.app, searchOpen, searchQuery]);
+
+  const handleOpenSearch = useCallback(() => {
+    setSearchOpen(true);
+  }, []);
+
+  const handleCloseSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearchError(null);
+    setSearchLoading(false);
+  }, []);
+
+  const handleOpenSearchResult = useCallback((result: CodexSessionSearchResultOutput, rootId: string) => {
+    if (props.onSelectWorkspaceThread) {
+      props.onSelectWorkspaceThread(rootId, result.id);
+    } else {
+      props.onSelectRoot(rootId);
+      props.onSelectThread(result.id);
+    }
+    handleCloseSearch();
+  }, [handleCloseSearch, props]);
+
   return (
     <aside className={sidebarClassName}>
       {settingsMenuOpen ? <button type="button" className="settings-backdrop" onClick={onDismissSettingsMenu} aria-label={t("home.sidebar.closeMenu")} /> : null}
-      <SidebarNav onCreateThread={onCreateThread} onOpenSkills={onOpenSkills} />
+      <SidebarNav onCreateThread={onCreateThread} onOpenSearch={handleOpenSearch} onOpenSkills={onOpenSkills} />
+      <SearchDialog
+        open={searchOpen}
+        loading={searchLoading}
+        error={searchError}
+        query={searchQuery}
+        results={searchResults}
+        roots={roots}
+        onChangeQuery={setSearchQuery}
+        onClose={handleCloseSearch}
+        onOpenResult={handleOpenSearchResult}
+      />
       <WorkspaceSidebarSection
         roots={roots}
         codexSessions={codexSessions}

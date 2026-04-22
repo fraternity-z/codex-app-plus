@@ -102,14 +102,10 @@
   text-align: left;
 }
 
-.workspace-chevron {
+.workspace-folder-icon {
   width: 16px;
   height: 16px;
-  transition: transform 0.2s ease;
-}
-
-.workspace-chevron-expanded {
-  transform: rotate(90deg);
+  flex-shrink: 0;
 }
 
 .workspace-thread-list {

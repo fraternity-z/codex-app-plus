@@ -456,6 +456,14 @@ pub struct ListCodexSessionsInput {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct SearchCodexSessionsInput {
+    pub agent_environment: AgentEnvironment,
+    pub query: String,
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CodexSessionReadInput {
     pub thread_id: String,
     pub agent_environment: AgentEnvironment,
@@ -481,6 +489,26 @@ pub struct CodexSessionMessage {
 pub struct CodexSessionReadOutput {
     pub thread_id: String,
     pub messages: Vec<CodexSessionMessage>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexSessionSearchMatch {
+    pub line_text: String,
+    pub line_number: usize,
+    pub start_column: usize,
+    pub end_column: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexSessionSearchResult {
+    pub id: String,
+    pub title: String,
+    pub cwd: String,
+    pub updated_at: String,
+    pub agent_environment: AgentEnvironment,
+    pub matches: Vec<CodexSessionSearchMatch>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]

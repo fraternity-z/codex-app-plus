@@ -10,6 +10,7 @@ import type {
   CustomPromptOutput,
   CodexSessionReadInput,
   CodexSessionReadOutput,
+  CodexSessionSearchResultOutput,
   CodexSessionSummaryOutput,
   DeleteAgentInput,
   DeleteCodexSessionInput,
@@ -17,6 +18,7 @@ import type {
   GetCodexAuthModeStateInput,
   ImportOfficialDataInput,
   ListCodexSessionsInput,
+  SearchCodexSessionsInput,
   ReadAgentConfigInput,
   ReadAgentConfigOutput,
   ReadCustomPromptsInput,
@@ -130,6 +132,7 @@ export interface HostBridge {
     importOfficialData(input: ImportOfficialDataInput): Promise<void>;
     listCodexSessions(input: ListCodexSessionsInput): Promise<ReadonlyArray<CodexSessionSummaryOutput>>;
     readCodexSession(input: CodexSessionReadInput): Promise<CodexSessionReadOutput>;
+    searchCodexSessions(input: SearchCodexSessionsInput): Promise<ReadonlyArray<CodexSessionSearchResultOutput>>;
     deleteCodexSession(input: DeleteCodexSessionInput): Promise<void>;
     rememberCommandApprovalRule(
       input: RememberCommandApprovalRuleInput

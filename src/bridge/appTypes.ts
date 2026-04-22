@@ -228,6 +228,12 @@ export interface ListCodexSessionsInput {
   readonly agentEnvironment: AgentEnvironment;
 }
 
+export interface SearchCodexSessionsInput {
+  readonly agentEnvironment: AgentEnvironment;
+  readonly query: string;
+  readonly limit?: number;
+}
+
 export interface CodexSessionReadInput {
   readonly threadId: string;
   readonly agentEnvironment: AgentEnvironment;
@@ -247,6 +253,22 @@ export interface CodexSessionMessageOutput {
 export interface CodexSessionReadOutput {
   readonly threadId: string;
   readonly messages: ReadonlyArray<CodexSessionMessageOutput>;
+}
+
+export interface CodexSessionSearchMatchOutput {
+  readonly lineText: string;
+  readonly lineNumber: number;
+  readonly startColumn: number;
+  readonly endColumn: number;
+}
+
+export interface CodexSessionSearchResultOutput {
+  readonly id: string;
+  readonly title: string;
+  readonly cwd: string;
+  readonly updatedAt: string;
+  readonly agentEnvironment: AgentEnvironment;
+  readonly matches: ReadonlyArray<CodexSessionSearchMatchOutput>;
 }
 
 export interface OpenWorkspaceInput {

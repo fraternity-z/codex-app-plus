@@ -16,7 +16,9 @@ use crate::codex_auth::{
     activate_codex_chatgpt, capture_codex_oauth_snapshot,
     get_codex_auth_mode_state,
 };
-use crate::codex_data::{delete_codex_session, list_codex_sessions, read_codex_session};
+use crate::codex_data::{
+    delete_codex_session, list_codex_sessions, read_codex_session, search_codex_sessions,
+};
 use crate::command_utils::open_detached_target;
 use crate::error::{AppError, AppResult};
 use crate::events::{EVENT_CONTEXT_MENU_REQUESTED, EVENT_NOTIFICATION_REQUESTED};
@@ -24,10 +26,11 @@ use crate::models::{
     ActivateCodexChatgptInput, AppServerStartInput,
     CaptureCodexOauthSnapshotInput, ChatgptAuthTokensOutput, CodexAuthModeStateOutput,
     CodexAuthSwitchResult,
-    CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSummary, CreateAgentInput,
-    DeleteAgentInput,
+    CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSearchResult,
+    CodexSessionSummary, CreateAgentInput, DeleteAgentInput,
     DeleteCodexSessionInput, GetAgentsSettingsInput, GetCodexAuthModeStateInput,
     GlobalAgentInstructionsOutput, ImportOfficialDataInput, ListCodexSessionsInput,
+    SearchCodexSessionsInput,
     OpenCodexConfigTomlInput, OpenFileInEditorInput, OpenWorkspaceInput, ReadAgentConfigInput,
     ReadAgentConfigOutput, ReadGlobalAgentInstructionsInput, ReadProxySettingsInput,
     ReadProxySettingsOutput, RememberCommandApprovalRuleInput, RevealPathInFolderInput,
@@ -357,6 +360,13 @@ pub async fn app_read_codex_session(
     input: CodexSessionReadInput,
 ) -> Result<CodexSessionReadOutput, String> {
     run_blocking(move || read_codex_session(input)).await
+}
+
+#[tauri::command]
+pub async fn app_search_codex_sessions(
+    input: SearchCodexSessionsInput,
+) -> Result<Vec<CodexSessionSearchResult>, String> {
+    run_blocking(move || search_codex_sessions(input)).await
 }
 
 #[tauri::command]

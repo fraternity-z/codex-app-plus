@@ -86,6 +86,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
   readonly onCreateThread?: () => Promise<void>;
   readonly onRemoveRoot?: (rootId: string) => void;
   readonly deleteCodexSession?: ReturnType<typeof vi.fn>;
+  readonly searchCodexSessions?: ReturnType<typeof vi.fn>;
   readonly request?: ReturnType<typeof vi.fn>;
   readonly initializeStore?: (dispatch: AppStoreApi["dispatch"]) => void;
   readonly codexSessionsError?: string | null;
@@ -94,9 +95,10 @@ function renderSidebar(thread: ThreadSummary, options?: {
   const onCreateThread = options?.onCreateThread ?? vi.fn().mockResolvedValue(undefined);
   const onOpenSkills = options?.onOpenSkills ?? vi.fn();
   const deleteCodexSession = options?.deleteCodexSession ?? vi.fn().mockResolvedValue(undefined);
+  const searchCodexSessions = options?.searchCodexSessions ?? vi.fn().mockResolvedValue([]);
   const request = options?.request ?? vi.fn().mockResolvedValue({});
   const appServerClient = { request } as AppServerClient;
-  const hostBridge = { app: { deleteCodexSession }, rpc: { request } } as unknown as HostBridge;
+  const hostBridge = { app: { deleteCodexSession, searchCodexSessions }, rpc: { request } } as unknown as HostBridge;
 
   function Harness(): JSX.Element {
     const [selectedThreadId, setSelectedThreadId] = useState<string | null>(thread.id);
@@ -107,6 +109,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
         <div data-testid="selected-thread">{selectedThreadId ?? "none"}</div>
         <HomeSidebar
           appServerClient={appServerClient}
+          agentEnvironment="windowsNative"
           hostBridge={hostBridge}
           roots={[ROOT]}
           codexSessions={[thread]}
@@ -139,7 +142,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
   }
 
   render(<Harness />, { wrapper: createI18nWrapper() });
-  return { onArchiveThread, onCreateThread, onOpenSkills, deleteCodexSession, request };
+  return { onArchiveThread, onCreateThread, onOpenSkills, deleteCodexSession, searchCodexSessions, request };
 }
 
 function DispatchRecorder(props: { readonly onReady: (dispatch: AppStoreApi["dispatch"]) => void }): null {
@@ -166,6 +169,48 @@ describe("HomeSidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "技能" }));
 
     expect(onOpenSkills).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the session search dialog from the sidebar nav", () => {
+    renderSidebar(createThread("codexData"));
+
+    fireEvent.click(screen.getByRole("button", { name: "搜索" }));
+
+    expect(screen.getByRole("dialog", { name: "搜索会话" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("搜索会话内容")).toBeInTheDocument();
+  });
+
+  it("searches session content and selects the matching thread", async () => {
+    const thread = createThread("codexData");
+    const { searchCodexSessions } = renderSidebar(thread, {
+      searchCodexSessions: vi.fn().mockResolvedValue([{
+        id: thread.id,
+        title: thread.title,
+        cwd: thread.cwd,
+        updatedAt: thread.updatedAt,
+        agentEnvironment: "windowsNative",
+        matches: [{
+          lineText: "wode keyword in full session body",
+          lineNumber: 12,
+          startColumn: 1,
+          endColumn: 5,
+        }],
+      }]),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "搜索" }));
+    fireEvent.change(screen.getByPlaceholderText("搜索会话内容"), { target: { value: "wode" } });
+
+    await waitFor(() => expect(searchCodexSessions).toHaveBeenCalledWith({
+      agentEnvironment: "windowsNative",
+      query: "wode",
+      limit: 20,
+    }));
+
+    fireEvent.click(await screen.findByRole("button", { name: /线程 codexData/ }));
+
+    await waitFor(() => expect(screen.getByTestId("selected-thread")).toHaveTextContent(thread.id));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "搜索会话" })).not.toBeInTheDocument());
   });
 
   it("does not render the automation nav item", () => {
@@ -286,7 +331,8 @@ describe("HomeSidebar", () => {
         <Profiler id="home-sidebar" onRender={onRender}>
           <HomeSidebar
             appServerClient={{ request: vi.fn() } as AppServerClient}
-            hostBridge={{ app: { deleteCodexSession: vi.fn().mockResolvedValue(undefined) }, rpc: { request: vi.fn() } } as unknown as HostBridge}
+            agentEnvironment="windowsNative"
+            hostBridge={{ app: { deleteCodexSession: vi.fn().mockResolvedValue(undefined), searchCodexSessions: vi.fn().mockResolvedValue([]) }, rpc: { request: vi.fn() } } as unknown as HostBridge}
             roots={[ROOT]}
             codexSessions={[thread]}
             codexSessionsError={null}

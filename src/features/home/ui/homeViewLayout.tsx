@@ -73,6 +73,7 @@ export function createHomeSidebarProps(
 ): HomeSidebarProps {
   return {
     appServerClient: props.appServerClient,
+    agentEnvironment: props.agentEnvironment ?? "windowsNative",
     authBusy: props.authBusy,
     authLoginPending: props.authLoginPending,
     authMode: props.authMode,

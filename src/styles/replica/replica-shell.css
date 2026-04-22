@@ -253,6 +253,116 @@
   padding: 0;
   background: transparent;
 }
+.sidebar-search-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 96px 20px 20px;
+  background: color-mix(in srgb, var(--surface-canvas) 48%, transparent);
+}
+.sidebar-search-dialog {
+  width: min(640px, calc(100vw - 40px));
+  max-height: min(72vh, 720px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 22px;
+  background: var(--surface-panel);
+  box-shadow: 0 24px 60px color-mix(in srgb, #000 16%, transparent);
+}
+.sidebar-search-input-shell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  background: var(--surface-canvas);
+  color: var(--text-muted);
+}
+.sidebar-search-input-shell:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 56%, var(--border-light));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.sidebar-search-input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-main);
+  font: inherit;
+}
+.sidebar-search-input::placeholder {
+  color: var(--text-muted);
+}
+.sidebar-search-empty {
+  padding: 8px 4px;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+}
+.sidebar-search-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 6px;
+}
+.sidebar-search-result {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  text-align: left;
+}
+.sidebar-search-result:hover,
+.sidebar-search-result:focus-visible {
+  background: var(--surface-hover);
+  outline: 0;
+}
+.sidebar-search-result-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.sidebar-search-result-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-main);
+  font-weight: 500;
+}
+.sidebar-search-result-meta {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+}
+.sidebar-search-result-preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-soft);
+  font-size: var(--app-ui-font-size-sm);
+}
+.sidebar-search-result-preview mark {
+  padding: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+}
 .settings-gear {
   width: 16px;
   height: 16px;

@@ -219,6 +219,55 @@ export function OfficialCodexMarkIcon(props: IconProps): JSX.Element {
   );
 }
 
+export function OfficialFolderClosedIcon(props: IconProps): JSX.Element {
+  return (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M3.5 6.75C3.5 6.05964 4.05964 5.5 4.75 5.5H8.1C8.46 5.5 8.8 5.67 9.02 5.96L10.06 7.29C10.18 7.45 10.37 7.55 10.57 7.55H15.25C15.94 7.55 16.5 8.10964 16.5 8.8V14.75C16.5 15.44 15.94 16 15.25 16H4.75C4.05964 16 3.5 15.44 3.5 14.75V6.75Z"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function OfficialFolderOpenIcon(props: IconProps): JSX.Element {
+  return (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M3.5 13.5V6.75C3.5 6.06 4.06 5.5 4.75 5.5H8.1C8.46 5.5 8.8 5.67 9.02 5.96L10.06 7.29C10.18 7.45 10.37 7.55 10.57 7.55H15.25C15.94 7.55 16.5 8.11 16.5 8.8V10"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 10H17L15.5 16H3.5L5 10Z"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function OfficialFolderPlusIcon(props: IconProps): JSX.Element {
   return (
     <svg

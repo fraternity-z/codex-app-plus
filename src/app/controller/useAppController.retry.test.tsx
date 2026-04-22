@@ -99,6 +99,7 @@ function createHostBridge(): HostBridge {
       importOfficialData: vi.fn().mockResolvedValue(undefined),
       listCodexSessions: vi.fn().mockResolvedValue([]),
       readCodexSession: vi.fn(),
+      searchCodexSessions: vi.fn().mockResolvedValue([]),
       deleteCodexSession: vi.fn().mockResolvedValue(undefined),
     },
     appServer: {

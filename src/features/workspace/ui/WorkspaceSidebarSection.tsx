@@ -15,7 +15,7 @@ import { threadSummaryRequiresUserAttention } from "../../conversation/model/thr
 import { listThreadsForWorkspace } from "../model/workspaceThread";
 import type { WorkspaceRoot } from "../hooks/useWorkspaceRoots";
 import type { ThreadSummary } from "../../../domain/types";
-import { OfficialChevronRightIcon, OfficialFolderPlusIcon } from "../../shared/ui/officialIcons";
+import { OfficialFolderClosedIcon, OfficialFolderOpenIcon, OfficialFolderPlusIcon } from "../../shared/ui/officialIcons";
 import { ThreadContextMenu } from "./ThreadContextMenu";
 import { WorkspaceRootMenu } from "./WorkspaceRootMenu";
 import { WorkspaceMoreIcon, WorkspaceNewThreadIcon } from "./WorkspaceRootActionIcons";
@@ -220,7 +220,6 @@ function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
     void props.onCreateThread();
   }, [props]);
 
-  const chevronClassName = props.expanded ? "workspace-chevron workspace-chevron-expanded" : "workspace-chevron";
   const rowClassName = [
     props.selected ? "thread-item thread-item-active workspace-root-row" : "thread-item workspace-root-row",
     props.dragging ? "workspace-root-row-dragging" : "",
@@ -237,7 +236,9 @@ function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
         {...props.dragAttributes}
         {...props.dragListeners}
       >
-        <OfficialChevronRightIcon className={chevronClassName} />
+        {props.expanded
+          ? <OfficialFolderOpenIcon className="workspace-folder-icon" />
+          : <OfficialFolderClosedIcon className="workspace-folder-icon" />}
                 <span className="thread-label">{props.root.name}</span>
       </button>
       <div className="workspace-root-actions">
@@ -424,7 +425,7 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
         <DragOverlay>
           {dnd.activeRoot ? (
             <div className="workspace-root-overlay thread-item workspace-root-row thread-item-active">
-              <OfficialChevronRightIcon className="workspace-chevron" />
+              <OfficialFolderClosedIcon className="workspace-folder-icon" />
                             <span className="thread-label">{dnd.activeRoot.name}</span>
             </div>
           ) : null}

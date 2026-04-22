@@ -487,9 +487,19 @@ export const zhCN = {
   home: {
     sidebar: {
       newThread: "新会话",
+      search: "搜索",
       skills: "技能",
       settings: "设置",
       closeMenu: "关闭菜单",
+      searchDialog: {
+        title: "搜索会话",
+        placeholder: "搜索会话内容",
+        hint: "支持搜索整个会话内容，而不只是标题。",
+        loading: "正在搜索会话...",
+        empty: "没有找到匹配的会话。",
+        error: "搜索会话失败: {error}",
+        untitled: "未命名会话",
+      },
     },
     toolbar: {
       conversation: "会话",

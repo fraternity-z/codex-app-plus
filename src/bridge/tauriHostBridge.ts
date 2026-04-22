@@ -15,6 +15,7 @@ import type {
   CustomPromptOutput,
   CodexSessionReadInput,
   CodexSessionReadOutput,
+  CodexSessionSearchResultOutput,
   CodexSessionSummaryOutput,
   DeleteAgentInput,
   DeleteCodexSessionInput,
@@ -40,6 +41,7 @@ import type {
   HostBridge,
   ImportOfficialDataInput,
   ListCodexSessionsInput,
+  SearchCodexSessionsInput,
   ReadAgentConfigInput,
   ReadAgentConfigOutput,
   ReadCustomPromptsInput,
@@ -228,6 +230,11 @@ export function createTauriHostBridge(): HostBridge {
       readCodexSession: (input: CodexSessionReadInput) =>
         invokeWithInput<CodexSessionReadInput, CodexSessionReadOutput>(
           "app_read_codex_session",
+          input
+        ),
+      searchCodexSessions: (input: SearchCodexSessionsInput) =>
+        invokeWithInput<SearchCodexSessionsInput, ReadonlyArray<CodexSessionSearchResultOutput>>(
+          "app_search_codex_sessions",
           input
         ),
       deleteCodexSession: (input: DeleteCodexSessionInput) =>

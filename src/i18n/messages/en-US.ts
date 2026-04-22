@@ -488,9 +488,19 @@ export const enUS = {
   home: {
     sidebar: {
       newThread: "New thread",
+      search: "Search",
       skills: "Skills",
       settings: "Settings",
       closeMenu: "Close menu",
+      searchDialog: {
+        title: "Search sessions",
+        placeholder: "Search session content",
+        hint: "Search across the full session content, not only titles.",
+        loading: "Searching sessions...",
+        empty: "No matching sessions found.",
+        error: "Failed to search sessions: {error}",
+        untitled: "Untitled session",
+      },
     },
     toolbar: {
       conversation: "Conversation",

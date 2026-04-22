@@ -136,6 +136,7 @@ function createHostBridge(): HostBridge {
       importOfficialData: vi.fn().mockResolvedValue(undefined),
       listCodexSessions: vi.fn().mockResolvedValue([]),
       readCodexSession: vi.fn().mockResolvedValue({ threadId: "1", messages: [] }),
+      searchCodexSessions: vi.fn().mockResolvedValue([]),
       deleteCodexSession: vi.fn().mockResolvedValue(undefined),
       rememberCommandApprovalRule: vi.fn().mockResolvedValue({
         rulesPath: "C:/Users/Administrator/.codex/rules/default.rules"
