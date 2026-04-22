@@ -34,6 +34,30 @@ describe("HomeChatMessage", () => {
     expect(container.querySelector(".home-chat-attachments img")?.getAttribute("src")).toBe(dataUrl);
   });
 
+  it("opens user image previews in the shared zoom dialog", () => {
+    renderMessage(
+      <HomeChatMessage
+        message={{
+          id: "user-image-preview-1",
+          kind: "userMessage",
+          role: "user",
+          threadId: "thread-1",
+          turnId: "turn-1",
+          itemId: "item-1",
+          text: "请放大这张图",
+          status: "done",
+          attachments: [{ kind: "image", source: "dataUrl", value: "data:image/png;base64,aGVsbG8=" }],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "放大查看用户图片" }));
+    expect(screen.getByRole("dialog", { name: "用户图片预览" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "关闭图片预览" }));
+    expect(screen.queryByRole("dialog", { name: "用户图片预览" })).toBeNull();
+  });
+
   it("renders assistant content without an inline thinking footer", () => {
     const { container } = renderMessage(
       <HomeChatMessage

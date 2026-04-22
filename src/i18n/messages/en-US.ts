@@ -710,6 +710,13 @@ export const enUS = {
         copyImage: "Copy image",
         copyingImage: "Copying...",
       },
+      userImage: {
+        attachmentsLabel: "Message attachment previews",
+        alt: "User image",
+        openPreview: "Enlarge user image",
+        previewDialog: "User image preview",
+        closePreview: "Close image preview",
+      },
     },
     turnPlan: {
       title: "Task list",

@@ -709,6 +709,13 @@ export const zhCN = {
         copyImage: "复制图片",
         copyingImage: "正在复制...",
       },
+      userImage: {
+        attachmentsLabel: "消息附件预览",
+        alt: "用户发送的图片",
+        openPreview: "放大查看用户图片",
+        previewDialog: "用户图片预览",
+        closePreview: "关闭图片预览",
+      },
     },
     turnPlan: {
       title: "任务清单",

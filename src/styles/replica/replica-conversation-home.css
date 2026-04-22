@@ -227,6 +227,13 @@
   background: var(--home-soft-surface);
 }
 
+.home-chat-attachment-image-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
 .home-chat-attachment-chip {
   max-width: min(240px, 100%);
 }

@@ -4,6 +4,7 @@ import type { ConversationAttachment, ConversationImageAttachment, ConversationM
 import { useI18n } from "../../../i18n";
 import { AttachmentClip } from "../../composer/ui/AttachmentClip";
 import { ConversationMessageContent } from "./ConversationMessageContent";
+import { HomeImagePreviewDialog } from "./HomeImagePreviewDialog";
 
 interface HomeChatMessageProps {
   readonly message: ConversationMessage;
@@ -177,30 +178,52 @@ function EditActionIcon(): JSX.Element {
 }
 
 function MessageAttachmentStrip(props: { readonly attachments: ReadonlyArray<ConversationAttachment> }): JSX.Element {
+  const { t } = useI18n();
+  const [previewImageSrc, setPreviewImageSrc] = useState<string | null>(null);
+
   return (
-    <div className="home-chat-attachments" aria-label="消息附件预览">
-      {props.attachments.map((attachment, index) => {
-        if (attachment.kind === "image") {
+    <>
+      <div className="home-chat-attachments" aria-label={t("home.conversation.userImage.attachmentsLabel")}>
+        {props.attachments.map((attachment, index) => {
+          if (attachment.kind === "image") {
+            const imageSrc = resolveAttachmentSource(attachment);
+            return (
+              <button
+                key={`${attachment.source}-${index}`}
+                type="button"
+                className="home-chat-attachment-image-button"
+                aria-label={t("home.conversation.userImage.openPreview")}
+                onClick={() => setPreviewImageSrc(imageSrc)}
+              >
+                <img
+                  className="home-chat-attachment-image"
+                  src={imageSrc}
+                  alt={t("home.conversation.userImage.alt")}
+                />
+              </button>
+            );
+          }
+
           return (
-            <img
-              key={`${attachment.source}-${index}`}
-              className="home-chat-attachment-image"
-              src={resolveAttachmentSource(attachment)}
-              alt="用户发送的图片"
+            <AttachmentClip
+              key={`${attachment.source}-${attachment.value}-${index}`}
+              className="home-chat-attachment-chip"
+              label={attachment.name}
+              tone="file"
             />
           );
-        }
-
-        return (
-          <AttachmentClip
-            key={`${attachment.source}-${attachment.value}-${index}`}
-            className="home-chat-attachment-chip"
-            label={attachment.name}
-            tone="file"
-          />
-        );
-      })}
-    </div>
+        })}
+      </div>
+      {previewImageSrc === null ? null : (
+        <HomeImagePreviewDialog
+          src={previewImageSrc}
+          alt={t("home.conversation.userImage.alt")}
+          dialogLabel={t("home.conversation.userImage.previewDialog")}
+          closeLabel={t("home.conversation.userImage.closePreview")}
+          onClose={() => setPreviewImageSrc(null)}
+        />
+      )}
+    </>
   );
 }
 

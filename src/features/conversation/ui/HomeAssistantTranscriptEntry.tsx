@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { ConversationMessageContent } from "./ConversationMessageContent";
+import { HomeImagePreviewDialog } from "./HomeImagePreviewDialog";
 import type { ConversationRenderNode } from "../model/localConversationGroups";
 import { createAssistantTranscriptEntryModel, createCommandSummaryParts } from "../model/assistantTranscript";
 import { createDetailPanel } from "../model/assistantTranscriptDetailModel";
@@ -151,19 +152,6 @@ function ImageGenerationTranscriptEntry(props: { readonly entry: ImageGeneration
 
   useToolbarMenuDismissal(menu !== null, menuRef, closeMenu, [imageButtonRef]);
 
-  useEffect(() => {
-    if (!previewOpen) {
-      return undefined;
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setPreviewOpen(false);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [previewOpen]);
-
   const handleContextMenu = useCallback((event: ReactMouseEvent) => {
     event.preventDefault();
     setMenu({ x: event.clientX, y: event.clientY });
@@ -218,7 +206,16 @@ function ImageGenerationTranscriptEntry(props: { readonly entry: ImageGeneration
         />,
         document.body,
       )}
-      {previewOpen ? createPortal(<ImageGenerationPreviewDialog src={previewSrc} onContextMenu={handleContextMenu} onClose={() => setPreviewOpen(false)} />, document.body) : null}
+      {previewOpen ? (
+        <HomeImagePreviewDialog
+          src={previewSrc}
+          alt={t("home.conversation.generatedImage.alt")}
+          dialogLabel={t("home.conversation.generatedImage.previewDialog")}
+          closeLabel={t("home.conversation.generatedImage.closePreview")}
+          onContextMenu={handleContextMenu}
+          onClose={() => setPreviewOpen(false)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -266,22 +263,6 @@ function ImageGenerationContextMenu(props: {
       <button type="button" className="thread-context-menu-item" role="menuitem" onClick={props.onCopyImage} disabled={props.pendingAction !== null}>
         {props.pendingAction === "copyImage" ? t("home.conversation.generatedImage.copyingImage") : t("home.conversation.generatedImage.copyImage")}
       </button>
-    </div>
-  );
-}
-
-function ImageGenerationPreviewDialog(props: {
-  readonly src: string;
-  readonly onContextMenu: (event: ReactMouseEvent) => void;
-  readonly onClose: () => void;
-}): JSX.Element {
-  const { t } = useI18n();
-  return (
-    <div className="home-assistant-transcript-image-dialog-backdrop" role="presentation" onClick={props.onClose}>
-      <section className="home-assistant-transcript-image-dialog" role="dialog" aria-modal="true" aria-label={t("home.conversation.generatedImage.previewDialog")}>
-        <button type="button" className="home-assistant-transcript-image-dialog-close" onClick={props.onClose} aria-label={t("home.conversation.generatedImage.closePreview")}>×</button>
-        <img className="home-assistant-transcript-image-dialog-img" src={props.src} alt={t("home.conversation.generatedImage.alt")} onClick={(event) => event.stopPropagation()} onContextMenu={props.onContextMenu} />
-      </section>
     </div>
   );
 }
