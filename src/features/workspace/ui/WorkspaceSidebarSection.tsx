@@ -238,7 +238,7 @@ function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
         {...props.dragListeners}
       >
         <OfficialChevronRightIcon className={chevronClassName} />
-        <span className="thread-label">{props.root.name}</span>
+                <span className="thread-label">{props.root.name}</span>
       </button>
       <div className="workspace-root-actions">
         <button type="button" className="thread-item-tools workspace-root-action" aria-label={t("home.workspaceSection.rootMoreAria", { name: props.root.name })} title={t("home.workspaceSection.rootMoreAria", { name: props.root.name })} onClick={handleOpenMenu} onContextMenu={handleOpenMenu}>
@@ -425,7 +425,7 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
           {dnd.activeRoot ? (
             <div className="workspace-root-overlay thread-item workspace-root-row thread-item-active">
               <OfficialChevronRightIcon className="workspace-chevron" />
-              <span className="thread-label">{dnd.activeRoot.name}</span>
+                            <span className="thread-label">{dnd.activeRoot.name}</span>
             </div>
           ) : null}
         </DragOverlay>

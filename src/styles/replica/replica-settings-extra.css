@@ -922,8 +922,10 @@
 }
 
 .settings-folder {
+  width: 16px;
+  height: 16px;
   color: #94a3b8;
-  font-size: 16px;
+  flex-shrink: 0;
 }
 
 .settings-env-main strong {

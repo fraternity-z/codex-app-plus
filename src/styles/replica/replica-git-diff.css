@@ -5,8 +5,8 @@
 .workspace-diff-sidebar-header {
   height: 60px;
   padding: 0 12px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(16px);
+  background: var(--surface-panel);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .workspace-diff-sidebar-title-wrap {
@@ -19,13 +19,14 @@
 
 .workspace-diff-sidebar-title-wrap .workspace-diff-scope-trigger {
   height: 38px;
-  padding: 0 6px 0 0;
-  background: transparent;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--surface-panel-muted);
   font-weight: 700;
 }
 
 .workspace-diff-sidebar-title-wrap .workspace-diff-scope-trigger:hover {
-  background: transparent;
+  background: var(--surface-hover);
 }
 
 .workspace-diff-sidebar-title-wrap .workspace-diff-scope-label {
@@ -33,7 +34,7 @@
 }
 
 .workspace-diff-sidebar-title-wrap .workspace-diff-scope-count {
-  background: var(--surface-panel-soft);
+  background: var(--surface-panel);
   color: var(--text-soft);
   font-weight: 600;
 }
@@ -499,7 +500,7 @@ html[data-theme="dark"] .workspace-diff-sidebar {
 }
 
 html[data-theme="dark"] .workspace-diff-sidebar-header {
-  background: rgba(17, 28, 47, 0.94);
+  background: var(--surface-panel);
 }
 
 html[data-theme="dark"] .workspace-diff-section-title,

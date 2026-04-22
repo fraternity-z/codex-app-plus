@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ThreadSummary } from "../../../domain/types";
 import { useI18n, type Locale } from "../../../i18n";
+import { OfficialFolderIcon } from "../../shared/ui/officialIcons";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 
 function SectionHeader(props: {
@@ -144,7 +145,7 @@ export function EnvironmentContent(props: {
         {props.roots.map((root) => (
           <div key={root.id} className="settings-env-row">
             <div className="settings-env-main">
-              <span className="settings-folder">▣</span>
+              <OfficialFolderIcon className="settings-folder" />
               <strong>{root.name}</strong>
               <span>{root.path}</span>
             </div>
