@@ -158,12 +158,7 @@ export function HomeChatMessageActions(props: {
 }
 
 function CopyActionIcon(): JSX.Element {
-  return (
-    <svg className="home-chat-message-action-icon" viewBox="0 0 20 20" aria-hidden="true">
-      <rect x="7" y="5" width="9" height="9" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="4" y="8" width="9" height="9" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
+  return <span className="home-chat-message-action-icon home-chat-message-action-icon-copy" aria-hidden="true" />;
 }
 
 function EditActionIcon(): JSX.Element {
