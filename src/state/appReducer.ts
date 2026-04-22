@@ -107,6 +107,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         connectionStatus: action.status,
         fatalError: action.status === "error" ? state.fatalError : null,
+        retryScheduledAt: action.status === "connected" ? null : state.retryScheduledAt,
         windowsSandboxSetup: action.status === "connected" ? state.windowsSandboxSetup : INITIAL_STATE.windowsSandboxSetup,
       };
       return action.status === "connected" ? nextState : resetTransientRequestState(nextState);

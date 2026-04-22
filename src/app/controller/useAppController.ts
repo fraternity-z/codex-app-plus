@@ -25,6 +25,7 @@ import {
 } from "./appControllerTypes";
 import { useAppControllerActions } from "./useAppControllerActions";
 import { useServerRequestTracker } from "./useServerRequestTracker";
+import { useWindowsSandboxSetup } from "./useWindowsSandboxSetup";
 
 export {
   ensureChatgptModeForLogin,
@@ -278,6 +279,14 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
     selectedConversationId: runtimeState.selectedConversationId,
     configSnapshot: runtimeState.configSnapshot,
   });
+
+  useWindowsSandboxSetup(
+    client,
+    dispatch,
+    agentEnvironment,
+    runtimeState.configSnapshot,
+    runtimeState.windowsSandboxSetup,
+  );
 
   return {
     setInput: (text) => dispatch({ type: "input/changed", value: text }),

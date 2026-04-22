@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { FileChangeEntry } from "../../../domain/timeline";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { HomeAssistantTranscriptEntry } from "./HomeAssistantTranscriptEntry";
 
 function createFileChangeEntry(changes: FileChangeEntry["changes"]): FileChangeEntry {
@@ -27,7 +28,9 @@ describe("HomeAssistantTranscriptEntry file change summary", () => {
       },
     ]);
 
-    const { container } = render(<HomeAssistantTranscriptEntry node={{ key: entry.id, kind: "traceItem", item: entry }} />);
+    const { container } = render(<HomeAssistantTranscriptEntry node={{ key: entry.id, kind: "traceItem", item: entry }} />, {
+      wrapper: createI18nWrapper(),
+    });
 
     const fileName = screen.getByText("App.tsx", { selector: ".home-assistant-transcript-file-name" });
 
@@ -64,7 +67,9 @@ describe("HomeAssistantTranscriptEntry file change summary", () => {
       },
     ]);
 
-    const { container } = render(<HomeAssistantTranscriptEntry node={{ key: entry.id, kind: "traceItem", item: entry }} />);
+    const { container } = render(<HomeAssistantTranscriptEntry node={{ key: entry.id, kind: "traceItem", item: entry }} />, {
+      wrapper: createI18nWrapper(),
+    });
 
     const fileName = screen.getByText("App.tsx", { selector: ".home-assistant-transcript-file-name" });
 

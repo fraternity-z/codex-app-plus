@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { AppStoreProvider, useAppSelector } from "../../state/store";
@@ -57,6 +57,10 @@ describe("useAppUpdater", () => {
 
     const { result } = renderHook(() => useHarness(), { wrapper });
 
+    await act(async () => {
+      await result.current.updater.checkForAppUpdate();
+    });
+
     await waitFor(() => {
       expect(result.current.appUpdate.status).toBe("downloaded");
     });
@@ -81,6 +85,10 @@ describe("useAppUpdater", () => {
     });
 
     const { result } = renderHook(() => useHarness(), { wrapper });
+
+    await act(async () => {
+      await result.current.updater.checkForAppUpdate();
+    });
 
     await waitFor(() => {
       expect(result.current.appUpdate.status).toBe("downloaded");

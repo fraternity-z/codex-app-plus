@@ -6,6 +6,7 @@ import type { HostBridge } from "../../../bridge/types";
 import type { ThreadSummary } from "../../../domain/types";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import { AppStoreProvider } from "../../../state/store";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { HomeView } from "./HomeView";
 
@@ -242,6 +243,8 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       onDismissBanner={vi.fn()}
       {...overrides}
     /></AppStoreProvider>
+    ,
+    { wrapper: createI18nWrapper() },
   );
 }
 

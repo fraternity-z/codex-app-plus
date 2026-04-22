@@ -10,6 +10,15 @@ function createRoot(id: string, name: string, path: string): WorkspaceRoot {
   return { id, name, path, launchScript: null, launchScripts: null };
 }
 
+function reorderIds(ids: ReadonlyArray<string>, fromIndex: number, toIndex: number): ReadonlyArray<string> {
+  const next = [...ids];
+  const [moved] = next.splice(fromIndex, 1);
+  if (moved !== undefined) {
+    next.splice(toIndex, 0, moved);
+  }
+  return next;
+}
+
 describe("workspaceRootDnd", () => {
   it("derives stable group key from first normalized path segment", () => {
     const root = createRoot("1", "Client", "E:/Code/Client/app");
@@ -55,7 +64,8 @@ describe("workspaceRootDnd", () => {
       hoverState: { overId: "b", enteredAt: 1000 },
     });
 
-    expect(target).toBe(2);
+    expect(target).toBe(1);
+    expect(reorderIds(roots.map((root) => root.id), 0, target)).toEqual(["b", "a", "c"]);
   });
 
   it("keeps contiguous group insertion boundary when moving from outside the group", () => {
@@ -77,6 +87,7 @@ describe("workspaceRootDnd", () => {
       hoverState: { overId: null, enteredAt: 0 },
     });
 
-    expect(target).toBe(3);
+    expect(target).toBe(2);
+    expect(reorderIds(roots.map((root) => root.id), 0, target)).toEqual(["a1", "a2", "x", "y"]);
   });
 });

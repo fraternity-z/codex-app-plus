@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComposerModelOption } from "../model/composerPreferences";
 import { AppStoreProvider, useAppStore } from "../../../state/store";
+import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import { HomeComposer } from "./HomeComposer";
 
@@ -116,7 +117,7 @@ afterEach(() => {
 describe("HomeComposer autosize", () => {
   it("grows with content until three extra lines, then enables internal scrolling", async () => {
     installTextareaMeasurements();
-    render(<AppStoreProvider><ComposerHarness /></AppStoreProvider>);
+    render(<AppStoreProvider><ComposerHarness /></AppStoreProvider>, { wrapper: createI18nWrapper() });
     const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
 
     await waitFor(() => expect(textarea.style.height).toBe(`${BASE_HEIGHT_PX}px`));
