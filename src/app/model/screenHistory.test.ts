@@ -81,6 +81,34 @@ describe("screenHistory", () => {
     });
   });
 
+  it("preserves the last non-settings screen when settings history exceeds five entries", () => {
+    const screens: ReadonlyArray<AppScreen> = [
+      "general",
+      "appearance",
+      "config",
+      "agents",
+      "about",
+      "mcp",
+    ];
+    const state = screens.reduce(
+      (current, screen) => pushScreenHistory(current, screen),
+      createScreenHistoryState("home"),
+    );
+
+    expect(state).toEqual({
+      current: "mcp",
+      backStack: ["home", "appearance", "config", "agents", "about"],
+      forwardStack: [],
+    });
+
+    let backed = state;
+    for (let index = 0; index < 5; index += 1) {
+      backed = goBackScreen(backed);
+    }
+
+    expect(backed.current).toBe("home");
+  });
+
   it("caps the forward stack at five entries when going back repeatedly", () => {
     const screens: ReadonlyArray<AppScreen> = [
       "skills",
