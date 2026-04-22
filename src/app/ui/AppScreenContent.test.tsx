@@ -12,7 +12,9 @@ vi.mock("../../features/auth/ui/AuthChoiceView", () => ({
 }));
 
 vi.mock("../../features/settings/ui/SettingsScreen", () => ({
-  SettingsScreen: () => <div data-testid="settings-screen">settings</div>,
+  SettingsScreen: (props: { readonly sidebarCollapsed: boolean }) => (
+    <div data-testid="settings-screen">settings collapsed:{String(props.sidebarCollapsed)}</div>
+  ),
 }));
 
 vi.mock("../../features/notifications/ui/AppNotificationViewport", () => ({
@@ -24,18 +26,38 @@ vi.mock("../../features/skills/ui/SkillsScreen", () => ({
 }));
 
 vi.mock("./WindowTitlebar", () => ({
-  WindowTitlebar: () => <div data-testid="window-titlebar" />,
+  WindowTitlebar: (props: {
+    readonly sidebarControl?: {
+      readonly collapsed: boolean;
+      readonly collapseLabel: string;
+      readonly expandLabel: string;
+      readonly onToggle: () => void;
+    } | null;
+  }) => (
+    <div data-testid="window-titlebar">
+      {props.sidebarControl ? (
+        <button
+          type="button"
+          aria-label={props.sidebarControl.collapsed ? props.sidebarControl.expandLabel : props.sidebarControl.collapseLabel}
+          onClick={props.sidebarControl.onToggle}
+        >
+          toggle sidebar
+        </button>
+      ) : null}
+    </div>
+  ),
 }));
 
 vi.mock("../../features/home/ui/HomeScreen", async () => {
   const React = await import("react");
   return {
-    HomeScreen: () => {
+    HomeScreen: (props: { readonly sidebarCollapsed: boolean }) => {
       const [count, setCount] = React.useState(0);
 
       return (
         <div data-testid="home-screen">
           <span>count:{count}</span>
+          <span data-testid="home-sidebar-state">{String(props.sidebarCollapsed)}</span>
           <button type="button" onClick={() => setCount((value) => value + 1)}>
             increment
           </button>
@@ -131,5 +153,27 @@ describe("AppScreenContent", () => {
     renderAppScreenContent("home");
 
     expect(screen.getByTestId("app-notification-viewport")).toBeInTheDocument();
+  });
+
+  it("toggles the home sidebar from the titlebar", () => {
+    renderAppScreenContent("home");
+
+    expect(screen.getByTestId("home-sidebar-state")).toHaveTextContent("false");
+
+    fireEvent.click(screen.getByRole("button", { name: "折叠工作区侧边栏" }));
+
+    expect(screen.getByTestId("home-sidebar-state")).toHaveTextContent("true");
+    expect(screen.getByRole("button", { name: "展开工作区侧边栏" })).toBeInTheDocument();
+  });
+
+  it("toggles the settings sidebar from the titlebar", () => {
+    renderAppScreenContent("general");
+
+    expect(screen.getByTestId("settings-screen")).toHaveTextContent("settings collapsed:false");
+
+    fireEvent.click(screen.getByRole("button", { name: "折叠设置侧边栏" }));
+
+    expect(screen.getByTestId("settings-screen")).toHaveTextContent("settings collapsed:true");
+    expect(screen.getByRole("button", { name: "展开设置侧边栏" })).toBeInTheDocument();
   });
 });

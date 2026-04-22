@@ -26,9 +26,6 @@
   transition: none;
 }
 
-.replica-app:has(.sidebar-collapsed) .main-toolbar {
-  padding-left: 56px;
-}
 .replica-sidebar {
   position: relative;
   isolation: isolate;
@@ -52,12 +49,6 @@
   display: grid;
   gap: 2px;
   flex-shrink: 0;
-}
-.sidebar-header {
-  height: 30px;
-  display: flex;
-  align-items: center;
-  padding: 0 4px;
 }
 .sidebar-nav-item {
   display: flex;

@@ -1,13 +1,19 @@
-import { type MouseEvent, useCallback, useState } from "react";
+import { type MouseEvent, useCallback } from "react";
 import type { HostBridge } from "../../bridge/types";
-import { OfficialCloseIcon, OfficialCodexMarkIcon } from "../../features/shared/ui/officialIcons";
-import appIconUrl from "../../../src-tauri/icons/32x32.png";
+import { OfficialCloseIcon, OfficialSidebarToggleIcon } from "../../features/shared/ui/officialIcons";
 
-const APP_TITLE = "Codex App Plus";
 const WINDOW_CONTROL_SELECTOR = "[data-window-control='true']";
+
+interface WindowTitlebarSidebarControl {
+  readonly collapsed: boolean;
+  readonly collapseLabel: string;
+  readonly expandLabel: string;
+  readonly onToggle: () => void;
+}
 
 interface WindowTitlebarProps {
   readonly hostBridge: HostBridge;
+  readonly sidebarControl?: WindowTitlebarSidebarControl | null;
 }
 
 function isWindowsPlatform(): boolean {
@@ -21,6 +27,7 @@ function isWindowsPlatform(): boolean {
 
 function ChromeButton(props: {
   readonly ariaLabel: string;
+  readonly ariaPressed?: boolean;
   readonly className?: string;
   readonly onClick: () => void;
   readonly children: JSX.Element;
@@ -30,6 +37,7 @@ function ChromeButton(props: {
       type="button"
       className={props.className ?? "window-titlebar-button"}
       aria-label={props.ariaLabel}
+      aria-pressed={props.ariaPressed}
       data-window-control="true"
       onClick={props.onClick}
     >
@@ -59,7 +67,6 @@ function MaximizeIcon(): JSX.Element {
 }
 
 export function WindowTitlebar(props: WindowTitlebarProps): JSX.Element | null {
-  const [iconFailed, setIconFailed] = useState(false);
   const startWindowDragging = useCallback(() => {
     void props.hostBridge.app.startWindowDragging().catch((error: unknown) => {
       console.error("窗口拖拽启动失败", error);
@@ -92,19 +99,16 @@ export function WindowTitlebar(props: WindowTitlebarProps): JSX.Element | null {
 
   return (
     <header className="window-titlebar" onMouseDown={handleTitlebarMouseDown} onDoubleClick={handleTitlebarDoubleClick}>
-      <div className="window-titlebar-brand">
-        {iconFailed ? (
-          <OfficialCodexMarkIcon className="window-titlebar-logo" />
-        ) : (
-          <img
-            className="window-titlebar-logo window-titlebar-logo-image"
-            src={appIconUrl}
-            alt=""
-            onError={() => setIconFailed(true)}
-          />
-        )}
-        <span className="window-titlebar-title">{APP_TITLE}</span>
-      </div>
+      {props.sidebarControl ? (
+        <ChromeButton
+          ariaLabel={props.sidebarControl.collapsed ? props.sidebarControl.expandLabel : props.sidebarControl.collapseLabel}
+          ariaPressed={props.sidebarControl.collapsed}
+          className="window-titlebar-sidebar-toggle"
+          onClick={props.sidebarControl.onToggle}
+        >
+          <OfficialSidebarToggleIcon className="window-titlebar-sidebar-icon" />
+        </ChromeButton>
+      ) : null}
       <div className="window-titlebar-drag-spacer" aria-hidden="true" />
       <div className="window-titlebar-controls" data-window-control="true">
         <ChromeButton ariaLabel="最小化窗口" onClick={() => sendWindowAction("minimize")}>

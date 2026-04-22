@@ -10,13 +10,17 @@
     linear-gradient(180deg, color-mix(in srgb, var(--surface-panel) 94%, var(--accent-soft)) 0%, var(--surface-panel) 100%);
 }
 
-.window-titlebar-brand {
-  min-width: 0;
+.window-titlebar-sidebar-toggle {
+  width: 42px;
+  border: 0;
+  padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-  color: var(--text-main);
+  justify-content: center;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .window-titlebar-drag-spacer {
@@ -24,26 +28,9 @@
   min-width: 0;
 }
 
-.window-titlebar-logo {
+.window-titlebar-sidebar-icon {
   width: 18px;
   height: 18px;
-  flex-shrink: 0;
-  color: var(--accent-color);
-}
-
-.window-titlebar-logo-image {
-  display: block;
-  object-fit: contain;
-  border-radius: 4px;
-}
-
-.window-titlebar-title {
-  font-size: var(--app-ui-font-size-md);
-  font-weight: 600;
-  line-height: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .window-titlebar-controls {
@@ -75,11 +62,13 @@
   height: 14px;
 }
 
+.window-titlebar-sidebar-toggle:hover,
 .window-titlebar-button:hover {
   background: var(--surface-hover);
   color: var(--text-main);
 }
 
+.window-titlebar-sidebar-toggle:focus-visible,
 .window-titlebar-button:focus-visible {
   outline: none;
   color: var(--text-main);

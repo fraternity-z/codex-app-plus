@@ -52,7 +52,6 @@ import {
   createHomeSidebarProps,
   createReplicaAppClassName,
   createReplicaAppStyle,
-  SidebarCollapseButton,
   useHomeViewUiState,
 } from "./homeViewLayout";
 
@@ -109,6 +108,7 @@ export interface HomeViewProps {
   readonly retryScheduledAt: number | null;
   readonly workspaceSwitch: WorkspaceSwitchState;
   readonly settingsMenuOpen: boolean;
+  readonly sidebarCollapsed?: boolean;
   readonly onToggleSettingsMenu: () => void;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
@@ -150,7 +150,7 @@ export interface HomeViewProps {
 }
 
 export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Element {
-  const uiState = useHomeViewUiState(props.selectedRootPath);
+  const uiState = useHomeViewUiState(props.selectedRootPath, props.sidebarCollapsed ?? false);
   const diffLayout = useDiffSidebarLayout();
   const [diffItems, setDiffItems] = useState<ReadonlyArray<GitWorkspaceDiffOutput>>([]);
   const selectedRoot = useMemo(
@@ -274,10 +274,6 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
           />
         ) : null}
       </TerminalDock>
-      <SidebarCollapseButton
-        collapsed={uiState.sidebarCollapsed}
-        onToggle={uiState.toggleSidebarCollapsed}
-      />
     </div>
   );
 });

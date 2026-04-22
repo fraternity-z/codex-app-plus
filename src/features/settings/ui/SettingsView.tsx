@@ -48,6 +48,7 @@ export type SettingsSection =
 export interface SettingsViewProps {
   readonly appUpdate: AppUpdateState;
   readonly section: SettingsSection;
+  readonly sidebarCollapsed: boolean;
   readonly roots: ReadonlyArray<WorkspaceRoot>;
   readonly worktrees?: ReadonlyArray<GitWorktreeEntry>;
   readonly onCreateWorktree?: () => Promise<void>;
@@ -122,6 +123,7 @@ function createNavItems(t: (key: MessageKey) => string): ReadonlyArray<NavItem> 
   }));
 }
 function SettingsSidebar(props: {
+  readonly collapsed: boolean;
   readonly navItems: ReadonlyArray<NavItem>;
   readonly section: SettingsSection;
   onBackHome: () => void;
@@ -149,7 +151,7 @@ function SettingsSidebar(props: {
     );
   };
   return (
-    <aside className="settings-sidebar">
+    <aside className="settings-sidebar" aria-hidden={props.collapsed}>
       <button type="button" className="settings-back-app" onClick={props.onBackHome}>
         ← {t("settings.sidebar.backToApp")}
       </button>
@@ -275,8 +277,9 @@ export function SettingsView(props: SettingsViewProps): JSX.Element {
   const sectionTitle = navItems.find((item) => item.key === props.section)?.label ?? t("settings.nav.general");
 
   return (
-    <div className="settings-layout">
+    <div className={props.sidebarCollapsed ? "settings-layout settings-layout-sidebar-collapsed" : "settings-layout"}>
       <SettingsSidebar
+        collapsed={props.sidebarCollapsed}
         navItems={navItems}
         section={props.section}
         onBackHome={props.onBackHome}

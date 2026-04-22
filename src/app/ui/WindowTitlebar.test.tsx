@@ -43,6 +43,44 @@ describe("WindowTitlebar", () => {
     expect(controlWindow).toHaveBeenNthCalledWith(3, "close");
   });
 
+  it("omits the app brand from the titlebar", () => {
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: "Win32",
+    });
+    const controlWindow = vi.fn().mockResolvedValue(undefined);
+    const { container } = render(<WindowTitlebar hostBridge={createHostBridge(controlWindow)} />);
+
+    expect(screen.queryByText("Codex App Plus")).toBeNull();
+    expect(container.querySelector(".window-titlebar-logo")).toBeNull();
+  });
+
+  it("toggles the active sidebar from the titlebar", () => {
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: "Win32",
+    });
+    const controlWindow = vi.fn().mockResolvedValue(undefined);
+    const onToggle = vi.fn();
+
+    render(
+      <WindowTitlebar
+        hostBridge={createHostBridge(controlWindow)}
+        sidebarControl={{
+          collapsed: false,
+          collapseLabel: "折叠工作区侧边栏",
+          expandLabel: "展开工作区侧边栏",
+          onToggle,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "折叠工作区侧边栏" }));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(controlWindow).not.toHaveBeenCalled();
+  });
+
   it("starts dragging when pressing the titlebar content", () => {
     Object.defineProperty(window.navigator, "platform", {
       configurable: true,
@@ -51,9 +89,11 @@ describe("WindowTitlebar", () => {
     const controlWindow = vi.fn().mockResolvedValue(undefined);
     const startWindowDragging = vi.fn().mockResolvedValue(undefined);
 
-    render(<WindowTitlebar hostBridge={createHostBridge(controlWindow, startWindowDragging)} />);
+    const { container } = render(<WindowTitlebar hostBridge={createHostBridge(controlWindow, startWindowDragging)} />);
 
-    fireEvent.mouseDown(screen.getByText("Codex App Plus"), { button: 0, detail: 1 });
+    const titlebar = container.querySelector(".window-titlebar");
+    expect(titlebar).not.toBeNull();
+    fireEvent.mouseDown(titlebar as Element, { button: 0, detail: 1 });
 
     expect(startWindowDragging).toHaveBeenCalledTimes(1);
   });
@@ -80,9 +120,11 @@ describe("WindowTitlebar", () => {
     });
     const controlWindow = vi.fn().mockResolvedValue(undefined);
 
-    render(<WindowTitlebar hostBridge={createHostBridge(controlWindow)} />);
+    const { container } = render(<WindowTitlebar hostBridge={createHostBridge(controlWindow)} />);
 
-    fireEvent.doubleClick(screen.getByText("Codex App Plus"));
+    const titlebar = container.querySelector(".window-titlebar");
+    expect(titlebar).not.toBeNull();
+    fireEvent.doubleClick(titlebar as Element);
 
     expect(controlWindow).toHaveBeenCalledWith("toggleMaximize");
   });

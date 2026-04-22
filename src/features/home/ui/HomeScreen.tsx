@@ -29,6 +29,7 @@ interface HomeScreenProps {
   readonly preferences: AppPreferencesController;
   readonly resolvedTheme: ResolvedTheme;
   readonly settingsMenuOpen: boolean;
+  readonly sidebarCollapsed: boolean;
   readonly workspace: WorkspaceRootController;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
@@ -165,6 +166,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       retryScheduledAt={state.retryScheduledAt}
       workspaceSwitch={state.workspaceSwitch}
       settingsMenuOpen={props.settingsMenuOpen}
+      sidebarCollapsed={props.sidebarCollapsed}
       onToggleSettingsMenu={props.onToggleSettingsMenu}
       onDismissSettingsMenu={props.onDismissSettingsMenu}
       onOpenSettings={props.onOpenSettings}

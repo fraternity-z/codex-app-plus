@@ -153,7 +153,6 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
   return (
     <aside className={sidebarClassName}>
       {settingsMenuOpen ? <button type="button" className="settings-backdrop" onClick={onDismissSettingsMenu} aria-label={t("home.sidebar.closeMenu")} /> : null}
-      <div className="sidebar-header" aria-hidden="true" />
       <SidebarNav onCreateThread={onCreateThread} onOpenSkills={onOpenSkills} />
       <WorkspaceSidebarSection
         roots={roots}

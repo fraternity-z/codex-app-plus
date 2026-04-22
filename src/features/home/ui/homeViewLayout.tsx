@@ -4,7 +4,6 @@ import type { TimelineEntry } from "../../../domain/types";
 import type { GitWorkspaceDiffOutput } from "../../../bridge/types";
 import type { ConnectionRetryInfo } from "../model/homeConnectionRetry";
 import type { WorkspaceGitController } from "../../git/model/types";
-import { OfficialSidebarToggleIcon } from "../../shared/ui/officialIcons";
 import type { WorkspaceLaunchScriptsState } from "../hooks/useWorkspaceLaunchScripts";
 import type { HomeSidebarProps } from "./HomeSidebar";
 import type { HomeViewMainContentProps } from "./HomeViewMainContent";
@@ -22,11 +21,9 @@ export interface HomeViewUiState {
   readonly showTerminalPanel: () => void;
   readonly sidebarCollapsed: boolean;
   readonly toggleDiffSidebar: () => void;
-  readonly toggleSidebarCollapsed: () => void;
 }
 
-export function useHomeViewUiState(selectedRootPath: string | null): HomeViewUiState {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+export function useHomeViewUiState(selectedRootPath: string | null, sidebarCollapsed: boolean): HomeViewUiState {
   const [diffSidebarOpen, setDiffSidebarOpen] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(false);
 
@@ -45,10 +42,6 @@ export function useHomeViewUiState(selectedRootPath: string | null): HomeViewUiS
     sidebarCollapsed,
     toggleDiffSidebar: useCallback(
       () => setDiffSidebarOpen((currentValue) => !currentValue),
-      [],
-    ),
-    toggleSidebarCollapsed: useCallback(
-      () => setSidebarCollapsed((currentValue) => !currentValue),
       [],
     ),
   };
@@ -199,18 +192,3 @@ export function createHomeMainContentProps(
   };
 }
 
-export function SidebarCollapseButton(props: {
-  readonly collapsed: boolean;
-  readonly onToggle: () => void;
-}): JSX.Element {
-  return (
-    <button
-      type="button"
-      className="sidebar-collapse-toggle"
-      onClick={props.onToggle}
-      aria-label={props.collapsed ? "展开侧边栏" : "折叠侧边栏"}
-    >
-      <OfficialSidebarToggleIcon className="sidebar-collapse-icon" />
-    </button>
-  );
-}

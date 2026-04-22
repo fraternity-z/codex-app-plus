@@ -55,6 +55,7 @@ function createBaseProps(
   return {
     appUpdate: INITIAL_APP_UPDATE_STATE,
     section: "general",
+    sidebarCollapsed: false,
     roots: [],
     worktrees: [],
     onCreateWorktree: vi.fn().mockResolvedValue(undefined),
@@ -171,5 +172,13 @@ describe("SettingsView", () => {
     expect(screen.getByText("尚无工作树")).toBeInTheDocument();
     expect(screen.getByText("feature-a")).toBeInTheDocument();
     expect(screen.queryByText("main")).toBeNull();
+  });
+
+  it("marks the settings sidebar collapsed", () => {
+    const { container } = render(<SettingsView {...createBaseProps({ sidebarCollapsed: true })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(container.querySelector(".settings-layout-sidebar-collapsed")).not.toBeNull();
   });
 });

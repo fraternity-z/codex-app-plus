@@ -1,3 +1,4 @@
+import { useCallback, useMemo, useState } from "react";
 import type { HostBridge } from "../../bridge/types";
 import type { ResolvedTheme } from "../../domain/theme";
 import { AuthChoiceView } from "../../features/auth/ui/AuthChoiceView";
@@ -35,16 +36,60 @@ interface AppScreenContentProps {
 }
 
 export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
+  const [homeSidebarCollapsed, setHomeSidebarCollapsed] = useState(false);
+  const [settingsSidebarCollapsed, setSettingsSidebarCollapsed] = useState(false);
+  const toggleHomeSidebarCollapsed = useCallback(() => {
+    setHomeSidebarCollapsed((currentValue) => !currentValue);
+  }, []);
+  const toggleSettingsSidebarCollapsed = useCallback(() => {
+    setSettingsSidebarCollapsed((currentValue) => !currentValue);
+  }, []);
+  const titlebarSidebarControl = useMemo(() => {
+    if (props.shouldShowAuthChoice || props.screen === "skills") {
+      return null;
+    }
+    if (props.screen === "home") {
+      return {
+        collapsed: homeSidebarCollapsed,
+        collapseLabel: "折叠工作区侧边栏",
+        expandLabel: "展开工作区侧边栏",
+        onToggle: toggleHomeSidebarCollapsed,
+      };
+    }
+    return {
+      collapsed: settingsSidebarCollapsed,
+      collapseLabel: "折叠设置侧边栏",
+      expandLabel: "展开设置侧边栏",
+      onToggle: toggleSettingsSidebarCollapsed,
+    };
+  }, [
+    homeSidebarCollapsed,
+    props.screen,
+    props.shouldShowAuthChoice,
+    settingsSidebarCollapsed,
+    toggleHomeSidebarCollapsed,
+    toggleSettingsSidebarCollapsed,
+  ]);
+
   return (
     <div className="app-shell">
-      <WindowTitlebar hostBridge={props.hostBridge} />
-      <div className="app-shell-body">{renderScreen(props)}</div>
+      <WindowTitlebar hostBridge={props.hostBridge} sidebarControl={titlebarSidebarControl} />
+      <div className="app-shell-body">
+        {renderScreen({
+          ...props,
+          homeSidebarCollapsed,
+          settingsSidebarCollapsed,
+        })}
+      </div>
       <AppNotificationViewport hostBridge={props.hostBridge} />
     </div>
   );
 }
 
-function renderScreen(props: AppScreenContentProps): JSX.Element {
+function renderScreen(props: AppScreenContentProps & {
+  readonly homeSidebarCollapsed: boolean;
+  readonly settingsSidebarCollapsed: boolean;
+}): JSX.Element {
   if (props.shouldShowAuthChoice) {
     return (
       <AuthChoiceView
@@ -66,7 +111,10 @@ function renderScreen(props: AppScreenContentProps): JSX.Element {
   );
 }
 
-function renderOverlayScreen(props: AppScreenContentProps): JSX.Element | null {
+function renderOverlayScreen(props: AppScreenContentProps & {
+  readonly homeSidebarCollapsed: boolean;
+  readonly settingsSidebarCollapsed: boolean;
+}): JSX.Element | null {
   if (props.screen === "skills") {
     return (
       <SkillsScreen
@@ -87,6 +135,7 @@ function renderOverlayScreen(props: AppScreenContentProps): JSX.Element | null {
       preferences={props.preferences}
       resolvedTheme={props.resolvedTheme}
       section={props.screen}
+      sidebarCollapsed={props.settingsSidebarCollapsed}
       workspace={props.workspace}
       onBackHome={props.onBackHome}
       onSelectSection={props.onOpenSettingsSection}
@@ -94,7 +143,10 @@ function renderOverlayScreen(props: AppScreenContentProps): JSX.Element | null {
   );
 }
 
-function renderHomeScreen(props: AppScreenContentProps): JSX.Element {
+function renderHomeScreen(props: AppScreenContentProps & {
+  readonly homeSidebarCollapsed: boolean;
+  readonly settingsSidebarCollapsed: boolean;
+}): JSX.Element {
   return (
     <HomeScreen
       controller={props.controller}
@@ -102,6 +154,7 @@ function renderHomeScreen(props: AppScreenContentProps): JSX.Element {
       preferences={props.preferences}
       resolvedTheme={props.resolvedTheme}
       settingsMenuOpen={props.settingsMenuOpen}
+      sidebarCollapsed={props.homeSidebarCollapsed}
       workspace={props.workspace}
       onDismissSettingsMenu={props.onDismissSettingsMenu}
       onOpenSettings={props.onOpenSettings}

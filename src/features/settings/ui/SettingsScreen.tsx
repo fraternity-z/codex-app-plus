@@ -27,6 +27,7 @@ interface SettingsScreenProps {
   readonly preferences: AppPreferencesController;
   readonly resolvedTheme: ResolvedTheme;
   readonly section: SettingsSection;
+  readonly sidebarCollapsed: boolean;
   readonly workspace: WorkspaceRootController;
   readonly onBackHome: () => void;
   readonly onSelectSection: (section: SettingsSection) => void;
@@ -177,6 +178,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
   const settingsProps: SettingsViewProps = {
     appUpdate: state.appUpdate,
     section: props.section,
+    sidebarCollapsed: props.sidebarCollapsed,
     roots: props.workspace.roots,
     worktrees,
     onCreateWorktree: createWorktree,
