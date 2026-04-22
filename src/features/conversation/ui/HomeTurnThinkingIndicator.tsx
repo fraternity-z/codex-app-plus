@@ -12,7 +12,6 @@ export function HomeTurnThinkingIndicator(): JSX.Element {
       aria-label={thinkingLabel}
     >
       <span className="home-chat-thinking-label">{thinkingLabel}</span>
-      <span className="home-chat-thinking-shimmer" aria-hidden="true" />
     </div>
   );
 }
