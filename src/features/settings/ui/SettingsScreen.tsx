@@ -197,7 +197,6 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     onSelectSection: props.onSelectSection,
     onAddRoot: () => void addRoot(),
     onOpenConfigToml: openConfigToml,
-    onOpenExternal: (url: string) => props.hostBridge.app.openExternal(url),
     refreshConfigSnapshot: props.controller.refreshConfigSnapshot,
     readGlobalAgentInstructions: () =>
       props.hostBridge.app.readGlobalAgentInstructions({

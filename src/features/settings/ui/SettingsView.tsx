@@ -71,7 +71,6 @@ export interface SettingsViewProps {
   onSelectSection: (section: SettingsSection) => void;
   onAddRoot: () => void;
   onOpenConfigToml: () => Promise<void>;
-  onOpenExternal: (url: string) => Promise<void>;
   refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
   readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
   getAgentsSettings: () => Promise<import("../../../bridge/types").AgentsSettingsOutput>;
@@ -108,7 +107,6 @@ const NAV_ITEM_DEFINITIONS: ReadonlyArray<{
   { key: "general", labelKey: "settings.nav.general", icon: "general" },
   { key: "appearance", labelKey: "settings.nav.appearance", icon: "appearance" },
   { key: "config", labelKey: "settings.nav.config", icon: "config" },
-  { key: "agents", labelKey: "settings.nav.agents", icon: "agents" },
   { key: "personalization", labelKey: "settings.nav.personalization", icon: "personalization" },
   { key: "mcp", labelKey: "settings.nav.mcp", icon: "mcp" },
   { key: "git", labelKey: "settings.nav.git", icon: "git" },
@@ -123,12 +121,18 @@ function createNavItems(t: (key: MessageKey) => string): ReadonlyArray<NavItem> 
     icon: item.icon,
   }));
 }
+
+function resolveVisibleSection(section: SettingsSection): Exclude<SettingsSection, "agents"> {
+  return section === "agents" ? "config" : section;
+}
+
 function SettingsSidebar(props: {
   readonly collapsed: boolean;
   readonly navItems: ReadonlyArray<NavItem>;
   readonly section: SettingsSection;
   onSelectSection: (section: SettingsSection) => void;
 }): JSX.Element {
+  const activeSection = resolveVisibleSection(props.section);
   const getItem = (key: SettingsSection) => props.navItems.find((i) => i.key === key)!;
   const renderNavItem = (key: SettingsSection, comingSoon = false) => {
     const item = getItem(key);
@@ -138,7 +142,7 @@ function SettingsSidebar(props: {
         type="button"
         className={[
           "settings-nav-item",
-          item.key === props.section ? "settings-nav-item-active" : "",
+          item.key === activeSection ? "settings-nav-item-active" : "",
           comingSoon ? "settings-nav-item--coming-soon" : "",
         ].filter(Boolean).join(" ")}
         onClick={comingSoon ? undefined : () => props.onSelectSection(item.key)}
@@ -155,7 +159,6 @@ function SettingsSidebar(props: {
         {renderNavItem("general")}
         {renderNavItem("appearance")}
         {renderNavItem("config")}
-        {renderNavItem("agents")}
         {renderNavItem("personalization")}
         {renderNavItem("mcp")}
         {renderNavItem("git")}
@@ -168,8 +171,9 @@ function SettingsSidebar(props: {
 }
 
 function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: string }): JSX.Element {
+  const section = resolveVisibleSection(props.section);
 
-  if (props.section === "general") {
+  if (section === "general") {
     return (
       <>
         <GeneralSettingsSection
@@ -183,7 +187,7 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
       </>
     );
   }
-  if (props.section === "appearance") {
+  if (section === "appearance") {
     return (
       <AppearanceSettingsSection
         preferences={props.preferences}
@@ -191,39 +195,35 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
       />
     );
   }
-  if (props.section === "config") {
+  if (section === "config") {
     return (
       <>
         <ConfigSettingsSection
           agentEnvironment={props.preferences.agentEnvironment}
           busy={props.busy}
           onOpenConfigToml={props.onOpenConfigToml}
-          onOpenExternal={props.onOpenExternal}
           readProxySettings={props.readProxySettings}
           writeProxySettings={props.writeProxySettings}
+        />
+        <AgentsSettingsSection
+          embedded
+          busy={props.busy}
+          configSnapshot={props.configSnapshot}
+          experimentalFeatures={props.experimentalFeatures}
+          onOpenConfigToml={props.onOpenConfigToml}
+          refreshConfigSnapshot={props.refreshConfigSnapshot}
+          getAgentsSettings={props.getAgentsSettings}
+          createAgent={props.createAgent}
+          updateAgent={props.updateAgent}
+          deleteAgent={props.deleteAgent}
+          readAgentConfig={props.readAgentConfig}
+          writeAgentConfig={props.writeAgentConfig}
+          batchWriteConfig={props.batchWriteConfig}
         />
       </>
     );
   }
-  if (props.section === "agents") {
-    return (
-      <AgentsSettingsSection
-        busy={props.busy}
-        configSnapshot={props.configSnapshot}
-        experimentalFeatures={props.experimentalFeatures}
-        onOpenConfigToml={props.onOpenConfigToml}
-        refreshConfigSnapshot={props.refreshConfigSnapshot}
-        getAgentsSettings={props.getAgentsSettings}
-        createAgent={props.createAgent}
-        updateAgent={props.updateAgent}
-        deleteAgent={props.deleteAgent}
-        readAgentConfig={props.readAgentConfig}
-        writeAgentConfig={props.writeAgentConfig}
-        batchWriteConfig={props.batchWriteConfig}
-      />
-    );
-  }
-  if (props.section === "personalization") {
+  if (section === "personalization") {
     return (
       <PersonalizationSettingsSection
         busy={props.busy}
@@ -234,7 +234,7 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
       />
     );
   }
-  if (props.section === "mcp") {
+  if (section === "mcp") {
     return (
       <McpSettingsPanel
         busy={props.busy}
@@ -246,7 +246,7 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
       />
     );
   }
-  if (props.section === "about") {
+  if (section === "about") {
     return (
       <AboutSettingsSection
         appUpdate={props.appUpdate}
@@ -255,13 +255,13 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
       />
     );
   }
-  if (props.section === "git") {
+  if (section === "git") {
     return <GitSettingsSection preferences={props.preferences} />;
   }
-  if (props.section === "environment") {
+  if (section === "environment") {
     return <EnvironmentContent roots={props.roots} ready={props.ready} onAddRoot={props.onAddRoot} listArchivedThreads={props.listArchivedThreads} unarchiveThread={props.unarchiveThread} />;
   }
-  if (props.section === "worktree") {
+  if (section === "worktree") {
     return <WorktreeContent worktrees={props.worktrees ?? []} onCreateWorktree={props.onCreateWorktree} onDeleteWorktree={props.onDeleteWorktree} />;
   }
   return <PlaceholderContent sectionTitle={props.sectionTitle} />;
@@ -270,7 +270,8 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
 export function SettingsView(props: SettingsViewProps): JSX.Element {
   const { t } = useI18n();
   const navItems = createNavItems(t);
-  const sectionTitle = navItems.find((item) => item.key === props.section)?.label ?? t("settings.nav.general");
+  const visibleSection = resolveVisibleSection(props.section);
+  const sectionTitle = navItems.find((item) => item.key === visibleSection)?.label ?? t("settings.nav.general");
 
   return (
     <div className={props.sidebarCollapsed ? "settings-layout settings-layout-sidebar-collapsed" : "settings-layout"}>

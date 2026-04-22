@@ -2,7 +2,6 @@ export type SettingsNavIconKind =
   | "general"
   | "appearance"
   | "config"
-  | "agents"
   | "personalization"
   | "mcp"
   | "git"
@@ -50,18 +49,6 @@ export function SettingsNavIcon(props: {
       <svg className={props.className} viewBox="0 0 16 16" aria-hidden="true">
         <circle cx="8" cy="8" r="2.1" {...common} />
         <path d="M8 2.2v1.4M8 12.4v1.4M13.8 8h-1.4M3.6 8H2.2M12.1 3.9l-1 1M4.9 11.1l-1 1M12.1 12.1l-1-1M4.9 4.9l-1-1" {...common} />
-      </svg>
-    );
-  }
-
-  if (props.kind === "agents") {
-    return (
-      <svg className={props.className} viewBox="0 0 16 16" aria-hidden="true">
-        <circle cx="8" cy="8" r="2" fill="currentColor" />
-        <circle cx="8" cy="3.2" r="1.2" fill="currentColor" opacity="0.9" />
-        <circle cx="12.2" cy="10.6" r="1.2" fill="currentColor" opacity="0.9" />
-        <circle cx="3.8" cy="10.6" r="1.2" fill="currentColor" opacity="0.9" />
-        <path d="M8 6V4.8M9.4 8.8l1.7 1M6.6 8.8l-1.7 1" {...common} />
       </svg>
     );
   }

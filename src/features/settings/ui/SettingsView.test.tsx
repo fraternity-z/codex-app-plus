@@ -96,7 +96,6 @@ function createBaseProps(
         noProxy: "",
       },
     }),
-    onOpenExternal: vi.fn().mockResolvedValue(undefined),
     refreshMcpData: vi.fn(),
     listArchivedThreads: vi.fn().mockResolvedValue([]),
     unarchiveThread: vi.fn().mockResolvedValue(undefined),
@@ -135,12 +134,14 @@ describe("SettingsView", () => {
     expect(screen.queryByText("Composer 权限默认值")).toBeNull();
   });
 
-  it("renders agents settings in the agents section", () => {
-    render(<SettingsView {...createBaseProps({ section: "agents" })} />, {
+  it("renders agents settings inside the config section", () => {
+    render(<SettingsView {...createBaseProps({ section: "config" })} />, {
       wrapper: createI18nWrapper("zh-CN"),
     });
 
-    expect(screen.getByRole("heading", { name: "Agents" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "配置" })).toBeInTheDocument();
+    expect(screen.getByText("Agents")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Agents" })).toBeNull();
   });
 
   it("moves app updates out of the general section", () => {

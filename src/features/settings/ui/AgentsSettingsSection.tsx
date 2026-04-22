@@ -14,6 +14,7 @@ import type { ExperimentalFeature } from "../../../protocol/generated/v2/Experim
 
 interface AgentsSettingsSectionProps {
   readonly busy: boolean;
+  readonly embedded?: boolean;
   readonly configSnapshot: ConfigReadResponse | null;
   readonly experimentalFeatures: ReadonlyArray<ExperimentalFeature>;
   readonly onOpenConfigToml: () => Promise<void>;
@@ -58,6 +59,30 @@ function StatusNote(props: { readonly feedback: Feedback }): JSX.Element | null 
     return <p className="settings-status-note settings-status-note-error">{props.feedback.message}</p>;
   }
   return null;
+}
+
+function AgentsSectionHeader(props: {
+  readonly embedded?: boolean;
+  readonly title: string;
+  readonly subtitle: string;
+}): JSX.Element {
+  if (props.embedded) {
+    return (
+      <section className="settings-card settings-config-card">
+        <div className="settings-section-head">
+          <strong>{props.title}</strong>
+        </div>
+        <p className="settings-note settings-note-pad">{props.subtitle}</p>
+      </section>
+    );
+  }
+
+  return (
+    <header className="settings-title-wrap">
+      <h1 className="settings-page-title">{props.title}</h1>
+      <p className="settings-subtitle">{props.subtitle}</p>
+    </header>
+  );
 }
 
 export function AgentsSettingsSection(props: AgentsSettingsSectionProps): JSX.Element {
@@ -195,10 +220,11 @@ export function AgentsSettingsSection(props: AgentsSettingsSectionProps): JSX.El
 
   return (
     <div className="settings-panel-group">
-      <header className="settings-title-wrap">
-        <h1 className="settings-page-title">{t("settings.agents.title")}</h1>
-        <p className="settings-subtitle">{t("settings.agents.subtitle")}</p>
-      </header>
+      <AgentsSectionHeader
+        embedded={props.embedded}
+        title={t("settings.agents.title")}
+        subtitle={t("settings.agents.subtitle")}
+      />
       <section className="settings-card settings-config-card">
         <div className="settings-row">
           <div className="settings-row-copy">

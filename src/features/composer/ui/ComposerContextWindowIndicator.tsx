@@ -8,12 +8,53 @@ const TEXT = {
   labelAutoCompact: "View context window details (auto-compact detected)",
 };
 
+const RING_SIZE = 18;
+const RING_STROKE = 2;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
 function formatUsageSummary(usedPercent: number, remainingPercent: number): string {
   return `${usedPercent}% used (${remainingPercent}% remaining)`;
 }
 
 function formatUsageDetails(usedTokens: number, totalTokens: number): string {
   return `${formatContextWindowTokenCount(usedTokens)} tokens used, ${formatContextWindowTokenCount(totalTokens)} total`;
+}
+
+function ContextRing({ percent }: { percent: number }): JSX.Element {
+  const offset = RING_CIRCUMFERENCE * (1 - percent / 100);
+  const center = RING_SIZE / 2;
+
+  return (
+    <svg
+      className="composer-context-window-ring"
+      width={RING_SIZE}
+      height={RING_SIZE}
+      viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+      aria-hidden="true"
+    >
+      <circle
+        className="composer-context-window-ring-track"
+        cx={center}
+        cy={center}
+        r={RING_RADIUS}
+        fill="none"
+        strokeWidth={RING_STROKE}
+      />
+      <circle
+        className="composer-context-window-ring-fill"
+        cx={center}
+        cy={center}
+        r={RING_RADIUS}
+        fill="none"
+        strokeWidth={RING_STROKE}
+        strokeDasharray={RING_CIRCUMFERENCE}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${center} ${center})`}
+      />
+    </svg>
+  );
 }
 
 export function ComposerContextWindowIndicator(): JSX.Element | null {
@@ -56,7 +97,7 @@ export function ComposerContextWindowIndicator(): JSX.Element | null {
         onFocus={() => setOpen(true)}
         onBlur={handleBlur}
       >
-        <span className="composer-context-window-trigger-dot" aria-hidden="true" />
+        <ContextRing percent={usage.usedPercent} />
       </button>
       {open ? (
         <div id={tooltipId} className="composer-context-window-tooltip" role="tooltip">

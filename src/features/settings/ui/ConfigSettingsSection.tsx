@@ -5,14 +5,12 @@ import type {
   UpdateProxySettingsOutput,
 } from "../../../bridge/types";
 import { useI18n } from "../../../i18n";
-import { CodexProviderRecommendationCard } from "./CodexProviderRecommendationCard";
 import { ProxySettingsCard } from "./ProxySettingsCard";
 
 interface ConfigSettingsSectionProps {
   readonly agentEnvironment: AgentEnvironment;
   readonly busy: boolean;
   onOpenConfigToml: () => Promise<void>;
-  onOpenExternal: (url: string) => Promise<void>;
   readProxySettings: (
     input: { readonly agentEnvironment: AgentEnvironment }
   ) => Promise<ReadProxySettingsOutput>;
@@ -49,7 +47,6 @@ export function ConfigSettingsSection(props: ConfigSettingsSectionProps): JSX.El
         readProxySettings={props.readProxySettings}
         writeProxySettings={props.writeProxySettings}
       />
-      <CodexProviderRecommendationCard onOpenExternal={props.onOpenExternal} />
     </div>
   );
 }

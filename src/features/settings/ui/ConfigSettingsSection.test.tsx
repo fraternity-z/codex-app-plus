@@ -21,7 +21,6 @@ function createBaseProps(
     agentEnvironment: "windowsNative",
     busy: false,
     onOpenConfigToml: vi.fn().mockResolvedValue(undefined),
-    onOpenExternal: vi.fn().mockResolvedValue(undefined),
     readProxySettings: vi.fn().mockResolvedValue({
       settings: {
         mode: "disabled",
@@ -49,6 +48,7 @@ describe("ConfigSettingsSection", () => {
     expect(await screen.findByText("配置")).toBeInTheDocument();
     expect(screen.getByText("打开配置文件")).toBeInTheDocument();
     expect(screen.getByText("代理")).toBeInTheDocument();
+    expect(screen.queryByText("提供商配置管理")).toBeNull();
   });
 
   it("renders English copy when locale is en-US", async () => {
@@ -57,5 +57,6 @@ describe("ConfigSettingsSection", () => {
     expect(await screen.findByText("Config")).toBeInTheDocument();
     expect(screen.getByText("Open config file")).toBeInTheDocument();
     expect(screen.getByText("Proxy")).toBeInTheDocument();
+    expect(screen.queryByText("Provider Configuration Management")).toBeNull();
   });
 });
