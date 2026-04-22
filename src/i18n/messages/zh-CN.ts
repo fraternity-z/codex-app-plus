@@ -688,6 +688,17 @@ export const zhCN = {
           toolRunning: "进行中",
         },
       },
+      generatedImage: {
+        alt: "生成的图片",
+        openPreview: "放大查看生成图片",
+        previewDialog: "生成图片预览",
+        closePreview: "关闭图片预览",
+        contextMenuAria: "生成图片操作",
+        openInFolder: "在文件夹中显示",
+        openingFolder: "正在打开...",
+        copyImage: "复制图片",
+        copyingImage: "正在复制...",
+      },
     },
     turnPlan: {
       title: "任务清单",

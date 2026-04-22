@@ -50,6 +50,7 @@ import type {
   ReadProxySettingsOutput,
   RememberCommandApprovalRuleInput,
   RememberCommandApprovalRuleOutput,
+  RevealPathInFolderInput,
   WorkspacePersistenceState,
   RpcCancelInput,
   RpcNotifyInput,
@@ -133,6 +134,8 @@ export function createTauriHostBridge(): HostBridge {
         invokeWithInput("app_open_file_in_editor", input),
       openCodexConfigToml: (input: OpenCodexConfigTomlInput) =>
         invokeWithInput("app_open_codex_config_toml", input),
+      revealPathInFolder: (input: RevealPathInFolderInput) =>
+        invokeWithInput("app_reveal_path_in_folder", input),
       readWorkspaceState: () =>
         invokeCommand<WorkspacePersistenceState | null>("app_read_workspace_state"),
       writeWorkspaceState: (input: WorkspacePersistenceState) =>

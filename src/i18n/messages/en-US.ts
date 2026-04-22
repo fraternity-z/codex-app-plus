@@ -689,6 +689,17 @@ export const enUS = {
           toolRunning: "In progress",
         },
       },
+      generatedImage: {
+        alt: "Generated image",
+        openPreview: "Enlarge generated image",
+        previewDialog: "Generated image preview",
+        closePreview: "Close image preview",
+        contextMenuAria: "Generated image actions",
+        openInFolder: "Show in folder",
+        openingFolder: "Opening...",
+        copyImage: "Copy image",
+        copyingImage: "Copying...",
+      },
     },
     turnPlan: {
       title: "Task list",

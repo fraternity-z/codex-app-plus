@@ -58,6 +58,10 @@ export interface ShowContextMenuInput {
   }>;
 }
 
+export interface RevealPathInFolderInput {
+  readonly path: string;
+}
+
 export interface ImportOfficialDataInput {
   readonly sourcePath: string;
 }

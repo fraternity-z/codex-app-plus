@@ -1,4 +1,6 @@
 use std::path::{Path, PathBuf};
+#[cfg(target_os = "macos")]
+use std::process::Command;
 
 use serde_json::Value;
 
@@ -7,12 +9,14 @@ use crate::agent_environment::{
 };
 use crate::codex_auth::clear_oauth_snapshot_auth_state_in_root;
 use crate::command_utils::open_detached_target;
+#[cfg(target_os = "macos")]
+use crate::command_utils::spawn_hidden_background_command;
 use crate::error::{AppError, AppResult};
 use crate::global_agent_instructions::read_global_agent_instructions_at;
 use crate::models::{
     ChatgptAuthTokensOutput, GlobalAgentInstructionsOutput, ImportOfficialDataInput,
-    OpenCodexConfigTomlInput, ReadGlobalAgentInstructionsInput, UpdateChatgptAuthTokensInput,
-    UpdateGlobalAgentInstructionsInput,
+    OpenCodexConfigTomlInput, ReadGlobalAgentInstructionsInput, RevealPathInFolderInput,
+    UpdateChatgptAuthTokensInput, UpdateGlobalAgentInstructionsInput,
 };
 
 const CHATGPT_AUTH_DIR: &str = "auth";
@@ -63,11 +67,115 @@ pub fn open_codex_config_toml(input: OpenCodexConfigTomlInput) -> AppResult<()> 
     open_detached_target(host_path)
 }
 
+pub fn reveal_path_in_folder(input: RevealPathInFolderInput) -> AppResult<()> {
+    let path_text = input.path.trim();
+    if path_text.is_empty() {
+        return Err(AppError::InvalidInput("path 不能为空".to_string()));
+    }
+    reveal_path_in_folder_at(PathBuf::from(path_text))
+}
+
 pub fn read_global_agent_instructions(
     input: ReadGlobalAgentInstructionsInput,
 ) -> AppResult<GlobalAgentInstructionsOutput> {
     let path = resolve_codex_home_relative_path(input.agent_environment, ".codex/AGENTS.md")?;
     read_global_agent_instructions_at(path.display_path, &path.host_path)
+}
+
+fn reveal_path_in_folder_at(path: PathBuf) -> AppResult<()> {
+    if cfg!(target_os = "windows") {
+        return reveal_path_in_folder_windows(path);
+    }
+    if cfg!(target_os = "macos") {
+        return reveal_path_in_folder_macos(path);
+    }
+    reveal_path_in_folder_other(path)
+}
+
+#[cfg(target_os = "windows")]
+fn reveal_path_in_folder_windows(path: PathBuf) -> AppResult<()> {
+    let target = if path.exists() {
+        path
+    } else {
+        path.parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| AppError::InvalidInput("无法解析文件夹路径".to_string()))?
+    };
+
+    if target.is_file() {
+        return shell_execute("explorer.exe", Some(&format!("/select,\"{}\"", target.display())));
+    }
+    shell_execute_path(&target)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn reveal_path_in_folder_windows(path: PathBuf) -> AppResult<()> {
+    reveal_path_in_folder_other(path)
+}
+
+#[cfg(target_os = "windows")]
+fn shell_execute_path(path: &Path) -> AppResult<()> {
+    shell_execute(&path.to_string_lossy(), None)
+}
+
+#[cfg(target_os = "windows")]
+fn shell_execute(file: &str, parameters: Option<&str>) -> AppResult<()> {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+    use std::ptr::null;
+    use windows_sys::Win32::UI::Shell::ShellExecuteW;
+    use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+    fn wide(value: &str) -> Vec<u16> {
+        OsStr::new(value).encode_wide().chain(std::iter::once(0)).collect()
+    }
+
+    let operation = wide("open");
+    let file = wide(file);
+    let parameters = parameters.map(wide);
+    let result = unsafe {
+        ShellExecuteW(
+            std::ptr::null_mut(),
+            operation.as_ptr(),
+            file.as_ptr(),
+            parameters
+                .as_ref()
+                .map(|value| value.as_ptr())
+                .unwrap_or(null()),
+            null(),
+            SW_SHOWNORMAL,
+        )
+    };
+    if result as isize <= 32 {
+        return Err(AppError::Io(format!("ShellExecuteW failed: {result:?}")));
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn reveal_path_in_folder_macos(path: PathBuf) -> AppResult<()> {
+    let mut command = Command::new("open");
+    if path.exists() {
+        command.arg("-R").arg(path);
+        return spawn_hidden_background_command(&mut command);
+    }
+    reveal_path_in_folder_other(path)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn reveal_path_in_folder_macos(path: PathBuf) -> AppResult<()> {
+    reveal_path_in_folder_other(path)
+}
+
+fn reveal_path_in_folder_other(path: PathBuf) -> AppResult<()> {
+    let directory = if path.is_dir() {
+        path
+    } else {
+        path.parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| AppError::InvalidInput("无法解析文件夹路径".to_string()))?
+    };
+    open_detached_target(directory)
 }
 
 pub fn write_global_agent_instructions(

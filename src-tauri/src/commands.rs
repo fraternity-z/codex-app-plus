@@ -8,8 +8,8 @@ use crate::agents_config::{
 };
 use crate::app_support::{
     clear_chatgpt_auth_state, import_official_data, open_codex_config_toml,
-    read_chatgpt_auth_tokens, read_global_agent_instructions, write_chatgpt_auth_tokens,
-    write_global_agent_instructions,
+    read_chatgpt_auth_tokens, read_global_agent_instructions, reveal_path_in_folder,
+    write_chatgpt_auth_tokens, write_global_agent_instructions,
 };
 use crate::custom_prompts::list_custom_prompts;
 use crate::codex_auth::{
@@ -30,7 +30,7 @@ use crate::models::{
     GlobalAgentInstructionsOutput, ImportOfficialDataInput, ListCodexSessionsInput,
     OpenCodexConfigTomlInput, OpenFileInEditorInput, OpenWorkspaceInput, ReadAgentConfigInput,
     ReadAgentConfigOutput, ReadGlobalAgentInstructionsInput, ReadProxySettingsInput,
-    ReadProxySettingsOutput, RememberCommandApprovalRuleInput,
+    ReadProxySettingsOutput, RememberCommandApprovalRuleInput, RevealPathInFolderInput,
     RememberCommandApprovalRuleOutput, RpcCancelInput, RpcNotifyInput, RpcRequestInput,
     RpcRequestOutput, ServerRequestResolveInput, SetAgentsCoreInput, ShowContextMenuInput,
     ShowNotificationInput, UpdateAgentInput, UpdateChatgptAuthTokensInput,
@@ -233,6 +233,11 @@ pub fn app_open_file_in_editor(input: OpenFileInEditorInput) -> Result<(), Strin
 #[tauri::command]
 pub fn app_open_codex_config_toml(input: OpenCodexConfigTomlInput) -> Result<(), String> {
     to_result(open_codex_config_toml(input))
+}
+
+#[tauri::command]
+pub fn app_reveal_path_in_folder(input: RevealPathInFolderInput) -> Result<(), String> {
+    to_result(reveal_path_in_folder(input))
 }
 
 #[tauri::command]

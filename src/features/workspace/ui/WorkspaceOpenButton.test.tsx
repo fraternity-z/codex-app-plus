@@ -30,6 +30,7 @@ function createHostBridge(overrides?: {
       openWorkspace: overrides?.openWorkspace ?? vi.fn().mockResolvedValue(undefined),
       openFileInEditor: vi.fn().mockResolvedValue(undefined),
       openCodexConfigToml: vi.fn(),
+      revealPathInFolder: vi.fn(),
       clearChatgptAuthState: vi.fn(),
       showNotification: vi.fn(),
       showContextMenu: vi.fn(),

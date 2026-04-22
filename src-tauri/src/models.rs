@@ -237,6 +237,12 @@ pub struct ShowContextMenuInput {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct RevealPathInFolderInput {
+    pub path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ImportOfficialDataInput {
     pub source_path: String,
 }

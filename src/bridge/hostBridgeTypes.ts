@@ -25,6 +25,7 @@ import type {
   OpenWorkspaceInput,
   ReadProxySettingsInput,
   ReadProxySettingsOutput,
+  RevealPathInFolderInput,
   RpcCancelInput,
   RpcNotifyInput,
   RpcRequestInput,
@@ -97,6 +98,7 @@ export interface HostBridge {
     openWorkspace(input: OpenWorkspaceInput): Promise<void>;
     openFileInEditor(input: OpenFileInEditorInput): Promise<void>;
     openCodexConfigToml(input: OpenCodexConfigTomlInput): Promise<void>;
+    revealPathInFolder(input: RevealPathInFolderInput): Promise<void>;
     readWorkspaceState(): Promise<WorkspacePersistenceState | null>;
     writeWorkspaceState(input: WorkspacePersistenceState): Promise<void>;
     listCustomPrompts(input: ReadCustomPromptsInput): Promise<ReadonlyArray<CustomPromptOutput>>;

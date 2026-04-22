@@ -1,17 +1,25 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   CollabAgentToolCallEntry,
   CommandExecutionEntry,
   ContextCompactionEntry,
   ConversationMessage,
   DynamicToolCallEntry,
+  ImageGenerationEntry,
   McpToolCallEntry,
   PlanEntry,
   TurnPlanSnapshotEntry,
 } from "../../../domain/timeline";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { HomeAssistantTranscriptEntry } from "./HomeAssistantTranscriptEntry";
+
+const coreMocks = vi.hoisted(() => ({
+  convertFileSrc: vi.fn((path: string) => `asset://${path}`),
+  invoke: vi.fn(),
+}));
+
+vi.mock("@tauri-apps/api/core", () => coreMocks);
 
 type AssistantNode = Parameters<typeof HomeAssistantTranscriptEntry>[0]["node"];
 
@@ -107,6 +115,22 @@ function createDynamicToolNode(): Extract<AssistantNode, { kind: "traceItem" }> 
   return createTraceNode(item);
 }
 
+function createImageGenerationNode(): Extract<AssistantNode, { kind: "traceItem" }> {
+  const item: ImageGenerationEntry = {
+    id: "image-generation-1",
+    kind: "imageGeneration",
+    threadId: "thread-1",
+    turnId: "turn-1",
+    itemId: "ig_123",
+    status: "completed",
+    revisedPrompt: "A small pink pig in a meadow",
+    result: "abc123",
+    savedPath: "C:/Users/Administrator/.codex/generated_images/ig_123.png",
+  };
+
+  return createTraceNode(item);
+}
+
 function createCollabToolNode(): Extract<AssistantNode, { kind: "traceItem" }> {
   const item: CollabAgentToolCallEntry = {
     id: "collab-1",
@@ -186,6 +210,15 @@ function createReasoningNode(
 }
 
 describe("HomeAssistantTranscriptEntry", () => {
+  beforeEach(() => {
+    coreMocks.convertFileSrc.mockClear();
+    coreMocks.invoke.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("renders assistant proposed plans inside the plan draft card", () => {
     const { container } = render(
       <HomeAssistantTranscriptEntry
@@ -216,6 +249,73 @@ describe("HomeAssistantTranscriptEntry", () => {
 
     expect(container.querySelector(".home-assistant-transcript-divider")).not.toBeNull();
     expect(screen.getByText("背景信息已自动压缩")).toBeInTheDocument();
+  });
+
+  it("renders generated images inline without prompt or path metadata", () => {
+    const { container } = render(<HomeAssistantTranscriptEntry node={createImageGenerationNode()} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    const image = screen.getByRole("img", { name: "生成的图片" });
+    expect(container.querySelector(".home-assistant-transcript-image-generation")).not.toBeNull();
+    expect(image).toHaveAttribute("src", "data:image/png;base64,abc123");
+    expect(screen.queryByText("生成图片：A small pink pig in a meadow")).toBeNull();
+    expect(screen.queryByText(/generated_images/)).toBeNull();
+  });
+
+  it("opens generated images in a preview dialog", () => {
+    render(<HomeAssistantTranscriptEntry node={createImageGenerationNode()} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "放大查看生成图片" }));
+
+    expect(screen.getByRole("dialog", { name: "生成图片预览" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "关闭图片预览" }));
+    expect(screen.queryByRole("dialog", { name: "生成图片预览" })).toBeNull();
+  });
+
+  it("shows image context menu actions with localized labels", async () => {
+    render(<HomeAssistantTranscriptEntry node={createImageGenerationNode()} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: "放大查看生成图片" }), { clientX: 12, clientY: 24 });
+    expect(screen.getByRole("menu", { name: "生成图片操作" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "在文件夹中显示" }));
+
+    expect(coreMocks.invoke).toHaveBeenCalledWith("app_reveal_path_in_folder", {
+      input: { path: "C:/Users/Administrator/.codex/generated_images/ig_123.png" },
+    });
+  });
+
+  it("copies generated image data from the context menu", async () => {
+    const imageBlob = new Blob(["image"], { type: "image/png" });
+    const fetchMock = vi.fn().mockResolvedValue({ blob: vi.fn().mockResolvedValue(imageBlob) });
+    const clipboardWrite = vi.fn().mockResolvedValue(undefined);
+    class MockClipboardItem {
+      readonly items: Record<string, Blob>;
+
+      constructor(items: Record<string, Blob>) {
+        this.items = items;
+      }
+    }
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("ClipboardItem", MockClipboardItem);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { write: clipboardWrite },
+    });
+    render(<HomeAssistantTranscriptEntry node={createImageGenerationNode()} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    fireEvent.contextMenu(screen.getByRole("button", { name: "放大查看生成图片" }), { clientX: 12, clientY: 24 });
+    fireEvent.click(screen.getByRole("menuitem", { name: "复制图片" }));
+
+    await waitFor(() => expect(clipboardWrite).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith("data:image/png;base64,abc123");
   });
 
   it("omits empty assistant message placeholders", () => {

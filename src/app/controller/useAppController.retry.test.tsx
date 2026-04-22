@@ -76,6 +76,7 @@ function createHostBridge(): HostBridge {
       openWorkspace: vi.fn().mockResolvedValue(undefined),
       openFileInEditor: vi.fn().mockResolvedValue(undefined),
       openCodexConfigToml: vi.fn().mockResolvedValue(undefined),
+      revealPathInFolder: vi.fn().mockResolvedValue(undefined),
       readGlobalAgentInstructions: vi.fn(),
       writeGlobalAgentInstructions: vi.fn(),
       listCodexProviders: vi.fn(),

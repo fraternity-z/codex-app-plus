@@ -49,6 +49,7 @@ function createHostBridge(createSession: ReturnType<typeof vi.fn>): HostBridge {
       openWorkspace: vi.fn(),
       openFileInEditor: vi.fn(),
       openCodexConfigToml: vi.fn(),
+      revealPathInFolder: vi.fn(),
       showNotification: vi.fn(),
     showContextMenu: vi.fn(),
     importOfficialData: vi.fn(),

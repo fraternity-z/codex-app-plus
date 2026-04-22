@@ -1,3 +1,7 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MouseEvent as ReactMouseEvent, RefObject } from "react";
+import { createPortal } from "react-dom";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { ConversationMessageContent } from "./ConversationMessageContent";
 import type { ConversationRenderNode } from "../model/localConversationGroups";
 import { createAssistantTranscriptEntryModel, createCommandSummaryParts } from "../model/assistantTranscript";
@@ -6,7 +10,9 @@ import { createFileChangeSummaryParts } from "../model/fileChangeSummary";
 import { HomeAssistantTranscriptDetailBlock } from "./HomeAssistantTranscriptDetailBlock";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { HomePlanDraftCard } from "../../composer/ui/HomePlanDraftCard";
+import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
+import type { ImageGenerationEntry } from "../../../domain/timeline";
 import { useI18n } from "../../../i18n/useI18n";
 
 type AssistantNode = Extract<ConversationRenderNode, { kind: "assistantMessage" | "reasoningBlock" | "traceItem" | "auxiliaryBlock" }>;
@@ -15,6 +21,8 @@ interface HomeAssistantTranscriptEntryProps {
   readonly node: AssistantNode;
   readonly turnStatus?: TurnStatus | null;
 }
+
+type ImageMenuAction = "openFolder" | "copyImage";
 
 export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntryProps): JSX.Element {
   const { t } = useI18n();
@@ -57,6 +65,10 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
   const truncateSummaryWhenCollapsed = model.kind === "details" && model.truncateSummaryWhenCollapsed === true;
   const traceEntry = props.node.kind === "traceItem";
   const summaryContent = model.kind === "message" ? null : createSummaryContent(props.node, model.summary, t);
+
+  if (props.node.kind === "traceItem" && props.node.item.kind === "imageGeneration" && model.kind === "details") {
+    return <ImageGenerationTranscriptEntry entry={props.node.item} />;
+  }
 
   if (model.kind === "message" && model.message) {
     if (model.message.text.trim().length === 0) {
@@ -120,6 +132,169 @@ function ReasoningTranscriptEntry(props: { readonly block: Extract<AssistantNode
 
 function TranscriptMarkdown(props: { readonly className: string; readonly text: string; readonly variant?: "body" | "title" }): JSX.Element {
   return <MarkdownRenderer className={props.className} markdown={props.text} variant={props.variant} />;
+}
+
+function ImageGenerationTranscriptEntry(props: { readonly entry: ImageGenerationEntry }): JSX.Element {
+  const { t } = useI18n();
+  const previewSrc = useMemo(() => createImageGenerationPreviewSource(props.entry), [props.entry]);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const imageButtonRef = useRef<HTMLButtonElement>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [menu, setMenu] = useState<{ readonly x: number; readonly y: number } | null>(null);
+  const [pendingAction, setPendingAction] = useState<ImageMenuAction | null>(null);
+
+  const closeMenu = useCallback(() => {
+    if (pendingAction === null) {
+      setMenu(null);
+    }
+  }, [pendingAction]);
+
+  useToolbarMenuDismissal(menu !== null, menuRef, closeMenu, [imageButtonRef]);
+
+  useEffect(() => {
+    if (!previewOpen) {
+      return undefined;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPreviewOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewOpen]);
+
+  const handleContextMenu = useCallback((event: ReactMouseEvent) => {
+    event.preventDefault();
+    setMenu({ x: event.clientX, y: event.clientY });
+  }, []);
+
+  const runMenuAction = useCallback(async (action: ImageMenuAction) => {
+    if (pendingAction !== null || previewSrc === null) {
+      return;
+    }
+    setPendingAction(action);
+    try {
+      if (action === "openFolder") {
+        if (props.entry.savedPath !== null) {
+          await invoke("app_reveal_path_in_folder", { input: { path: props.entry.savedPath } });
+        }
+      } else {
+        await copyImageToClipboard(createImageGenerationClipboardSource(props.entry, previewSrc));
+      }
+      setMenu(null);
+    } catch (error) {
+      console.error("Image menu action failed", error);
+    } finally {
+      setPendingAction(null);
+    }
+  }, [pendingAction, previewSrc, props.entry.savedPath]);
+
+  if (previewSrc === null) {
+    return <></>;
+  }
+
+  return (
+    <section className="home-assistant-transcript-entry home-assistant-transcript-image-generation" data-status={props.entry.status}>
+      <button
+        ref={imageButtonRef}
+        type="button"
+        className="home-assistant-transcript-image-button"
+        aria-label={t("home.conversation.generatedImage.openPreview")}
+        onClick={() => setPreviewOpen(true)}
+        onContextMenu={handleContextMenu}
+      >
+        <img className="home-assistant-transcript-image-preview" src={previewSrc} alt={t("home.conversation.generatedImage.alt")} />
+      </button>
+      {menu === null ? null : createPortal(
+        <ImageGenerationContextMenu
+          x={menu.x}
+          y={menu.y}
+          canOpenFolder={props.entry.savedPath !== null}
+          pendingAction={pendingAction}
+          menuRef={menuRef}
+          onOpenFolder={() => void runMenuAction("openFolder")}
+          onCopyImage={() => void runMenuAction("copyImage")}
+        />,
+        document.body,
+      )}
+      {previewOpen ? createPortal(<ImageGenerationPreviewDialog src={previewSrc} onContextMenu={handleContextMenu} onClose={() => setPreviewOpen(false)} />, document.body) : null}
+    </section>
+  );
+}
+
+function createImageGenerationPreviewSource(entry: ImageGenerationEntry): string | null {
+  if (entry.result.trim().length > 0) {
+    return entry.result.startsWith("data:image/") ? entry.result : `data:image/png;base64,${entry.result}`;
+  }
+  if (entry.savedPath !== null) {
+    return convertFileSrc(entry.savedPath);
+  }
+  return null;
+}
+
+function createImageGenerationClipboardSource(entry: ImageGenerationEntry, previewSrc: string): string {
+  if (entry.result.trim().length > 0) {
+    return entry.result.startsWith("data:image/") ? entry.result : `data:image/png;base64,${entry.result}`;
+  }
+  return previewSrc;
+}
+
+function ImageGenerationContextMenu(props: {
+  readonly x: number;
+  readonly y: number;
+  readonly canOpenFolder: boolean;
+  readonly pendingAction: ImageMenuAction | null;
+  readonly menuRef: RefObject<HTMLDivElement>;
+  readonly onOpenFolder: () => void;
+  readonly onCopyImage: () => void;
+}): JSX.Element {
+  const { t } = useI18n();
+  return (
+    <div
+      ref={props.menuRef}
+      className="thread-context-menu home-assistant-transcript-image-menu"
+      style={{ left: props.x, top: props.y }}
+      role="menu"
+      aria-label={t("home.conversation.generatedImage.contextMenuAria")}
+    >
+      {props.canOpenFolder ? (
+        <button type="button" className="thread-context-menu-item" role="menuitem" onClick={props.onOpenFolder} disabled={props.pendingAction !== null}>
+          {props.pendingAction === "openFolder" ? t("home.conversation.generatedImage.openingFolder") : t("home.conversation.generatedImage.openInFolder")}
+        </button>
+      ) : null}
+      <button type="button" className="thread-context-menu-item" role="menuitem" onClick={props.onCopyImage} disabled={props.pendingAction !== null}>
+        {props.pendingAction === "copyImage" ? t("home.conversation.generatedImage.copyingImage") : t("home.conversation.generatedImage.copyImage")}
+      </button>
+    </div>
+  );
+}
+
+function ImageGenerationPreviewDialog(props: {
+  readonly src: string;
+  readonly onContextMenu: (event: ReactMouseEvent) => void;
+  readonly onClose: () => void;
+}): JSX.Element {
+  const { t } = useI18n();
+  return (
+    <div className="home-assistant-transcript-image-dialog-backdrop" role="presentation" onClick={props.onClose}>
+      <section className="home-assistant-transcript-image-dialog" role="dialog" aria-modal="true" aria-label={t("home.conversation.generatedImage.previewDialog")}>
+        <button type="button" className="home-assistant-transcript-image-dialog-close" onClick={props.onClose} aria-label={t("home.conversation.generatedImage.closePreview")}>×</button>
+        <img className="home-assistant-transcript-image-dialog-img" src={props.src} alt={t("home.conversation.generatedImage.alt")} onClick={(event) => event.stopPropagation()} onContextMenu={props.onContextMenu} />
+      </section>
+    </div>
+  );
+}
+
+async function copyImageToClipboard(src: string): Promise<void> {
+  const response = await fetch(src);
+  const blob = await response.blob();
+  const clipboard = navigator.clipboard;
+  if (typeof ClipboardItem !== "undefined" && clipboard?.write !== undefined) {
+    await clipboard.write([new ClipboardItem({ [blob.type || "image/png"]: blob })]);
+    return;
+  }
+  await clipboard?.writeText(src);
 }
 
 function createSummaryContent(node: AssistantNode, summary: string, t: ReturnType<typeof useI18n>["t"]): JSX.Element | string {

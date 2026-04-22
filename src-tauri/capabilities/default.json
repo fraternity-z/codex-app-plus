@@ -18,6 +18,7 @@
       "app_open_external",
       "app_open_workspace",
       "app_open_codex_config_toml",
+      "app_reveal_path_in_folder",
       "app_read_workspace_state",
       "app_write_workspace_state",
       "app_read_proxy_settings",
