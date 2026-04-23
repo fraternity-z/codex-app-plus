@@ -1,7 +1,9 @@
 import type { ComponentProps } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
+import rehypeKatex from "rehype-katex";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import type { ParsedFileLocation } from "../../../utils/fileLinks";
 import {
   describeFileTarget,
@@ -16,8 +18,34 @@ import {
 
 type MarkdownVariant = "body" | "title";
 type MarkdownRemarkPlugins = NonNullable<ComponentProps<typeof ReactMarkdown>["remarkPlugins"]>;
+type MarkdownRehypePlugins = NonNullable<ComponentProps<typeof ReactMarkdown>["rehypePlugins"]>;
 
-const MARKDOWN_REMARK_PLUGINS = [remarkGfm, remarkBreaks, remarkFileLinks] as unknown as MarkdownRemarkPlugins;
+const MARKDOWN_REMARK_PLUGINS = [remarkGfm, remarkBreaks, remarkMath, remarkFileLinks] as unknown as MarkdownRemarkPlugins;
+const MARKDOWN_REHYPE_PLUGINS = [[rehypeKatex, { strict: "ignore" }]] as unknown as MarkdownRehypePlugins;
+
+// 将 LLM 常用的 LaTeX 风格分隔符 (\[...\] / \(...\)) 归一化为
+// remark-math 支持的 $$...$$ / $...$，避免原文显示为裸方括号。
+const DISPLAY_MATH_RE = /\\\[([\s\S]+?)\\\]/g;
+const INLINE_MATH_RE = /\\\(([\s\S]+?)\\\)/g;
+const MARKDOWN_CODE_SEGMENT_RE = /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`)/g;
+
+function normalizeMathDelimiters(markdown: string): string {
+  if (!markdown.includes("\\[") && !markdown.includes("\\(")) {
+    return markdown;
+  }
+  return markdown
+    .split(MARKDOWN_CODE_SEGMENT_RE)
+    .map((segment, index) => {
+      // 奇数下标是被保留的代码块/行内代码，保持原样。
+      if (index % 2 === 1) {
+        return segment;
+      }
+      return segment
+        .replace(DISPLAY_MATH_RE, (_match, expression) => `\n\n$$\n${expression.trim()}\n$$\n\n`)
+        .replace(INLINE_MATH_RE, (_match, expression) => `$${expression.trim()}$`);
+    })
+    .join("");
+}
 
 interface MarkdownRendererProps {
   readonly className?: string;
@@ -206,10 +234,13 @@ export function MarkdownRenderer(props: MarkdownRendererProps): JSX.Element {
     components.p = ({ node: _node, ...pProps }) => <span {...pProps} />;
   }
 
+  const normalizedMarkdown = normalizeMathDelimiters(props.markdown);
+
   const content = (
     <ReactMarkdown
       components={components}
       remarkPlugins={MARKDOWN_REMARK_PLUGINS}
+      rehypePlugins={MARKDOWN_REHYPE_PLUGINS}
       urlTransform={(url) => {
         if (resolveHrefFilePath(url)) {
           return url;
@@ -233,7 +264,7 @@ export function MarkdownRenderer(props: MarkdownRendererProps): JSX.Element {
         return "";
       }}
     >
-      {props.markdown}
+      {normalizedMarkdown}
     </ReactMarkdown>
   );
 
