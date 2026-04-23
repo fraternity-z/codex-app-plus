@@ -13,11 +13,14 @@ import type {
   CodexSessionSearchResultOutput,
   CodexSessionSummaryOutput,
   DeleteAgentInput,
+  DeleteManagedPromptInput,
   DeleteCodexSessionInput,
   GlobalAgentInstructionsOutput,
   GetCodexAuthModeStateInput,
   ImportOfficialDataInput,
   ListCodexSessionsInput,
+  ListManagedPromptsInput,
+  ManagedPromptOutput,
   SearchCodexSessionsInput,
   ReadAgentConfigInput,
   ReadAgentConfigOutput,
@@ -44,8 +47,10 @@ import type {
   UpdateProxySettingsOutput,
   WindowChromeAction,
   WindowTheme,
+  SetUserModelInstructionsFileInput,
   UpdateChatgptAuthTokensInput,
   UpdateGlobalAgentInstructionsInput,
+  UpsertManagedPromptInput,
   WriteAgentConfigInput,
   WriteAgentConfigOutput,
 } from "./appTypes";
@@ -104,6 +109,10 @@ export interface HostBridge {
     readWorkspaceState(): Promise<WorkspacePersistenceState | null>;
     writeWorkspaceState(input: WorkspacePersistenceState): Promise<void>;
     listCustomPrompts(input: ReadCustomPromptsInput): Promise<ReadonlyArray<CustomPromptOutput>>;
+    listManagedPrompts(input: ListManagedPromptsInput): Promise<ReadonlyArray<ManagedPromptOutput>>;
+    upsertManagedPrompt(input: UpsertManagedPromptInput): Promise<ManagedPromptOutput>;
+    deleteManagedPrompt(input: DeleteManagedPromptInput): Promise<void>;
+    setUserModelInstructionsFile(input: SetUserModelInstructionsFileInput): Promise<void>;
     readGlobalAgentInstructions(input: {
       readonly agentEnvironment: AgentEnvironment;
     }): Promise<GlobalAgentInstructionsOutput>;

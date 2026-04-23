@@ -6,7 +6,9 @@ import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigRe
 import type {
   AgentEnvironment,
   GlobalAgentInstructionsOutput,
+  ManagedPromptOutput,
   ReadProxySettingsOutput,
+  UpsertManagedPromptInput,
   UpdateProxySettingsInput,
   UpdateProxySettingsOutput,
   UpdateGlobalAgentInstructionsInput,
@@ -73,6 +75,12 @@ export interface SettingsViewProps {
   onOpenConfigToml: () => Promise<void>;
   refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
   readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
+  listManagedPrompts: () => Promise<ReadonlyArray<ManagedPromptOutput>>;
+  upsertManagedPrompt: (
+    input: Omit<UpsertManagedPromptInput, "agentEnvironment">
+  ) => Promise<ManagedPromptOutput>;
+  deleteManagedPrompt: (name: string) => Promise<void>;
+  setUserModelInstructionsFile: (path: string | null) => Promise<void>;
   getAgentsSettings: () => Promise<import("../../../bridge/types").AgentsSettingsOutput>;
   createAgent: (input: import("../../../bridge/types").CreateAgentInput) => Promise<import("../../../bridge/types").AgentsSettingsOutput>;
   updateAgent: (input: import("../../../bridge/types").UpdateAgentInput) => Promise<import("../../../bridge/types").AgentsSettingsOutput>;
@@ -230,6 +238,11 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
         configSnapshot={props.configSnapshot}
         writeConfigValue={props.writeConfigValue}
         readGlobalAgentInstructions={props.readGlobalAgentInstructions}
+        listManagedPrompts={props.listManagedPrompts}
+        upsertManagedPrompt={props.upsertManagedPrompt}
+        deleteManagedPrompt={props.deleteManagedPrompt}
+        setUserModelInstructionsFile={props.setUserModelInstructionsFile}
+        refreshConfigSnapshot={props.refreshConfigSnapshot}
         writeGlobalAgentInstructions={props.writeGlobalAgentInstructions}
       />
     );

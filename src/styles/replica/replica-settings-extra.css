@@ -150,6 +150,182 @@
   color: #b91c1c;
 }
 
+.settings-prompt-head {
+  align-items: flex-start;
+}
+
+.settings-prompt-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.settings-prompt-switch-label {
+  color: #64748b;
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.4;
+}
+
+.settings-prompt-summary {
+  padding-bottom: 8px;
+}
+
+.settings-prompt-manager {
+  padding: 0 18px 16px;
+}
+
+.settings-prompt-list {
+  display: grid;
+  gap: 8px;
+  max-height: 420px;
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 8px;
+}
+
+.settings-prompt-empty {
+  margin: 0;
+  padding: 12px;
+  color: #64748b;
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.6;
+}
+
+.settings-prompt-row {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: #1f2937;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.settings-prompt-row:hover,
+.settings-prompt-row-active {
+  background: #ffffff;
+  border-color: #dbe3ef;
+}
+
+.settings-prompt-row-main {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.settings-prompt-row-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-prompt-row-title strong {
+  font-size: var(--app-ui-font-size-md);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.settings-prompt-item-path {
+  color: #64748b;
+  font-family: var(--app-code-font-family);
+  font-size: calc(var(--app-code-font-size) - 2px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-prompt-item-badge {
+  width: max-content;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: var(--app-ui-font-size-compact);
+  font-weight: 600;
+  padding: 2px 8px;
+}
+
+.settings-prompt-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-prompt-field {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-prompt-field-label {
+  color: #475569;
+  font-size: var(--app-ui-font-size-compact);
+  font-weight: 600;
+}
+
+.settings-prompt-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-prompt-name-input {
+  width: min(100%, 320px);
+}
+
+.settings-prompt-name-suffix {
+  color: #64748b;
+  font-family: var(--app-code-font-family);
+  font-size: calc(var(--app-code-font-size) - 1px);
+}
+
+.settings-prompt-path-preview {
+  padding: 0;
+  font-family: var(--app-code-font-family);
+  font-size: calc(var(--app-code-font-size) - 1px);
+}
+
+.settings-prompt-textarea {
+  width: 100%;
+  height: 320px;
+  margin: 0;
+}
+
+.settings-prompt-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.settings-prompt-dialog-body {
+  display: grid;
+  gap: 10px;
+  overflow: auto;
+}
+
+.settings-prompt-danger-btn {
+  color: #b91c1c;
+}
+
+.settings-head-action-danger {
+  color: #b91c1c;
+}
+
+.settings-head-action-danger:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
 .windows-sandbox-card {
   padding: 16px 18px;
   display: grid;
@@ -1134,6 +1310,24 @@
   .codex-provider-form-grid {
     grid-template-columns: 1fr;
   }
+
+  .settings-prompt-manager {
+    padding-bottom: 12px;
+  }
+
+  .settings-prompt-list {
+    min-height: auto;
+    max-height: 220px;
+  }
+
+  .settings-prompt-row {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-prompt-row-actions,
+  .settings-prompt-head-actions {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 1080px) {
@@ -1200,6 +1394,8 @@ html[data-theme="dark"] .mcp-form-input,
 html[data-theme="dark"] .mcp-form-select,
 html[data-theme="dark"] .mcp-form-textarea,
 html[data-theme="dark"] .codex-provider-row,
+html[data-theme="dark"] .settings-prompt-list,
+html[data-theme="dark"] .settings-prompt-row,
 html[data-theme="dark"] .settings-dialog-textarea {
   border-color: var(--border-light);
   background: var(--surface-panel-muted);
@@ -1243,6 +1439,8 @@ html[data-theme="dark"] .mcp-form-field,
 html[data-theme="dark"] .mcp-form-label,
 html[data-theme="dark"] .mcp-form-toggle-row,
 html[data-theme="dark"] .codex-provider-title-row strong,
+html[data-theme="dark"] .settings-prompt-row,
+html[data-theme="dark"] .settings-prompt-row-title strong,
 html[data-theme="dark"] .archived-thread-title {
   color: var(--text-main);
 }
@@ -1267,8 +1465,24 @@ html[data-theme="dark"] .settings-placeholder,
 html[data-theme="dark"] .settings-folder,
 html[data-theme="dark"] .settings-env-main span,
 html[data-theme="dark"] .codex-provider-meta-row,
+html[data-theme="dark"] .settings-prompt-empty,
+html[data-theme="dark"] .settings-prompt-field-label,
+html[data-theme="dark"] .settings-prompt-switch-label,
+html[data-theme="dark"] .settings-prompt-item-path,
+html[data-theme="dark"] .settings-prompt-name-suffix,
 html[data-theme="dark"] .archived-thread-meta {
   color: var(--text-muted);
+}
+
+html[data-theme="dark"] .settings-prompt-row:hover,
+html[data-theme="dark"] .settings-prompt-row-active {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+html[data-theme="dark"] .settings-prompt-item-badge {
+  background: color-mix(in srgb, var(--success-fg) 18%, transparent);
+  color: var(--success-fg);
 }
 
 html[data-theme="dark"] .settings-row-note {
@@ -1284,7 +1498,8 @@ html[data-theme="dark"] .archived-thread-error,
 html[data-theme="dark"] .mcp-error-note,
 html[data-theme="dark"] .mcp-danger-btn,
 html[data-theme="dark"] .mcp-form-error,
-html[data-theme="dark"] .mcp-form-submit-error {
+html[data-theme="dark"] .mcp-form-submit-error,
+html[data-theme="dark"] .settings-prompt-danger-btn {
   color: var(--error-fg);
 }
 

@@ -18,6 +18,7 @@ import type {
   CodexSessionSearchResultOutput,
   CodexSessionSummaryOutput,
   DeleteAgentInput,
+  DeleteManagedPromptInput,
   DeleteCodexSessionInput,
   GitBranchRef,
   GitCheckoutInput,
@@ -41,6 +42,8 @@ import type {
   HostBridge,
   ImportOfficialDataInput,
   ListCodexSessionsInput,
+  ListManagedPromptsInput,
+  ManagedPromptOutput,
   SearchCodexSessionsInput,
   ReadAgentConfigInput,
   ReadAgentConfigOutput,
@@ -60,6 +63,7 @@ import type {
   RpcRequestOutput,
   ServerRequestResolveInput,
   SetAgentsCoreInput,
+  SetUserModelInstructionsFileInput,
   ShowContextMenuInput,
   ShowNotificationInput,
   TerminalCloseInput,
@@ -72,6 +76,7 @@ import type {
   UpdateGlobalAgentInstructionsInput,
   UpdateProxySettingsInput,
   UpdateProxySettingsOutput,
+  UpsertManagedPromptInput,
   WriteAgentConfigInput,
   WriteAgentConfigOutput,
 } from "./types";
@@ -145,6 +150,23 @@ export function createTauriHostBridge(): HostBridge {
       listCustomPrompts: (input: ReadCustomPromptsInput) =>
         invokeWithInput<ReadCustomPromptsInput, ReadonlyArray<CustomPromptOutput>>(
           "app_list_custom_prompts",
+          input
+        ),
+      listManagedPrompts: (input: ListManagedPromptsInput) =>
+        invokeWithInput<ListManagedPromptsInput, ReadonlyArray<ManagedPromptOutput>>(
+          "app_list_managed_prompts",
+          input
+        ),
+      upsertManagedPrompt: (input: UpsertManagedPromptInput) =>
+        invokeWithInput<UpsertManagedPromptInput, ManagedPromptOutput>(
+          "app_upsert_managed_prompt",
+          input
+        ),
+      deleteManagedPrompt: (input: DeleteManagedPromptInput) =>
+        invokeWithInput<DeleteManagedPromptInput>("app_delete_managed_prompt", input),
+      setUserModelInstructionsFile: (input: SetUserModelInstructionsFileInput) =>
+        invokeWithInput<SetUserModelInstructionsFileInput>(
+          "app_set_user_model_instructions_file",
           input
         ),
       readGlobalAgentInstructions: (input: { readonly agentEnvironment: AgentEnvironment }) =>

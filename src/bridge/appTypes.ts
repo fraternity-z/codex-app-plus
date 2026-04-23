@@ -144,6 +144,33 @@ export interface CustomPromptOutput {
   readonly argumentHint: string | null;
 }
 
+export interface ListManagedPromptsInput {
+  readonly agentEnvironment: AgentEnvironment;
+}
+
+export interface ManagedPromptOutput {
+  readonly name: string;
+  readonly path: string;
+  readonly content: string;
+}
+
+export interface UpsertManagedPromptInput {
+  readonly agentEnvironment: AgentEnvironment;
+  readonly previousName?: string | null;
+  readonly name: string;
+  readonly content: string;
+}
+
+export interface DeleteManagedPromptInput {
+  readonly agentEnvironment: AgentEnvironment;
+  readonly name: string;
+}
+
+export interface SetUserModelInstructionsFileInput {
+  readonly agentEnvironment: AgentEnvironment;
+  readonly path: string | null;
+}
+
 export interface UpdateGlobalAgentInstructionsInput {
   readonly agentEnvironment?: AgentEnvironment;
   readonly content: string;

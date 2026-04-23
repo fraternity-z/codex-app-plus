@@ -37,6 +37,14 @@ function createHostBridge(): HostBridge {
       readWorkspaceState: vi.fn().mockResolvedValue(null),
       writeWorkspaceState: vi.fn().mockResolvedValue(undefined),
       listCustomPrompts: vi.fn().mockResolvedValue([]),
+      listManagedPrompts: vi.fn().mockResolvedValue([]),
+      upsertManagedPrompt: vi.fn().mockResolvedValue({
+        name: "system-prompt",
+        path: "~/.codex/prompts/codex-app-plus/system-prompt.md",
+        content: "",
+      }),
+      deleteManagedPrompt: vi.fn().mockResolvedValue(undefined),
+      setUserModelInstructionsFile: vi.fn().mockResolvedValue(undefined),
       readGlobalAgentInstructions: vi.fn().mockResolvedValue({
         path: "C:/Users/Administrator/.codex/AGENTS.md",
         content: ""

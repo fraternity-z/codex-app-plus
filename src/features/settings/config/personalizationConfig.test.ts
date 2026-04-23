@@ -7,7 +7,8 @@ describe("personalizationConfig", () => {
   it("reads personality from config snapshot", () => {
     const view = readPersonalizationConfigView({
       config: {
-        personality: "friendly"
+        personality: "friendly",
+        model_instructions_file: "~/.codex/prompts/codex-app-plus/system-prompt.md",
       },
       origins: {},
       layers: [
@@ -17,11 +18,13 @@ describe("personalizationConfig", () => {
     });
 
     expect(view.personality).toBe("friendly");
+    expect(view.modelInstructionsFile).toBe("~/.codex/prompts/codex-app-plus/system-prompt.md");
   });
 
   it("falls back to Codex pragmatic defaults when config is unavailable", () => {
     const view = readPersonalizationConfigView(null);
 
     expect(view.personality).toBe("pragmatic");
+    expect(view.modelInstructionsFile).toBeNull();
   });
 });

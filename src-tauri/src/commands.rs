@@ -1,46 +1,46 @@
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
-use crate::app_approval_rules::remember_command_approval_rule;
 use crate::agents_config::{
     create_agent, delete_agent, get_agents_settings, read_agent_config, set_agents_core,
     update_agent, write_agent_config,
 };
+use crate::app_approval_rules::remember_command_approval_rule;
 use crate::app_support::{
     clear_chatgpt_auth_state, import_official_data, open_codex_config_toml,
     read_chatgpt_auth_tokens, read_global_agent_instructions, reveal_path_in_folder,
     write_chatgpt_auth_tokens, write_global_agent_instructions,
 };
-use crate::custom_prompts::list_custom_prompts;
 use crate::codex_auth::{
-    activate_codex_chatgpt, capture_codex_oauth_snapshot,
-    get_codex_auth_mode_state,
+    activate_codex_chatgpt, capture_codex_oauth_snapshot, get_codex_auth_mode_state,
 };
 use crate::codex_data::{
     delete_codex_session, list_codex_sessions, read_codex_session, search_codex_sessions,
 };
 use crate::command_utils::open_detached_target;
+use crate::custom_prompts::{
+    delete_managed_prompt, list_custom_prompts, list_managed_prompts,
+    set_user_model_instructions_file, upsert_managed_prompt,
+};
 use crate::error::{AppError, AppResult};
 use crate::events::{EVENT_CONTEXT_MENU_REQUESTED, EVENT_NOTIFICATION_REQUESTED};
 use crate::models::{
-    ActivateCodexChatgptInput, AppServerStartInput,
-    CaptureCodexOauthSnapshotInput, ChatgptAuthTokensOutput, CodexAuthModeStateOutput,
-    CodexAuthSwitchResult,
-    CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSearchResult,
-    CodexSessionSummary, CreateAgentInput, DeleteAgentInput,
-    DeleteCodexSessionInput, GetAgentsSettingsInput, GetCodexAuthModeStateInput,
+    ActivateCodexChatgptInput, AppServerStartInput, CaptureCodexOauthSnapshotInput,
+    ChatgptAuthTokensOutput, CodexAuthModeStateOutput, CodexAuthSwitchResult,
+    CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSearchResult, CodexSessionSummary,
+    CreateAgentInput, CustomPromptOutput, DeleteAgentInput, DeleteCodexSessionInput,
+    DeleteManagedPromptInput, GetAgentsSettingsInput, GetCodexAuthModeStateInput,
     GlobalAgentInstructionsOutput, ImportOfficialDataInput, ListCodexSessionsInput,
-    SearchCodexSessionsInput,
-    OpenCodexConfigTomlInput, OpenFileInEditorInput, OpenWorkspaceInput, ReadAgentConfigInput,
-    ReadAgentConfigOutput, ReadGlobalAgentInstructionsInput, ReadProxySettingsInput,
-    ReadProxySettingsOutput, RememberCommandApprovalRuleInput, RevealPathInFolderInput,
-    RememberCommandApprovalRuleOutput, RpcCancelInput, RpcNotifyInput, RpcRequestInput,
-    RpcRequestOutput, ServerRequestResolveInput, SetAgentsCoreInput, ShowContextMenuInput,
-    ShowNotificationInput, UpdateAgentInput, UpdateChatgptAuthTokensInput,
-    UpdateGlobalAgentInstructionsInput, UpdateProxySettingsInput,
-    UpdateProxySettingsOutput, CustomPromptOutput, WorkspacePersistenceState,
-    ListCustomPromptsInput, WriteAgentConfigInput, WriteAgentConfigOutput,
-    WindowChromeAction,
+    ListCustomPromptsInput, ListManagedPromptsInput, ManagedPromptOutput, OpenCodexConfigTomlInput,
+    OpenFileInEditorInput, OpenWorkspaceInput, ReadAgentConfigInput, ReadAgentConfigOutput,
+    ReadGlobalAgentInstructionsInput, ReadProxySettingsInput, ReadProxySettingsOutput,
+    RememberCommandApprovalRuleInput, RememberCommandApprovalRuleOutput, RevealPathInFolderInput,
+    RpcCancelInput, RpcNotifyInput, RpcRequestInput, RpcRequestOutput, SearchCodexSessionsInput,
+    ServerRequestResolveInput, SetAgentsCoreInput, SetUserModelInstructionsFileInput,
+    ShowContextMenuInput, ShowNotificationInput, UpdateAgentInput, UpdateChatgptAuthTokensInput,
+    UpdateGlobalAgentInstructionsInput, UpdateProxySettingsInput, UpdateProxySettingsOutput,
+    UpsertManagedPromptInput,
+    WindowChromeAction, WorkspacePersistenceState, WriteAgentConfigInput, WriteAgentConfigOutput,
 };
 use crate::process_manager::ProcessManager;
 use crate::proxy_settings::{read_proxy_settings, write_proxy_settings};
@@ -249,9 +249,7 @@ pub async fn app_read_workspace_state() -> Result<Option<WorkspacePersistenceSta
 }
 
 #[tauri::command]
-pub async fn app_write_workspace_state(
-    input: WorkspacePersistenceState,
-) -> Result<(), String> {
+pub async fn app_write_workspace_state(input: WorkspacePersistenceState) -> Result<(), String> {
     run_blocking(move || write_workspace_state(input)).await
 }
 
@@ -267,6 +265,32 @@ pub async fn app_list_custom_prompts(
     input: ListCustomPromptsInput,
 ) -> Result<Vec<CustomPromptOutput>, String> {
     run_blocking(move || list_custom_prompts(input)).await
+}
+
+#[tauri::command]
+pub async fn app_list_managed_prompts(
+    input: ListManagedPromptsInput,
+) -> Result<Vec<ManagedPromptOutput>, String> {
+    run_blocking(move || list_managed_prompts(input)).await
+}
+
+#[tauri::command]
+pub async fn app_upsert_managed_prompt(
+    input: UpsertManagedPromptInput,
+) -> Result<ManagedPromptOutput, String> {
+    run_blocking(move || upsert_managed_prompt(input)).await
+}
+
+#[tauri::command]
+pub async fn app_delete_managed_prompt(input: DeleteManagedPromptInput) -> Result<(), String> {
+    run_blocking(move || delete_managed_prompt(input)).await
+}
+
+#[tauri::command]
+pub async fn app_set_user_model_instructions_file(
+    input: SetUserModelInstructionsFileInput,
+) -> Result<(), String> {
+    run_blocking(move || set_user_model_instructions_file(input)).await
 }
 
 #[tauri::command]

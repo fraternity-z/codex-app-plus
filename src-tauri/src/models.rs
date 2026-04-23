@@ -372,6 +372,43 @@ pub struct CustomPromptOutput {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ListManagedPromptsInput {
+    pub agent_environment: AgentEnvironment,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ManagedPromptOutput {
+    pub name: String,
+    pub path: String,
+    pub content: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpsertManagedPromptInput {
+    pub agent_environment: AgentEnvironment,
+    pub previous_name: Option<String>,
+    pub name: String,
+    pub content: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteManagedPromptInput {
+    pub agent_environment: AgentEnvironment,
+    pub name: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetUserModelInstructionsFileInput {
+    pub agent_environment: AgentEnvironment,
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateGlobalAgentInstructionsInput {
     pub agent_environment: Option<AgentEnvironment>,
     pub content: String,

@@ -202,6 +202,25 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
       props.hostBridge.app.readGlobalAgentInstructions({
         agentEnvironment: props.preferences.agentEnvironment,
       }),
+    listManagedPrompts: () =>
+      props.hostBridge.app.listManagedPrompts({
+        agentEnvironment: props.preferences.agentEnvironment,
+      }),
+    upsertManagedPrompt: (input) =>
+      props.hostBridge.app.upsertManagedPrompt({
+        ...input,
+        agentEnvironment: props.preferences.agentEnvironment,
+      }),
+    deleteManagedPrompt: (name) =>
+      props.hostBridge.app.deleteManagedPrompt({
+        agentEnvironment: props.preferences.agentEnvironment,
+        name,
+      }),
+    setUserModelInstructionsFile: (path) =>
+      props.hostBridge.app.setUserModelInstructionsFile({
+        agentEnvironment: props.preferences.agentEnvironment,
+        path,
+      }),
     getAgentsSettings: () => props.controller.getAgentsSettings(),
     createAgent: (input) => props.controller.createAgent(input),
     updateAgent: (input) => props.controller.updateAgent(input),
