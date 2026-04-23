@@ -46,7 +46,7 @@ function createAppServerClient() {
 }
 
 describe("composerPreferences", () => {
-  it("includes hidden models and prepends gpt-5.4 when the backend list is stale", async () => {
+  it("includes hidden models and prepends the current official Codex models when the backend list is stale", async () => {
     const { request, client } = createAppServerClient();
 
     const result = await listComposerModels(client);
@@ -57,14 +57,32 @@ describe("composerPreferences", () => {
     );
     expect(result).toEqual([
       expect.objectContaining({
+        value: "gpt-5.5",
+        label: "gpt-5.5",
+        defaultEffort: "high",
+        supportedEfforts: ["low", "medium", "high", "xhigh"]
+      }),
+      expect.objectContaining({
         value: "gpt-5.4",
         label: "gpt-5.4",
         defaultEffort: "high",
         supportedEfforts: ["low", "medium", "high", "xhigh"]
       }),
       expect.objectContaining({
+        value: "gpt-5.4-mini",
+        label: "gpt-5.4-mini",
+        defaultEffort: "high",
+        supportedEfforts: ["low", "medium", "high", "xhigh"]
+      }),
+      expect.objectContaining({
         value: "gpt-5.3-codex",
         label: "GPT-5.3-Codex"
+      }),
+      expect.objectContaining({
+        value: "gpt-5.2",
+        label: "gpt-5.2",
+        defaultEffort: "high",
+        supportedEfforts: ["low", "medium", "high", "xhigh"]
       })
     ]);
   });
@@ -80,12 +98,12 @@ describe("composerPreferences", () => {
     ]);
 
     expect(groups.primaryModels.map((model) => model.value)).toEqual([
+      "gpt-5.5",
       "gpt-5.4",
+      "gpt-5.4-mini",
       "gpt-5.3-codex",
-      "gpt-5.2",
-      "gpt-5.1",
-      "gpt-5"
+      "gpt-5.2"
     ]);
-    expect(groups.extraModels.map((model) => model.value)).toEqual(["o3", "o1"]);
+    expect(groups.extraModels.map((model) => model.value)).toEqual(["gpt-5.1", "gpt-5", "o3", "o1"]);
   });
 });

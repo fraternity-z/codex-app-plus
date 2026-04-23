@@ -46,9 +46,9 @@ describe("useComposerPicker", () => {
     rerender({ ready: true });
 
     await waitFor(() => {
-      expect(result.current.models).toHaveLength(2);
+      expect(result.current.models).toHaveLength(5);
     });
-    expect(result.current.models[0]).toEqual(expect.objectContaining({ value: "gpt-5.4" }));
+    expect(result.current.models[0]).toEqual(expect.objectContaining({ value: "gpt-5.5" }));
     expect(request).toHaveBeenCalledTimes(1);
   });
 });

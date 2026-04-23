@@ -90,7 +90,7 @@ describe("configOperations", () => {
     const { client, request } = createClient();
 
     await batchWriteConfigAndReadSnapshot(client, dispatch, {
-      edits: [{ keyPath: "model", value: "gpt-5.4", mergeStrategy: "upsert" }],
+      edits: [{ keyPath: "model", value: "gpt-5.5", mergeStrategy: "upsert" }],
       filePath: null,
       expectedVersion: null
     });

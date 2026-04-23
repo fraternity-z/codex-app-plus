@@ -40,24 +40,27 @@ describe("ComposerModelControls", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /选择模型/ }));
 
+    expect(screen.getByRole("menuitemradio", { name: "gpt-5.5" })).toBeInTheDocument();
     expect(screen.getByRole("menuitemradio", { name: "gpt-5.4" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitemradio", { name: "gpt-5.4-mini" })).toBeInTheDocument();
     expect(screen.getByRole("menuitemradio", { name: "GPT-5.3-Codex" })).toBeInTheDocument();
     expect(screen.getByRole("menuitemradio", { name: "GPT-5.2" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitemradio", { name: "GPT-5.1" })).toBeInTheDocument();
-    expect(screen.getByRole("menuitemradio", { name: "GPT-5" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitemradio", { name: "GPT-5.1" })).not.toBeInTheDocument();
     expect(screen.queryByRole("menuitemradio", { name: "o3" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("menuitem", { name: /额外模型/ }));
 
+    expect(screen.getByRole("menuitemradio", { name: "GPT-5.1" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitemradio", { name: "GPT-5" })).toBeInTheDocument();
     expect(screen.getByRole("menuitemradio", { name: "o3" })).toBeInTheDocument();
     expect(screen.getByRole("menuitemradio", { name: "o1" })).toBeInTheDocument();
   });
 
-  it("shows four effort levels for gpt-5.4 only", () => {
+  it("shows four effort levels for gpt-5.5 only", () => {
     render(
       <ComposerModelControls
         models={MODELS}
-        selectedModel="gpt-5.4"
+        selectedModel="gpt-5.5"
         selectedEffort="high"
         supportedEfforts={["low", "medium", "high", "xhigh"]}
         onSelectModel={vi.fn()}

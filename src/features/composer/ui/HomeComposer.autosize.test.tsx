@@ -15,9 +15,9 @@ const originalScrollHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLTextA
 
 const MODELS: ReadonlyArray<ComposerModelOption> = [{
   id: "model-1",
-  value: "gpt-5.2",
-  label: "GPT-5.2",
-  defaultEffort: "medium",
+  value: "gpt-5.5",
+  label: "gpt-5.5",
+  defaultEffort: "high",
   supportedEfforts: ["minimal", "low", "medium", "high", "xhigh"],
   isDefault: true,
 }];
@@ -53,8 +53,8 @@ function ComposerHarness(): JSX.Element {
       inputText={inputText}
       collaborationPreset="default"
       models={MODELS}
-      defaultModel="gpt-5.2"
-      defaultEffort="medium"
+      defaultModel="gpt-5.5"
+      defaultEffort="high"
       selectedRootPath="E:/code/codex-app-plus"
       queuedFollowUps={[]}
       followUpQueueMode="queue"

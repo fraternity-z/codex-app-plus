@@ -11,8 +11,8 @@ import { permissionLabel } from "./ComposerFooterPopovers";
 
 const MODELS: ReadonlyArray<ComposerModelOption> = [{
   id: "model-1",
-  value: "gpt-5.2",
-  label: "GPT-5.2",
+  value: "gpt-5.5",
+  label: "gpt-5.5",
   defaultEffort: "xhigh",
   supportedEfforts: ["minimal", "low", "medium", "high", "xhigh"],
   isDefault: true,
@@ -92,7 +92,7 @@ function ComposerHarness(props: {
         inputText="check permission flow"
         collaborationPreset="default"
         models={MODELS}
-        defaultModel="gpt-5.2"
+        defaultModel="gpt-5.5"
         defaultEffort="xhigh"
         selectedRootPath="E:/code/FPGA"
         queuedFollowUps={[]}

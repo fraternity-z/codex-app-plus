@@ -11,8 +11,8 @@ import { INIT_COMMAND_PROMPT } from "../service/composerInitCommand";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
 
 const MODELS: ReadonlyArray<ComposerModelOption> = [
-  { id: "model-1", value: "gpt-5.2", label: "GPT-5.2", defaultEffort: "medium", supportedEfforts: ["minimal", "low", "medium", "high", "xhigh"], isDefault: true },
-  { id: "model-2", value: "gpt-5.4", label: "gpt-5.4", defaultEffort: "high", supportedEfforts: ["low", "medium", "high", "xhigh"], isDefault: false },
+  { id: "model-1", value: "gpt-5.5", label: "gpt-5.5", defaultEffort: "high", supportedEfforts: ["low", "medium", "high", "xhigh"], isDefault: true },
+  { id: "model-2", value: "gpt-5.3-codex", label: "GPT-5.3-Codex", defaultEffort: "high", supportedEfforts: ["low", "medium", "high", "xhigh"], isDefault: false },
 ];
 
 function createGitController(): import("../../git/model/types").WorkspaceGitController {
@@ -75,8 +75,8 @@ function ComposerHarness(props: {
       inputText={inputText}
       collaborationPreset="default"
       models={MODELS}
-      defaultModel="gpt-5.2"
-      defaultEffort="medium"
+      defaultModel="gpt-5.5"
+      defaultEffort="high"
       selectedRootPath={props.selectedRootPath === undefined ? "E:/code/codex-app-plus" : props.selectedRootPath}
       queuedFollowUps={[]}
       followUpQueueMode="queue"
@@ -121,7 +121,7 @@ describe("HomeComposer commands", () => {
     await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith({
       text: INIT_COMMAND_PROMPT,
       attachments: [],
-      selection: { model: "gpt-5.2", effort: "medium", serviceTier: null },
+      selection: { model: "gpt-5.5", effort: "high", serviceTier: null },
       permissionLevel: "default",
       collaborationPreset: "default",
     }));

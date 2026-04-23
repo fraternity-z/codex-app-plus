@@ -21,9 +21,9 @@ vi.mock("@tauri-apps/api/core", () => ({
 
 const MODELS: ReadonlyArray<ComposerModelOption> = [{
   id: "model-1",
-  value: "gpt-5.2",
-  label: "GPT-5.2",
-  defaultEffort: "medium",
+  value: "gpt-5.5",
+  label: "gpt-5.5",
+  defaultEffort: "high",
   supportedEfforts: ["minimal", "low", "medium", "high", "xhigh"],
   isDefault: true,
 }];
@@ -103,8 +103,8 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
         busy={false}
         collaborationPreset="default"
         models={MODELS}
-        defaultModel="gpt-5.2"
-        defaultEffort="medium"
+        defaultModel="gpt-5.5"
+        defaultEffort="high"
         selectedRootPath="E:/code/codex-app-plus"
         queuedFollowUps={[]}
         followUpQueueMode="queue"

@@ -575,7 +575,7 @@ Review $USER changes on $BRANCH\n",
     #[test]
     fn update_model_instructions_file_places_key_before_provider_section() {
         let input = "model_provider = \"packycode\"\n\
-model = \"gpt-5.4\"\n\
+model = \"gpt-5.5\"\n\
 \n\
 [model_providers.packycode]\n\
 name = \"packycode\"\n";
@@ -654,7 +654,7 @@ name = \"packycode\"\n";
         fs::write(
             &config_path,
             "model_provider = \"packycode\"\n\
-model = \"gpt-5.4\"\n\
+model = \"gpt-5.5\"\n\
 \n\
 [model_providers.packycode]\n\
 name = \"packycode\"\n",

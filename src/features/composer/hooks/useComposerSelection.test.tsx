@@ -6,10 +6,10 @@ import { useComposerSelection } from "./useComposerSelection";
 const MODELS: ReadonlyArray<ComposerModelOption> = [
   {
     id: "model-1",
-    value: "gpt-5.2",
-    label: "GPT-5.2",
-    defaultEffort: "medium",
-    supportedEfforts: ["low", "medium"],
+    value: "gpt-5.5",
+    label: "gpt-5.5",
+    defaultEffort: "high",
+    supportedEfforts: ["low", "medium", "high", "xhigh"],
     isDefault: true
   }
 ];
@@ -36,9 +36,9 @@ describe("useComposerSelection", () => {
   it("falls back to the default listed model only when config has no model", () => {
     const { result } = renderHook(() => useComposerSelection(MODELS, null, null));
 
-    expect(result.current.selectedModel).toBe("gpt-5.2");
-    expect(result.current.selectedEffort).toBe("medium");
+    expect(result.current.selectedModel).toBe("gpt-5.5");
+    expect(result.current.selectedEffort).toBe("high");
     expect(result.current.selectedServiceTier).toBeNull();
-    expect(result.current.selectedModelOption?.value).toBe("gpt-5.2");
+    expect(result.current.selectedModelOption?.value).toBe("gpt-5.5");
   });
 });

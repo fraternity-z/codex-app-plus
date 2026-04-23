@@ -10,16 +10,16 @@ import { HomeComposer } from "./HomeComposer";
 const MODELS: ReadonlyArray<ComposerModelOption> = [
   {
     id: "model-1",
-    value: "gpt-5.2",
-    label: "GPT-5.2",
-    defaultEffort: "medium",
-    supportedEfforts: ["minimal", "low", "medium", "high", "xhigh"],
+    value: "gpt-5.5",
+    label: "gpt-5.5",
+    defaultEffort: "high",
+    supportedEfforts: ["low", "medium", "high", "xhigh"],
     isDefault: true,
   },
   {
     id: "model-2",
-    value: "gpt-5.4",
-    label: "gpt-5.4",
+    value: "gpt-5.3-codex",
+    label: "GPT-5.3-Codex",
     defaultEffort: "high",
     supportedEfforts: ["low", "medium", "high", "xhigh"],
     isDefault: false,
@@ -155,18 +155,18 @@ describe("HomeComposer persistence", () => {
     const { onPersistComposerSelection } = renderComposer();
 
     fireEvent.click(screen.getByRole("button", { name: /Select model/ }));
-    fireEvent.click(screen.getByRole("menuitemradio", { name: "GPT-5.2" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "gpt-5.5" }));
 
-    await waitFor(() => expect(onPersistComposerSelection).toHaveBeenCalledWith({ model: "gpt-5.2", effort: "high", serviceTier: null }));
+    await waitFor(() => expect(onPersistComposerSelection).toHaveBeenCalledWith({ model: "gpt-5.5", effort: "high", serviceTier: null }));
   });
 
   it("persists effort changes without altering the current model", async () => {
-    const { onPersistComposerSelection } = renderComposer({ defaultModel: "gpt-5.4", defaultEffort: "medium" });
+    const { onPersistComposerSelection } = renderComposer({ defaultModel: "gpt-5.3-codex", defaultEffort: "medium" });
 
     fireEvent.click(screen.getByRole("button", { name: /Select reasoning effort/ }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: "High" }));
 
-    await waitFor(() => expect(onPersistComposerSelection).toHaveBeenCalledWith({ model: "gpt-5.4", effort: "high", serviceTier: null }));
+    await waitFor(() => expect(onPersistComposerSelection).toHaveBeenCalledWith({ model: "gpt-5.3-codex", effort: "high", serviceTier: null }));
   });
 
   it("rolls back to the last persisted selection when persistence fails", async () => {
@@ -177,7 +177,7 @@ describe("HomeComposer persistence", () => {
     renderComposer({ onPersistComposerSelection, onSendTurn });
 
     fireEvent.click(screen.getByRole("button", { name: /Select model/ }));
-    fireEvent.click(screen.getByRole("menuitemradio", { name: "GPT-5.2" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "gpt-5.5" }));
 
     await waitFor(() => expect(screen.getByText("保存 Composer 配置失败")).toBeInTheDocument());
 

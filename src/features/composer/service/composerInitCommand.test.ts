@@ -10,7 +10,7 @@ describe("composerInitCommand", () => {
 
     await executeInitSlashCommand({
       selectedRootPath: "E:/code/codex-app-plus",
-      selection: { model: "gpt-5.2", effort: "medium", serviceTier: null },
+      selection: { model: "gpt-5.5", effort: "high", serviceTier: null },
       permissionLevel: "default",
       collaborationPreset: "default",
     }, {
@@ -20,7 +20,7 @@ describe("composerInitCommand", () => {
     expect(onSendTurn).toHaveBeenCalledWith({
       text: INIT_COMMAND_PROMPT,
       attachments: [],
-      selection: { model: "gpt-5.2", effort: "medium", serviceTier: null },
+      selection: { model: "gpt-5.5", effort: "high", serviceTier: null },
       permissionLevel: "default",
       collaborationPreset: "default",
     });
@@ -32,7 +32,7 @@ describe("composerInitCommand", () => {
     await expect(
       executeInitSlashCommand({
         selectedRootPath: null,
-        selection: { model: "gpt-5.2", effort: "medium", serviceTier: null },
+        selection: { model: "gpt-5.5", effort: "high", serviceTier: null },
         permissionLevel: "default",
         collaborationPreset: "default",
       }, {

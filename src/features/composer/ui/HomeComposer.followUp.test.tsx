@@ -10,9 +10,9 @@ import { HomeComposer } from "./HomeComposer";
 
 const MODELS: ReadonlyArray<ComposerModelOption> = [{
   id: "model-1",
-  value: "gpt-5.2",
-  label: "GPT-5.2",
-  defaultEffort: "medium",
+  value: "gpt-5.5",
+  label: "gpt-5.5",
+  defaultEffort: "high",
   supportedEfforts: ["minimal", "low", "medium", "high", "xhigh"],
   isDefault: true,
 }];
@@ -81,8 +81,8 @@ function createQueuedFollowUp(overrides?: Partial<QueuedFollowUp>): QueuedFollow
     id: "follow-1",
     text: "Continue fixing the failing test",
     attachments: [],
-    model: "gpt-5.2",
-    effort: "medium",
+    model: "gpt-5.5",
+    effort: "high",
     serviceTier: null,
     permissionLevel: "default",
     collaborationPreset: "default",
@@ -106,8 +106,8 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
         inputText=""
         collaborationPreset="default"
         models={MODELS}
-        defaultModel="gpt-5.2"
-        defaultEffort="medium"
+        defaultModel="gpt-5.5"
+        defaultEffort="high"
         selectedRootPath="E:/code/codex-app-plus"
         queuedFollowUps={[]}
         followUpQueueMode="queue"

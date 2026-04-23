@@ -12,7 +12,7 @@ const REASONING_EFFORT_SET = new Set<ReasoningEffort>(REASONING_EFFORT_VALUES);
 const SERVICE_TIER_VALUES = ["fast", "flex"] as const satisfies ReadonlyArray<ServiceTier>;
 const SERVICE_TIER_SET = new Set<ServiceTier>(SERVICE_TIER_VALUES);
 
-export const DEFAULT_COMPOSER_MODEL_LABEL = "gpt-5.4";
+export const DEFAULT_COMPOSER_MODEL_LABEL = "gpt-5.5";
 
 export interface ComposerSelection {
   readonly model: string | null;
@@ -38,15 +38,23 @@ interface ComposerModelGroups {
   readonly extraModels: ReadonlyArray<ComposerModelOption>;
 }
 
-const PINNED_COMPOSER_MODELS = Object.freeze<ReadonlyArray<ComposerModelOption>>([
-  {
-    id: "builtin-gpt-5.4",
-    value: "gpt-5.4",
-    label: "gpt-5.4",
+function createPinnedComposerModel(value: string): ComposerModelOption {
+  return {
+    id: `builtin-${value}`,
+    value,
+    label: value,
     defaultEffort: "high",
     supportedEfforts: [...DEFAULT_REASONING_EFFORTS],
     isDefault: false
-  }
+  };
+}
+
+const PINNED_COMPOSER_MODELS = Object.freeze<ReadonlyArray<ComposerModelOption>>([
+  createPinnedComposerModel("gpt-5.5"),
+  createPinnedComposerModel("gpt-5.4"),
+  createPinnedComposerModel("gpt-5.4-mini"),
+  createPinnedComposerModel("gpt-5.3-codex"),
+  createPinnedComposerModel("gpt-5.2")
 ]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
