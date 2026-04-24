@@ -1,3 +1,4 @@
+import { memo, useCallback, useMemo } from "react";
 import type { ComponentProps } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeKatex from "rehype-katex";
@@ -90,31 +91,31 @@ function FileReferenceLink({
   );
 }
 
-export function MarkdownRenderer(props: MarkdownRendererProps): JSX.Element {
+export const MarkdownRenderer = memo(function MarkdownRenderer(props: MarkdownRendererProps): JSX.Element {
   const { workspacePath = null, onOpenFileLink, onOpenFileLinkMenu, onOpenExternalLink } = props;
 
-  const handleFileLinkClick = (event: React.MouseEvent, path: ParsedFileLocation) => {
+  const handleFileLinkClick = useCallback((event: React.MouseEvent, path: ParsedFileLocation) => {
     event.preventDefault();
     event.stopPropagation();
     onOpenFileLink?.(path);
-  };
+  }, [onOpenFileLink]);
 
-  const handleFileLinkContextMenu = (
+  const handleFileLinkContextMenu = useCallback((
     event: React.MouseEvent,
     path: ParsedFileLocation,
   ) => {
     event.preventDefault();
     event.stopPropagation();
     onOpenFileLinkMenu?.(event, path);
-  };
+  }, [onOpenFileLinkMenu]);
 
-  const handleLocalLinkClick = (event: React.MouseEvent) => {
+  const handleLocalLinkClick = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-  };
+  }, []);
 
-  const resolvedHrefFilePathCache = new Map<string, ParsedFileLocation | null>();
-  const resolveHrefFilePath = (url: string) => {
+  const resolvedHrefFilePathCache = useMemo(() => new Map<string, ParsedFileLocation | null>(), [props.markdown, workspacePath]);
+  const resolveHrefFilePath = useCallback((url: string) => {
     if (resolvedHrefFilePathCache.has(url)) {
       return resolvedHrefFilePathCache.get(url) ?? null;
     }
@@ -125,10 +126,11 @@ export function MarkdownRenderer(props: MarkdownRendererProps): JSX.Element {
     }
     resolvedHrefFilePathCache.set(url, resolvedPath);
     return resolvedPath;
-  };
+  }, [resolvedHrefFilePathCache, workspacePath]);
 
-  const components: Components = onOpenFileLink
-    ? {
+  const components: Components = useMemo(() => {
+    const nextComponents: Components = onOpenFileLink
+      ? {
         a: ({ href, children }) => {
           const url = (href ?? "").trim();
 
@@ -225,44 +227,48 @@ export function MarkdownRenderer(props: MarkdownRendererProps): JSX.Element {
             />
           );
         },
-      }
-    : {
+        }
+      : {
         a: ({ node: _node, ...aProps }) => <a {...aProps} target="_blank" rel="noreferrer" />,
       };
 
-  if (props.variant === "title") {
-    components.p = ({ node: _node, ...pProps }) => <span {...pProps} />;
-  }
+    if (props.variant === "title") {
+      nextComponents.p = ({ node: _node, ...pProps }) => <span {...pProps} />;
+    }
 
-  const normalizedMarkdown = normalizeMathDelimiters(props.markdown);
+    return nextComponents;
+  }, [handleFileLinkClick, handleFileLinkContextMenu, handleLocalLinkClick, onOpenExternalLink, onOpenFileLink, onOpenFileLinkMenu, props.variant, resolveHrefFilePath, workspacePath]);
+
+  const normalizedMarkdown = useMemo(() => normalizeMathDelimiters(props.markdown), [props.markdown]);
+  const urlTransform = useMemo(() => (url: string) => {
+    if (resolveHrefFilePath(url)) {
+      return url;
+    }
+    if (
+      isFileLinkUrl(url) ||
+      url.startsWith("http://") ||
+      url.startsWith("https://") ||
+      url.startsWith("mailto:") ||
+      url.startsWith("#") ||
+      url.startsWith("/") ||
+      url.startsWith("./") ||
+      url.startsWith("../")
+    ) {
+      return url;
+    }
+    const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url);
+    if (!hasScheme) {
+      return url;
+    }
+    return "";
+  }, [resolveHrefFilePath]);
 
   const content = (
     <ReactMarkdown
       components={components}
       remarkPlugins={MARKDOWN_REMARK_PLUGINS}
       rehypePlugins={MARKDOWN_REHYPE_PLUGINS}
-      urlTransform={(url) => {
-        if (resolveHrefFilePath(url)) {
-          return url;
-        }
-        if (
-          isFileLinkUrl(url) ||
-          url.startsWith("http://") ||
-          url.startsWith("https://") ||
-          url.startsWith("mailto:") ||
-          url.startsWith("#") ||
-          url.startsWith("/") ||
-          url.startsWith("./") ||
-          url.startsWith("../")
-        ) {
-          return url;
-        }
-        const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url);
-        if (!hasScheme) {
-          return url;
-        }
-        return "";
-      }}
+      urlTransform={urlTransform}
     >
       {normalizedMarkdown}
     </ReactMarkdown>
@@ -273,4 +279,4 @@ export function MarkdownRenderer(props: MarkdownRendererProps): JSX.Element {
   }
 
   return props.variant === "title" ? <span className={props.className}>{content}</span> : <div className={props.className}>{content}</div>;
-}
+});

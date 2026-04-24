@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import type { ConversationMessage } from "../../../domain/types";
 import { useFileLinkActions } from "../hooks/fileLinkContext";
 import { HomePlanDraftCard } from "../../composer/ui/HomePlanDraftCard";
@@ -15,17 +16,18 @@ interface ConversationMessageContentProps {
   readonly variant?: ConversationMessageContentVariant;
 }
 
-export function ConversationMessageContent(props: ConversationMessageContentProps): JSX.Element {
+export const ConversationMessageContent = memo(function ConversationMessageContent(props: ConversationMessageContentProps): JSX.Element {
   const fileLinkActions = useFileLinkActions();
+  const segments = useMemo(() => splitMessageSegments(props.message.text), [props.message.text]);
 
   return (
     <div className={props.className}>
-      {splitMessageSegments(props.message.text).map((segment, index) =>
+      {segments.map((segment, index) =>
         renderSegment(segment, index, fileLinkActions),
       )}
     </div>
   );
-}
+});
 
 function splitMessageSegments(text: string): ReadonlyArray<MessageSegment> {
   const segments: MessageSegment[] = [];
