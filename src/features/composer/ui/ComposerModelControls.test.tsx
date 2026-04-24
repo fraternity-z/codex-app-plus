@@ -28,6 +28,7 @@ describe("ComposerModelControls", () => {
   it("shows the latest five models first and reveals the rest in extra models", () => {
     render(
       <ComposerModelControls
+        collaborationPreset="default"
         models={MODELS}
         selectedModel={null}
         selectedEffort="high"
@@ -59,6 +60,7 @@ describe("ComposerModelControls", () => {
   it("shows four effort levels for gpt-5.5 only", () => {
     render(
       <ComposerModelControls
+        collaborationPreset="default"
         models={MODELS}
         selectedModel="gpt-5.5"
         selectedEffort="high"
@@ -76,5 +78,36 @@ describe("ComposerModelControls", () => {
     expect(screen.getByRole("menuitemradio", { name: "高" })).toBeInTheDocument();
     expect(screen.getByRole("menuitemradio", { name: "超高" })).toBeInTheDocument();
     expect(screen.queryByRole("menuitemradio", { name: "极低" })).not.toBeInTheDocument();
+  });
+
+  it("shows the plan mode indicator only for the plan preset", () => {
+    const { rerender } = render(
+      <ComposerModelControls
+        collaborationPreset="default"
+        models={MODELS}
+        selectedModel="gpt-5.5"
+        selectedEffort="high"
+        supportedEfforts={["low", "medium", "high", "xhigh"]}
+        onSelectModel={vi.fn()}
+        onSelectEffort={vi.fn()}
+      />,
+      { wrapper: createI18nWrapper() },
+    );
+
+    expect(screen.queryByLabelText("计划模式")).not.toBeInTheDocument();
+
+    rerender(
+      <ComposerModelControls
+        collaborationPreset="plan"
+        models={MODELS}
+        selectedModel="gpt-5.5"
+        selectedEffort="high"
+        supportedEfforts={["low", "medium", "high", "xhigh"]}
+        onSelectModel={vi.fn()}
+        onSelectEffort={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("计划模式")).toHaveTextContent("计划");
   });
 });

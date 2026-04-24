@@ -1,6 +1,7 @@
 import type { CollaborationPreset } from "../../../domain/timeline";
 import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
 import { useI18n } from "../../../i18n/useI18n";
+import { ComposerPlanModeIcon } from "./ComposerPlanModeIcon";
 
 interface ComposerAttachmentMenuProps {
   readonly collaborationPreset: CollaborationPreset;
@@ -62,7 +63,7 @@ function PlanModeRow(props: {
     <div className="composer-attachment-mode-card" role="group" aria-label={t("home.composer.planMode")}>
       <span className="composer-attachment-mode-copy">
         <span className="composer-attachment-mode-icon-wrap" aria-hidden="true">
-          <PlanModeIcon className="composer-attachment-mode-icon" />
+          <ComposerPlanModeIcon className="composer-attachment-mode-icon" />
         </span>
         <span className="composer-attachment-mode-label">{t("home.composer.planMode")}</span>
       </span>
@@ -92,19 +93,6 @@ function MenuChoiceButton(props: {
 
 function AttachmentIcon(props: { readonly className?: string }): JSX.Element {
   return <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M11.883 5.55 7.05 10.384a2.333 2.333 0 0 0 3.299 3.299l5.127-5.127a4 4 0 1 0-5.657-5.657L4.595 8.122a5.667 5.667 0 0 0 8.014 8.014l4.243-4.243" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-}
-
-function PlanModeIcon(props: { readonly className?: string }): JSX.Element {
-  return (
-    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M4.5 5.5h1.5m2 0h7.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M4.5 10h4.5m2 0h4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <path d="M4.5 14.5h1.5m2 0h5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <circle cx="6.5" cy="5.5" r="1" fill="currentColor" />
-      <circle cx="9" cy="10" r="1" fill="currentColor" />
-      <circle cx="6.5" cy="14.5" r="1" fill="currentColor" />
-    </svg>
-  );
 }
 
 function AgentsIcon(props: { readonly className?: string }): JSX.Element {

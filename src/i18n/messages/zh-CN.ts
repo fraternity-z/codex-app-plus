@@ -558,6 +558,7 @@ export const zhCN = {
       openAttachmentMenu: "打开附件菜单",
       permissionLevel: "权限级别",
       planMode: "计划模式",
+      planModeIndicator: "计划",
       promoteFailed: "插队失败",
       reloadingCodex: "正在重载 Codex…",
       sendFailed: "发送消息失败",

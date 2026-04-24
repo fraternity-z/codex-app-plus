@@ -559,6 +559,7 @@ export const enUS = {
       openAttachmentMenu: "Open attachment menu",
       permissionLevel: "Permission level",
       planMode: "Plan mode",
+      planModeIndicator: "Plan",
       promoteFailed: "Failed to reorder follow-up",
       reloadingCodex: "Reloading Codex...",
       sendFailed: "Failed to send message",

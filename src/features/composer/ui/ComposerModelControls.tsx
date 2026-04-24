@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "../../../i18n/useI18n";
+import type { CollaborationPreset } from "../../../domain/timeline";
 import {
   DEFAULT_COMPOSER_MODEL_LABEL,
   getComposerModelLabel,
@@ -13,6 +14,7 @@ import {
   listSelectableReasoningEfforts
 } from "../model/reasoningEffortOptions";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
+import { ComposerPlanModeIcon } from "./ComposerPlanModeIcon";
 
 type ComposerMenu = "model" | "effort" | null;
 const EXTRA_MODELS_CLOSE_DELAY_MS = 160;
@@ -263,6 +265,7 @@ function EffortMenu(props: {
 
 export function ComposerModelControls(props: {
   readonly disabled?: boolean;
+  readonly collaborationPreset: CollaborationPreset;
   readonly models: ReadonlyArray<ComposerModelOption>;
   readonly selectedModel: string | null;
   readonly selectedEffort: ReasoningEffort | null;
@@ -324,6 +327,12 @@ export function ComposerModelControls(props: {
           <OfficialChevronRightIcon className="composer-select-caret" />
         </button>
       </div>
+      {props.collaborationPreset === "plan" ? (
+        <span className="composer-plan-mode-indicator" aria-label={t("home.composer.planMode")}>
+          <ComposerPlanModeIcon className="composer-plan-mode-indicator-icon" />
+          <span className="composer-plan-mode-indicator-text">{t("home.composer.planModeIndicator")}</span>
+        </span>
+      ) : null}
     </div>
   );
 }

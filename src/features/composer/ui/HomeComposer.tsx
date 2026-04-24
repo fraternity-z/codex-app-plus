@@ -192,7 +192,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
                   <OfficialPlusIcon className="composer-plus-icon" />
                 </button>
               </div>
-              <ComposerModelControls disabled={interactionDisabled} models={props.models} selectedModel={composerSelection.selectedModel} selectedEffort={composerSelection.selectedEffort} supportedEfforts={composerSelection.selectedModelOption?.supportedEfforts ?? []} onSelectModel={handleSelectModel} onSelectEffort={handleSelectEffort} />
+              <ComposerModelControls disabled={interactionDisabled} collaborationPreset={props.collaborationPreset} models={props.models} selectedModel={composerSelection.selectedModel} selectedEffort={composerSelection.selectedEffort} supportedEfforts={composerSelection.selectedModelOption?.supportedEfforts ?? []} onSelectModel={handleSelectModel} onSelectEffort={handleSelectEffort} />
             </div>
             <button type="button" className="send-btn" aria-label={buttonLabel} disabled={buttonDisabled} onClick={() => showInterruptAction ? void props.onInterruptTurn() : submit()}>
               {showInterruptAction ? <PauseResponseIcon className="send-icon" /> : <SendArrowIcon className="send-icon" />}
