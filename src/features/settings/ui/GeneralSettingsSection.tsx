@@ -155,10 +155,8 @@ export function GeneralSettingsSection(props: GeneralSettingsSectionProps): JSX.
   const notificationTriggerOptions = createNotificationTriggerOptions(t);
 
   return (
-    <div className="settings-panel-group">
-      <header className="settings-title-wrap">
-        <h1 className="settings-page-title">{t("settings.general.title")}</h1>
-      </header>
+    <section className="settings-page-section">
+      <h2 className="settings-section-title">{t("settings.general.title")}</h2>
       <section className="settings-card">
         <SettingsSelectRow
           label={t("settings.general.agentEnvironment.label")}
@@ -288,6 +286,6 @@ export function GeneralSettingsSection(props: GeneralSettingsSectionProps): JSX.
           </div>
         </div>
       </section>
-    </div>
+    </section>
   );
 }

@@ -21,6 +21,14 @@
   margin-top: 42px;
 }
 
+.settings-page-section + .settings-page-section {
+  margin-top: 42px;
+}
+
+.settings-page-section > .settings-card {
+  margin-top: 0;
+}
+
 .settings-title-wrap {
   margin-bottom: 34px;
 }

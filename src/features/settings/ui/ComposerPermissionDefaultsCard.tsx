@@ -33,11 +33,9 @@ export function ComposerPermissionDefaultsCard(props: {
   const sandboxModeOptions = createSandboxModeOptions(t);
 
   return (
-    <div className="settings-panel-group">
+    <section className="settings-page-section">
+      <h2 className="settings-section-title">{t("settings.general.permissionSettings.title")}</h2>
       <section className="settings-card">
-        <div className="settings-section-head">
-          <strong>{t("settings.general.permissionSettings.title")}</strong>
-        </div>
         <SettingsSelectRow
           label={t("settings.general.composerDefaultApprovalPolicy.label")}
           description={t("settings.general.composerDefaultApprovalPolicy.description")}
@@ -67,6 +65,6 @@ export function ComposerPermissionDefaultsCard(props: {
           onChange={props.preferences.setComposerFullSandboxMode}
         />
       </section>
-    </div>
+    </section>
   );
 }

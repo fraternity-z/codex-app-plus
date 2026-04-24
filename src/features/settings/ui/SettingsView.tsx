@@ -188,7 +188,7 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
 
   if (section === "general") {
     return (
-      <>
+      <div className="settings-panel-group settings-general-page">
         <GeneralSettingsSection
           preferences={props.preferences}
           steerAvailable={props.steerAvailable}
@@ -197,7 +197,7 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
           notificationTestFeedback={props.notificationTestFeedback}
         />
         <ComposerPermissionDefaultsCard preferences={props.preferences} />
-      </>
+      </div>
     );
   }
   if (section === "appearance") {
