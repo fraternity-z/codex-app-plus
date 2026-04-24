@@ -2,6 +2,7 @@ import { useCallback, type MutableRefObject } from "react";
 import type { HostBridge } from "../../bridge/types";
 import type { ServerRequestResolution } from "../../domain/types";
 import type { ThreadUnarchiveResponse } from "../../protocol/generated/v2/ThreadUnarchiveResponse";
+import type { ThreadMemoryMode } from "../../protocol/generated/ThreadMemoryMode";
 import {
   batchWriteConfigAndReadSnapshot,
   batchWriteConfigAndRefresh,
@@ -138,6 +139,16 @@ export function useAppControllerActions({
   const writeConfigValue = useCallback((params: ConfigValueWriteParams) => runBusy(() => writeConfigValueAndRefresh(client, dispatch, params)), [client, dispatch, runBusy]);
   const batchWriteConfig = useCallback((params: ConfigBatchWriteParams) => runBusy(() => batchWriteConfigAndRefresh(client, dispatch, params)), [client, dispatch, runBusy]);
   const batchWriteConfigSnapshot = useCallback((params: ConfigBatchWriteParams) => runBusy(() => batchWriteConfigAndReadSnapshot(client, dispatch, params)), [client, dispatch, runBusy]);
+  const setThreadMemoryMode = useCallback((threadId: string, mode: ThreadMemoryMode) => (
+    runBusy(async () => {
+      await client.request("thread/memoryMode/set", { threadId, mode });
+    })
+  ), [client, runBusy]);
+  const resetMemories = useCallback(() => (
+    runBusy(async () => {
+      await client.request("memory/reset", undefined);
+    })
+  ), [client, runBusy]);
   const listSkills = useCallback((params: SkillsListParams) => (
     client.request("skills/list", params) as Promise<SkillsListResponse>
   ), [client]);
@@ -230,7 +241,9 @@ export function useAppControllerActions({
     refreshConfigSnapshot,
     refreshMcpData,
     resolveServerRequest,
+    resetMemories,
     setMultiAgentEnabled,
+    setThreadMemoryMode,
     getAgentsSettings,
     createAgent,
     updateAgent,

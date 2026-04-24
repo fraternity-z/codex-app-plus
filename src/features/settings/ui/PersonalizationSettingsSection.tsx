@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import type {
   GlobalAgentInstructionsOutput,
   ManagedPromptOutput,
@@ -6,9 +6,15 @@ import type {
 } from "../../../bridge/types";
 import { useI18n, type MessageKey } from "../../../i18n";
 import type { Personality } from "../../../protocol/generated/Personality";
+import type { ThreadMemoryMode } from "../../../protocol/generated/ThreadMemoryMode";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
+import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
-import { readPersonalizationConfigView } from "../config/personalizationConfig";
+import type { ConfigSnapshotMutationResult } from "../config/configOperations";
+import {
+  readPersonalizationConfigView,
+  type MemorySettingsConfigView,
+} from "../config/personalizationConfig";
 import { readUserConfigWriteTarget } from "../config/configWriteTarget";
 import {
   SettingsSelectRow,
@@ -17,8 +23,12 @@ import {
 
 interface PersonalizationSettingsSectionProps {
   readonly configSnapshot: unknown;
+  readonly selectedConversationId: string | null;
   readonly busy: boolean;
   readonly writeConfigValue: (params: ConfigValueWriteParams) => Promise<unknown>;
+  readonly batchWriteConfigSnapshot: (params: ConfigBatchWriteParams) => Promise<ConfigSnapshotMutationResult>;
+  readonly setThreadMemoryMode: (threadId: string, mode: ThreadMemoryMode) => Promise<void>;
+  readonly resetMemories: () => Promise<void>;
   readonly readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
   readonly listManagedPrompts: () => Promise<ReadonlyArray<ManagedPromptOutput>>;
   readonly upsertManagedPrompt: (input: {
@@ -104,6 +114,13 @@ const PERSONALITY_MESSAGE_KEYS: Record<Personality, {
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function areMemorySettingsEqual(left: MemorySettingsConfigView, right: MemorySettingsConfigView): boolean {
+  return left.featureEnabled === right.featureEnabled
+    && left.useMemories === right.useMemories
+    && left.generateMemories === right.generateMemories
+    && left.disableOnExternalContext === right.disableOnExternalContext;
 }
 
 function normalizePromptPath(path: string | null | undefined): string | null {
@@ -222,6 +239,32 @@ async function writePersonalityConfigValue(
   });
 }
 
+async function writeMemoryConfigValues(
+  batchWriteConfigSnapshot: (params: ConfigBatchWriteParams) => Promise<ConfigSnapshotMutationResult>,
+  refreshConfigSnapshot: () => Promise<ConfigReadResponse>,
+  configSnapshot: unknown,
+  edits: ConfigBatchWriteParams["edits"],
+): Promise<void> {
+  const writeWithSnapshot = async (snapshot: unknown) => {
+    const writeTarget = readUserConfigWriteTarget(snapshot);
+    await batchWriteConfigSnapshot({
+      edits,
+      filePath: writeTarget.filePath,
+      expectedVersion: writeTarget.expectedVersion,
+      reloadUserConfig: true,
+    });
+  };
+
+  try {
+    await writeWithSnapshot(configSnapshot);
+  } catch (error) {
+    if (!toErrorMessage(error).includes("Configuration was modified since last read")) {
+      throw error;
+    }
+    await writeWithSnapshot(await refreshConfigSnapshot());
+  }
+}
+
 async function applyManagedPromptConfigValues(
   setUserModelInstructionsFile: (path: string | null) => Promise<void>,
   refreshConfigSnapshot: () => Promise<ConfigReadResponse>,
@@ -325,6 +368,96 @@ function ToggleSwitch(props: {
     >
       <span className="settings-toggle-knob" />
     </button>
+  );
+}
+
+function MemorySettingsCard(props: {
+  readonly title: string;
+  readonly description: string;
+  readonly learnMoreLabel: string;
+  readonly useLabel: string;
+  readonly useDescription: string;
+  readonly skipLabel: string;
+  readonly skipDescription: string;
+  readonly resetLabel: string;
+  readonly resetDescription: string;
+  readonly resetAction: string;
+  readonly enabled: boolean;
+  readonly skipExternalContext: boolean;
+  readonly busy: boolean;
+  readonly feedback: SaveFeedback;
+  readonly pendingMessage: string | null;
+  onToggleEnabled: () => Promise<void>;
+  onToggleSkipExternalContext: () => Promise<void>;
+  onReset: () => Promise<void>;
+}): JSX.Element {
+  return (
+    <section className="settings-memory-section">
+      <div className="settings-memory-header">
+        <strong>{props.title}</strong>
+        <p>
+          {props.description}{" "}
+          <a
+            className="settings-memory-doc-link"
+            href="https://developers.openai.com/codex/memories"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {props.learnMoreLabel}
+          </a>
+        </p>
+      </div>
+      <div className="settings-card settings-memory-card">
+        <div className="settings-row">
+          <div className="settings-row-copy">
+            <strong>{props.useLabel}</strong>
+            <p>{props.useDescription}</p>
+          </div>
+          <div className="settings-row-control settings-memory-row-control">
+            <ToggleSwitch
+              checked={props.enabled}
+              disabled={props.busy}
+              label={props.useLabel}
+              onClick={() => void props.onToggleEnabled()}
+            />
+          </div>
+        </div>
+        <div className="settings-row">
+          <div className="settings-row-copy">
+            <strong>{props.skipLabel}</strong>
+            <p>{props.skipDescription}</p>
+          </div>
+          <div className="settings-row-control settings-memory-row-control">
+            <ToggleSwitch
+              checked={props.skipExternalContext}
+              disabled={props.busy}
+              label={props.skipLabel}
+              onClick={() => void props.onToggleSkipExternalContext()}
+            />
+          </div>
+        </div>
+        <div className="settings-row">
+          <div className="settings-row-copy">
+            <strong>{props.resetLabel}</strong>
+            <p>{props.resetDescription}</p>
+          </div>
+          <div className="settings-row-control settings-memory-row-control">
+            <button
+              type="button"
+              className="settings-action-btn settings-memory-reset-btn"
+              disabled={props.busy}
+              onClick={() => void props.onReset()}
+            >
+              {props.resetAction}
+            </button>
+          </div>
+        </div>
+      </div>
+      <StatusNote
+        feedback={props.feedback}
+        pendingMessage={props.pendingMessage ?? undefined}
+      />
+    </section>
   );
 }
 
@@ -621,6 +754,177 @@ function usePersonalityEditor(props: {
   ]);
 
   return { selectedPersonality, feedback, saving, handleChange };
+}
+
+function useMemorySettingsEditor(props: {
+  readonly busy: boolean;
+  readonly configSnapshot: unknown;
+  readonly memories: MemorySettingsConfigView;
+  readonly selectedConversationId: string | null;
+  readonly t: Translator;
+  readonly batchWriteConfigSnapshot: (params: ConfigBatchWriteParams) => Promise<ConfigSnapshotMutationResult>;
+  readonly refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
+  readonly setThreadMemoryMode: (threadId: string, mode: ThreadMemoryMode) => Promise<void>;
+  readonly resetMemories: () => Promise<void>;
+}) {
+  const [settings, setSettings] = useState(props.memories);
+  const [feedback, setFeedback] = useState<SaveFeedback>(EMPTY_FEEDBACK);
+  const [action, setAction] = useState<"idle" | "saving" | "resetting">("idle");
+  const lastAppliedExternalSettingsRef = useRef(props.memories);
+
+  useEffect(() => {
+    if (action !== "idle") {
+      return;
+    }
+    if (areMemorySettingsEqual(lastAppliedExternalSettingsRef.current, props.memories)) {
+      return;
+    }
+    lastAppliedExternalSettingsRef.current = props.memories;
+    setSettings(props.memories);
+  }, [action, props.memories]);
+
+  const handleToggleEnabled = useCallback(async () => {
+    if (props.busy || action !== "idle") {
+      return;
+    }
+    const currentEnabled = settings.featureEnabled && settings.useMemories && settings.generateMemories;
+    const nextEnabled = !currentEnabled;
+    const previous = settings;
+    const nextSettings: MemorySettingsConfigView = {
+      ...settings,
+      featureEnabled: nextEnabled,
+      useMemories: nextEnabled,
+      generateMemories: nextEnabled,
+    };
+    setSettings(nextSettings);
+    setFeedback(EMPTY_FEEDBACK);
+    setAction("saving");
+    try {
+      await writeMemoryConfigValues(
+        props.batchWriteConfigSnapshot,
+        props.refreshConfigSnapshot,
+        props.configSnapshot,
+        [
+          { keyPath: "features.memories", value: nextEnabled, mergeStrategy: "upsert" },
+          { keyPath: "memories.use_memories", value: nextEnabled, mergeStrategy: "upsert" },
+          { keyPath: "memories.generate_memories", value: nextEnabled, mergeStrategy: "upsert" },
+        ],
+      );
+    } catch (error) {
+      setSettings(previous);
+      setFeedback({ kind: "error", message: toErrorMessage(error) });
+      setAction("idle");
+      return;
+    }
+
+    if (currentEnabled !== nextEnabled && props.selectedConversationId !== null) {
+      try {
+        await props.setThreadMemoryMode(
+          props.selectedConversationId,
+          nextEnabled ? "enabled" : "disabled",
+        );
+      } catch (error) {
+        setFeedback({
+          kind: "error",
+          message: props.t("settings.personalization.memory.currentThreadModeFailed", {
+            error: toErrorMessage(error),
+          }),
+        });
+        setAction("idle");
+        return;
+      }
+    }
+
+    setFeedback({
+      kind: "success",
+      message: props.t("settings.personalization.memory.savedMessage"),
+    });
+    setAction("idle");
+  }, [
+    action,
+    props.batchWriteConfigSnapshot,
+    props.busy,
+    props.configSnapshot,
+    props.refreshConfigSnapshot,
+    props.selectedConversationId,
+    props.setThreadMemoryMode,
+    props.t,
+    settings,
+  ]);
+
+  const handleToggleSkipExternalContext = useCallback(async () => {
+    if (props.busy || action !== "idle") {
+      return;
+    }
+    const nextSkip = !settings.disableOnExternalContext;
+    const previous = settings;
+    setSettings({ ...settings, disableOnExternalContext: nextSkip });
+    setFeedback(EMPTY_FEEDBACK);
+    setAction("saving");
+    try {
+      await writeMemoryConfigValues(
+        props.batchWriteConfigSnapshot,
+        props.refreshConfigSnapshot,
+        props.configSnapshot,
+        [
+          {
+            keyPath: "memories.disable_on_external_context",
+            value: nextSkip,
+            mergeStrategy: "upsert",
+          },
+        ],
+      );
+      setFeedback({
+        kind: "success",
+        message: props.t("settings.personalization.memory.savedMessage"),
+      });
+    } catch (error) {
+      setSettings(previous);
+      setFeedback({ kind: "error", message: toErrorMessage(error) });
+    } finally {
+      setAction("idle");
+    }
+  }, [
+    action,
+    props.batchWriteConfigSnapshot,
+    props.busy,
+    props.configSnapshot,
+    props.refreshConfigSnapshot,
+    props.t,
+    settings,
+  ]);
+
+  const handleReset = useCallback(async () => {
+    if (props.busy || action !== "idle") {
+      return;
+    }
+    const confirmMessage = props.t("settings.personalization.memory.resetConfirm");
+    if (typeof window !== "undefined" && typeof window.confirm === "function" && !window.confirm(confirmMessage)) {
+      return;
+    }
+    setFeedback(EMPTY_FEEDBACK);
+    setAction("resetting");
+    try {
+      await props.resetMemories();
+      setFeedback({
+        kind: "success",
+        message: props.t("settings.personalization.memory.resetMessage"),
+      });
+    } catch (error) {
+      setFeedback({ kind: "error", message: toErrorMessage(error) });
+    } finally {
+      setAction("idle");
+    }
+  }, [action, props.busy, props.resetMemories, props.t]);
+
+  return {
+    action,
+    feedback,
+    settings,
+    handleReset,
+    handleToggleEnabled,
+    handleToggleSkipExternalContext,
+  };
 }
 
 function useGlobalInstructionsEditor(props: {
@@ -1022,6 +1326,17 @@ function usePersonalizationSettingsController(
     () => PERSONALITY_MESSAGE_KEYS[selectedPersonality],
     [selectedPersonality],
   );
+  const memoryEditor = useMemorySettingsEditor({
+    busy: props.busy,
+    configSnapshot: props.configSnapshot,
+    memories: view.memories,
+    selectedConversationId: props.selectedConversationId,
+    t,
+    batchWriteConfigSnapshot: props.batchWriteConfigSnapshot,
+    refreshConfigSnapshot: props.refreshConfigSnapshot,
+    setThreadMemoryMode: props.setThreadMemoryMode,
+    resetMemories: props.resetMemories,
+  });
   const {
     instructionsState,
     feedback,
@@ -1050,6 +1365,7 @@ function usePersonalizationSettingsController(
     handleChange,
     handleSave,
     instructionsState,
+    memoryEditor,
     personalityCopy,
     promptEditor,
     selectedPersonality,
@@ -1144,6 +1460,36 @@ export function PersonalizationSettingsSection(
         onCancelDialog={controller.promptEditor.handleCancelDialog}
         onChangeName={controller.promptEditor.handleChangeName}
         onChangeContent={controller.promptEditor.handleChangeContent}
+      />
+      <MemorySettingsCard
+        title={t("settings.personalization.memory.title")}
+        description={t("settings.personalization.memory.description")}
+        learnMoreLabel={t("settings.personalization.memory.learnMore")}
+        useLabel={t("settings.personalization.memory.enableLabel")}
+        useDescription={t("settings.personalization.memory.enableDescription")}
+        skipLabel={t("settings.personalization.memory.skipToolsLabel")}
+        skipDescription={t("settings.personalization.memory.skipToolsDescription")}
+        resetLabel={t("settings.personalization.memory.resetLabel")}
+        resetDescription={t("settings.personalization.memory.resetDescription")}
+        resetAction={t("settings.personalization.memory.resetAction")}
+        enabled={
+          controller.memoryEditor.settings.featureEnabled
+          && controller.memoryEditor.settings.useMemories
+          && controller.memoryEditor.settings.generateMemories
+        }
+        skipExternalContext={controller.memoryEditor.settings.disableOnExternalContext}
+        busy={props.busy || controller.memoryEditor.action !== "idle"}
+        feedback={controller.memoryEditor.feedback}
+        pendingMessage={
+          controller.memoryEditor.action === "saving"
+            ? t("settings.personalization.memory.saving")
+            : controller.memoryEditor.action === "resetting"
+              ? t("settings.personalization.memory.resetting")
+              : null
+        }
+        onToggleEnabled={controller.memoryEditor.handleToggleEnabled}
+        onToggleSkipExternalContext={controller.memoryEditor.handleToggleSkipExternalContext}
+        onReset={controller.memoryEditor.handleReset}
       />
     </div>
   );

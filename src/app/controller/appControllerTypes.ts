@@ -16,6 +16,7 @@ import type { SkillsConfigWriteParams } from "../../protocol/generated/v2/Skills
 import type { SkillsConfigWriteResponse } from "../../protocol/generated/v2/SkillsConfigWriteResponse";
 import type { SkillsListParams } from "../../protocol/generated/v2/SkillsListParams";
 import type { SkillsListResponse } from "../../protocol/generated/v2/SkillsListResponse";
+import type { ThreadMemoryMode } from "../../protocol/generated/ThreadMemoryMode";
 import type { McpServerStatus } from "../../protocol/generated/v2/McpServerStatus";
 import type {
   AgentsSettingsOutput,
@@ -60,6 +61,8 @@ export interface AppController {
   writeConfigValue: (params: ConfigValueWriteParams) => Promise<ConfigMutationResult>;
   batchWriteConfig: (params: ConfigBatchWriteParams) => Promise<ConfigMutationResult>;
   batchWriteConfigSnapshot: (params: ConfigBatchWriteParams) => Promise<ConfigSnapshotMutationResult>;
+  setThreadMemoryMode: (threadId: string, mode: ThreadMemoryMode) => Promise<void>;
+  resetMemories: () => Promise<void>;
   listSkills: (params: SkillsListParams) => Promise<SkillsListResponse>;
   listMarketplacePlugins: (params: PluginListParams) => Promise<PluginListResponse>;
   writeSkillConfig: (params: SkillsConfigWriteParams) => Promise<SkillsConfigWriteResponse>;

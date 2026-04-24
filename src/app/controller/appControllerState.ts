@@ -32,6 +32,7 @@ export interface SettingsScreenState {
   readonly configSnapshot: AppState["configSnapshot"];
   readonly experimentalFeatures: AppState["experimentalFeatures"];
   readonly initialized: boolean;
+  readonly selectedConversationId: AppState["selectedConversationId"];
 }
 
 export interface SkillsScreenState {
@@ -110,6 +111,7 @@ function selectSettingsScreenState(state: AppState): SettingsScreenState {
     configSnapshot: state.configSnapshot,
     experimentalFeatures: state.experimentalFeatures,
     initialized: state.initialized,
+    selectedConversationId: state.selectedConversationId,
   };
 }
 
@@ -118,7 +120,8 @@ function isSettingsScreenStateEqual(left: SettingsScreenState, right: SettingsSc
     && left.bootstrapBusy === right.bootstrapBusy
     && Object.is(left.configSnapshot, right.configSnapshot)
     && Object.is(left.experimentalFeatures, right.experimentalFeatures)
-    && left.initialized === right.initialized;
+    && left.initialized === right.initialized
+    && left.selectedConversationId === right.selectedConversationId;
 }
 
 function selectSkillsScreenState(state: AppState): SkillsScreenState {

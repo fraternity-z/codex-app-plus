@@ -186,6 +186,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     preferences: props.preferences,
     resolvedTheme: props.resolvedTheme,
     configSnapshot: state.configSnapshot,
+    selectedConversationId: state.selectedConversationId,
     experimentalFeatures: state.experimentalFeatures,
     steerAvailable: steerState.available,
     busy: state.bootstrapBusy,
@@ -241,6 +242,9 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     unarchiveThread: props.controller.unarchiveThread,
     writeConfigValue: props.controller.writeConfigValue,
     batchWriteConfig: props.controller.batchWriteConfig,
+    batchWriteConfigSnapshot: props.controller.batchWriteConfigSnapshot,
+    setThreadMemoryMode: props.controller.setThreadMemoryMode,
+    resetMemories: props.controller.resetMemories,
     checkForAppUpdate: props.controller.checkForAppUpdate,
     installAppUpdate: props.controller.installAppUpdate,
   };

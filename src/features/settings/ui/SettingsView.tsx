@@ -1,4 +1,4 @@
-import type { ConfigMutationResult, McpRefreshResult } from "../config/configOperations";
+import type { ConfigMutationResult, ConfigSnapshotMutationResult, McpRefreshResult } from "../config/configOperations";
 import type { AppPreferencesController } from "../hooks/useAppPreferences";
 import type { AppUpdateState } from "../../../domain/types";
 import type { ResolvedTheme } from "../../../domain/theme";
@@ -17,6 +17,7 @@ import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import type { GitWorktreeEntry } from "../../../bridge/types";
 import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
+import type { ThreadMemoryMode } from "../../../protocol/generated/ThreadMemoryMode";
 import "../../../styles/replica/replica-settings.css";
 import "../../../styles/replica/replica-settings-extra.css";
 import "../../../styles/replica/replica-settings-layout.css";
@@ -59,6 +60,7 @@ export interface SettingsViewProps {
   readonly preferences: AppPreferencesController;
   readonly resolvedTheme: ResolvedTheme;
   readonly configSnapshot: ConfigReadResponse | null;
+  readonly selectedConversationId: string | null;
   readonly experimentalFeatures: ReadonlyArray<import("../../../protocol/generated/v2/ExperimentalFeature").ExperimentalFeature>;
   readonly steerAvailable: boolean;
   readonly busy: boolean;
@@ -97,6 +99,9 @@ export interface SettingsViewProps {
   unarchiveThread: (threadId: string) => Promise<void>;
   writeConfigValue: (params: ConfigValueWriteParams) => Promise<ConfigMutationResult>;
   batchWriteConfig: (params: ConfigBatchWriteParams) => Promise<ConfigMutationResult>;
+  batchWriteConfigSnapshot: (params: ConfigBatchWriteParams) => Promise<ConfigSnapshotMutationResult>;
+  setThreadMemoryMode: (threadId: string, mode: ThreadMemoryMode) => Promise<void>;
+  resetMemories: () => Promise<void>;
   checkForAppUpdate: () => Promise<void>;
   installAppUpdate: () => Promise<void>;
 }
@@ -236,7 +241,11 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
       <PersonalizationSettingsSection
         busy={props.busy}
         configSnapshot={props.configSnapshot}
+        selectedConversationId={props.selectedConversationId}
         writeConfigValue={props.writeConfigValue}
+        batchWriteConfigSnapshot={props.batchWriteConfigSnapshot}
+        setThreadMemoryMode={props.setThreadMemoryMode}
+        resetMemories={props.resetMemories}
         readGlobalAgentInstructions={props.readGlobalAgentInstructions}
         listManagedPrompts={props.listManagedPrompts}
         upsertManagedPrompt={props.upsertManagedPrompt}

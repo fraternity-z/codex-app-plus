@@ -8,7 +8,7 @@ import { PersonalizationSettingsSection } from "./PersonalizationSettingsSection
 const USER_FILE = "C:/Users/Administrator/.codex/AGENTS.md";
 const MANAGED_PROMPT_PATH = "~/.codex/prompts/codex-app-plus/system-prompt.md";
 
-function createSnapshot(overrides?: Partial<Record<string, unknown>>) {
+function createSnapshot(overrides?: Partial<Record<string, unknown>>, version = "u1") {
   return {
     config: {
       personality: "friendly",
@@ -18,7 +18,7 @@ function createSnapshot(overrides?: Partial<Record<string, unknown>>) {
     layers: [
       {
         name: { type: "user", file: "C:/Users/Administrator/.codex/config.toml" },
-        version: "u1",
+        version,
         config: {},
         disabledReason: null,
       },
@@ -46,19 +46,33 @@ function createManagedPromptResult(overrides?: Partial<{
   };
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 function createProps(
   overrides: Partial<ComponentProps<typeof PersonalizationSettingsSection>> = {},
 ): ComponentProps<typeof PersonalizationSettingsSection> {
   return {
     configSnapshot: createSnapshot(),
+    selectedConversationId: "thread-1",
     busy: false,
     writeConfigValue: vi.fn().mockResolvedValue({}),
+    batchWriteConfigSnapshot: vi.fn().mockResolvedValue({ config: { config: {} }, write: {} }),
+    setThreadMemoryMode: vi.fn().mockResolvedValue(undefined),
+    resetMemories: vi.fn().mockResolvedValue(undefined),
     readGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult()),
     listManagedPrompts: vi.fn().mockResolvedValue([]),
     upsertManagedPrompt: vi.fn().mockResolvedValue(createManagedPromptResult()),
     deleteManagedPrompt: vi.fn().mockResolvedValue(undefined),
     setUserModelInstructionsFile: vi.fn().mockResolvedValue(undefined),
-    refreshConfigSnapshot: vi.fn().mockResolvedValue({ config: {}, origins: {}, layers: [] }),
+    refreshConfigSnapshot: vi.fn().mockResolvedValue(createSnapshot()),
     writeGlobalAgentInstructions: vi.fn().mockResolvedValue(createInstructionsResult()),
     ...overrides,
   };
@@ -84,6 +98,19 @@ describe("PersonalizationSettingsSection", () => {
     ).toBeInTheDocument();
   });
 
+  it("places memory settings below custom prompt management", async () => {
+    renderSection(createProps());
+
+    await screen.findByDisplayValue("默认先给结论。");
+
+    const promptsTitle = screen.getByText("自定义 Prompt 管理");
+    const memoryTitle = screen.getByText("记忆（实验性）");
+
+    expect(
+      Boolean(promptsTitle.compareDocumentPosition(memoryTitle) & Node.DOCUMENT_POSITION_FOLLOWING),
+    ).toBe(true);
+  });
+
   it("writes the selected personality back to the user config", async () => {
     const writeConfigValue = vi.fn().mockResolvedValue({});
 
@@ -105,6 +132,231 @@ describe("PersonalizationSettingsSection", () => {
     });
     expect(screen.getByRole("button", { name: "回答风格：务实" })).toBeInTheDocument();
     expect(screen.getByText("已同步到 Codex App Plus 的 config.toml。")).toBeInTheDocument();
+  });
+
+  it("writes memory settings and updates the current thread memory mode", async () => {
+    const batchWriteConfigSnapshot = vi.fn().mockResolvedValue({ config: { config: {} }, write: {} });
+    const setThreadMemoryMode = vi.fn().mockResolvedValue(undefined);
+
+    renderSection(createProps({
+      configSnapshot: createSnapshot({
+        features: {
+          memories: true,
+        },
+        memories: {
+          use_memories: true,
+          generate_memories: true,
+          disable_on_external_context: false,
+        },
+      }),
+      batchWriteConfigSnapshot,
+      setThreadMemoryMode,
+    }));
+
+    await screen.findByDisplayValue("默认先给结论。");
+    fireEvent.click(screen.getByRole("switch", { name: "启用记忆" }));
+
+    await waitFor(() => expect(batchWriteConfigSnapshot).toHaveBeenCalled());
+    expect(batchWriteConfigSnapshot).toHaveBeenCalledWith({
+      edits: [
+        { keyPath: "features.memories", value: false, mergeStrategy: "upsert" },
+        { keyPath: "memories.use_memories", value: false, mergeStrategy: "upsert" },
+        { keyPath: "memories.generate_memories", value: false, mergeStrategy: "upsert" },
+      ],
+      filePath: "C:/Users/Administrator/.codex/config.toml",
+      expectedVersion: "u1",
+      reloadUserConfig: true,
+    });
+    expect(setThreadMemoryMode).toHaveBeenCalledWith("thread-1", "disabled");
+    expect(screen.getByText("记忆设置已同步到 config.toml。")).toBeInTheDocument();
+  });
+
+  it("uses the current config version for normal memory writes", async () => {
+    const batchWriteConfigSnapshot = vi.fn().mockResolvedValue({ config: { config: {} }, write: {} });
+    const refreshConfigSnapshot = vi.fn().mockResolvedValue(createSnapshot({
+      features: {
+        memories: false,
+      },
+    }, "u2"));
+
+    renderSection(createProps({
+      configSnapshot: createSnapshot({
+        features: {
+          memories: true,
+        },
+        memories: {
+          use_memories: true,
+          generate_memories: true,
+          disable_on_external_context: false,
+        },
+      }, "u1"),
+      batchWriteConfigSnapshot,
+      refreshConfigSnapshot,
+    }));
+
+    await screen.findByDisplayValue("默认先给结论。");
+    fireEvent.click(screen.getByRole("switch", { name: "启用记忆" }));
+
+    await waitFor(() => expect(batchWriteConfigSnapshot).toHaveBeenCalled());
+    expect(refreshConfigSnapshot).not.toHaveBeenCalled();
+    expect(batchWriteConfigSnapshot).toHaveBeenCalledWith({
+      edits: [
+        { keyPath: "features.memories", value: false, mergeStrategy: "upsert" },
+        { keyPath: "memories.use_memories", value: false, mergeStrategy: "upsert" },
+        { keyPath: "memories.generate_memories", value: false, mergeStrategy: "upsert" },
+      ],
+      filePath: "C:/Users/Administrator/.codex/config.toml",
+      expectedVersion: "u1",
+      reloadUserConfig: true,
+    });
+  });
+
+  it("keeps the optimistic memory toggle state while a write is pending", async () => {
+    const deferred = createDeferred<{ readonly config: { readonly config: Record<string, unknown> }; readonly write: Record<string, unknown> }>();
+    const batchWriteConfigSnapshot = vi.fn().mockReturnValue(deferred.promise);
+    const props = createProps({
+      configSnapshot: createSnapshot({
+        features: {
+          memories: true,
+        },
+        memories: {
+          use_memories: true,
+          generate_memories: true,
+          disable_on_external_context: false,
+        },
+      }),
+      batchWriteConfigSnapshot,
+    });
+
+    const { rerender } = renderSection(props);
+
+    await screen.findByDisplayValue("默认先给结论。");
+    const toggle = screen.getByRole("switch", { name: "启用记忆" });
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+
+    rerender(<PersonalizationSettingsSection {...props} busy />);
+
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+
+    deferred.resolve({ config: { config: {} }, write: {} });
+
+    await waitFor(() => expect(screen.getByText("记忆设置已同步到 config.toml。")).toBeInTheDocument());
+  });
+
+  it("retries once when memory config changes between refresh and write", async () => {
+    const batchWriteConfigSnapshot = vi.fn()
+      .mockRejectedValueOnce(new Error("Configuration was modified since last read. Fetch latest version and retry."))
+      .mockResolvedValueOnce({ config: { config: {} }, write: {} });
+    const refreshConfigSnapshot = vi.fn()
+      .mockResolvedValueOnce(createSnapshot({
+        features: {
+          memories: false,
+        },
+      }, "u2"));
+
+    renderSection(createProps({
+      configSnapshot: createSnapshot({
+        features: {
+          memories: true,
+        },
+        memories: {
+          use_memories: true,
+          generate_memories: true,
+          disable_on_external_context: false,
+        },
+      }, "u1"),
+      batchWriteConfigSnapshot,
+      refreshConfigSnapshot,
+    }));
+
+    await screen.findByDisplayValue("默认先给结论。");
+    fireEvent.click(screen.getByRole("switch", { name: "启用记忆" }));
+
+    await waitFor(() => expect(batchWriteConfigSnapshot).toHaveBeenCalledTimes(2));
+    expect(batchWriteConfigSnapshot.mock.calls[0]?.[0].expectedVersion).toBe("u1");
+    expect(batchWriteConfigSnapshot.mock.calls[1]?.[0].expectedVersion).toBe("u2");
+    expect(screen.getByText("记忆设置已同步到 config.toml。")).toBeInTheDocument();
+  });
+
+  it("keeps saved memory settings visible when the current thread mode update fails", async () => {
+    const batchWriteConfigSnapshot = vi.fn().mockResolvedValue({ config: { config: {} }, write: {} });
+    const setThreadMemoryMode = vi.fn().mockRejectedValue(new Error("thread missing"));
+
+    renderSection(createProps({
+      configSnapshot: createSnapshot({
+        features: {
+          memories: true,
+        },
+        memories: {
+          use_memories: true,
+          generate_memories: true,
+          disable_on_external_context: false,
+        },
+      }),
+      batchWriteConfigSnapshot,
+      setThreadMemoryMode,
+    }));
+
+    await screen.findByDisplayValue("默认先给结论。");
+    const toggle = screen.getByRole("switch", { name: "启用记忆" });
+    fireEvent.click(toggle);
+
+    expect(await screen.findByText("记忆设置已保存，但更新当前对话的记忆模式失败：thread missing")).toBeInTheDocument();
+    expect(toggle).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("writes the official external-context memory setting", async () => {
+    const batchWriteConfigSnapshot = vi.fn().mockResolvedValue({ config: { config: {} }, write: {} });
+    const setThreadMemoryMode = vi.fn().mockResolvedValue(undefined);
+
+    renderSection(createProps({
+      configSnapshot: createSnapshot({
+        features: {
+          memories: true,
+        },
+        memories: {
+          use_memories: true,
+          generate_memories: true,
+          disable_on_external_context: false,
+        },
+      }),
+      batchWriteConfigSnapshot,
+      setThreadMemoryMode,
+    }));
+
+    await screen.findByDisplayValue("默认先给结论。");
+    fireEvent.click(screen.getByRole("switch", { name: "跳过工具辅助对话" }));
+
+    await waitFor(() => expect(batchWriteConfigSnapshot).toHaveBeenCalled());
+    expect(batchWriteConfigSnapshot).toHaveBeenCalledWith({
+      edits: [
+        {
+          keyPath: "memories.disable_on_external_context",
+          value: true,
+          mergeStrategy: "upsert",
+        },
+      ],
+      filePath: "C:/Users/Administrator/.codex/config.toml",
+      expectedVersion: "u1",
+      reloadUserConfig: true,
+    });
+    expect(setThreadMemoryMode).not.toHaveBeenCalled();
+  });
+
+  it("resets memories through the app-server memory/reset method", async () => {
+    const resetMemories = vi.fn().mockResolvedValue(undefined);
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    renderSection(createProps({ resetMemories }));
+
+    await screen.findByDisplayValue("默认先给结论。");
+    fireEvent.click(screen.getByRole("button", { name: "重置" }));
+
+    await waitFor(() => expect(resetMemories).toHaveBeenCalled());
+    expect(screen.getByText("已重置本地 Codex 记忆。")).toBeInTheDocument();
+    confirmSpy.mockRestore();
   });
 
   it("writes instructions back to the user AGENTS file", async () => {
@@ -329,7 +581,9 @@ describe("PersonalizationSettingsSection", () => {
 
     expect(await screen.findByText("Personalization")).toBeInTheDocument();
     expect(screen.getByText("Response style")).toBeInTheDocument();
+    expect(screen.getByText("Memory (experimental)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Response style：Friendly" })).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "Enable memory" })).toBeInTheDocument();
     expect(screen.getByRole("switch", { name: "Enable custom prompt" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   });

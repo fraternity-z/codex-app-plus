@@ -326,6 +326,58 @@
   color: #991b1b;
 }
 
+.settings-memory-section {
+  margin-top: 20px;
+}
+
+.settings-memory-header {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-memory-header strong {
+  font-size: var(--app-ui-font-size-lg);
+  line-height: 1.45;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.settings-memory-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-md);
+  line-height: 1.6;
+}
+
+.settings-memory-doc-link {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.settings-memory-doc-link:hover {
+  text-decoration: underline;
+}
+
+.settings-memory-card {
+  margin-top: 10px;
+}
+
+.settings-memory-row-control {
+  min-width: 96px;
+}
+
+.settings-memory-reset-btn {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fee2e2;
+}
+
+.settings-memory-reset-btn:hover {
+  color: #b91c1c;
+  background: #fee2e2;
+  border-color: #fecaca;
+}
+
 .windows-sandbox-card {
   padding: 16px 18px;
   display: grid;
@@ -1447,6 +1499,7 @@ html[data-theme="dark"] .archived-thread-title {
 
 html[data-theme="dark"] .settings-note,
 html[data-theme="dark"] .settings-note code,
+html[data-theme="dark"] .settings-memory-header p,
 html[data-theme="dark"] .windows-sandbox-summary-copy,
 html[data-theme="dark"] .windows-sandbox-meta-label,
 html[data-theme="dark"] .windows-sandbox-meta p,
@@ -1499,8 +1552,18 @@ html[data-theme="dark"] .mcp-error-note,
 html[data-theme="dark"] .mcp-danger-btn,
 html[data-theme="dark"] .mcp-form-error,
 html[data-theme="dark"] .mcp-form-submit-error,
-html[data-theme="dark"] .settings-prompt-danger-btn {
+html[data-theme="dark"] .settings-prompt-danger-btn,
+html[data-theme="dark"] .settings-memory-reset-btn {
   color: var(--error-fg);
+}
+
+html[data-theme="dark"] .settings-memory-doc-link {
+  color: var(--accent-color);
+}
+
+html[data-theme="dark"] .settings-memory-reset-btn {
+  background: color-mix(in srgb, var(--error-fg) 14%, transparent);
+  border-color: color-mix(in srgb, var(--error-fg) 28%, transparent);
 }
 
 html[data-theme="dark"] .windows-sandbox-meta,
