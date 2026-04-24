@@ -248,9 +248,9 @@ textarea,
 
 .settings-loading-card {
   border: 1px solid var(--border-light);
-  border-radius: 16px;
+  border-radius: 12px;
   background: var(--surface-panel);
-  box-shadow: var(--shadow-lg);
+  box-shadow: none;
 }
 
 .settings-loading-empty {

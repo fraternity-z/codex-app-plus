@@ -1,5 +1,5 @@
 .settings-main {
-  padding: 48px 60px 80px;
+  padding: 68px 64px 88px;
 }
 
 .settings-layout {
@@ -14,49 +14,92 @@
 }
 
 .settings-panel-group {
-  width: min(100%, 880px);
+  width: min(100%, 820px);
+}
+
+.settings-panel-group + .settings-panel-group {
+  margin-top: 42px;
 }
 
 .settings-title-wrap {
-  margin-bottom: 32px;
+  margin-bottom: 34px;
 }
 
 .settings-page-title {
+  margin: 0;
   font-size: var(--app-ui-font-size-display);
-  line-height: 1.2;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  line-height: 1.22;
+  font-weight: 650;
+  letter-spacing: 0;
   color: var(--text-main);
 }
 
 .settings-subtitle {
-  margin-top: 10px;
+  margin: 10px 0 0;
   font-size: var(--app-ui-font-size-md);
   line-height: 1.6;
   color: var(--text-muted);
 }
 
+.settings-section-title {
+  margin: 0 0 18px;
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-xl);
+  line-height: 1.4;
+  font-weight: 650;
+}
+
 .settings-card {
   margin-top: 24px;
-  border-radius: 24px;
   overflow: hidden;
   border: 1px solid var(--border-light);
+  border-radius: 12px;
   background: var(--surface-panel);
-  box-shadow: var(--shadow-md);
-  transition: box-shadow 0.2s ease;
+  box-shadow: none;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
 }
 
 .settings-card:hover {
-  box-shadow: var(--shadow-lg);
+  border-color: var(--border-light);
+  box-shadow: none;
+}
+
+.settings-row,
+.settings-env-row,
+.mcp-server-row,
+.settings-reco-row,
+.archived-thread-row {
+  min-height: 66px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-light);
 }
 
 .settings-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 32px;
-  padding: 24px 32px;
-  border-bottom: 1px solid var(--border-light);
+  gap: 28px;
+  border-bottom: 0;
+}
+
+.settings-row:first-child,
+.settings-env-row:first-child,
+.mcp-server-row:first-child,
+.settings-reco-row:first-child,
+.archived-thread-row:first-child,
+.settings-section-head + .settings-row,
+.settings-section-head + .settings-env-row,
+.settings-section-head + .mcp-server-row,
+.settings-section-head + .settings-reco-row,
+.settings-section-head + .archived-thread-row,
+.settings-note + .settings-row,
+.settings-note + .settings-env-row,
+.settings-note + .mcp-server-row,
+.settings-note + .settings-reco-row,
+.settings-note + .archived-thread-row,
+.settings-empty + .settings-section-head,
+.settings-placeholder + .settings-section-head {
+  border-top: 0;
 }
 
 .settings-row:last-child {
@@ -64,27 +107,30 @@
 }
 
 .settings-row-copy {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.settings-row strong {
+.settings-row strong,
+.settings-config-card .settings-row-heading {
   display: block;
-  font-size: var(--app-ui-font-size-lg);
-  line-height: 1.5;
-  font-weight: 600;
+  font-size: var(--app-ui-font-size-base);
+  line-height: 1.45;
+  font-weight: 550;
   color: var(--text-main);
 }
 
-.settings-row p {
-  margin-top: 6px;
+.settings-row p,
+.settings-config-card .settings-row-meta {
+  max-width: 66ch;
+  margin: 4px 0 0;
   font-size: var(--app-ui-font-size-md);
-  line-height: 1.6;
+  line-height: 1.55;
   color: var(--text-muted);
-  max-width: 60ch;
 }
 
 .settings-row-control {
-  min-width: 260px;
+  min-width: 240px;
   display: flex;
   justify-content: flex-end;
 }
@@ -94,27 +140,27 @@
 }
 
 .settings-row-note {
-  margin-top: 12px;
+  margin-top: 8px;
   color: var(--text-muted);
   font-size: var(--app-ui-font-size-compact);
-  line-height: 1.6;
-  background: var(--surface-panel-muted);
-  padding: 8px 12px;
-  border-radius: 8px;
-  border-left: 3px solid var(--border-strong);
+  line-height: 1.55;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  border-left: 0;
 }
 
 .settings-select-trigger {
-  width: clamp(220px, 28vw, 276px);
+  width: clamp(220px, 27vw, 284px);
   min-width: 0;
-  min-height: 42px;
-  padding: 0 14px;
-  border: 1px solid var(--border-light);
-  border-radius: 14px;
-  background: var(--surface-panel-muted);
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--surface-panel-soft);
   color: var(--text-main);
   font-size: var(--app-ui-font-size-base);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .settings-select-menu {
