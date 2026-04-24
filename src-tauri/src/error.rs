@@ -37,3 +37,9 @@ impl From<serde_json::Error> for AppError {
         Self::Json(value.to_string())
     }
 }
+
+impl From<rusqlite::Error> for AppError {
+    fn from(value: rusqlite::Error) -> Self {
+        Self::Protocol(value.to_string())
+    }
+}

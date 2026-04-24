@@ -5,7 +5,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::models::AgentEnvironment;
 
-use super::{delete_session_by_id, index, infer_name_from_path, read_session_summary};
+use super::{
+    delete_session_by_id, index, infer_name_from_path, read_session_summary, search_index,
+};
 
 static SESSION_INDEX_TEST_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
@@ -54,6 +56,26 @@ fn build_session_contents(thread_id: &str, title: &str, updated_at: &str) -> Str
         ),
         format!(
             "{{\"timestamp\":\"{updated_at}\",\"type\":\"response_item\",\"payload\":{{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{{\"type\":\"output_text\",\"text\":\"done\"}}]}}}}\n"
+        ),
+    ]
+    .join("")
+}
+
+fn build_session_contents_with_assistant(
+    thread_id: &str,
+    title: &str,
+    assistant_text: &str,
+    updated_at: &str,
+) -> String {
+    [
+        format!(
+            "{{\"timestamp\":\"2026-03-01T10:00:00Z\",\"type\":\"session_meta\",\"payload\":{{\"id\":\"{thread_id}\",\"cwd\":\"E:/code/project\"}}}}\n"
+        ),
+        format!(
+            "{{\"timestamp\":\"2026-03-01T10:00:01Z\",\"type\":\"response_item\",\"payload\":{{\"type\":\"message\",\"role\":\"user\",\"content\":[{{\"type\":\"input_text\",\"text\":\"{title}\"}}]}}}}\n"
+        ),
+        format!(
+            "{{\"timestamp\":\"{updated_at}\",\"type\":\"response_item\",\"payload\":{{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{{\"type\":\"output_text\",\"text\":\"{assistant_text}\"}}]}}}}\n"
         ),
     ]
     .join("")
@@ -219,6 +241,125 @@ fn deletes_session_file_and_prunes_empty_directories() {
     let error = index::find_session_path(&root, AgentEnvironment::WindowsNative, "thread-delete")
         .expect_err("session should be removed from index");
     assert!(error.to_string().contains("session not found"));
+
+    fs::remove_dir_all(root).expect("remove temp session root");
+}
+
+#[test]
+fn search_sessions_uses_indexed_case_insensitive_content() {
+    let _guard = lock_session_index_tests();
+    let root = create_temp_session_root();
+    write_session_file(
+        &root,
+        "2026/03/thread-search-newer.jsonl",
+        &build_session_contents_with_assistant(
+            "thread-search-newer",
+            "Search newer",
+            "First line\\nThe ACCURATE Needle is here\\nLast line",
+            "2026-03-01T11:00:00Z",
+        ),
+    );
+    write_session_file(
+        &root,
+        "2026/03/thread-search-older.jsonl",
+        &build_session_contents_with_assistant(
+            "thread-search-older",
+            "Search older",
+            "An older needle appears here",
+            "2026-03-01T10:00:00Z",
+        ),
+    );
+
+    let results =
+        search_index::search_sessions(&root, AgentEnvironment::WindowsNative, "needle", 10)
+            .expect("search indexed sessions");
+
+    assert_eq!(results.len(), 2);
+    assert_eq!(results[0].id, "thread-search-newer");
+    assert_eq!(
+        results[0].matches[0].line_text,
+        "The ACCURATE Needle is here"
+    );
+    assert_eq!(results[0].matches[0].line_number, 3);
+    assert_eq!(results[0].matches[0].start_column, 14);
+    assert_eq!(results[0].matches[0].end_column, 20);
+    assert_eq!(results[1].id, "thread-search-older");
+
+    fs::remove_dir_all(root).expect("remove temp session root");
+}
+
+#[test]
+fn search_sessions_refreshes_changed_session_files() {
+    let _guard = lock_session_index_tests();
+    let root = create_temp_session_root();
+    let relative_path = "2026/03/thread-search-refresh.jsonl";
+    write_session_file(
+        &root,
+        relative_path,
+        &build_session_contents_with_assistant(
+            "thread-search-refresh",
+            "Refresh search",
+            "old-token",
+            "2026-03-01T10:00:00Z",
+        ),
+    );
+
+    let first =
+        search_index::search_sessions(&root, AgentEnvironment::WindowsNative, "old-token", 10)
+            .expect("search old token");
+    assert_eq!(first.len(), 1);
+
+    write_session_file(
+        &root,
+        relative_path,
+        &build_session_contents_with_assistant(
+            "thread-search-refresh",
+            "Refresh search",
+            "fresh-token-long",
+            "2026-03-01T11:00:00Z",
+        ),
+    );
+
+    let old_results =
+        search_index::search_sessions(&root, AgentEnvironment::WindowsNative, "old-token", 10)
+            .expect("search removed token");
+    let fresh_results = search_index::search_sessions(
+        &root,
+        AgentEnvironment::WindowsNative,
+        "fresh-token-long",
+        10,
+    )
+    .expect("search fresh token");
+
+    assert!(old_results.is_empty());
+    assert_eq!(fresh_results.len(), 1);
+    assert_eq!(fresh_results[0].id, "thread-search-refresh");
+
+    fs::remove_dir_all(root).expect("remove temp session root");
+}
+
+#[test]
+fn search_sessions_reports_utf16_columns_for_unicode_matches() {
+    let _guard = lock_session_index_tests();
+    let root = create_temp_session_root();
+    write_session_file(
+        &root,
+        "2026/03/thread-search-unicode.jsonl",
+        &build_session_contents_with_assistant(
+            "thread-search-unicode",
+            "Unicode search",
+            "prefix 你好世界 suffix",
+            "2026-03-01T10:00:00Z",
+        ),
+    );
+
+    let results = search_index::search_sessions(&root, AgentEnvironment::WindowsNative, "世界", 10)
+        .expect("search unicode token");
+
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].matches[0].line_text, "prefix 你好世界 suffix");
+    assert_eq!(results[0].matches[0].start_column, 10);
+    assert_eq!(results[0].matches[0].end_column, 12);
 
     fs::remove_dir_all(root).expect("remove temp session root");
 }

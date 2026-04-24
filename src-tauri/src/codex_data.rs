@@ -4,8 +4,8 @@ use crate::error::{AppError, AppResult};
 use crate::events::emit_codex_session_index_updated;
 use crate::models::{
     AgentEnvironment, CodexSessionIndexUpdatedPayload, CodexSessionMessage, CodexSessionReadInput,
-    CodexSessionReadOutput, CodexSessionSearchMatch, CodexSessionSearchResult,
-    CodexSessionSummary, DeleteCodexSessionInput, SearchCodexSessionsInput,
+    CodexSessionReadOutput, CodexSessionSearchResult, CodexSessionSummary, DeleteCodexSessionInput,
+    SearchCodexSessionsInput,
 };
 use serde_json::Value;
 use std::fs::{self, File};
@@ -15,6 +15,7 @@ use std::time::Instant;
 use tauri::AppHandle;
 
 mod index;
+mod search_index;
 #[cfg(test)]
 mod tests;
 const SUMMARY_TAIL_BYTES: u64 = 64 * 1024;
@@ -61,38 +62,12 @@ pub fn search_codex_sessions(
     }
 
     let root = codex_sessions_root(input.agent_environment)?;
-    let summaries = index::list_cached_session_summaries(&root, input.agent_environment)?;
-    let normalized_query = query.to_lowercase();
     let limit = input
         .limit
         .unwrap_or(DEFAULT_SEARCH_LIMIT)
         .max(1)
         .min(MAX_SEARCH_LIMIT);
-    let mut results = Vec::new();
-
-    for summary in summaries {
-        if results.len() >= limit {
-            break;
-        }
-        let path = match index::find_session_path(&root, input.agent_environment, &summary.id) {
-            Ok(path) => path,
-            Err(_) => continue,
-        };
-        let matches = search_session_matches(&path, &normalized_query)?;
-        if matches.is_empty() {
-            continue;
-        }
-        results.push(CodexSessionSearchResult {
-            id: summary.id,
-            title: summary.title,
-            cwd: summary.cwd,
-            updated_at: summary.updated_at,
-            agent_environment: summary.agent_environment,
-            matches,
-        });
-    }
-
-    Ok(results)
+    search_index::search_sessions(&root, input.agent_environment, query, limit)
 }
 
 pub fn delete_codex_session(input: DeleteCodexSessionInput) -> AppResult<()> {
@@ -301,48 +276,6 @@ fn read_session_messages(path: &Path, thread_id: &str) -> AppResult<Vec<CodexSes
     }
 
     Ok(messages)
-}
-
-fn search_session_matches(
-    path: &Path,
-    normalized_query: &str,
-) -> AppResult<Vec<CodexSessionSearchMatch>> {
-    let mut matches = Vec::new();
-
-    for (line_index, line) in BufReader::new(File::open(path)?).lines().enumerate() {
-        if matches.len() >= MAX_MATCHES_PER_SESSION {
-            break;
-        }
-        let value = parse_line(&line?)?;
-        let Some(role) = read_message_role(&value) else {
-            continue;
-        };
-        let Some(text) = read_message_text(&value, role) else {
-            continue;
-        };
-        for message_line in text.lines() {
-            if matches.len() >= MAX_MATCHES_PER_SESSION {
-                break;
-            }
-            let trimmed = message_line.trim();
-            if trimmed.is_empty() {
-                continue;
-            }
-            let normalized_line = trimmed.to_lowercase();
-            let Some(match_start) = normalized_line.find(normalized_query) else {
-                continue;
-            };
-            let match_end = match_start.saturating_add(normalized_query.len());
-            matches.push(CodexSessionSearchMatch {
-                line_text: trimmed.to_string(),
-                line_number: line_index + 1,
-                start_column: match_start + 1,
-                end_column: match_end + 1,
-            });
-        }
-    }
-
-    Ok(matches)
 }
 
 fn parse_line(line: &str) -> AppResult<Value> {
