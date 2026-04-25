@@ -364,7 +364,8 @@ export const zhCN = {
     },
     config: {
       title: "配置",
-      subtitle: "管理当前 Codex live 配置、代理与 Agents。",
+      subtitle: "配置审批策略和沙盒设置",
+      learnMore: "了解更多",
       userConfig: {
         label: "用户配置",
         description: "打开 ~/.codex/config.toml。",
@@ -392,6 +393,30 @@ export const zhCN = {
         loading: "正在读取代理设置…",
         applying: "正在应用…",
         loadFailed: "读取代理设置失败：{error}",
+      },
+      composer: {
+        title: "自定义 config.toml 设置",
+        sourceUserConfig: "用户配置",
+        openConfigToml: "打开 config.toml",
+        approvalPolicy: {
+          label: "批准策略",
+          description: "选择 Codex 何时请求批准",
+          options: {
+            untrusted: "Untrusted",
+            onFailure: "On failure",
+            onRequest: "On request",
+            never: "Never",
+          },
+        },
+        sandboxMode: {
+          label: "沙盒设置",
+          description: "选择 Codex 的命令执行权限",
+          options: {
+            readOnly: "Read only",
+            workspaceWrite: "Workspace write",
+            dangerFullAccess: "Danger full access",
+          },
+        },
       },
     },
     personalization: {

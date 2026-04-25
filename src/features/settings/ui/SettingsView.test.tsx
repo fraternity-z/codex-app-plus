@@ -72,6 +72,7 @@ function createBaseProps(
     onSelectSection: vi.fn(),
     onAddRoot: vi.fn(),
     onOpenConfigToml: vi.fn().mockResolvedValue(undefined),
+    onOpenConfigDocs: vi.fn().mockResolvedValue(undefined),
     refreshConfigSnapshot: vi.fn().mockResolvedValue({ config: {}, origins: {}, layers: [] }),
     readGlobalAgentInstructions: vi.fn().mockResolvedValue({ path: "~/.codex/AGENTS.md", content: "" }),
     listManagedPrompts: vi.fn().mockResolvedValue([]),
@@ -130,30 +131,38 @@ describe("SettingsView", () => {
     expect(screen.getByText("代码风格")).toBeInTheDocument();
   });
 
-  it("renders composer permission defaults in the general section", () => {
+  it("renders proxy settings in the general section", () => {
     render(<SettingsView {...createBaseProps()} />, {
       wrapper: createI18nWrapper("zh-CN"),
     });
 
-    expect(screen.getByText("Composer 权限默认值")).toBeInTheDocument();
+    expect(screen.getByText("代理")).toBeInTheDocument();
   });
 
-  it("does not render composer permission defaults in the config section", () => {
+  it("does not render proxy settings in the config section", () => {
     render(<SettingsView {...createBaseProps({ section: "config" })} />, {
       wrapper: createI18nWrapper("zh-CN"),
     });
 
-    expect(screen.queryByText("Composer 权限默认值")).toBeNull();
+    expect(screen.queryByText("代理")).toBeNull();
   });
 
-  it("renders agents settings inside the config section", () => {
-    render(<SettingsView {...createBaseProps({ section: "config" })} />, {
+  it("renders composer settings above agents inside the config section", () => {
+    const { container } = render(<SettingsView {...createBaseProps({ section: "config" })} />, {
       wrapper: createI18nWrapper("zh-CN"),
     });
 
     expect(screen.getByRole("heading", { name: "配置" })).toBeInTheDocument();
+    expect(screen.getByText("自定义 config.toml 设置")).toBeInTheDocument();
     expect(screen.getByText("Agents")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Agents" })).toBeNull();
+    const composerSection = screen.getByText("自定义 config.toml 设置");
+    const agentsSection = screen.getByText("Agents");
+    expect(
+      composerSection.compareDocumentPosition(agentsSection)
+        & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(container.querySelector(".settings-config-composer-section")).not.toBeNull();
   });
 
   it("moves app updates out of the general section", () => {

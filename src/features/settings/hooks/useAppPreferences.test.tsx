@@ -103,8 +103,8 @@ describe("useAppPreferences", () => {
     expect(second.result.current.composerPermissionLevel).toBe("full");
     expect(second.result.current.composerDefaultApprovalPolicy).toBe("on-failure");
     expect(second.result.current.composerDefaultSandboxMode).toBe("read-only");
-    expect(second.result.current.composerFullApprovalPolicy).toBe("untrusted");
-    expect(second.result.current.composerFullSandboxMode).toBe("workspace-write");
+    expect(second.result.current.composerFullApprovalPolicy).toBe("never");
+    expect(second.result.current.composerFullSandboxMode).toBe("danger-full-access");
     expect(second.result.current.uiFontFamily).toBe("IBM Plex Sans");
     expect(second.result.current.uiFontSize).toBe(15);
     expect(second.result.current.codeFontFamily).toBe("JetBrains Mono");
@@ -247,8 +247,24 @@ describe("useAppPreferences", () => {
 
     expect(result.current.composerDefaultApprovalPolicy).toBe("on-request");
     expect(result.current.composerDefaultSandboxMode).toBe("read-only");
-    expect(result.current.composerFullApprovalPolicy).toBe("on-request");
-    expect(result.current.composerFullSandboxMode).toBe("workspace-write");
+    expect(result.current.composerFullApprovalPolicy).toBe("never");
+    expect(result.current.composerFullSandboxMode).toBe("danger-full-access");
+  });
+
+  it("ignores stored full access overrides", () => {
+    window.localStorage.setItem(
+      APP_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        ...DEFAULT_APP_PREFERENCES,
+        composerFullApprovalPolicy: "untrusted",
+        composerFullSandboxMode: "workspace-write",
+      }),
+    );
+
+    const { result } = renderHook(() => useAppPreferences());
+
+    expect(result.current.composerFullApprovalPolicy).toBe("never");
+    expect(result.current.composerFullSandboxMode).toBe("danger-full-access");
   });
 
   it("migrates legacy notification booleans into the combined notification settings", () => {

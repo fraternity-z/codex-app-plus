@@ -87,15 +87,15 @@ describe("composerPermission", () => {
     });
   });
 
-  it("maps full permission to untrusted + workspace-write when configured", () => {
+  it("keeps full permission fixed even when settings contain overrides", () => {
     expect(createThreadPermissionOverrides("full", {
       defaultApprovalPolicy: "on-request",
       defaultSandboxMode: "workspace-write",
       fullApprovalPolicy: "untrusted",
       fullSandboxMode: "workspace-write"
     })).toEqual({
-      approvalPolicy: "untrusted",
-      sandbox: "workspace-write"
+      approvalPolicy: "never",
+      sandbox: "danger-full-access"
     });
     expect(createTurnPermissionOverrides("full", {
       defaultApprovalPolicy: "on-request",
@@ -103,15 +103,8 @@ describe("composerPermission", () => {
       fullApprovalPolicy: "untrusted",
       fullSandboxMode: "workspace-write"
     })).toEqual({
-      approvalPolicy: "untrusted",
-      sandboxPolicy: {
-        type: "workspaceWrite",
-        writableRoots: [],
-        readOnlyAccess: { type: "restricted", includePlatformDefaults: true, readableRoots: [] },
-        networkAccess: false,
-        excludeTmpdirEnvVar: false,
-        excludeSlashTmp: false
-      }
+      approvalPolicy: "never",
+      sandboxPolicy: { type: "dangerFullAccess" }
     });
   });
 });

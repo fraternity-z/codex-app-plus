@@ -20,39 +20,25 @@ function isSettingsScreen(screen: AppScreen): boolean {
   return screen !== "home" && screen !== "skills";
 }
 
-function findSettingsAnchor(backStack: ReadonlyArray<AppScreen>): AppScreen | null {
-  for (let index = backStack.length - 1; index >= 0; index -= 1) {
-    const screen = backStack[index];
-    if (screen !== undefined && !isSettingsScreen(screen)) {
-      return screen;
-    }
-  }
-  return null;
-}
-
-function capBackStack(
-  backStack: ReadonlyArray<AppScreen>,
-  next: AppScreen,
-): ReadonlyArray<AppScreen> {
+function capBackStack(backStack: ReadonlyArray<AppScreen>): ReadonlyArray<AppScreen> {
   if (backStack.length <= MAX_SCREEN_HISTORY) {
     return backStack;
   }
-  const capped = backStack.slice(-MAX_SCREEN_HISTORY);
-  if (!isSettingsScreen(next)) {
-    return capped;
-  }
-  const anchor = findSettingsAnchor(backStack);
-  if (anchor === null || capped.includes(anchor)) {
-    return capped;
-  }
-  return [anchor, ...capped.slice(1)];
+  return backStack.slice(-MAX_SCREEN_HISTORY);
 }
 
 export function pushScreenHistory(state: ScreenHistoryState, next: AppScreen): ScreenHistoryState {
   if (state.current === next) {
     return state;
   }
-  const backStack = capBackStack([...state.backStack, state.current], next);
+  if (isSettingsScreen(state.current) && isSettingsScreen(next)) {
+    return {
+      current: next,
+      backStack: state.backStack,
+      forwardStack: [],
+    };
+  }
+  const backStack = capBackStack([...state.backStack, state.current]);
   return {
     current: next,
     backStack,
@@ -87,7 +73,7 @@ export function goForwardScreen(state: ScreenHistoryState): ScreenHistoryState {
   const next = state.forwardStack[0] ?? state.current;
   return {
     current: next,
-    backStack: capBackStack([...state.backStack, state.current], next),
+    backStack: capBackStack([...state.backStack, state.current]),
     forwardStack: state.forwardStack.slice(1),
   };
 }

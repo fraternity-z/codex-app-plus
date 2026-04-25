@@ -96,6 +96,16 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     }
   }, [props.hostBridge.app, props.preferences.agentEnvironment, reportError, state.configSnapshot]);
 
+  const openConfigDocs = useCallback(async () => {
+    try {
+      await props.hostBridge.app.openExternal(
+        "https://developers.openai.com/codex/config-basic",
+      );
+    } catch (error) {
+      reportError("打开 Codex 配置文档失败", error);
+    }
+  }, [props.hostBridge.app, reportError]);
+
   const createWorktree = useCallback(async () => {
     if (selectedRootPath === null) {
       return;
@@ -198,6 +208,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     onSelectSection: props.onSelectSection,
     onAddRoot: () => void addRoot(),
     onOpenConfigToml: openConfigToml,
+    onOpenConfigDocs: openConfigDocs,
     refreshConfigSnapshot: props.controller.refreshConfigSnapshot,
     readGlobalAgentInstructions: () =>
       props.hostBridge.app.readGlobalAgentInstructions({

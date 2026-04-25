@@ -79,8 +79,8 @@ function resolveComposerPermissionValues(
 ): { readonly approvalPolicy: ComposerApprovalPolicy; readonly sandboxMode: SandboxMode } {
   return level === "full"
     ? {
-      approvalPolicy: settings.fullApprovalPolicy,
-      sandboxMode: settings.fullSandboxMode
+      approvalPolicy: DEFAULT_COMPOSER_FULL_APPROVAL_POLICY,
+      sandboxMode: DEFAULT_COMPOSER_FULL_SANDBOX_MODE
     }
     : {
       approvalPolicy: settings.defaultApprovalPolicy,

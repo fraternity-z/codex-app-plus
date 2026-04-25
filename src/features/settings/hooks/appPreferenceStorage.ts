@@ -200,13 +200,6 @@ function readStoredComposerPermissionSettings(
     DEFAULT_APP_PREFERENCES.composerDefaultApprovalPolicy,
     DEFAULT_APP_PREFERENCES.composerDefaultSandboxMode,
   );
-  const fullFallback = migrateLegacyComposerAccessMode(
-    isLegacyComposerAccessMode(record.composerFullAccessMode)
-      ? record.composerFullAccessMode
-      : null,
-    DEFAULT_APP_PREFERENCES.composerFullApprovalPolicy,
-    DEFAULT_APP_PREFERENCES.composerFullSandboxMode,
-  );
   return {
     composerDefaultApprovalPolicy: isComposerApprovalPolicy(
       record.composerDefaultApprovalPolicy,
@@ -219,17 +212,8 @@ function readStoredComposerPermissionSettings(
     )
       ? record.composerDefaultSandboxMode
       : defaultFallback.sandboxMode,
-    composerFullApprovalPolicy: isComposerApprovalPolicy(
-      record.composerFullApprovalPolicy,
-    )
-      ? record.composerFullApprovalPolicy
-      : fullFallback.approvalPolicy,
-    composerFullSandboxMode: isPreferenceValue(
-      SANDBOX_MODES,
-      record.composerFullSandboxMode,
-    )
-      ? record.composerFullSandboxMode
-      : fullFallback.sandboxMode,
+    composerFullApprovalPolicy: DEFAULT_APP_PREFERENCES.composerFullApprovalPolicy,
+    composerFullSandboxMode: DEFAULT_APP_PREFERENCES.composerFullSandboxMode,
   };
 }
 
@@ -334,6 +318,8 @@ export function serializePreferences(
 ): Record<string, unknown> {
   return {
     ...preferences,
+    composerFullApprovalPolicy: DEFAULT_APP_PREFERENCES.composerFullApprovalPolicy,
+    composerFullSandboxMode: DEFAULT_APP_PREFERENCES.composerFullSandboxMode,
     uiLanguageExplicit: preferences.uiLanguage !== "auto",
   };
 }

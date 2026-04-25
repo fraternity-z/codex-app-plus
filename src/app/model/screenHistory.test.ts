@@ -64,10 +64,10 @@ describe("screenHistory", () => {
     const screens: ReadonlyArray<AppScreen> = [
       "skills",
       "general",
+      "home",
+      "skills",
       "appearance",
-      "config",
-      "agents",
-      "about",
+      "home",
     ];
     const state = screens.reduce(
       (current, screen) => pushScreenHistory(current, screen),
@@ -75,13 +75,13 @@ describe("screenHistory", () => {
     );
 
     expect(state).toEqual({
-      current: "about",
-      backStack: ["skills", "general", "appearance", "config", "agents"],
+      current: "home",
+      backStack: ["skills", "general", "home", "skills", "appearance"],
       forwardStack: [],
     });
   });
 
-  it("preserves the last non-settings screen when settings history exceeds five entries", () => {
+  it("replaces settings sections without recording internal settings history", () => {
     const screens: ReadonlyArray<AppScreen> = [
       "general",
       "appearance",
@@ -97,26 +97,27 @@ describe("screenHistory", () => {
 
     expect(state).toEqual({
       current: "mcp",
-      backStack: ["home", "appearance", "config", "agents", "about"],
+      backStack: ["home"],
       forwardStack: [],
     });
 
-    let backed = state;
-    for (let index = 0; index < 5; index += 1) {
-      backed = goBackScreen(backed);
-    }
+    const backed = goBackScreen(state);
 
-    expect(backed.current).toBe("home");
+    expect(backed).toEqual({
+      current: "home",
+      backStack: [],
+      forwardStack: ["mcp"],
+    });
   });
 
   it("caps the forward stack at five entries when going back repeatedly", () => {
     const screens: ReadonlyArray<AppScreen> = [
       "skills",
       "general",
+      "home",
+      "skills",
       "appearance",
-      "config",
-      "agents",
-      "about",
+      "home",
     ];
     const advanced = screens.reduce(
       (current, screen) => pushScreenHistory(current, screen),
@@ -131,7 +132,7 @@ describe("screenHistory", () => {
     expect(backed).toEqual({
       current: "skills",
       backStack: [],
-      forwardStack: ["general", "appearance", "config", "agents", "about"],
+      forwardStack: ["general", "home", "skills", "appearance", "home"],
     });
   });
 

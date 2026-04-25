@@ -26,11 +26,11 @@ import { McpSettingsPanel } from "../../mcp/ui/McpSettingsPanel";
 import { AboutSettingsSection } from "./AboutSettingsSection";
 import { AgentsSettingsSection } from "./AgentsSettingsSection";
 import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
-import { ComposerPermissionDefaultsCard } from "./ComposerPermissionDefaultsCard";
 import { ConfigSettingsSection } from "./ConfigSettingsSection";
 import { GeneralSettingsSection } from "./GeneralSettingsSection";
 import { GitSettingsSection } from "./GitSettingsSection";
 import { PersonalizationSettingsSection } from "./PersonalizationSettingsSection";
+import { ProxySettingsCard } from "./ProxySettingsCard";
 import { SettingsNavIcon, type SettingsNavIconKind } from "./settingsNavIcons";
 import {
   EnvironmentContent,
@@ -75,6 +75,7 @@ export interface SettingsViewProps {
   onSelectSection: (section: SettingsSection) => void;
   onAddRoot: () => void;
   onOpenConfigToml: () => Promise<void>;
+  onOpenConfigDocs: () => Promise<void>;
   refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
   readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
   listManagedPrompts: () => Promise<ReadonlyArray<ManagedPromptOutput>>;
@@ -196,7 +197,12 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
           onTestSystemNotification={props.onTestSystemNotification}
           notificationTestFeedback={props.notificationTestFeedback}
         />
-        <ComposerPermissionDefaultsCard preferences={props.preferences} />
+        <ProxySettingsCard
+          agentEnvironment={props.preferences.agentEnvironment}
+          busy={props.busy}
+          readProxySettings={props.readProxySettings}
+          writeProxySettings={props.writeProxySettings}
+        />
       </div>
     );
   }
@@ -212,11 +218,9 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
     return (
       <>
         <ConfigSettingsSection
-          agentEnvironment={props.preferences.agentEnvironment}
-          busy={props.busy}
+          preferences={props.preferences}
           onOpenConfigToml={props.onOpenConfigToml}
-          readProxySettings={props.readProxySettings}
-          writeProxySettings={props.writeProxySettings}
+          onOpenConfigDocs={props.onOpenConfigDocs}
         />
         <AgentsSettingsSection
           embedded

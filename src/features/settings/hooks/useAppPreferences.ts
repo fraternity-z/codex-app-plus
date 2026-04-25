@@ -154,8 +154,16 @@ export function useAppPreferences(): AppPreferencesController {
   const setComposerPermissionLevel = usePreferenceSetter(setPreferences, "composerPermissionLevel");
   const setComposerDefaultApprovalPolicy = usePreferenceSetter(setPreferences, "composerDefaultApprovalPolicy");
   const setComposerDefaultSandboxMode = usePreferenceSetter(setPreferences, "composerDefaultSandboxMode");
-  const setComposerFullApprovalPolicy = usePreferenceSetter(setPreferences, "composerFullApprovalPolicy");
-  const setComposerFullSandboxMode = usePreferenceSetter(setPreferences, "composerFullSandboxMode");
+  const setComposerFullApprovalPolicy = usePreferenceSetter(
+    setPreferences,
+    "composerFullApprovalPolicy",
+    () => DEFAULT_APP_PREFERENCES.composerFullApprovalPolicy,
+  );
+  const setComposerFullSandboxMode = usePreferenceSetter(
+    setPreferences,
+    "composerFullSandboxMode",
+    () => DEFAULT_APP_PREFERENCES.composerFullSandboxMode,
+  );
   const setUiFontFamily = usePreferenceSetter(setPreferences, "uiFontFamily", normalizeUiFontFamily);
   const setUiFontSize = usePreferenceSetter(setPreferences, "uiFontSize", clampUiFontSize);
   const setCodeFontFamily = usePreferenceSetter(setPreferences, "codeFontFamily", normalizeCodeFontFamily);

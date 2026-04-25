@@ -49,6 +49,15 @@
   color: var(--text-muted);
 }
 
+.settings-config-learn-more {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+.settings-config-learn-more:hover {
+  text-decoration: underline;
+}
+
 .settings-section-title {
   margin: 0 0 18px;
   color: var(--text-main);
@@ -171,6 +180,81 @@
   box-shadow: none;
 }
 
+.settings-config-composer-section .settings-section-title {
+  margin-bottom: 36px;
+}
+
+.settings-config-source-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.settings-config-source-trigger {
+  width: 300px;
+  max-width: min(100%, 300px);
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-panel-soft);
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  font-size: var(--app-ui-font-size-base);
+  text-align: left;
+}
+
+.settings-config-source-trigger:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.settings-config-source-caret {
+  width: 16px;
+  height: 16px;
+  color: var(--text-subtle);
+  transform: rotate(90deg);
+  flex-shrink: 0;
+}
+
+.settings-config-open-link {
+  border: 0;
+  background: transparent;
+  color: var(--text-subtle);
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 0 8px;
+  font-size: var(--app-ui-font-size-base);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.settings-config-open-link:hover {
+  color: var(--text-main);
+}
+
+.settings-config-open-link:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.settings-config-preferences-card {
+  margin-top: 0;
+}
+
+.settings-config-preferences-card .settings-row {
+  min-height: 79px;
+}
+
 .settings-select-menu {
   display: flex;
   flex-direction: column;
@@ -229,6 +313,22 @@
   .settings-select-trigger {
     width: 100%;
     max-width: none;
+  }
+
+  .settings-config-source-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .settings-config-source-trigger {
+    width: 100%;
+    max-width: none;
+  }
+
+  .settings-config-open-link {
+    justify-content: flex-start;
+    padding-left: 0;
   }
 
   .git-settings-page .settings-row-control {

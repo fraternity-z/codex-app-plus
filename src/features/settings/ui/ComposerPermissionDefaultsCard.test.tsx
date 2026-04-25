@@ -55,6 +55,7 @@ function renderCard(locale: Locale = "zh-CN"): void {
     return (
       <ComposerPermissionDefaultsCard
         preferences={createPreferencesController(preferences, setPreferences)}
+        onOpenConfigToml={vi.fn().mockResolvedValue(undefined)}
       />
     );
   }
@@ -66,24 +67,28 @@ describe("ComposerPermissionDefaultsCard", () => {
   it("updates the standard approval policy after selecting on-failure", () => {
     renderCard();
 
-    fireEvent.click(screen.getByRole("button", { name: "标准权限 · 审批策略：按需询问" }));
-    fireEvent.click(screen.getByRole("menuitemradio", { name: "失败时询问" }));
+    fireEvent.click(screen.getByRole("button", { name: "批准策略：On request" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "On failure" }));
 
-    expect(screen.getByRole("button", { name: "标准权限 · 审批策略：失败时询问" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "批准策略：On failure" })).toBeInTheDocument();
   });
 
   it("renders the permission defaults title and descriptions", () => {
     renderCard();
 
-    expect(screen.getByText("Composer 权限默认值")).toBeInTheDocument();
-    expect(screen.getByText("控制底部\"默认权限\"实际使用的 approval policy。")).toBeInTheDocument();
+    expect(screen.getByText("自定义 config.toml 设置")).toBeInTheDocument();
+    expect(screen.getByText("选择 Codex 何时请求批准")).toBeInTheDocument();
+    expect(screen.getByText("选择 Codex 的命令执行权限")).toBeInTheDocument();
+    expect(screen.queryByText("完全访问 · 审批策略")).toBeNull();
+    expect(screen.queryByText("完全访问 · 访问模式")).toBeNull();
   });
 
   it("renders English copy when locale is en-US", () => {
     renderCard("en-US");
 
-    expect(screen.getByText("Composer permission defaults")).toBeInTheDocument();
-    expect(screen.getByText("Standard permission · Approval policy")).toBeInTheDocument();
-    expect(screen.getByText("Full access · Access mode")).toBeInTheDocument();
+    expect(screen.getByText("Custom config.toml settings")).toBeInTheDocument();
+    expect(screen.getByText("Approval policy")).toBeInTheDocument();
+    expect(screen.getByText("Sandbox settings")).toBeInTheDocument();
+    expect(screen.queryByText("Full access · Access mode")).toBeNull();
   });
 });

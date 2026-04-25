@@ -365,7 +365,8 @@ export const enUS = {
     },
     config: {
       title: "Config",
-      subtitle: "Manage the current live Codex config, proxy, and agents.",
+      subtitle: "Configure approval policies and sandbox settings",
+      learnMore: "Learn more",
       userConfig: {
         label: "User config",
         description: "Open ~/.codex/config.toml.",
@@ -393,6 +394,30 @@ export const enUS = {
         loading: "Loading proxy settings…",
         applying: "Applying…",
         loadFailed: "Failed to load proxy settings: {error}",
+      },
+      composer: {
+        title: "Custom config.toml settings",
+        sourceUserConfig: "User config",
+        openConfigToml: "Open config.toml",
+        approvalPolicy: {
+          label: "Approval policy",
+          description: "Choose when Codex asks for approval",
+          options: {
+            untrusted: "Untrusted",
+            onFailure: "On failure",
+            onRequest: "On request",
+            never: "Never",
+          },
+        },
+        sandboxMode: {
+          label: "Sandbox settings",
+          description: "Choose Codex command execution permissions",
+          options: {
+            readOnly: "Read only",
+            workspaceWrite: "Workspace write",
+            dangerFullAccess: "Danger full access",
+          },
+        },
       },
     },
     personalization: {
