@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { WorkspaceRoot } from "../hooks/useWorkspaceRoots";
 import type { ThreadSummary } from "../../../domain/types";
+import type { Locale } from "../../../i18n";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { PINNED_THREAD_IDS_STORAGE_KEY, WorkspaceSidebarSection } from "./WorkspaceSidebarSection";
 
@@ -41,7 +42,9 @@ function renderSection(
     readonly onCreateThread?: () => Promise<void>;
     readonly onCreateThreadInRoot?: (rootId: string) => Promise<void>;
     readonly onRemoveRoot?: (rootId: string) => void;
+    readonly onOpenRootInFileExplorer?: (root: WorkspaceRoot) => Promise<void>;
     readonly onSelectWorkspaceThread?: (rootId: string, threadId: string | null) => void;
+    readonly locale?: Locale;
   }
 ): void {
   function Harness(): JSX.Element {
@@ -67,12 +70,13 @@ function renderSection(
           onCreateThread={options?.onCreateThread ?? vi.fn().mockResolvedValue(undefined)}
           onCreateThreadInRoot={options?.onCreateThreadInRoot}
           onRemoveRoot={options?.onRemoveRoot ?? vi.fn()}
+          onOpenRootInFileExplorer={options?.onOpenRootInFileExplorer}
         />
       </>
     );
   }
 
-  render(<Harness />, { wrapper: createI18nWrapper() });
+  render(<Harness />, { wrapper: createI18nWrapper(options?.locale) });
 }
 
 describe("WorkspaceSidebarSection", () => {
@@ -257,9 +261,31 @@ describe("WorkspaceSidebarSection", () => {
 
     renderSection([createThread(ROOTS[0]!, 1)], { onRemoveRoot });
     fireEvent.click(screen.getByRole("button", { name: "工作区更多操作 FPGA" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Remove from list" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "从列表中移除" }));
 
     await waitFor(() => expect(onRemoveRoot).toHaveBeenCalledWith(ROOTS[0]!.id));
+  });
+
+  it("opens a workspace root in File Explorer from the menu", async () => {
+    const onOpenRootInFileExplorer = vi.fn().mockResolvedValue(undefined);
+
+    renderSection([createThread(ROOTS[0]!, 1)], { onOpenRootInFileExplorer });
+    fireEvent.contextMenu(screen.getByText("FPGA").closest(".workspace-root-row") as HTMLElement);
+    fireEvent.click(screen.getByRole("menuitem", { name: "在资源管理器中打开" }));
+
+    await waitFor(() => expect(onOpenRootInFileExplorer).toHaveBeenCalledWith(ROOTS[0]));
+  });
+
+  it("renders workspace menu actions in English", () => {
+    renderSection([createThread(ROOTS[0]!, 1)], {
+      locale: "en-US",
+      onOpenRootInFileExplorer: vi.fn().mockResolvedValue(undefined),
+    });
+
+    fireEvent.contextMenu(screen.getByText("FPGA").closest(".workspace-root-row") as HTMLElement);
+
+    expect(screen.getByRole("menuitem", { name: "Open in Explorer" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Remove from list" })).toBeInTheDocument();
   });
 
   it("opens the same workspace menu on right click", async () => {
@@ -267,7 +293,7 @@ describe("WorkspaceSidebarSection", () => {
 
     renderSection([createThread(ROOTS[0]!, 1)], { onRemoveRoot });
     fireEvent.contextMenu(screen.getByText("FPGA").closest(".workspace-root-row") as HTMLElement);
-    fireEvent.click(screen.getByRole("menuitem", { name: "Remove from list" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "从列表中移除" }));
 
     await waitFor(() => expect(onRemoveRoot).toHaveBeenCalledWith(ROOTS[0]!.id));
   });
@@ -283,12 +309,12 @@ describe("WorkspaceSidebarSection", () => {
     renderSection([createThread(ROOTS[0]!, 1)]);
 
     fireEvent.contextMenu(screen.getByRole("button", { name: "工作区更多操作 FPGA" }));
-    expect(screen.getByRole("menuitem", { name: "Remove from list" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "从列表中移除" })).toBeInTheDocument();
 
     fireEvent.click(document.body);
 
     fireEvent.contextMenu(screen.getByRole("button", { name: "在工作区 FPGA 中创建新会话" }));
-    expect(screen.getByRole("menuitem", { name: "Remove from list" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "从列表中移除" })).toBeInTheDocument();
   });
 
   it("shows explicit errors", () => {

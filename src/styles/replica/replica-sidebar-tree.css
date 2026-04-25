@@ -311,7 +311,7 @@
 }
 
 .workspace-root-menu {
-  width: 132px;
+  width: 192px;
 }
 
 .thread-context-menu {
@@ -334,6 +334,12 @@
   color: var(--text-soft);
   font-size: var(--app-ui-font-size-md);
   text-align: left;
+}
+
+.workspace-root-menu .thread-context-menu-item {
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
 .thread-context-menu-item:hover {

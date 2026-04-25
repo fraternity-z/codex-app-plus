@@ -361,6 +361,10 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
     handleCloseSearch();
   }, [handleCloseSearch, props]);
 
+  const handleOpenRootInFileExplorer = useCallback((root: WorkspaceRoot) => (
+    props.hostBridge.app.openWorkspace({ path: root.path, opener: "explorer" })
+  ), [props.hostBridge.app]);
+
   return (
     <aside className={sidebarClassName}>
       {settingsMenuOpen ? <button type="button" className="settings-backdrop" onClick={onDismissSettingsMenu} aria-label={t("home.sidebar.closeMenu")} /> : null}
@@ -392,6 +396,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
         onCreateThread={onCreateThread}
         onCreateThreadInRoot={onCreateThreadInRoot}
         onRemoveRoot={onRemoveRoot}
+        onOpenRootInFileExplorer={handleOpenRootInFileExplorer}
         onCreateWorktree={onCreateWorktree}
         onDeleteWorktree={onDeleteWorktree}
         onReorderRoots={onReorderRoots}

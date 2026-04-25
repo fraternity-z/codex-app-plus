@@ -86,6 +86,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
   readonly onCreateThread?: () => Promise<void>;
   readonly onRemoveRoot?: (rootId: string) => void;
   readonly deleteCodexSession?: ReturnType<typeof vi.fn>;
+  readonly openWorkspace?: ReturnType<typeof vi.fn>;
   readonly searchCodexSessions?: ReturnType<typeof vi.fn>;
   readonly request?: ReturnType<typeof vi.fn>;
   readonly initializeStore?: (dispatch: AppStoreApi["dispatch"]) => void;
@@ -95,10 +96,11 @@ function renderSidebar(thread: ThreadSummary, options?: {
   const onCreateThread = options?.onCreateThread ?? vi.fn().mockResolvedValue(undefined);
   const onOpenSkills = options?.onOpenSkills ?? vi.fn();
   const deleteCodexSession = options?.deleteCodexSession ?? vi.fn().mockResolvedValue(undefined);
+  const openWorkspace = options?.openWorkspace ?? vi.fn().mockResolvedValue(undefined);
   const searchCodexSessions = options?.searchCodexSessions ?? vi.fn().mockResolvedValue([]);
   const request = options?.request ?? vi.fn().mockResolvedValue({});
   const appServerClient = { request } as AppServerClient;
-  const hostBridge = { app: { deleteCodexSession, searchCodexSessions }, rpc: { request } } as unknown as HostBridge;
+  const hostBridge = { app: { deleteCodexSession, openWorkspace, searchCodexSessions }, rpc: { request } } as unknown as HostBridge;
 
   function Harness(): JSX.Element {
     const [selectedThreadId, setSelectedThreadId] = useState<string | null>(thread.id);
@@ -142,7 +144,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
   }
 
   render(<Harness />, { wrapper: createI18nWrapper() });
-  return { onArchiveThread, onCreateThread, onOpenSkills, deleteCodexSession, searchCodexSessions, request };
+  return { onArchiveThread, onCreateThread, onOpenSkills, deleteCodexSession, openWorkspace, searchCodexSessions, request };
 }
 
 function DispatchRecorder(props: { readonly onReady: (dispatch: AppStoreApi["dispatch"]) => void }): null {
@@ -232,9 +234,21 @@ describe("HomeSidebar", () => {
     renderSidebar(createThread("codexData"), { onRemoveRoot });
 
     fireEvent.click(screen.getByRole("button", { name: "工作区更多操作 FPGA" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Remove from list" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "从列表中移除" }));
 
     await waitFor(() => expect(onRemoveRoot).toHaveBeenCalledWith(ROOT.id));
+  });
+
+  it("opens a workspace root in File Explorer through the folder menu", async () => {
+    const { openWorkspace } = renderSidebar(createThread("codexData"));
+
+    fireEvent.contextMenu(screen.getByText("FPGA").closest(".workspace-root-row") as HTMLElement);
+    fireEvent.click(screen.getByRole("menuitem", { name: "在资源管理器中打开" }));
+
+    await waitFor(() => expect(openWorkspace).toHaveBeenCalledWith({
+      path: ROOT.path,
+      opener: "explorer",
+    }));
   });
 
   it("clears the current selection after archiving the selected thread", async () => {

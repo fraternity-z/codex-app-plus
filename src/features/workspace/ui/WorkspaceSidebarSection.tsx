@@ -46,6 +46,7 @@ interface WorkspaceSidebarSectionProps {
   readonly onCreateThread: () => Promise<void>;
   readonly onCreateThreadInRoot?: (rootId: string) => Promise<void>;
   readonly onRemoveRoot: (rootId: string) => void;
+  readonly onOpenRootInFileExplorer?: (root: WorkspaceRoot) => Promise<void>;
   readonly onCreateWorktree?: (root: WorkspaceRoot) => Promise<void>;
   readonly onDeleteWorktree?: (root: WorkspaceRoot) => Promise<void>;
   readonly onReorderRoots?: (fromIndex: number, toIndex: number) => void;
@@ -57,7 +58,7 @@ interface WorkspaceRootRowProps {
   readonly selected: boolean;
   readonly onCreateThread: () => Promise<void>;
   readonly onToggleExpanded: (rootId: string) => void;
-  readonly onOpenMenu: (event: MouseEvent<HTMLButtonElement>, root: WorkspaceRoot) => void;
+  readonly onOpenMenu: (event: MouseEvent<HTMLElement>, root: WorkspaceRoot) => void;
   readonly dragListeners?: ReturnType<typeof useSortable>["listeners"];
   readonly dragAttributes?: ReturnType<typeof useSortable>["attributes"];
   readonly setDragActivatorRef?: (element: HTMLElement | null) => void;
@@ -76,7 +77,7 @@ interface WorkspaceRootItemProps {
   readonly onSelectThread: (threadId: string | null) => void;
   readonly onToggleExpanded: (rootId: string) => void;
   readonly onOpenMenu: (event: MouseEvent<HTMLElement>, thread: ThreadSummary) => void;
-  readonly onOpenRootMenu: (event: MouseEvent<HTMLButtonElement>, root: WorkspaceRoot) => void;
+  readonly onOpenRootMenu: (event: MouseEvent<HTMLElement>, root: WorkspaceRoot) => void;
   readonly onTogglePinnedThread: (threadId: string) => void;
   readonly onToggleShowAllThreads: (rootId: string) => void;
   readonly dragListeners?: ReturnType<typeof useSortable>["listeners"];
@@ -313,7 +314,7 @@ function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
   const handleOpenMenu = useCallback((event: MouseEvent<HTMLButtonElement | HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    props.onOpenMenu(event as MouseEvent<HTMLButtonElement>, props.root);
+    props.onOpenMenu(event, props.root);
   }, [props]);
 
   const handleCreateThread = useCallback((event: MouseEvent<HTMLButtonElement>) => {
@@ -497,6 +498,7 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
   const worktreePathSet = useMemo(() => createWorktreePathSet(props.worktreePaths), [props.worktreePaths]);
   const workspaceRootMenu = useWorkspaceRootMenuState({
     onRemoveRoot: props.onRemoveRoot,
+    onOpenRootInFileExplorer: props.onOpenRootInFileExplorer,
     onCreateWorktree: props.onCreateWorktree,
     onDeleteWorktree: props.onDeleteWorktree,
     isWorktree: (root) => isWorktreeRoot(root, worktreePathSet),
@@ -547,7 +549,7 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
     props.onSelectRoot(rootId);
     props.onSelectThread(threadId);
   }, [props]);
-  const handleOpenRootMenu = useCallback((event: MouseEvent<HTMLButtonElement>, root: WorkspaceRoot) => {
+  const handleOpenRootMenu = useCallback((event: MouseEvent<HTMLElement>, root: WorkspaceRoot) => {
     closeMenu();
     workspaceRootMenu.openMenu(event, root);
   }, [closeMenu, workspaceRootMenu]);
@@ -633,6 +635,7 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
           x={workspaceRootMenu.menuState.x}
           y={workspaceRootMenu.menuState.y}
           canDeleteWorktree={workspaceRootMenu.canDeleteWorktree}
+          onOpenInFileExplorer={props.onOpenRootInFileExplorer && workspaceRootMenu.menuState ? () => workspaceRootMenu.handleOpenRootInFileExplorer() : undefined}
           onCreateWorktree={props.onCreateWorktree && workspaceRootMenu.menuState ? () => workspaceRootMenu.handleCreateWorktree() : undefined}
           onDeleteWorktree={props.onDeleteWorktree && workspaceRootMenu.menuState ? () => workspaceRootMenu.handleDeleteWorktree() : undefined}
           onRemove={workspaceRootMenu.handleRemoveRoot}

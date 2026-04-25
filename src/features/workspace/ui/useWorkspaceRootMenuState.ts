@@ -1,7 +1,7 @@
 import { useCallback, useState, type MouseEvent } from "react";
 import type { WorkspaceRoot } from "../hooks/useWorkspaceRoots";
 
-const ROOT_MENU_WIDTH_PX = 168;
+const ROOT_MENU_WIDTH_PX = 192;
 const ROOT_MENU_OFFSET_PX = 6;
 const VIEWPORT_PADDING_PX = 8;
 
@@ -11,8 +11,8 @@ export interface WorkspaceRootMenuState {
   readonly y: number;
 }
 
-function createRootMenuPosition(button: HTMLButtonElement): Pick<WorkspaceRootMenuState, "x" | "y"> {
-  const bounds = button.getBoundingClientRect();
+function createRootMenuPosition(element: HTMLElement): Pick<WorkspaceRootMenuState, "x" | "y"> {
+  const bounds = element.getBoundingClientRect();
   const preferredX = bounds.right - ROOT_MENU_WIDTH_PX;
   const maxX = window.innerWidth - ROOT_MENU_WIDTH_PX - VIEWPORT_PADDING_PX;
   return {
@@ -23,13 +23,14 @@ function createRootMenuPosition(button: HTMLButtonElement): Pick<WorkspaceRootMe
 
 export function useWorkspaceRootMenuState(options: {
   readonly onRemoveRoot: (rootId: string) => void;
+  readonly onOpenRootInFileExplorer?: (root: WorkspaceRoot) => void | Promise<void>;
   readonly onCreateWorktree?: (root: WorkspaceRoot) => void | Promise<void>;
   readonly onDeleteWorktree?: (root: WorkspaceRoot) => void | Promise<void>;
   readonly isWorktree?: (root: WorkspaceRoot) => boolean;
 }) {
   const [menuState, setMenuState] = useState<WorkspaceRootMenuState | null>(null);
 
-  const openMenu = useCallback((event: MouseEvent<HTMLButtonElement>, root: WorkspaceRoot) => {
+  const openMenu = useCallback((event: MouseEvent<HTMLElement>, root: WorkspaceRoot) => {
     event.preventDefault();
     event.stopPropagation();
     setMenuState({ root, ...createRootMenuPosition(event.currentTarget) });
@@ -52,6 +53,14 @@ export function useWorkspaceRootMenuState(options: {
     closeMenu();
   }, [closeMenu, menuState, options]);
 
+  const handleOpenRootInFileExplorer = useCallback(async () => {
+    if (menuState === null || options.onOpenRootInFileExplorer === undefined) {
+      return;
+    }
+    await options.onOpenRootInFileExplorer(menuState.root);
+    closeMenu();
+  }, [closeMenu, menuState, options]);
+
   const handleDeleteWorktree = useCallback(async () => {
     if (menuState === null || options.onDeleteWorktree === undefined) {
       return;
@@ -66,6 +75,7 @@ export function useWorkspaceRootMenuState(options: {
     closeMenu,
     handleRemoveRoot,
     handleCreateWorktree,
+    handleOpenRootInFileExplorer,
     handleDeleteWorktree,
     canDeleteWorktree: menuState !== null && (options.isWorktree?.(menuState.root) ?? false),
   };
