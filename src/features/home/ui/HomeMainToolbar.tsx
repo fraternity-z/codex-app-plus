@@ -7,8 +7,7 @@ import { OfficialSidebarToggleIcon } from "../../shared/ui/officialIcons";
 import type { WorkspaceLaunchScriptsState } from "../hooks/useWorkspaceLaunchScripts";
 import { LaunchScriptsToolbar } from "./LaunchScriptsToolbar";
 
-const MAX_TOOLBAR_TITLE_LENGTH = 72;
-const TOOLBAR_TITLE_TAIL_LENGTH = 28;
+const MAX_TOOLBAR_TITLE_LENGTH = 24;
 
 interface HomeMainToolbarProps {
   readonly hostBridge: HostBridge;
@@ -58,25 +57,24 @@ function TerminalIcon(props: { readonly className?: string }): JSX.Element {
   );
 }
 
-function resolveTitle(props: HomeMainToolbarProps, conversationTitle: string, workspaceTitle: string): string {
+function resolveTitle(props: HomeMainToolbarProps, conversationTitle: string): string | null {
   if (props.conversationActive) {
     return props.selectedThreadTitle?.trim() || conversationTitle;
   }
-  return workspaceTitle;
+  return null;
 }
 
 function truncateToolbarTitle(value: string): string {
   if (value.length <= MAX_TOOLBAR_TITLE_LENGTH) {
     return value;
   }
-  const headLength = MAX_TOOLBAR_TITLE_LENGTH - TOOLBAR_TITLE_TAIL_LENGTH - 1;
-  return `${value.slice(0, headLength)}...${value.slice(-TOOLBAR_TITLE_TAIL_LENGTH)}`;
+  return `${value.slice(0, MAX_TOOLBAR_TITLE_LENGTH)}...`;
 }
 
 export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
   const { t } = useI18n();
-  const title = resolveTitle(props, t("home.toolbar.conversation"), t("home.toolbar.workspaceConversation"));
-  const displayTitle = truncateToolbarTitle(title);
+  const title = resolveTitle(props, t("home.toolbar.conversation"));
+  const displayTitle = title === null ? null : truncateToolbarTitle(title);
   const subtitle = props.conversationActive && props.selectedRootPath !== null
     ? props.workspaceSwitching
       ? `${props.selectedRootName} · ${t("home.toolbar.switching")}`
@@ -90,7 +88,7 @@ export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
   return (
     <header className={toolbarClassName}>
       <div className="toolbar-heading">
-        <h1 className={titleClassName} title={title}>{displayTitle}</h1>
+        {title === null ? null : <h1 className={titleClassName} title={title}>{displayTitle}</h1>}
         {subtitle === null ? null : <p className="toolbar-subtitle">{subtitle}</p>}
       </div>
       <div className="toolbar-actions">

@@ -543,7 +543,6 @@ export const zhCN = {
     },
     toolbar: {
       conversation: "会话",
-      workspaceConversation: "工作区会话",
       hideTerminal: "隐藏终端",
       showTerminal: "显示终端",
       hideDiffSidebar: "隐藏差异侧栏",

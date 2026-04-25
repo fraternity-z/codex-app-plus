@@ -544,7 +544,6 @@ export const enUS = {
     },
     toolbar: {
       conversation: "Conversation",
-      workspaceConversation: "Workspace Conversation",
       hideTerminal: "Hide terminal",
       showTerminal: "Show terminal",
       hideDiffSidebar: "Hide diff sidebar",

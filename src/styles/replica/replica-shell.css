@@ -421,6 +421,7 @@
 .toolbar-title-compact {
   font-size: var(--app-ui-font-size-lg);
   line-height: 1.2;
+  max-width: min(32ch, 100%);
 }
 .toolbar-subtitle {
   margin: 0;

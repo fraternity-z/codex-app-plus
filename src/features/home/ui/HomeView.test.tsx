@@ -794,14 +794,14 @@ describe("HomeView", () => {
     expect(onDismissBanner).toHaveBeenCalledWith("banner-error");
   });
 
-  it("uses the generic toolbar title for a new thread instead of the workspace name", () => {
+  it("omits the generic workspace conversation title when no thread is active", () => {
     renderHomeView({
       selectedThread: null,
       selectedThreadId: null,
     });
 
-    expect(screen.getByRole("heading", { level: 1, name: "工作区会话" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { level: 1, name: "FPGA" })).toBeNull();
+    expect(screen.queryByRole("heading", { level: 1, name: "工作区会话" })).toBeNull();
+    expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
   });
 
   it("shows the current workspace empty state after creating a draft thread", () => {
@@ -861,8 +861,8 @@ describe("HomeView", () => {
     });
 
     const heading = screen.getByRole("heading", { level: 1 });
-    expect(heading.textContent).not.toBe(longTitle);
-    expect(heading.textContent ?? "").toMatch(/…|\.\.\./);
+    expect(heading).toHaveTextContent(`${longTitle.slice(0, 24)}...`);
+    expect(heading.textContent ?? "").not.toContain("E:/code");
     expect(heading).toHaveAttribute("title", longTitle);
   });
 
