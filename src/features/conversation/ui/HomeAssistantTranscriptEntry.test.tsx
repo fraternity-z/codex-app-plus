@@ -209,6 +209,14 @@ function createReasoningNode(
   };
 }
 
+function openDetails(summary: Element | null, details: HTMLDetailsElement | null): void {
+  if (summary === null || details === null) {
+    return;
+  }
+  fireEvent.click(summary);
+  fireEvent(details, new Event("toggle", { bubbles: true }));
+}
+
 describe("HomeAssistantTranscriptEntry", () => {
   beforeEach(() => {
     coreMocks.convertFileSrc.mockClear();
@@ -326,7 +334,7 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("marks command summaries for collapsed truncation without shortening text content", () => {
+  it("renders command summaries as collapsed disclosure rows", () => {
     const { container } = render(<HomeAssistantTranscriptEntry node={createCommandNode()} />, {
       wrapper: createI18nWrapper("en-US"),
     });
@@ -341,8 +349,10 @@ describe("HomeAssistantTranscriptEntry", () => {
 
     expect(entry).not.toBeNull();
     expect(summary).toHaveAttribute("data-truncate-summary", "true");
-    expect(summaryText?.textContent).toContain(LONG_COMMAND);
+    expect(summaryText?.textContent).toBe(`Ran ${LONG_COMMAND}`);
     expect(summaryText?.textContent).not.toContain("...");
+    expect(container.querySelector(".home-assistant-transcript-command-summary-inline")).not.toBeNull();
+    expect(container.querySelector(".home-assistant-transcript-command-open-summary")).toBeNull();
     expect(details?.open).toBe(false);
     expect(detailPanel).not.toBeNull();
     expect(screen.getByText("Shell")).toBeInTheDocument();
@@ -353,28 +363,47 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(body?.textContent).toContain(`$ ${LONG_COMMAND}`);
     expect(body?.textContent).toContain("done");
 
-    if (summary !== null) {
-      fireEvent.click(summary);
-    }
+    openDetails(summary, details);
 
     expect(details?.open).toBe(true);
+    expect(summaryText?.textContent).toBe("Ran command");
+    expect(container.querySelector(".home-assistant-transcript-command-open-summary")).not.toBeNull();
   });
 
-  it("highlights read command file names in the summary", () => {
+  it("keeps command failure state inside expanded details", () => {
+    const { container } = render(
+      <HomeAssistantTranscriptEntry node={createCommandNodeWithStatus("pnpm test", "failed")} />,
+      { wrapper: createI18nWrapper("zh-CN") },
+    );
+
+    const summary = container.querySelector("summary");
+    const details = container.querySelector("details");
+    const summaryText = container.querySelector(".home-assistant-transcript-summary-text");
+
+    expect(details?.open).toBe(false);
+    expect(summaryText?.textContent).toBe("已运行 pnpm test");
+    expect(summaryText?.textContent).not.toContain("失败");
+
+    openDetails(summary, details);
+
+    expect(details?.open).toBe(true);
+    expect(summaryText?.textContent).toBe("已运行命令");
+    expect(container.querySelector(".home-assistant-transcript-detail-footer-status")?.textContent).toBe("失败");
+  });
+
+  it("uses raw command text in collapsed read command summaries", () => {
     const { container } = render(
       <HomeAssistantTranscriptEntry node={createCommandNode("Get-Content src/i18n/messages/schema.ts")} />,
       { wrapper: createI18nWrapper("zh-CN") },
     );
 
-    const fileName = screen.getByText("schema.ts", { selector: ".home-assistant-transcript-file-name" });
     const summaryText = container.querySelector(".home-assistant-transcript-summary-text");
 
-    expect(fileName).toHaveClass("home-assistant-transcript-file-name");
-    expect(summaryText?.textContent).toBe("已读取文件 schema.ts");
-    expect(summaryText?.textContent).not.toContain("src/i18n/messages/schema.ts");
+    expect(container.querySelector(".home-assistant-transcript-file-name")).toBeNull();
+    expect(summaryText?.textContent).toBe("已运行 Get-Content src/i18n/messages/schema.ts");
   });
 
-  it("uses concise completed copy for searches inside a path", () => {
+  it("uses raw command text in collapsed search command summaries", () => {
     const { container } = render(
       <HomeAssistantTranscriptEntry node={createCommandNodeWithStatus("rg -n \"ConversationPane|ControlBar\" src", "completed")} />,
       { wrapper: createI18nWrapper("zh-CN") },
@@ -383,7 +412,7 @@ describe("HomeAssistantTranscriptEntry", () => {
     const summaryText = container.querySelector(".home-assistant-transcript-summary-text");
 
     expect(container.querySelector(".home-assistant-transcript-file-name")).toBeNull();
-    expect(summaryText?.textContent).toBe("在 src 中搜寻完毕");
+    expect(summaryText?.textContent).toBe("已运行 rg -n \"ConversationPane|ControlBar\" src");
   });
 
   it("marks MCP, dynamic, and collab tool summaries for collapsed truncation", () => {
@@ -439,9 +468,7 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(strongTitle?.textContent).toBe("Inspecting code behavior");
     expect(container.querySelector(".home-assistant-transcript-detail-panel")).toBeNull();
 
-    if (summary !== null) {
-      fireEvent.click(summary);
-    }
+    openDetails(summary, details);
 
     expect(details?.open).toBe(true);
     expect(container.querySelector(".home-assistant-transcript-reasoning-body")?.textContent).toContain(

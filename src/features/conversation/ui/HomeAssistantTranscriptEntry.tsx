@@ -5,7 +5,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { ConversationMessageContent } from "./ConversationMessageContent";
 import { HomeImagePreviewDialog } from "./HomeImagePreviewDialog";
 import type { ConversationRenderNode } from "../model/localConversationGroups";
-import { createAssistantTranscriptEntryModel, createCommandSummaryParts } from "../model/assistantTranscript";
+import { createAssistantTranscriptEntryModel } from "../model/assistantTranscript";
 import { createDetailPanel } from "../model/assistantTranscriptDetailModel";
 import { createFileChangeSummaryParts } from "../model/fileChangeSummary";
 import { HomeAssistantTranscriptDetailBlock } from "./HomeAssistantTranscriptDetailBlock";
@@ -13,7 +13,7 @@ import { MarkdownRenderer } from "./MarkdownRenderer";
 import { HomePlanDraftCard } from "../../composer/ui/HomePlanDraftCard";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
-import type { ImageGenerationEntry } from "../../../domain/timeline";
+import type { CommandExecutionEntry, ImageGenerationEntry } from "../../../domain/timeline";
 import { useI18n } from "../../../i18n/useI18n";
 import { parseUnifiedDiffCached } from "../../git/model/diffPreviewModel";
 import type { FileUpdateChange } from "../../../protocol/generated/v2/FileUpdateChange";
@@ -372,15 +372,41 @@ function createSummaryContent(
   if (node.item.kind !== "commandExecution") {
     return summary;
   }
-  const parts = createCommandSummaryParts(node.item.command, node.item.status, t);
-  if (parts === null || parts.fileName === null) {
-    return summary;
-  }
   return (
-    <>
-      {parts.prefix}
-      <span className="home-assistant-transcript-file-name">{parts.fileName}</span>
-      {parts.suffix}
-    </>
+    <CommandSummaryContent
+      command={node.item.command}
+      collapsedSummary={summary}
+      open={detailsOpen}
+      status={node.item.status}
+      t={t}
+    />
   );
+}
+
+function CommandSummaryContent(props: {
+  readonly command: string;
+  readonly collapsedSummary: string;
+  readonly open: boolean;
+  readonly status: CommandExecutionEntry["status"];
+  readonly t: ReturnType<typeof useI18n>["t"];
+}): JSX.Element {
+  const label = props.open ? createOpenCommandSummary(props.status, props.t) : props.collapsedSummary;
+  return (
+    <span className={props.open ? "home-assistant-transcript-command-open-summary" : "home-assistant-transcript-command-summary-inline"}>
+      <span className="home-assistant-transcript-command-summary-label" title={props.open ? undefined : props.command}>
+        {label}
+      </span>
+      <span className="home-assistant-transcript-summary-chevron" aria-hidden="true" />
+    </span>
+  );
+}
+
+function createOpenCommandSummary(status: CommandExecutionEntry["status"], t: ReturnType<typeof useI18n>["t"]): string {
+  if (status === "declined") {
+    return t("home.conversation.transcript.commandDeclinedOpen");
+  }
+  if (status === "inProgress") {
+    return t("home.conversation.transcript.commandRunningOpen");
+  }
+  return t("home.conversation.transcript.commandCompletedOpen");
 }

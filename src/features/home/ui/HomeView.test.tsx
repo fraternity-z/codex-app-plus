@@ -600,7 +600,7 @@ describe("HomeView", () => {
 
     const { container } = renderHomeView({ activities });
 
-    expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
+    expect(screen.getByText("正在执行 pnpm test")).toBeInTheDocument();
     expect(screen.getByText("需要补充信息")).toBeInTheDocument();
     expect(screen.getByText("请选择下一步")).toBeInTheDocument();
     expect(screen.getByText("Queue")).toBeInTheDocument();
@@ -633,7 +633,7 @@ describe("HomeView", () => {
     ];
 
     const { rerender } = renderHomeView({ activities, threadDetailLevel: "compact" });
-    expect(screen.queryByText("正在执行命令：pnpm test")).toBeNull();
+    expect(screen.queryByText("正在执行 pnpm test")).toBeNull();
 
     rerender(
       <I18nWrapper>
@@ -720,7 +720,7 @@ describe("HomeView", () => {
       </I18nWrapper>
     );
 
-    expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
+    expect(screen.getByText("正在执行 pnpm test")).toBeInTheDocument();
   });
 
   it("hides Auth/Plan pills and info banners above the conversation", () => {

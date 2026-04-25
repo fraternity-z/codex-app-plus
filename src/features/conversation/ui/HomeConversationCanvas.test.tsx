@@ -306,7 +306,7 @@ describe("HomeConversationCanvas", () => {
   it("keeps user input requests out of the timeline while suppressing the thinking indicator", () => {
     const { container } = renderCanvas([USER_MESSAGE, COMMAND_ENTRY, REQUEST_ENTRY], { activeTurnId: "turn-1" });
 
-    expect(screen.getByText("正在执行命令：pnpm test")).toBeInTheDocument();
+    expect(screen.getByText("正在执行 pnpm test")).toBeInTheDocument();
     expect(screen.queryByText("请选择处理范围")).toBeNull();
     expect(container.querySelector('.home-assistant-transcript-summary[data-truncate-summary="true"]')).not.toBeNull();
     expect(container.querySelector(".home-assistant-transcript-details details[open]")).toBeNull();
@@ -396,7 +396,7 @@ describe("HomeConversationCanvas", () => {
   it("hides command summaries in compact mode", () => {
     renderCanvas([USER_MESSAGE, COMMAND_ENTRY], { activeTurnId: "turn-1", threadDetailLevel: "compact" });
 
-    expect(screen.queryByText("正在执行命令：pnpm test")).toBeNull();
+    expect(screen.queryByText("正在执行 pnpm test")).toBeNull();
     expect(screen.getByText(/正在思考|Thinking/)).toBeInTheDocument();
   });
 

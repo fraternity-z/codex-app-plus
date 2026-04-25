@@ -202,16 +202,33 @@
 }
 
 .home-assistant-transcript-file-change-summary-inline,
-.home-assistant-transcript-file-change-open-summary {
-  display: inline-flex;
+.home-assistant-transcript-file-change-open-summary,
+.home-assistant-transcript-command-summary-inline,
+.home-assistant-transcript-command-open-summary {
+  display: flex;
   min-width: 0;
   align-items: center;
   gap: 6px;
+  width: 100%;
   max-width: 100%;
+}
+
+.home-assistant-transcript-file-change-summary-inline,
+.home-assistant-transcript-file-change-open-summary {
+  display: inline-flex;
+  width: auto;
 }
 
 .home-assistant-transcript-file-change-summary-inline > span:first-child {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-assistant-transcript-command-summary-label {
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -247,6 +264,7 @@
 }
 
 .home-assistant-transcript-file-change-open-summary .home-assistant-transcript-summary-chevron::before,
+.home-assistant-transcript-command-open-summary .home-assistant-transcript-summary-chevron::before,
 .home-assistant-transcript-file-diff-card[open] .home-assistant-transcript-file-diff-chevron::before {
   transform: rotate(45deg);
 }
@@ -358,6 +376,15 @@
 
 .home-assistant-transcript-detail-panel[data-variant="shell"] .home-assistant-transcript-detail-body {
   color: var(--text-main);
+}
+
+.home-assistant-transcript-detail-panel[data-variant="shell"] {
+  margin-right: 0;
+  margin-left: 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-panel-muted);
+  box-shadow: none;
 }
 
 .home-assistant-transcript-detail-panel[data-variant="diffSummary"] {

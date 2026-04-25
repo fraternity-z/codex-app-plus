@@ -389,8 +389,6 @@ function createDetailBlockPanel(options: DetailBlockOptions): AssistantTranscrip
 }
 
 function createCommandSummary(command: string, status: string, t: TranslateFn): string {
-  const parts = createCommandSummaryParts(command, status as CommandExecutionStatus, t);
-  if (parts !== null) return parts.text;
   if (status === "completed") return t("home.conversation.transcript.commandCompleted", { command });
   if (status === "failed") return t("home.conversation.transcript.commandFailed", { command });
   if (status === "declined") return t("home.conversation.transcript.commandDeclined", { command });
