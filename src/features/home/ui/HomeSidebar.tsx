@@ -142,6 +142,10 @@ function SearchDialog(props: {
     return null;
   }
 
+  const portalTarget = document.querySelector<HTMLElement>(".replica-main") ?? document.body;
+  const backdropClassName = portalTarget === document.body
+    ? "sidebar-search-backdrop"
+    : "sidebar-search-backdrop sidebar-search-backdrop-main";
   const trimmedQuery = props.query.trim();
   const visibleResults = props.results
     .map((result) => ({ result, rootId: findRootIdForSession(props.roots, result) }))
@@ -157,7 +161,7 @@ function SearchDialog(props: {
           : null;
 
   return createPortal(
-    <div className="sidebar-search-backdrop" role="presentation" onClick={props.onClose}>
+    <div className={backdropClassName} role="presentation" onClick={props.onClose}>
       <section
         className="sidebar-search-dialog"
         role="dialog"
@@ -205,7 +209,7 @@ function SearchDialog(props: {
         )}
       </section>
     </div>,
-    document.body,
+    portalTarget,
   );
 }
 

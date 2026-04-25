@@ -265,8 +265,11 @@
   padding: 96px 20px 20px;
   background: color-mix(in srgb, var(--surface-canvas) 48%, transparent);
 }
+.sidebar-search-backdrop-main {
+  position: absolute;
+}
 .sidebar-search-dialog {
-  width: min(640px, calc(100vw - 40px));
+  width: min(640px, calc(100% - 40px));
   max-height: min(72vh, 720px);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);

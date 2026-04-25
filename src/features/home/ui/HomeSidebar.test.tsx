@@ -91,6 +91,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
   readonly request?: ReturnType<typeof vi.fn>;
   readonly initializeStore?: (dispatch: AppStoreApi["dispatch"]) => void;
   readonly codexSessionsError?: string | null;
+  readonly renderMainContainer?: boolean;
 }) {
   const onArchiveThread = options?.onArchiveThread ?? vi.fn().mockResolvedValue(undefined);
   const onCreateThread = options?.onCreateThread ?? vi.fn().mockResolvedValue(undefined);
@@ -139,6 +140,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
           onAddRoot={vi.fn()}
           onRemoveRoot={options?.onRemoveRoot ?? vi.fn()}
         />
+        {options?.renderMainContainer ? <main className="replica-main" data-testid="main-content" /> : null}
       </AppStoreProvider>
     );
   }
@@ -180,6 +182,18 @@ describe("HomeSidebar", () => {
 
     expect(screen.getByRole("dialog", { name: "搜索会话" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("搜索会话内容")).toBeInTheDocument();
+  });
+
+  it("mounts the session search dialog inside the main content area when available", () => {
+    renderSidebar(createThread("codexData"), { renderMainContainer: true });
+
+    fireEvent.click(screen.getByRole("button", { name: "搜索" }));
+
+    const mainContent = screen.getByTestId("main-content");
+    const backdrop = mainContent.querySelector(".sidebar-search-backdrop-main");
+
+    expect(backdrop).not.toBeNull();
+    expect(backdrop).toContainElement(screen.getByRole("dialog", { name: "搜索会话" }));
   });
 
   it("searches session content and selects the matching thread", async () => {

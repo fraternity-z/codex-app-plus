@@ -152,7 +152,6 @@ function renderSkillsView(overrides?: {
   readonly uninstallMarketplacePlugin?: ReturnType<typeof vi.fn>;
   readonly setAppEnabled?: ReturnType<typeof vi.fn>;
   readonly setMarketplacePluginEnabled?: ReturnType<typeof vi.fn>;
-  readonly onTryPlugin?: ReturnType<typeof vi.fn>;
 }) {
   const listSkills = overrides?.listSkills ?? vi.fn().mockResolvedValue(createInstalledSkillsResponse());
   const listMarketplacePlugins = overrides?.listMarketplacePlugins ?? vi.fn().mockResolvedValue(createMarketplacePluginsResponse());
@@ -168,7 +167,6 @@ function renderSkillsView(overrides?: {
   const uninstallMarketplacePlugin = overrides?.uninstallMarketplacePlugin ?? vi.fn().mockResolvedValue(createPluginUninstallResponse());
   const setAppEnabled = overrides?.setAppEnabled ?? vi.fn().mockResolvedValue({ status: "success", version: "1", filePath: "C:/Users/Administrator/.codex/config.toml", overriddenMetadata: null });
   const setMarketplacePluginEnabled = overrides?.setMarketplacePluginEnabled ?? vi.fn().mockResolvedValue({ status: "success", version: "1", filePath: "C:/Users/Administrator/.codex/config.toml", overriddenMetadata: null });
-  const onTryPlugin = overrides?.onTryPlugin ?? vi.fn();
 
   const view = render(
     <SkillsView
@@ -177,7 +175,6 @@ function renderSkillsView(overrides?: {
       selectedRootPath="E:/code/codex-app-plus"
       notifications={overrides?.notifications ?? []}
       onOpenLearnMore={vi.fn().mockResolvedValue(undefined)}
-      onTryPlugin={onTryPlugin}
       listMcpServerStatuses={listMcpServerStatuses}
       listSkills={listSkills}
       listMarketplacePlugins={listMarketplacePlugins}
@@ -198,7 +195,6 @@ function renderSkillsView(overrides?: {
     listMarketplacePlugins,
     listMcpServerStatuses,
     listSkills,
-    onTryPlugin,
     readMarketplacePlugin,
     setAppEnabled,
     setMarketplacePluginEnabled,
@@ -216,6 +212,22 @@ describe("SkillsView", () => {
     expect(await screen.findByText("Figma")).toBeInTheDocument();
     expect(screen.queryByText("hidden")).toBeNull();
     expect(screen.getByRole("button", { name: "停用 Browser Use" })).toBeInTheDocument();
+  });
+
+  it("renders the marketplace hero as a generated image", async () => {
+    const { container } = renderSkillsView();
+
+    expect(await screen.findByText("Browser Use")).toBeInTheDocument();
+
+    const hero = container.querySelector(".plugin-market-hero");
+    expect(hero).not.toBeNull();
+
+    const image = hero!.querySelector("img.plugin-hero-image");
+    expect(image).toHaveAttribute("src", expect.stringContaining("plugin-hero-colorburst.png"));
+    expect(image).toHaveAttribute("alt", "");
+    expect(hero).toHaveTextContent("插件市场仍在完善中");
+    expect(hero).toHaveTextContent("当前页面只是实验性复刻");
+    expect(hero).not.toHaveTextContent("Control the in-app browser with Codex");
   });
 
   it("hides the built-in codex apps runtime MCP server from management", async () => {

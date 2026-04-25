@@ -3,7 +3,6 @@ import type { WorkspaceRootController } from "../../workspace/hooks/useWorkspace
 import type { AppController } from "../../../app/controller/appControllerTypes";
 import { useSkillsScreenState } from "../../../app/controller/appControllerState";
 import { SettingsLoadingFallback } from "../../../app/ui/SettingsLoadingFallback";
-import type { MarketplacePluginCard } from "../model/skillCatalog";
 import type { SkillsViewProps } from "./SkillsView";
 
 const LazySkillsView = lazy(async () => {
@@ -31,10 +30,6 @@ export function SkillsScreen(props: SkillsScreenProps): JSX.Element {
     notifications: state.notifications,
     onOpenMcpSettings: props.onOpenMcpSettings,
     onOpenLearnMore: props.onOpenLearnMore,
-    onTryPlugin: (plugin) => {
-      props.controller.setInput(createPluginTryPrompt(plugin));
-      props.onBackHome();
-    },
     listMcpServerStatuses: props.controller.listMcpServerStatuses,
     listSkills: props.controller.listSkills,
     listMarketplacePlugins: props.controller.listMarketplacePlugins,
@@ -52,9 +47,4 @@ export function SkillsScreen(props: SkillsScreenProps): JSX.Element {
       <LazySkillsView {...skillsProps} />
     </Suspense>
   );
-}
-
-function createPluginTryPrompt(plugin: MarketplacePluginCard): string {
-  const prompt = plugin.defaultPrompts[0]?.trim();
-  return prompt && prompt.length > 0 ? `@${plugin.pluginName} ${prompt}` : `@${plugin.pluginName} `;
 }

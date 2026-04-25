@@ -15,6 +15,7 @@ import type { SkillsConfigWriteParams } from "../../../protocol/generated/v2/Ski
 import type { SkillsConfigWriteResponse } from "../../../protocol/generated/v2/SkillsConfigWriteResponse";
 import type { SkillsListParams } from "../../../protocol/generated/v2/SkillsListParams";
 import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsListResponse";
+import pluginHeroImageUrl from "../../../assets/official/plugin-hero-colorburst.png";
 import { useI18n } from "../../../i18n";
 import type { ConfigMutationResult } from "../../settings/config/configOperations";
 import "../../../styles/replica/replica-skills.css";
@@ -37,7 +38,6 @@ export interface SkillsViewProps {
   readonly notifications: ReadonlyArray<ReceivedNotification>;
   readonly onOpenMcpSettings?: () => void;
   readonly onOpenLearnMore: () => Promise<void>;
-  readonly onTryPlugin: (plugin: MarketplacePluginCard) => void;
   readonly listMcpServerStatuses: () => Promise<ReadonlyArray<McpServerStatus>>;
   readonly listSkills: (params: SkillsListParams) => Promise<SkillsListResponse>;
   readonly listMarketplacePlugins: (params: PluginListParams) => Promise<PluginListResponse>;
@@ -131,7 +131,6 @@ export function SkillsView(props: SkillsViewProps): JSX.Element {
                   plugins={model.marketplacePlugins}
                   onInstallPlugin={model.installMarketplacePluginCard}
                   onTogglePluginEnabled={model.toggleMarketplacePluginEnabled}
-                  onTryPlugin={props.onTryPlugin}
                   onUninstallPlugin={model.uninstallMarketplacePluginCard}
                 />
               ) : (
@@ -609,7 +608,6 @@ function PluginMarketplace(props: {
   readonly loading: boolean;
   readonly onInstallPlugin: (plugin: MarketplacePluginCard) => Promise<void>;
   readonly onTogglePluginEnabled: (plugin: MarketplacePluginCard) => Promise<void>;
-  readonly onTryPlugin: (plugin: MarketplacePluginCard) => void;
   readonly onUninstallPlugin: (plugin: MarketplacePluginCard) => Promise<void>;
 }): JSX.Element {
   const { t } = useI18n();
@@ -618,12 +616,7 @@ function PluginMarketplace(props: {
   return (
     <>
       {heroPlugin !== null ? (
-        <PluginHero
-          plugin={heroPlugin}
-          pending={props.pendingPluginIds[heroPlugin.id] === true}
-          onInstallPlugin={props.onInstallPlugin}
-          onTryPlugin={props.onTryPlugin}
-        />
+        <PluginHero plugin={heroPlugin} />
       ) : null}
       <SectionBanner message={props.actionError} tone="error" />
       <PluginMarketplaceState
@@ -656,36 +649,15 @@ function PluginMarketplace(props: {
 
 function PluginHero(props: {
   readonly plugin: MarketplacePluginCard;
-  readonly pending: boolean;
-  readonly onInstallPlugin: (plugin: MarketplacePluginCard) => Promise<void>;
-  readonly onTryPlugin: (plugin: MarketplacePluginCard) => void;
 }): JSX.Element {
   const { t } = useI18n();
-  const heroPrompt = props.plugin.defaultPrompts[0] ?? props.plugin.description;
-  const canInstall = !props.plugin.installed && props.plugin.installPolicy !== "NOT_AVAILABLE";
-  const handleAction = () => {
-    if (props.plugin.installed) {
-      props.onTryPlugin(props.plugin);
-      return;
-    }
-    if (canInstall) {
-      void props.onInstallPlugin(props.plugin);
-    }
-  };
   return (
     <section className="plugin-market-hero" aria-label={props.plugin.name}>
-      <div className="plugin-hero-prompt">
-        <SkillAvatar brandColor={props.plugin.brandColor} icon={props.plugin.icon} name={props.plugin.name} />
-        <span>{heroPrompt}</span>
+      <img className="plugin-hero-image" src={pluginHeroImageUrl} alt="" />
+      <div className="plugin-hero-note">
+        <strong>{t("home.skills.hero.experimentalTitle")}</strong>
+        <span>{t("home.skills.hero.experimentalDetail")}</span>
       </div>
-      <button
-        type="button"
-        className="plugin-hero-action"
-        disabled={props.pending || (!props.plugin.installed && !canInstall)}
-        onClick={handleAction}
-      >
-        {props.plugin.installed ? t("home.skills.hero.try") : t("home.skills.card.install")}
-      </button>
     </section>
   );
 }

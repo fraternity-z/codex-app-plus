@@ -884,6 +884,8 @@ export const enUS = {
       },
       hero: {
         try: "Try in conversation",
+        experimentalTitle: "Plugin marketplace is still incomplete",
+        experimentalDetail: "This page is only an experimental replica; its features and content are not final.",
       },
       sections: {
         featured: "Featured",

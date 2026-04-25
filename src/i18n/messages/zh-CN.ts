@@ -883,6 +883,8 @@ export const zhCN = {
       },
       hero: {
         try: "在对话中试用",
+        experimentalTitle: "插件市场仍在完善中",
+        experimentalDetail: "当前页面只是实验性复刻，能力和内容还不代表最终形态。",
       },
       sections: {
         featured: "Featured",
