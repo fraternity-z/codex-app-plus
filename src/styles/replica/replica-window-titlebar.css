@@ -38,11 +38,6 @@
   height: 18px;
 }
 
-.window-titlebar-nav-icon {
-  width: 14px;
-  height: 14px;
-}
-
 .window-titlebar-controls {
   display: inline-flex;
   align-items: stretch;
@@ -63,12 +58,18 @@
 }
 
 .window-titlebar-nav-button {
-  width: 38px;
+  width: 36px;
+  color: color-mix(in srgb, var(--text-muted) 72%, var(--surface-panel));
 }
 
 .window-titlebar-button svg {
   width: 12px;
   height: 12px;
+}
+
+.window-titlebar-button .window-titlebar-nav-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .window-titlebar-close-icon {
@@ -83,13 +84,13 @@
 }
 
 .window-titlebar-button:disabled {
-  color: var(--text-faint);
+  color: color-mix(in srgb, var(--text-subtle) 36%, var(--surface-panel));
   cursor: default;
 }
 
 .window-titlebar-button:disabled:hover {
   background: transparent;
-  color: var(--text-faint);
+  color: color-mix(in srgb, var(--text-subtle) 36%, var(--surface-panel));
 }
 
 .window-titlebar-sidebar-toggle:focus-visible,

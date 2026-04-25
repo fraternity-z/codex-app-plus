@@ -81,16 +81,28 @@ function MaximizeIcon(): JSX.Element {
 
 function BackIcon(): JSX.Element {
   return (
-    <svg className="window-titlebar-nav-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M13 8H3M3 8L7 4M3 8L7 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    <svg className="window-titlebar-nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M20 12H5.5M11.5 6L5.5 12L11.5 18"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
 function ForwardIcon(): JSX.Element {
   return (
-    <svg className="window-titlebar-nav-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M3 8H13M13 8L9 4M13 8L9 12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    <svg className="window-titlebar-nav-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 12H18.5M12.5 6L18.5 12L12.5 18"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
