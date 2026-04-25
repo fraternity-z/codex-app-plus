@@ -538,11 +538,14 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
         <HomePlanRequestComposer
           busy={props.busy || props.appServerReady === false}
           onDismiss={dismissPlanPrompt}
-          onImplement={() => sendPlanPromptTurn({
-            text: "Implement the plan.",
-            collaborationPreset: "default",
-            collaborationModeOverridePreset: "default",
-          })}
+          onImplement={() => {
+            props.onSelectCollaborationPreset("default");
+            return sendPlanPromptTurn({
+              text: "Implement the plan.",
+              collaborationPreset: "default",
+              collaborationModeOverridePreset: "default",
+            });
+          }}
           onRefine={(notes) => sendPlanPromptTurn({
             text: notes,
             collaborationPreset: "plan",

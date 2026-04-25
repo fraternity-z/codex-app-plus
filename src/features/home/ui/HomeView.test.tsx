@@ -498,6 +498,7 @@ describe("HomeView", () => {
 
   it("submits implementation from the plan confirmation composer", async () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
+    const onSelectCollaborationPreset = vi.fn();
     const activities: ReadonlyArray<TimelineEntry> = [
       {
         id: "plan-draft-1",
@@ -510,14 +511,54 @@ describe("HomeView", () => {
       },
     ];
 
-    renderHomeView({ activities, onSendTurn });
+    renderHomeView({
+      activities,
+      collaborationPreset: "plan",
+      onSelectCollaborationPreset,
+      onSendTurn,
+    });
     fireEvent.click(screen.getByRole("button", { name: "提交" }));
 
+    expect(onSelectCollaborationPreset).toHaveBeenCalledWith("default");
     await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(
       expect.objectContaining({
         text: "Implement the plan.",
         collaborationPreset: "default",
         collaborationModeOverridePreset: "default",
+      }),
+    ));
+  });
+
+  it("keeps plan mode selected when refining from the plan confirmation composer", async () => {
+    const onSendTurn = vi.fn().mockResolvedValue(undefined);
+    const onSelectCollaborationPreset = vi.fn();
+    const activities: ReadonlyArray<TimelineEntry> = [
+      {
+        id: "plan-draft-1",
+        kind: "plan",
+        threadId: "thread-1",
+        turnId: "turn-1",
+        itemId: "item-plan-draft",
+        text: "## 计划书\n- 第一步\n- 第二步",
+        status: "done",
+      },
+    ];
+
+    renderHomeView({
+      activities,
+      collaborationPreset: "plan",
+      onSelectCollaborationPreset,
+      onSendTurn,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /否，请告知 Codex 如何调整/ }));
+    fireEvent.change(screen.getByPlaceholderText("请告诉 Codex 该如何调整方案"), { target: { value: "把测试拆成两步" } });
+    fireEvent.click(screen.getByRole("button", { name: "提交" }));
+
+    expect(onSelectCollaborationPreset).not.toHaveBeenCalledWith("default");
+    await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: "把测试拆成两步",
+        collaborationPreset: "plan",
       }),
     ));
   });
