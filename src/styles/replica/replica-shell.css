@@ -387,6 +387,16 @@
   grid-column: 2;
   grid-row: 1;
 }
+
+.replica-main-embedded-screen {
+  overflow: hidden;
+}
+
+.replica-main-embedded-screen > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .main-toolbar {
   min-height: 72px;
   display: flex;

@@ -845,7 +845,34 @@ export const enUS = {
       },
       manage: {
         action: "Manage",
-        updating: "Updating",
+        title: "Plugin management",
+        marketplace: "Marketplace",
+        configure: "Configure {name}",
+        enable: "Enable {name}",
+        disable: "Disable {name}",
+        tabs: {
+          label: "Management category",
+          plugins: "Plugins",
+          apps: "Apps",
+          mcp: "MCP",
+          skills: "Skills",
+        },
+        search: {
+          plugins: "Search plugins",
+          apps: "Search apps",
+          mcp: "Search MCP",
+          skills: "Search skills",
+        },
+        empty: {
+          plugins: "No installed plugins.",
+          apps: "No manageable apps.",
+          mcp: "No manageable MCP servers.",
+          skills: "No manageable skills.",
+        },
+        loading: {
+          apps: "Fetching apps.",
+          mcp: "Fetching MCP status.",
+        },
       },
       filters: {
         marketplace: "Marketplace",

@@ -14,6 +14,7 @@ const LazySkillsView = lazy(async () => {
 interface SkillsScreenProps {
   readonly controller: AppController;
   readonly onBackHome: () => void;
+  readonly onOpenMcpSettings?: () => void;
   readonly onOpenLearnMore: () => Promise<void>;
   readonly workspace: WorkspaceRootController;
 }
@@ -23,19 +24,24 @@ export function SkillsScreen(props: SkillsScreenProps): JSX.Element {
   const selectedRootPath = props.workspace.selectedRoot?.path ?? null;
 
   const skillsProps: SkillsViewProps = {
+    configSnapshot: state.configSnapshot,
+    mcpServerStatuses: state.mcpServerStatuses,
     ready: state.initialized,
     selectedRootPath,
     notifications: state.notifications,
-    onBackHome: props.onBackHome,
+    onOpenMcpSettings: props.onOpenMcpSettings,
     onOpenLearnMore: props.onOpenLearnMore,
     onTryPlugin: (plugin) => {
       props.controller.setInput(createPluginTryPrompt(plugin));
       props.onBackHome();
     },
+    listMcpServerStatuses: props.controller.listMcpServerStatuses,
     listSkills: props.controller.listSkills,
     listMarketplacePlugins: props.controller.listMarketplacePlugins,
-    upgradeMarketplaces: props.controller.upgradeMarketplaces,
+    readMarketplacePlugin: props.controller.readMarketplacePlugin,
+    setAppEnabled: props.controller.setAppEnabled,
     writeSkillConfig: props.controller.writeSkillConfig,
+    writeConfigValue: props.controller.writeConfigValue,
     installMarketplacePlugin: props.controller.installMarketplacePlugin,
     uninstallMarketplacePlugin: props.controller.uninstallMarketplacePlugin,
     setMarketplacePluginEnabled: props.controller.setMarketplacePluginEnabled,

@@ -31,6 +31,7 @@ interface HomeScreenProps {
   readonly settingsMenuOpen: boolean;
   readonly sidebarCollapsed: boolean;
   readonly workspace: WorkspaceRootController;
+  readonly mainContentOverride?: JSX.Element | null;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
   readonly onOpenSettingsSection: (section: import("../../settings/ui/SettingsView").SettingsSection) => void;
@@ -168,6 +169,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       workspaceSwitch={state.workspaceSwitch}
       settingsMenuOpen={props.settingsMenuOpen}
       sidebarCollapsed={props.sidebarCollapsed}
+      mainContentOverride={props.mainContentOverride}
       onToggleSettingsMenu={props.onToggleSettingsMenu}
       onDismissSettingsMenu={props.onDismissSettingsMenu}
       onOpenSettings={props.onOpenSettings}

@@ -13,8 +13,6 @@ import type { MarketplaceAddParams } from "../../protocol/generated/v2/Marketpla
 import type { MarketplaceAddResponse } from "../../protocol/generated/v2/MarketplaceAddResponse";
 import type { MarketplaceRemoveParams } from "../../protocol/generated/v2/MarketplaceRemoveParams";
 import type { MarketplaceRemoveResponse } from "../../protocol/generated/v2/MarketplaceRemoveResponse";
-import type { MarketplaceUpgradeParams } from "../../protocol/generated/v2/MarketplaceUpgradeParams";
-import type { MarketplaceUpgradeResponse } from "../../protocol/generated/v2/MarketplaceUpgradeResponse";
 import type { PluginInstallParams } from "../../protocol/generated/v2/PluginInstallParams";
 import type { PluginInstallResponse } from "../../protocol/generated/v2/PluginInstallResponse";
 import type { PluginListParams } from "../../protocol/generated/v2/PluginListParams";
@@ -48,8 +46,6 @@ export type { MarketplaceAddParams } from "../../protocol/generated/v2/Marketpla
 export type { MarketplaceAddResponse } from "../../protocol/generated/v2/MarketplaceAddResponse";
 export type { MarketplaceRemoveParams } from "../../protocol/generated/v2/MarketplaceRemoveParams";
 export type { MarketplaceRemoveResponse } from "../../protocol/generated/v2/MarketplaceRemoveResponse";
-export type { MarketplaceUpgradeParams } from "../../protocol/generated/v2/MarketplaceUpgradeParams";
-export type { MarketplaceUpgradeResponse } from "../../protocol/generated/v2/MarketplaceUpgradeResponse";
 export type { PluginInstallParams } from "../../protocol/generated/v2/PluginInstallParams";
 export type { PluginInstallResponse } from "../../protocol/generated/v2/PluginInstallResponse";
 export type { PluginListParams } from "../../protocol/generated/v2/PluginListParams";
@@ -89,11 +85,11 @@ export interface AppController {
   listMarketplacePlugins: (params: PluginListParams) => Promise<PluginListResponse>;
   addMarketplace: (params: MarketplaceAddParams) => Promise<MarketplaceAddResponse>;
   removeMarketplace: (params: MarketplaceRemoveParams) => Promise<MarketplaceRemoveResponse>;
-  upgradeMarketplaces: (params: MarketplaceUpgradeParams) => Promise<MarketplaceUpgradeResponse>;
   readMarketplacePlugin: (params: PluginReadParams) => Promise<PluginReadResponse>;
   writeSkillConfig: (params: SkillsConfigWriteParams) => Promise<SkillsConfigWriteResponse>;
   installMarketplacePlugin: (params: PluginInstallParams) => Promise<PluginInstallResponse>;
   uninstallMarketplacePlugin: (params: PluginUninstallParams) => Promise<PluginUninstallResponse>;
+  setAppEnabled: (appId: string, enabled: boolean) => Promise<ConfigWriteResponse>;
   setMarketplacePluginEnabled: (pluginId: string, enabled: boolean) => Promise<ConfigWriteResponse>;
   setMultiAgentEnabled: (enabled: boolean) => Promise<void>;
   getAgentsSettings: () => Promise<AgentsSettingsOutput>;

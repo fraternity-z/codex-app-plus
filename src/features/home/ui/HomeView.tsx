@@ -110,6 +110,7 @@ export interface HomeViewProps {
   readonly workspaceSwitch: WorkspaceSwitchState;
   readonly settingsMenuOpen: boolean;
   readonly sidebarCollapsed?: boolean;
+  readonly mainContentOverride?: JSX.Element | null;
   readonly onToggleSettingsMenu: () => void;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
@@ -224,15 +225,22 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
     ),
     [props, gitController, launchState, filteredActivities, retryInfo, uiState.openTerminal, uiState.canShowDiffSidebar, toggleTerminal, uiState.toggleDiffSidebar, diffLayout, diffItems],
   );
+  const mainContentOverride = props.mainContentOverride ?? null;
 
   return (
     <div
-      className={createReplicaAppClassName(uiState.canShowDiffSidebar, diffLayout.expanded)}
-      style={createReplicaAppStyle(uiState.canShowDiffSidebar, diffLayout.width)}
+      className={createReplicaAppClassName(mainContentOverride === null && uiState.canShowDiffSidebar, diffLayout.expanded)}
+      style={createReplicaAppStyle(mainContentOverride === null && uiState.canShowDiffSidebar, diffLayout.width)}
     >
       <HomeSidebar {...sidebarProps} />
-      <HomeViewMainContent {...contentProps} />
-      {uiState.canShowDiffSidebar ? (
+      {mainContentOverride === null ? (
+        <HomeViewMainContent {...contentProps} />
+      ) : (
+        <main className="replica-main replica-main-embedded-screen">
+          {mainContentOverride}
+        </main>
+      )}
+      {mainContentOverride === null && uiState.canShowDiffSidebar ? (
         <WorkspaceDiffSidebarHost
           hostBridge={props.hostBridge}
           controller={gitController}
@@ -256,27 +264,29 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
           isResizing={diffLayout.isResizing}
         />
       ) : null}
-      <TerminalDock
-        activeTabId={terminalController.activeTerminalId}
-        hasWorkspace={terminalController.hasWorkspace}
-        isOpen={uiState.openTerminal}
-        onCloseTab={terminalController.onCloseTerminal}
-        onCreateTab={terminalController.onNewTerminal}
-        onHidePanel={terminalController.hidePanel}
-        onSelectTab={terminalController.onSelectTerminal}
-        tabs={terminalController.terminals}
-      >
-        {terminalController.activeTerminalId !== null ? (
-          <TerminalPanel
-            containerRef={terminalController.terminalState.containerRef}
-            message={terminalController.terminalState.message}
-            onRestart={() => {
-              void terminalController.terminalState.restartSession();
-            }}
-            status={terminalController.terminalState.status}
-          />
-        ) : null}
-      </TerminalDock>
+      {mainContentOverride === null ? (
+        <TerminalDock
+          activeTabId={terminalController.activeTerminalId}
+          hasWorkspace={terminalController.hasWorkspace}
+          isOpen={uiState.openTerminal}
+          onCloseTab={terminalController.onCloseTerminal}
+          onCreateTab={terminalController.onNewTerminal}
+          onHidePanel={terminalController.hidePanel}
+          onSelectTab={terminalController.onSelectTerminal}
+          tabs={terminalController.terminals}
+        >
+          {terminalController.activeTerminalId !== null ? (
+            <TerminalPanel
+              containerRef={terminalController.terminalState.containerRef}
+              message={terminalController.terminalState.message}
+              onRestart={() => {
+                void terminalController.terminalState.restartSession();
+              }}
+              status={terminalController.terminalState.status}
+            />
+          ) : null}
+        </TerminalDock>
+      ) : null}
     </div>
   );
 });

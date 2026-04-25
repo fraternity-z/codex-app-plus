@@ -77,7 +77,10 @@ vi.mock("./WindowTitlebar", () => ({
 vi.mock("../../features/home/ui/HomeScreen", async () => {
   const React = await import("react");
   return {
-    HomeScreen: (props: { readonly sidebarCollapsed: boolean }) => {
+    HomeScreen: (props: {
+      readonly sidebarCollapsed: boolean;
+      readonly mainContentOverride?: React.ReactNode;
+    }) => {
       const [count, setCount] = React.useState(0);
 
       return (
@@ -87,6 +90,7 @@ vi.mock("../../features/home/ui/HomeScreen", async () => {
           <button type="button" onClick={() => setCount((value) => value + 1)}>
             increment
           </button>
+          {props.mainContentOverride}
         </div>
       );
     },
@@ -188,6 +192,19 @@ describe("AppScreenContent", () => {
   it("toggles the home sidebar from the titlebar", () => {
     renderAppScreenContent("home");
 
+    expect(screen.getByTestId("home-sidebar-state")).toHaveTextContent("false");
+
+    fireEvent.click(screen.getByRole("button", { name: "折叠工作区侧边栏" }));
+
+    expect(screen.getByTestId("home-sidebar-state")).toHaveTextContent("true");
+    expect(screen.getByRole("button", { name: "展开工作区侧边栏" })).toBeInTheDocument();
+  });
+
+  it("keeps the home sidebar mounted while the plugins screen is open", () => {
+    renderAppScreenContent("skills");
+
+    expect(screen.getByTestId("home-screen")).toBeInTheDocument();
+    expect(screen.getByTestId("skills-screen")).toBeInTheDocument();
     expect(screen.getByTestId("home-sidebar-state")).toHaveTextContent("false");
 
     fireEvent.click(screen.getByRole("button", { name: "折叠工作区侧边栏" }));

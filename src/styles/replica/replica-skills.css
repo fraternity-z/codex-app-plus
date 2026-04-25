@@ -12,32 +12,20 @@
   padding: 8px 0 56px;
 }
 
+.skills-shell-manager {
+  width: min(1012px, calc(100% - 104px));
+}
+
 .skills-toolbar {
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
-    "back top"
-    "copy copy"
-    "controls controls";
-  column-gap: 12px;
+    "top"
+    "copy"
+    "controls";
   row-gap: 28px;
   align-items: center;
   padding: 8px 0 0;
-}
-
-.skills-back-button {
-  grid-area: back;
-  min-height: 34px;
-  border: 0;
-  background: transparent;
-  color: #71717a;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  font-size: 13px;
-  padding: 4px 0;
-  white-space: nowrap;
 }
 
 .skills-toolbar-top {
@@ -182,6 +170,246 @@
 
 .skills-main {
   padding-top: 30px;
+}
+
+.skills-manager {
+  width: min(910px, 100%);
+  padding: 39px 0 48px;
+}
+
+.skills-manager-toolbar {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
+  gap: 16px;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 36px;
+  margin-bottom: 40px;
+  padding-left: 12px;
+}
+
+.skills-manager-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.skills-manager-tab {
+  min-height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #737373;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.skills-manager-tab-active {
+  background: #ffffff;
+  color: #202020;
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.08);
+}
+
+.skills-manager-search {
+  min-height: 36px;
+  border-radius: 11px;
+  border: 1px solid #d4d4d0;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: #5f5f5f;
+}
+
+.skills-manager-return {
+  position: absolute;
+  top: 1px;
+  right: -98px;
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #737373;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.skills-manager-return:hover {
+  color: #303030;
+}
+
+.skills-manager-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #202020;
+  font-size: 14px;
+}
+
+.skills-manager-search input::placeholder {
+  color: #737373;
+}
+
+.skills-page .settings-toggle {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #e5e7eb;
+  padding: 0;
+  cursor: pointer;
+}
+
+.skills-page .settings-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.skills-page .settings-toggle-on {
+  background: #3b9cff;
+  border-color: #3b9cff;
+}
+
+.skills-page .settings-toggle-on .settings-toggle-knob {
+  left: 20px;
+}
+
+.skills-page .settings-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.skills-manager-list {
+  display: grid;
+  gap: 12px;
+}
+
+.skills-manager-row {
+  min-height: 74px;
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 15px;
+  border-radius: 18px;
+  padding: 12px;
+  transition: background-color 120ms ease;
+}
+
+.skills-manager-row:hover,
+.skills-manager-row:focus-within {
+  background: #ecece8;
+}
+
+.skills-manager-row-copy {
+  min-width: 0;
+}
+
+.skills-manager-row-copy strong {
+  display: block;
+  color: #232323;
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.skills-manager-row-copy p {
+  margin: 4px 0 0;
+  color: #686868;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skills-manager-row .skills-avatar,
+.skills-manager-connector-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 11px;
+}
+
+.skills-manager-connector-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #111113;
+  color: #b6b8bf;
+}
+
+.skills-manager-connector-glyph {
+  width: 22px;
+  height: 22px;
+}
+
+.skills-manager-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: flex-end;
+}
+
+.skills-manager-row .settings-toggle {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 24px;
+  border: 0;
+  background: #e5e7eb;
+}
+
+.skills-manager-row .settings-toggle-knob {
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+}
+
+.skills-manager-row .settings-toggle-on {
+  background: #3b9cff;
+}
+
+.skills-manager-row .settings-toggle-on .settings-toggle-knob {
+  left: 18px;
+}
+
+.skills-manager-icon-button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #8a8f98;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.skills-manager-icon-button:hover {
+  background: #f4f4f3;
+  color: #4b5563;
+}
+
+.skills-manager-icon-button .skills-toolbar-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .plugin-market-hero {
@@ -440,9 +668,9 @@ html[data-theme="dark"] .skills-page {
   color: var(--text-main);
 }
 
-html[data-theme="dark"] .skills-back-button,
 html[data-theme="dark"] .plugin-row-copy p,
 html[data-theme="dark"] .skills-card-copy p,
+html[data-theme="dark"] .skills-manager-row-copy p,
 html[data-theme="dark"] .skills-empty-state,
 html[data-theme="dark"] .skills-section-heading span {
   color: var(--text-muted);
@@ -452,12 +680,14 @@ html[data-theme="dark"] .skills-header-copy h1,
 html[data-theme="dark"] .plugin-market-section h2,
 html[data-theme="dark"] .skills-section-heading h2,
 html[data-theme="dark"] .plugin-row-copy strong,
+html[data-theme="dark"] .skills-manager-row-copy strong,
 html[data-theme="dark"] .skills-card-copy strong,
 html[data-theme="dark"] .skills-empty-state strong {
   color: var(--text-main);
 }
 
 html[data-theme="dark"] .skills-mode-tabs,
+html[data-theme="dark"] .skills-manager-tab-active,
 html[data-theme="dark"] .skills-refresh-icon-button,
 html[data-theme="dark"] .plugin-icon-button {
   background: var(--surface-panel-muted);
@@ -468,8 +698,13 @@ html[data-theme="dark"] .skills-mode-tab {
   color: var(--text-muted);
 }
 
+html[data-theme="dark"] .skills-manager-tab {
+  color: var(--text-muted);
+}
+
 html[data-theme="dark"] .skills-mode-tab-active,
 html[data-theme="dark"] .skills-search-field,
+html[data-theme="dark"] .skills-manager-search,
 html[data-theme="dark"] .skills-select-field,
 html[data-theme="dark"] .skills-quiet-button,
 html[data-theme="dark"] .skills-card,
@@ -480,12 +715,55 @@ html[data-theme="dark"] .skills-avatar-image {
   color: var(--text-main);
 }
 
+html[data-theme="dark"] .skills-manager-return {
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .skills-manager-return:hover {
+  color: var(--text-main);
+}
+
+html[data-theme="dark"] .skills-manager-row:hover,
+html[data-theme="dark"] .skills-manager-row:focus-within {
+  background: #222222;
+}
+
+html[data-theme="dark"] .skills-manager-connector-icon {
+  background: #0b0b0d;
+  color: #b5b7bd;
+}
+
+html[data-theme="dark"] .skills-manager-icon-button {
+  color: #9a9ca3;
+}
+
+html[data-theme="dark"] .skills-manager-icon-button:hover {
+  background: var(--surface-panel-soft);
+  color: var(--text-main);
+}
+
+html[data-theme="dark"] .skills-page .settings-toggle {
+  background: var(--surface-panel-soft);
+  border-color: var(--surface-panel-soft);
+}
+
+html[data-theme="dark"] .skills-page .settings-toggle-knob {
+  background: #ffffff;
+}
+
+html[data-theme="dark"] .skills-page .settings-toggle-on {
+  background: #3b9cff;
+  border-color: #3b9cff;
+}
+
 html[data-theme="dark"] .skills-search-field input,
+html[data-theme="dark"] .skills-manager-search input,
 html[data-theme="dark"] .skills-select-field select {
   color: var(--text-main);
 }
 
-html[data-theme="dark"] .skills-search-field input::placeholder {
+html[data-theme="dark"] .skills-search-field input::placeholder,
+html[data-theme="dark"] .skills-manager-search input::placeholder {
   color: var(--text-subtle);
 }
 
@@ -527,10 +805,12 @@ html[data-theme="dark"] .skills-error-state {
     width: min(100%, calc(100% - 28px));
   }
 
+  .skills-shell-manager {
+    width: min(100%, calc(100% - 28px));
+  }
+
   .skills-toolbar {
-    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      "back"
       "top"
       "copy"
       "controls";
@@ -551,6 +831,28 @@ html[data-theme="dark"] .skills-error-state {
     align-self: stretch;
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .skills-manager {
+    width: 100%;
+    padding-top: 28px;
+  }
+
+  .skills-manager-toolbar {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-left: 0;
+  }
+
+  .skills-manager-tabs {
+    flex-wrap: wrap;
+  }
+
+  .skills-manager-return {
+    position: static;
+    justify-self: start;
+    padding-left: 0;
   }
 
   .skills-market-controls {
@@ -577,15 +879,23 @@ html[data-theme="dark"] .skills-error-state {
   }
 
   .plugin-row,
+  .skills-manager-row,
   .skills-card {
     grid-template-columns: 38px minmax(0, 1fr);
   }
 
   .plugin-row > .plugin-icon-button,
   .plugin-row-actions,
+  .skills-manager-row-actions,
   .skills-card .settings-toggle {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .skills-manager-row .skills-avatar,
+  .skills-manager-connector-icon {
+    width: 38px;
+    height: 38px;
   }
 
   .skills-grid {

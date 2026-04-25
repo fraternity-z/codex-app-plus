@@ -165,10 +165,10 @@ describe("HomeSidebar", () => {
     expect(document.querySelector(".replica-sidebar")).not.toHaveAttribute("aria-busy");
   });
 
-  it("opens the skills screen from the sidebar nav", () => {
+  it("opens the plugins screen from the sidebar nav", () => {
     const { onOpenSkills } = renderSidebar(createThread("codexData"));
 
-    fireEvent.click(screen.getByRole("button", { name: "技能" }));
+    fireEvent.click(screen.getByRole("button", { name: "插件" }));
 
     expect(onOpenSkills).toHaveBeenCalledTimes(1);
   });

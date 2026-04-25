@@ -844,7 +844,34 @@ export const zhCN = {
       },
       manage: {
         action: "管理",
-        updating: "更新中",
+        title: "插件管理",
+        marketplace: "插件市场",
+        configure: "设置 {name}",
+        enable: "启用 {name}",
+        disable: "停用 {name}",
+        tabs: {
+          label: "管理分类",
+          plugins: "插件",
+          apps: "应用",
+          mcp: "MCP",
+          skills: "技能",
+        },
+        search: {
+          plugins: "搜索插件",
+          apps: "搜索应用",
+          mcp: "搜索 MCP",
+          skills: "搜索技能",
+        },
+        empty: {
+          plugins: "当前没有已安装插件。",
+          apps: "当前没有可管理应用。",
+          mcp: "当前没有可管理 MCP。",
+          skills: "当前没有可管理技能。",
+        },
+        loading: {
+          apps: "正在获取应用列表。",
+          mcp: "正在获取 MCP 状态。",
+        },
       },
       filters: {
         marketplace: "插件市场",

@@ -49,10 +49,10 @@ export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
     setSettingsSidebarCollapsed((currentValue) => !currentValue);
   }, []);
   const titlebarSidebarControl = useMemo(() => {
-    if (props.shouldShowAuthChoice || props.screen === "skills") {
+    if (props.shouldShowAuthChoice) {
       return null;
     }
-    if (props.screen === "home") {
+    if (props.screen === "home" || props.screen === "skills") {
       return {
         collapsed: homeSidebarCollapsed,
         collapseLabel: "折叠工作区侧边栏",
@@ -129,14 +129,7 @@ function renderOverlayScreen(props: AppScreenContentProps & {
   readonly settingsSidebarCollapsed: boolean;
 }): JSX.Element | null {
   if (props.screen === "skills") {
-    return (
-      <SkillsScreen
-        controller={props.controller}
-        workspace={props.workspace}
-        onBackHome={props.onBackHome}
-        onOpenLearnMore={props.onOpenSkillsLearnMore}
-      />
-    );
+    return null;
   }
   if (props.screen === "home") {
     return null;
@@ -174,6 +167,15 @@ function renderHomeScreen(props: AppScreenContentProps & {
       onOpenSettingsSection={props.onOpenSettingsSection}
       onOpenSkills={props.onOpenSkills}
       onToggleSettingsMenu={props.onToggleSettingsMenu}
+      mainContentOverride={props.screen === "skills" ? (
+        <SkillsScreen
+          controller={props.controller}
+          workspace={props.workspace}
+          onBackHome={props.onBackHome}
+          onOpenLearnMore={props.onOpenSkillsLearnMore}
+          onOpenMcpSettings={() => props.onOpenSettingsSection("mcp")}
+        />
+      ) : null}
     />
   );
 }

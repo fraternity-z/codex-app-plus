@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { ReceivedNotification } from "../../../domain/types";
 import type { PluginInstallResponse } from "../../../protocol/generated/v2/PluginInstallResponse";
 import type { PluginListResponse } from "../../../protocol/generated/v2/PluginListResponse";
+import type { PluginReadResponse } from "../../../protocol/generated/v2/PluginReadResponse";
+import type { PluginUninstallResponse } from "../../../protocol/generated/v2/PluginUninstallResponse";
 import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsListResponse";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { SkillsView } from "./SkillsView";
@@ -32,13 +34,40 @@ function createInstalledSkillsResponse(enabled = true): SkillsListResponse {
 function createMarketplacePluginsResponse(): PluginListResponse {
   return {
     marketplaces: [{
-      name: "official",
-      path: "C:/Users/Administrator/.codex/plugins/marketplaces/official",
-      interface: { displayName: "Official" },
+      name: "openai-curated",
+      path: null,
+      interface: { displayName: "OpenAI Curated" },
       plugins: [{
-        id: "openai/figma",
+        id: "browser-use@openai-curated",
+        name: "browser-use",
+        source: { type: "remote" },
+        installed: true,
+        enabled: true,
+        installPolicy: "INSTALLED_BY_DEFAULT",
+        authPolicy: "ON_USE",
+        interface: {
+          displayName: "Browser Use",
+          shortDescription: "Control the in-app browser with Codex",
+          longDescription: null,
+          developerName: "OpenAI",
+          category: "Featured",
+          capabilities: [],
+          websiteUrl: null,
+          privacyPolicyUrl: null,
+          termsOfServiceUrl: null,
+          defaultPrompt: ["Control the in-app browser with Codex"],
+          brandColor: "#2563eb",
+          composerIcon: null,
+          composerIconUrl: null,
+          logo: null,
+          logoUrl: null,
+          screenshots: [],
+          screenshotUrls: [],
+        },
+      }, {
+        id: "figma@openai-curated",
         name: "figma",
-        source: { type: "local", path: "C:/Users/Administrator/.codex/plugins/official/figma" },
+        source: { type: "remote" },
         installed: false,
         enabled: false,
         installPolicy: "AVAILABLE",
@@ -47,8 +76,8 @@ function createMarketplacePluginsResponse(): PluginListResponse {
           displayName: "Figma",
           shortDescription: "Use Figma MCP for design-to-code work",
           longDescription: null,
-          developerName: null,
-          category: null,
+          developerName: "OpenAI",
+          category: "Coding",
           capabilities: [],
           websiteUrl: null,
           privacyPolicyUrl: null,
@@ -63,9 +92,23 @@ function createMarketplacePluginsResponse(): PluginListResponse {
           screenshotUrls: [],
         },
       }],
+    }, {
+      name: "openai-bundled",
+      path: "C:/Users/Administrator/.codex/plugins/openai-bundled",
+      interface: { displayName: "CLI bundled" },
+      plugins: [{
+        id: "hidden@openai-bundled",
+        name: "hidden",
+        source: { type: "local", path: "C:/Users/Administrator/.codex/plugins/openai-bundled/hidden" },
+        installed: false,
+        enabled: false,
+        installPolicy: "AVAILABLE",
+        authPolicy: "ON_USE",
+        interface: null,
+      }],
     }],
     marketplaceLoadErrors: [],
-    featuredPluginIds: [],
+    featuredPluginIds: ["browser-use@openai-curated"],
   };
 }
 
@@ -73,125 +116,189 @@ function createPluginInstallResponse(): PluginInstallResponse {
   return { authPolicy: "ON_USE", appsNeedingAuth: [] };
 }
 
+function createPluginUninstallResponse(): PluginUninstallResponse {
+  return {};
+}
+
+function createPluginReadResponse(): PluginReadResponse {
+  return {
+    plugin: {
+      marketplaceName: "openai-curated",
+      marketplacePath: null,
+      summary: createMarketplacePluginsResponse().marketplaces[0]!.plugins[0]!,
+      description: "Control the in-app browser with Codex",
+      skills: [],
+      apps: [{
+        id: "browser-use",
+        name: "Browser Use",
+        description: "Control the in-app browser with Codex",
+        installUrl: null,
+        needsAuth: false,
+      }],
+      mcpServers: ["browser-use"],
+    },
+  };
+}
+
 function renderSkillsView(overrides?: {
-  readonly authStatus?: "unknown" | "authenticated" | "needs_login";
-  readonly authMode?: "apikey" | "chatgpt" | "chatgptAuthTokens" | null;
   readonly notifications?: ReadonlyArray<ReceivedNotification>;
   readonly listSkills?: ReturnType<typeof vi.fn>;
   readonly listMarketplacePlugins?: ReturnType<typeof vi.fn>;
+  readonly listMcpServerStatuses?: ReturnType<typeof vi.fn>;
+  readonly readMarketplacePlugin?: ReturnType<typeof vi.fn>;
   readonly writeSkillConfig?: ReturnType<typeof vi.fn>;
+  readonly writeConfigValue?: ReturnType<typeof vi.fn>;
   readonly installMarketplacePlugin?: ReturnType<typeof vi.fn>;
+  readonly uninstallMarketplacePlugin?: ReturnType<typeof vi.fn>;
+  readonly setAppEnabled?: ReturnType<typeof vi.fn>;
+  readonly setMarketplacePluginEnabled?: ReturnType<typeof vi.fn>;
+  readonly onTryPlugin?: ReturnType<typeof vi.fn>;
 }) {
   const listSkills = overrides?.listSkills ?? vi.fn().mockResolvedValue(createInstalledSkillsResponse());
   const listMarketplacePlugins = overrides?.listMarketplacePlugins ?? vi.fn().mockResolvedValue(createMarketplacePluginsResponse());
+  const listMcpServerStatuses = overrides?.listMcpServerStatuses ?? vi.fn().mockResolvedValue([]);
+  const readMarketplacePlugin = overrides?.readMarketplacePlugin ?? vi.fn().mockResolvedValue(createPluginReadResponse());
   const writeSkillConfig = overrides?.writeSkillConfig ?? vi.fn().mockResolvedValue({ effectiveEnabled: false });
+  const writeConfigValue = overrides?.writeConfigValue ?? vi.fn().mockResolvedValue({
+    config: { config: {}, origins: {}, layers: [] },
+    statuses: [],
+    write: { status: "success", version: "1", filePath: "C:/Users/Administrator/.codex/config.toml", overriddenMetadata: null },
+  });
   const installMarketplacePlugin = overrides?.installMarketplacePlugin ?? vi.fn().mockResolvedValue(createPluginInstallResponse());
+  const uninstallMarketplacePlugin = overrides?.uninstallMarketplacePlugin ?? vi.fn().mockResolvedValue(createPluginUninstallResponse());
+  const setAppEnabled = overrides?.setAppEnabled ?? vi.fn().mockResolvedValue({ status: "success", version: "1", filePath: "C:/Users/Administrator/.codex/config.toml", overriddenMetadata: null });
+  const setMarketplacePluginEnabled = overrides?.setMarketplacePluginEnabled ?? vi.fn().mockResolvedValue({ status: "success", version: "1", filePath: "C:/Users/Administrator/.codex/config.toml", overriddenMetadata: null });
+  const onTryPlugin = overrides?.onTryPlugin ?? vi.fn();
 
   const view = render(
     <SkillsView
-      authStatus={overrides?.authStatus ?? "authenticated"}
-      authMode={overrides?.authMode ?? "chatgpt"}
+      configSnapshot={null}
+      mcpServerStatuses={[]}
       selectedRootPath="E:/code/codex-app-plus"
       notifications={overrides?.notifications ?? []}
-      onBackHome={vi.fn()}
       onOpenLearnMore={vi.fn().mockResolvedValue(undefined)}
+      onTryPlugin={onTryPlugin}
+      listMcpServerStatuses={listMcpServerStatuses}
       listSkills={listSkills}
       listMarketplacePlugins={listMarketplacePlugins}
+      readMarketplacePlugin={readMarketplacePlugin}
+      setAppEnabled={setAppEnabled}
       writeSkillConfig={writeSkillConfig}
+      writeConfigValue={writeConfigValue}
       installMarketplacePlugin={installMarketplacePlugin}
+      uninstallMarketplacePlugin={uninstallMarketplacePlugin}
+      setMarketplacePluginEnabled={setMarketplacePluginEnabled}
     />,
     { wrapper: createI18nWrapper() },
   );
 
-  return { ...view, listSkills, listMarketplacePlugins, writeSkillConfig, installMarketplacePlugin };
+  return {
+    ...view,
+    installMarketplacePlugin,
+    listMarketplacePlugins,
+    listMcpServerStatuses,
+    listSkills,
+    onTryPlugin,
+    readMarketplacePlugin,
+    setAppEnabled,
+    setMarketplacePluginEnabled,
+    uninstallMarketplacePlugin,
+    writeConfigValue,
+    writeSkillConfig,
+  };
 }
 
 describe("SkillsView", () => {
-  it("loads installed and recommended skills on mount", async () => {
+  it("loads the official plugin marketplace by default", async () => {
     renderSkillsView();
 
-    expect(await screen.findByText("Word Docs")).toBeInTheDocument();
+    expect(await screen.findByText("Browser Use")).toBeInTheDocument();
     expect(await screen.findByText("Figma")).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Word Docs已启用" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByText("hidden")).toBeNull();
+    expect(screen.getByRole("button", { name: "停用 Browser Use" })).toBeInTheDocument();
   });
 
-  it("writes config when toggling an installed skill", async () => {
-    const { writeSkillConfig } = renderSkillsView();
+  it("hides the built-in codex apps runtime MCP server from management", async () => {
+    const listMcpServerStatuses = vi.fn().mockResolvedValue([
+      { name: "codex apps", tools: {}, resources: [], resourceTemplates: [], authStatus: "bearerToken" },
+      { name: "playwright", tools: {}, resources: [], resourceTemplates: [], authStatus: "unsupported" },
+    ]);
+    renderSkillsView({ listMcpServerStatuses });
 
+    fireEvent.click(await screen.findByRole("button", { name: "管理" }));
+    fireEvent.click(await screen.findByRole("tab", { name: /MCP/ }));
+
+    expect(await screen.findByText("playwright")).toBeInTheDocument();
+    expect(screen.queryByText("codex apps")).toBeNull();
+  });
+
+  it("installs a remote marketplace plugin and refreshes the catalog", async () => {
+    const installMarketplacePlugin = vi.fn().mockResolvedValue(createPluginInstallResponse());
+    renderSkillsView({ installMarketplacePlugin });
+
+    fireEvent.click(await screen.findByRole("button", { name: "安装 Figma" }));
+
+    await waitFor(() => expect(installMarketplacePlugin).toHaveBeenCalledWith({
+      remoteMarketplaceName: "openai-curated",
+      pluginName: "figma",
+    }));
+  });
+
+  it("writes official plugin enablement through config/value/write", async () => {
+    const setMarketplacePluginEnabled = vi.fn().mockResolvedValue({ status: "success", version: "1", filePath: "C:/Users/Administrator/.codex/config.toml", overriddenMetadata: null });
+    renderSkillsView({ setMarketplacePluginEnabled });
+
+    fireEvent.click(await screen.findByRole("button", { name: "停用 Browser Use" }));
+
+    await waitFor(() => expect(setMarketplacePluginEnabled).toHaveBeenCalledWith(
+      "browser-use@openai-curated",
+      false,
+    ));
+  });
+
+  it("uninstalls an installed plugin through the official protocol", async () => {
+    const uninstallMarketplacePlugin = vi.fn().mockResolvedValue(createPluginUninstallResponse());
+    renderSkillsView({ uninstallMarketplacePlugin });
+
+    fireEvent.click(await screen.findByRole("button", { name: "卸载 Browser Use" }));
+
+    await waitFor(() => expect(uninstallMarketplacePlugin).toHaveBeenCalledWith({
+      pluginId: "browser-use@openai-curated",
+    }));
+  });
+
+  it("refreshes marketplace plugins from the refresh button", async () => {
+    const listMarketplacePlugins = vi.fn().mockResolvedValue(createMarketplacePluginsResponse());
+    renderSkillsView({ listMarketplacePlugins });
+
+    await screen.findByText("Browser Use");
+    listMarketplacePlugins.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "刷新" }));
+
+    await waitFor(() => expect(listMarketplacePlugins).toHaveBeenCalledWith({
+      cwds: ["E:/code/codex-app-plus"],
+    }));
+  });
+
+  it("switches to installed skills and writes skill config", async () => {
+    const writeSkillConfig = vi.fn().mockResolvedValue({ effectiveEnabled: false });
+    renderSkillsView({ writeSkillConfig });
+
+    fireEvent.click(screen.getByRole("tab", { name: "技能" }));
     fireEvent.click(await screen.findByRole("switch", { name: "Word Docs已启用" }));
 
     await waitFor(() => expect(writeSkillConfig).toHaveBeenCalledWith({
       path: "C:/Users/Administrator/.codex/skills/doc",
       enabled: false,
     }));
-    await waitFor(() => expect(screen.getByRole("switch", { name: "Word Docs已禁用" })).toHaveAttribute("aria-checked", "false"));
-  });
-
-  it("installs a marketplace plugin and refreshes the installed list", async () => {
-    const listSkills = vi.fn()
-      .mockResolvedValueOnce({ data: [{ cwd: "E:/code/codex-app-plus", errors: [], skills: [] }] })
-      .mockResolvedValueOnce(createInstalledSkillsResponse());
-    const installMarketplacePlugin = vi.fn().mockResolvedValue(createPluginInstallResponse());
-    renderSkillsView({ listSkills, installMarketplacePlugin });
-
-    fireEvent.click(await screen.findByRole("button", { name: "安装" }));
-
-    await waitFor(() => expect(installMarketplacePlugin).toHaveBeenCalledWith({
-      marketplacePath: "C:/Users/Administrator/.codex/plugins/marketplaces/official",
-      pluginName: "figma",
-    }));
-    expect(await screen.findByText("Word Docs")).toBeInTheDocument();
   });
 
   it("shows marketplace loading errors explicitly", async () => {
     renderSkillsView({
-      listMarketplacePlugins: vi.fn().mockRejectedValue(new Error("git fetch failed: git process timed out after 30000ms")),
+      listMarketplacePlugins: vi.fn().mockRejectedValue(new Error("plugin/list failed: catalog unavailable")),
     });
 
-    expect(await screen.findByText("git fetch failed: git process timed out after 30000ms")).toBeInTheDocument();
-  });
-
-  it("does not call marketplace plugins when authenticated with api key", async () => {
-    const listMarketplacePlugins = vi.fn();
-    renderSkillsView({
-      authMode: "apikey",
-      listMarketplacePlugins,
-    });
-
-    expect(await screen.findByText("推荐插件仅支持 ChatGPT 登录；当前是 API Key 认证，官方插件市场链路不可用。")).toBeInTheDocument();
-    expect(listMarketplacePlugins).not.toHaveBeenCalled();
-  });
-
-  it("forces reload on manual refresh and skills changed notifications", async () => {
-    const listSkills = vi.fn().mockResolvedValue(createInstalledSkillsResponse());
-    const view = renderSkillsView({ listSkills, notifications: [] });
-
-    await screen.findByText("Word Docs");
-    fireEvent.click(screen.getByRole("button", { name: "刷新" }));
-    await waitFor(() => expect(listSkills).toHaveBeenLastCalledWith({
-      cwds: ["E:/code/codex-app-plus"],
-      forceReload: true,
-    }));
-
-    view.rerender(
-      <SkillsView
-        authStatus="authenticated"
-        authMode="chatgpt"
-        selectedRootPath="E:/code/codex-app-plus"
-        notifications={[{ method: "skills/changed", params: null }]}
-        onBackHome={vi.fn()}
-        onOpenLearnMore={vi.fn().mockResolvedValue(undefined)}
-        listSkills={listSkills}
-        listMarketplacePlugins={vi.fn().mockResolvedValue(createMarketplacePluginsResponse())}
-        writeSkillConfig={vi.fn().mockResolvedValue({ effectiveEnabled: false })}
-        installMarketplacePlugin={vi.fn().mockResolvedValue(createPluginInstallResponse())}
-      />,
-    );
-
-    await waitFor(() => expect(listSkills.mock.calls.length).toBeGreaterThanOrEqual(3));
-    expect(listSkills.mock.calls.at(-1)?.[0]).toEqual({
-      cwds: ["E:/code/codex-app-plus"],
-      forceReload: true,
-    });
+    expect(await screen.findByText("plugin/list failed: catalog unavailable")).toBeInTheDocument();
   });
 });

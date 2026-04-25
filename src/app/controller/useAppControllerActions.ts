@@ -37,8 +37,6 @@ import type {
   MarketplaceAddResponse,
   MarketplaceRemoveParams,
   MarketplaceRemoveResponse,
-  MarketplaceUpgradeParams,
-  MarketplaceUpgradeResponse,
   PluginInstallParams,
   PluginInstallResponse,
   PluginListParams,
@@ -172,9 +170,6 @@ export function useAppControllerActions({
   const removeMarketplace = useCallback((params: MarketplaceRemoveParams) => (
     client.request("marketplace/remove", params) as Promise<MarketplaceRemoveResponse>
   ), [client]);
-  const upgradeMarketplaces = useCallback((params: MarketplaceUpgradeParams) => (
-    client.request("marketplace/upgrade", params) as Promise<MarketplaceUpgradeResponse>
-  ), [client]);
   const readMarketplacePlugin = useCallback((params: PluginReadParams) => (
     client.request("plugin/read", params) as Promise<PluginReadResponse>
   ), [client]);
@@ -186,6 +181,15 @@ export function useAppControllerActions({
   ), [client]);
   const uninstallMarketplacePlugin = useCallback((params: PluginUninstallParams) => (
     client.request("plugin/uninstall", params) as Promise<PluginUninstallResponse>
+  ), [client]);
+  const setAppEnabled = useCallback((appId: string, enabled: boolean) => (
+    client.request("config/value/write", {
+      keyPath: `apps.${appId}.enabled`,
+      value: enabled,
+      mergeStrategy: "upsert",
+      filePath: null,
+      expectedVersion: null,
+    }) as Promise<ConfigWriteResponse>
   ), [client]);
   const setMarketplacePluginEnabled = useCallback((pluginId: string, enabled: boolean) => (
     client.request("config/value/write", {
@@ -280,6 +284,7 @@ export function useAppControllerActions({
     removeMarketplace,
     resolveServerRequest,
     resetMemories,
+    setAppEnabled,
     setMarketplacePluginEnabled,
     setMultiAgentEnabled,
     setThreadMemoryMode,
@@ -291,7 +296,6 @@ export function useAppControllerActions({
     writeAgentConfig,
     unarchiveThread,
     uninstallMarketplacePlugin,
-    upgradeMarketplaces,
     writeConfigValue,
     writeSkillConfig,
   };
