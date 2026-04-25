@@ -301,6 +301,25 @@ export function OfficialFolderPlusIcon(props: IconProps): JSX.Element {
   );
 }
 
+export function OfficialPinIcon(props: IconProps): JSX.Element {
+  return (
+    <svg
+      width={20}
+      height={20}
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M7.25 3.5H12.75C13.1642 3.5 13.5 3.83579 13.5 4.25C13.5 4.66421 13.1642 5 12.75 5H12.25V9.2L15.18 12.13C15.3945 12.3445 15.4587 12.6671 15.3426 12.9472C15.2266 13.2273 14.9532 13.41 14.65 13.41H10.75V16.75C10.75 17.1642 10.4142 17.5 10 17.5C9.58579 17.5 9.25 17.1642 9.25 16.75V13.41H5.35C5.04683 13.41 4.77343 13.2273 4.65736 12.9472C4.54129 12.6671 4.60547 12.3445 4.82 12.13L7.75 9.2V5H7.25C6.83579 5 6.5 4.66421 6.5 4.25C6.5 3.83579 6.83579 3.5 7.25 3.5ZM9.25 5V9.51C9.25 9.70891 9.17098 9.89968 9.03033 10.0403L7.16066 11.91H12.8393L10.9697 10.0403C10.829 9.89968 10.75 9.70891 10.75 9.51V5H9.25Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export function OfficialSortIcon(props: IconProps): JSX.Element {
   return (
     <svg

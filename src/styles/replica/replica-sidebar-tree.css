@@ -1,5 +1,5 @@
 .thread-section-status {
-  margin: 6px 6px 0;
+  margin: 6px 10px 0;
   padding: 9px 10px;
   border-radius: 10px;
   background: #f6f6f6;
@@ -8,8 +8,43 @@
   line-height: 1.4;
 }
 
+.workspace-projects-section {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.workspace-pinned-section {
+  min-width: 0;
+  display: grid;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.workspace-sidebar-group-title {
+  height: 24px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-md);
+  line-height: 1.3;
+}
+
+.workspace-pinned-thread-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 4px;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
 .workspace-root-list {
   position: relative;
+  flex: 1 1 auto;
 }
 
 .workspace-root-sortable-wrapper {
@@ -33,7 +68,7 @@
   width: 100%;
   gap: 2px;
   margin: 0;
-  padding: 0 2px;
+  padding: 0 10px;
 }
 
 .workspace-root-row .workspace-root-actions {
@@ -80,13 +115,10 @@
 }
 
 .workspace-root-button,
-.workspace-thread-button {
+.workspace-thread-button,
+.workspace-thread-pin-button {
   border: 0;
   background: transparent;
-}
-
-.workspace-thread-button:hover {
-  background: var(--surface-hover);
 }
 
 .workspace-root-button {
@@ -110,30 +142,79 @@
 
 .workspace-thread-list {
   list-style: none;
-  width: 95%;
-  margin: 2px auto 0;
-  padding: 0;
+  width: 100%;
+  margin: 4px 0 0;
+  padding: 0 4px;
   display: grid;
   gap: 2px;
   overflow-x: hidden;
 }
 
+.workspace-thread-item {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 8px 0 6px;
+  border-radius: 10px;
+  color: var(--text-soft);
+}
+
+.workspace-thread-item:hover,
+.workspace-thread-item:focus-within {
+  background: var(--surface-hover);
+}
+
+.workspace-thread-item-active,
+.workspace-thread-item-active:hover,
+.workspace-thread-item-active:focus-within {
+  background: var(--surface-active);
+  color: var(--text-main);
+}
+
 .workspace-thread-button {
   width: 100%;
   min-width: 0;
-  min-height: 32px;
+  min-height: 34px;
   display: block;
-  padding: 6px;
+  padding: 0;
   box-sizing: border-box;
-  border-radius: 8px;
-  color: var(--text-soft);
+  color: inherit;
   text-align: left;
   overflow: hidden;
 }
 
-.workspace-thread-button-active {
-  background: var(--surface-active);
+.workspace-thread-pin-button {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-base);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.14s ease, color 0.14s ease;
+}
+
+.workspace-thread-item:hover .workspace-thread-pin-button,
+.workspace-thread-item:focus-within .workspace-thread-pin-button,
+.workspace-thread-item-pinned .workspace-thread-pin-button {
+  opacity: 1;
+}
+
+.workspace-thread-pin-button:hover {
+  background: transparent;
   color: var(--text-main);
+}
+
+.workspace-thread-pin-icon {
+  width: 1.725em;
+  height: 1.725em;
 }
 
 .workspace-thread-title-row {
@@ -141,15 +222,15 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
 .workspace-thread-title {
   min-width: 0;
   flex: 1 1 auto;
-  font-size: var(--app-ui-font-size-sm);
-  line-height: 1.35;
+  font-size: var(--app-ui-font-size-base);
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -192,9 +273,9 @@
 
 .workspace-thread-toggle {
   display: block;
-  width: 95%;
-  margin: 2px auto 0;
-  padding: 4px 6px 8px;
+  width: 100%;
+  margin: 2px 0 0;
+  padding: 4px 0 8px 46px;
   border: 0;
   background: transparent;
   color: var(--text-muted);
@@ -221,6 +302,12 @@
 .workspace-root-action-icon {
   width: 14px;
   height: 14px;
+}
+
+.workspace-root-sort-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
 }
 
 .workspace-root-menu {

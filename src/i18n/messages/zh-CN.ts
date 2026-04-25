@@ -564,6 +564,8 @@ export const zhCN = {
       pull: "拉取",
     },
     workspaceSection: {
+      pinnedTitle: "置顶",
+      projectsTitle: "项目",
       addAction: "添加工作区",
       loadFailed: "加载会话失败：{error}",
       emptyRoots: "暂无工作区，点击左上角添加",
@@ -580,6 +582,10 @@ export const zhCN = {
       expandRootAria: "展开工作区 {name}",
       rootMoreAria: "工作区更多操作 {name}",
       rootNewThreadAria: "在工作区 {name} 中创建新会话",
+      pinThreadAria: "置顶",
+      unpinThreadAria: "取消置顶",
+      pinThreadTitle: "置顶会话：{title}",
+      unpinThreadTitle: "取消置顶：{title}",
     },
     workspaceSelector: {
       placeholder: "选择工作区",

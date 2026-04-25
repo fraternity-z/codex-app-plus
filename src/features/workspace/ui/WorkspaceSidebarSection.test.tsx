@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { WorkspaceRoot } from "../hooks/useWorkspaceRoots";
 import type { ThreadSummary } from "../../../domain/types";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
-import { WorkspaceSidebarSection } from "./WorkspaceSidebarSection";
+import { PINNED_THREAD_IDS_STORAGE_KEY, WorkspaceSidebarSection } from "./WorkspaceSidebarSection";
 
 const ROOTS: ReadonlyArray<WorkspaceRoot> = [
   { id: "root-1", name: "FPGA", path: "E:/code/FPGA" },
@@ -76,10 +76,16 @@ function renderSection(
 }
 
 describe("WorkspaceSidebarSection", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("renders only the add workspace button in the header", () => {
     renderSection([]);
 
-    const header = screen.getByText("工作区").closest(".thread-section-header");
+    expect(screen.queryByText("置顶")).not.toBeInTheDocument();
+
+    const header = screen.getByText("项目").closest(".thread-section-header");
     expect(header).not.toBeNull();
     expect(within(header as HTMLElement).getAllByRole("button")).toHaveLength(1);
     expect(within(header as HTMLElement).getByRole("button", { name: "添加工作区" })).toBeInTheDocument();
@@ -152,6 +158,45 @@ describe("WorkspaceSidebarSection", () => {
     expect(meta).not.toBeNull();
     expect(meta?.textContent?.trim().length).toBeGreaterThan(0);
     expect(within(threadButton as HTMLButtonElement).getByText("FPGA Thread 1")).toBeInTheDocument();
+  });
+
+  it("moves pinned threads into the pinned section and can unpin them", () => {
+    renderSection([createThread(ROOTS[0]!, 1)]);
+    fireEvent.click(screen.getByText("FPGA"));
+
+    const threadItem = screen.getByText("FPGA Thread 1").closest(".workspace-thread-item");
+    expect(threadItem).not.toBeNull();
+
+    fireEvent.click(within(threadItem as HTMLElement).getByRole("button", { name: "置顶" }));
+
+    const pinnedSection = document.querySelector(".workspace-pinned-section") as HTMLElement | null;
+    const projectsSection = document.querySelector(".workspace-projects-section") as HTMLElement | null;
+
+    expect(pinnedSection).not.toBeNull();
+    expect(projectsSection).not.toBeNull();
+    expect(within(pinnedSection as HTMLElement).getByText("FPGA Thread 1")).toBeInTheDocument();
+    expect(within(projectsSection as HTMLElement).queryByText("FPGA Thread 1")).toBeNull();
+
+    fireEvent.click(within(pinnedSection as HTMLElement).getByRole("button", { name: "取消置顶" }));
+
+    expect(document.querySelector(".workspace-pinned-section")).toBeNull();
+    expect(within(projectsSection as HTMLElement).getByText("FPGA Thread 1")).toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(PINNED_THREAD_IDS_STORAGE_KEY) ?? "[]")).toEqual([]);
+  });
+
+  it("hydrates pinned threads from local storage", () => {
+    const thread = createThread(ROOTS[0]!, 1);
+    window.localStorage.setItem(PINNED_THREAD_IDS_STORAGE_KEY, JSON.stringify([thread.id]));
+
+    renderSection([thread]);
+
+    const pinnedSection = document.querySelector(".workspace-pinned-section") as HTMLElement | null;
+    expect(pinnedSection).not.toBeNull();
+    expect(within(pinnedSection as HTMLElement).getByText("FPGA Thread 1")).toBeInTheDocument();
+
+    fireEvent.click(within(pinnedSection as HTMLElement).getByRole("button", { name: /FPGA Thread 1/ }));
+    expect(screen.getByTestId("selected-root")).toHaveTextContent("root-1");
+    expect(screen.getByTestId("selected-thread")).toHaveTextContent("thread-root-1-1");
   });
 
   it("shows awaiting reply when the thread is waiting on user input", () => {

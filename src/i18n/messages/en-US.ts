@@ -565,6 +565,8 @@ export const enUS = {
       pull: "Pull",
     },
     workspaceSection: {
+      pinnedTitle: "Pinned",
+      projectsTitle: "Projects",
       addAction: "Add workspace",
       loadFailed: "Failed to load sessions: {error}",
       emptyRoots: "No workspaces yet, click the add button in the top-left.",
@@ -581,6 +583,10 @@ export const enUS = {
       expandRootAria: "Expand workspace {name}",
       rootMoreAria: "More workspace actions for {name}",
       rootNewThreadAria: "Create a new thread in workspace {name}",
+      pinThreadAria: "Pin",
+      unpinThreadAria: "Unpin",
+      pinThreadTitle: "Pin thread: {title}",
+      unpinThreadTitle: "Unpin: {title}",
     },
     workspaceSelector: {
       placeholder: "Select workspace",

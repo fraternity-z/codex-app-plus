@@ -12,15 +12,18 @@ import { CSS } from "@dnd-kit/utilities";
 import { memo, useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { useI18n } from "../../../i18n/useI18n";
 import { threadSummaryRequiresUserAttention } from "../../conversation/model/threadAttention";
-import { listThreadsForWorkspace } from "../model/workspaceThread";
+import { listThreadsForWorkspace, threadBelongsToWorkspace } from "../model/workspaceThread";
+import { readStoredJson, writeStoredJson } from "../../shared/utils/storageJson";
 import type { WorkspaceRoot } from "../hooks/useWorkspaceRoots";
 import type { ThreadSummary } from "../../../domain/types";
-import { OfficialFolderClosedIcon, OfficialFolderOpenIcon, OfficialFolderPlusIcon } from "../../shared/ui/officialIcons";
+import { OfficialFolderClosedIcon, OfficialFolderOpenIcon, OfficialFolderPlusIcon, OfficialPinIcon, OfficialSortIcon } from "../../shared/ui/officialIcons";
 import { ThreadContextMenu } from "./ThreadContextMenu";
 import { WorkspaceRootMenu } from "./WorkspaceRootMenu";
 import { WorkspaceMoreIcon, WorkspaceNewThreadIcon } from "./WorkspaceRootActionIcons";
 import { useWorkspaceRootMenuState } from "./useWorkspaceRootMenuState";
 import { useWorkspaceDnD } from "./useWorkspaceDnD";
+
+export const PINNED_THREAD_IDS_STORAGE_KEY = "codex-app-plus.pinned-thread-ids";
 
 const DEFAULT_VISIBLE_THREAD_COUNT = 10;
 const MINUTE_IN_MS = 60 * 1000;
@@ -68,11 +71,13 @@ interface WorkspaceRootItemProps {
   readonly selectedThreadId: string | null;
   readonly threads: ReadonlyArray<ThreadSummary>;
   readonly showAllThreads: boolean;
+  readonly pinnedThreadIds: ReadonlySet<string>;
   readonly onCreateThread: () => Promise<void>;
   readonly onSelectThread: (threadId: string | null) => void;
   readonly onToggleExpanded: (rootId: string) => void;
-  readonly onOpenMenu: (event: MouseEvent<HTMLButtonElement>, thread: ThreadSummary) => void;
+  readonly onOpenMenu: (event: MouseEvent<HTMLElement>, thread: ThreadSummary) => void;
   readonly onOpenRootMenu: (event: MouseEvent<HTMLButtonElement>, root: WorkspaceRoot) => void;
+  readonly onTogglePinnedThread: (threadId: string) => void;
   readonly onToggleShowAllThreads: (rootId: string) => void;
   readonly dragListeners?: ReturnType<typeof useSortable>["listeners"];
   readonly dragAttributes?: ReturnType<typeof useSortable>["attributes"];
@@ -84,6 +89,11 @@ interface ThreadMenuState {
   readonly thread: ThreadSummary;
   readonly x: number;
   readonly y: number;
+}
+
+interface PinnedThreadEntry {
+  readonly thread: ThreadSummary;
+  readonly rootId: string;
 }
 
 function formatThreadUpdatedAt(updatedAt: string, t: ReturnType<typeof useI18n>["t"]): string {
@@ -125,8 +135,73 @@ function getThreadStatusLabel(
   return null;
 }
 
-function createThreadsByRootId(roots: ReadonlyArray<WorkspaceRoot>, codexSessions: ReadonlyArray<ThreadSummary>) {
-  return new Map(roots.map((root) => [root.id, listThreadsForWorkspace(codexSessions, root.path)]));
+function sanitizePinnedThreadIds(value: unknown): ReadonlyArray<string> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const pinnedThreadIds: string[] = [];
+  for (const item of value) {
+    if (typeof item === "string" && item.length > 0 && !pinnedThreadIds.includes(item)) {
+      pinnedThreadIds.push(item);
+    }
+  }
+  return pinnedThreadIds;
+}
+
+function readPinnedThreadIds(): ReadonlyArray<string> {
+  try {
+    return readStoredJson(PINNED_THREAD_IDS_STORAGE_KEY, sanitizePinnedThreadIds, []);
+  } catch {
+    return [];
+  }
+}
+
+function writePinnedThreadIds(threadIds: ReadonlyArray<string>): void {
+  try {
+    writeStoredJson(PINNED_THREAD_IDS_STORAGE_KEY, threadIds);
+  } catch {
+    // Ignore storage failures; pinning still works for the current session.
+  }
+}
+
+function findRootIdForThread(roots: ReadonlyArray<WorkspaceRoot>, thread: ThreadSummary): string | null {
+  let matchingRoot: WorkspaceRoot | null = null;
+  for (const root of roots) {
+    if (!threadBelongsToWorkspace(thread.cwd, root.path)) {
+      continue;
+    }
+    if (matchingRoot === null || root.path.length > matchingRoot.path.length) {
+      matchingRoot = root;
+    }
+  }
+  return matchingRoot?.id ?? null;
+}
+
+function createPinnedThreadEntries(
+  roots: ReadonlyArray<WorkspaceRoot>,
+  codexSessions: ReadonlyArray<ThreadSummary>,
+  pinnedThreadIds: ReadonlyArray<string>,
+): ReadonlyArray<PinnedThreadEntry> {
+  const threadsById = new Map(codexSessions.map((thread) => [thread.id, thread]));
+  return pinnedThreadIds.flatMap((threadId) => {
+    const thread = threadsById.get(threadId);
+    if (!thread) {
+      return [];
+    }
+    const rootId = findRootIdForThread(roots, thread);
+    return rootId === null ? [] : [{ thread, rootId }];
+  });
+}
+
+function createThreadsByRootId(
+  roots: ReadonlyArray<WorkspaceRoot>,
+  codexSessions: ReadonlyArray<ThreadSummary>,
+  pinnedThreadIds: ReadonlySet<string>,
+) {
+  return new Map(roots.map((root) => [
+    root.id,
+    listThreadsForWorkspace(codexSessions, root.path).filter((thread) => !pinnedThreadIds.has(thread.id)),
+  ]));
 }
 
 function createWorktreePathSet(paths: ReadonlyArray<string> | undefined): ReadonlySet<string> {
@@ -161,7 +236,7 @@ function useExpandedRootIds(roots: ReadonlyArray<WorkspaceRoot>) {
 
 function useThreadMenuState(props: Pick<WorkspaceSidebarSectionProps, "onArchiveThread" | "onDeleteThread">) {
   const [menuState, setMenuState] = useState<ThreadMenuState | null>(null);
-  const openThreadMenu = useCallback((event: MouseEvent<HTMLButtonElement>, thread: ThreadSummary) => {
+  const openThreadMenu = useCallback((event: MouseEvent<HTMLElement>, thread: ThreadSummary) => {
     event.preventDefault();
     setMenuState({ thread, x: event.clientX, y: event.clientY });
   }, []);
@@ -182,26 +257,52 @@ function useThreadMenuState(props: Pick<WorkspaceSidebarSectionProps, "onArchive
 const WorkspaceThreadItem = memo(function WorkspaceThreadItem(props: {
   readonly thread: ThreadSummary;
   readonly selected: boolean;
+  readonly pinned: boolean;
   readonly onSelect: (threadId: string | null) => void;
-  readonly onOpenMenu: (event: MouseEvent<HTMLButtonElement>, thread: ThreadSummary) => void;
+  readonly onOpenMenu: (event: MouseEvent<HTMLElement>, thread: ThreadSummary) => void;
+  readonly onTogglePinned: (threadId: string) => void;
 }): JSX.Element {
   const { t } = useI18n();
-  const className = props.selected ? "workspace-thread-button workspace-thread-button-active" : "workspace-thread-button";
+  const label = getThreadLabel(props.thread, t);
+  const itemClassName = [
+    "workspace-thread-item",
+    props.selected ? "workspace-thread-item-active" : "",
+    props.pinned ? "workspace-thread-item-pinned" : "",
+  ].filter(Boolean).join(" ");
   const isAwaitingReply = threadSummaryRequiresUserAttention(props.thread);
   const statusLabel = getThreadStatusLabel(props.thread, t);
   const statusClassName = isAwaitingReply
     ? "workspace-thread-badge workspace-thread-badge-awaiting-reply"
     : "workspace-thread-badge";
+  const pinLabel = props.pinned ? t("home.workspaceSection.unpinThreadAria") : t("home.workspaceSection.pinThreadAria");
+  const pinTitle = props.pinned
+    ? t("home.workspaceSection.unpinThreadTitle", { title: label })
+    : t("home.workspaceSection.pinThreadTitle", { title: label });
 
   return (
     <li>
-      <button type="button" className={className} onClick={() => props.onSelect(props.thread.id)} onContextMenu={(event) => props.onOpenMenu(event, props.thread)}>
-        <span className="workspace-thread-title-row">
-          <span className="workspace-thread-title">{getThreadLabel(props.thread, t)}</span>
-          {statusLabel ? <span className={statusClassName}>{statusLabel}</span> : null}
-          <span className="workspace-thread-meta">{formatThreadUpdatedAt(props.thread.updatedAt, t)}</span>
-        </span>
-      </button>
+      <div className={itemClassName} onContextMenu={(event) => props.onOpenMenu(event, props.thread)}>
+        <button
+          type="button"
+          className="workspace-thread-pin-button"
+          aria-label={pinLabel}
+          aria-pressed={props.pinned}
+          title={pinTitle}
+          onClick={(event) => {
+            event.stopPropagation();
+            props.onTogglePinned(props.thread.id);
+          }}
+        >
+          <OfficialPinIcon className="workspace-thread-pin-icon" />
+        </button>
+        <button type="button" className="workspace-thread-button" onClick={() => props.onSelect(props.thread.id)}>
+          <span className="workspace-thread-title-row">
+            <span className="workspace-thread-title">{label}</span>
+            {statusLabel ? <span className={statusClassName}>{statusLabel}</span> : null}
+            <span className="workspace-thread-meta">{formatThreadUpdatedAt(props.thread.updatedAt, t)}</span>
+          </span>
+        </button>
+      </div>
     </li>
   );
 });
@@ -239,7 +340,7 @@ function WorkspaceRootRow(props: WorkspaceRootRowProps): JSX.Element {
         {props.expanded
           ? <OfficialFolderOpenIcon className="workspace-folder-icon" />
           : <OfficialFolderClosedIcon className="workspace-folder-icon" />}
-                <span className="thread-label">{props.root.name}</span>
+        <span className="thread-label">{props.root.name}</span>
       </button>
       <div className="workspace-root-actions">
         <button type="button" className="thread-item-tools workspace-root-action" aria-label={t("home.workspaceSection.rootMoreAria", { name: props.root.name })} title={t("home.workspaceSection.rootMoreAria", { name: props.root.name })} onClick={handleOpenMenu} onContextMenu={handleOpenMenu}>
@@ -258,8 +359,10 @@ function WorkspaceThreadList(props: {
   readonly threads: ReadonlyArray<ThreadSummary>;
   readonly selectedThreadId: string | null;
   readonly showAllThreads: boolean;
+  readonly pinnedThreadIds: ReadonlySet<string>;
   readonly onSelectThread: (threadId: string | null) => void;
-  readonly onOpenMenu: (event: MouseEvent<HTMLButtonElement>, thread: ThreadSummary) => void;
+  readonly onOpenMenu: (event: MouseEvent<HTMLElement>, thread: ThreadSummary) => void;
+  readonly onTogglePinnedThread: (threadId: string) => void;
   readonly onToggleShowAllThreads: (rootId: string) => void;
 }): JSX.Element {
   const { t } = useI18n();
@@ -275,7 +378,15 @@ function WorkspaceThreadList(props: {
     <>
       <ul className="workspace-thread-list">
         {visibleThreads.map((thread) => (
-          <WorkspaceThreadItem key={thread.id} thread={thread} selected={thread.id === props.selectedThreadId} onSelect={props.onSelectThread} onOpenMenu={props.onOpenMenu} />
+          <WorkspaceThreadItem
+            key={thread.id}
+            thread={thread}
+            selected={thread.id === props.selectedThreadId}
+            pinned={props.pinnedThreadIds.has(thread.id)}
+            onSelect={props.onSelectThread}
+            onOpenMenu={props.onOpenMenu}
+            onTogglePinned={props.onTogglePinnedThread}
+          />
         ))}
       </ul>
       {props.threads.length > DEFAULT_VISIBLE_THREAD_COUNT ? (
@@ -286,6 +397,39 @@ function WorkspaceThreadList(props: {
         </button>
       ) : null}
     </>
+  );
+}
+
+function PinnedThreadsSection(props: {
+  readonly entries: ReadonlyArray<PinnedThreadEntry>;
+  readonly selectedThreadId: string | null;
+  readonly onSelectThread: (rootId: string, threadId: string | null) => void;
+  readonly onOpenMenu: (event: MouseEvent<HTMLElement>, thread: ThreadSummary) => void;
+  readonly onTogglePinnedThread: (threadId: string) => void;
+}): JSX.Element | null {
+  const { t } = useI18n();
+
+  if (props.entries.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="workspace-pinned-section" aria-label={t("home.workspaceSection.pinnedTitle")}>
+      <div className="workspace-sidebar-group-title">{t("home.workspaceSection.pinnedTitle")}</div>
+      <ul className="workspace-pinned-thread-list">
+        {props.entries.map(({ thread, rootId }) => (
+          <WorkspaceThreadItem
+            key={thread.id}
+            thread={thread}
+            selected={thread.id === props.selectedThreadId}
+            pinned={true}
+            onSelect={(threadId) => props.onSelectThread(rootId, threadId)}
+            onOpenMenu={props.onOpenMenu}
+            onTogglePinned={props.onTogglePinnedThread}
+          />
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -305,7 +449,17 @@ const WorkspaceRootItem = memo(function WorkspaceRootItem(props: WorkspaceRootIt
         dragging={props.dragging}
       />
       {props.expanded ? (
-        <WorkspaceThreadList rootId={props.root.id} threads={props.threads} selectedThreadId={props.selectedThreadId} showAllThreads={props.showAllThreads} onSelectThread={props.onSelectThread} onOpenMenu={props.onOpenMenu} onToggleShowAllThreads={props.onToggleShowAllThreads} />
+        <WorkspaceThreadList
+          rootId={props.root.id}
+          threads={props.threads}
+          selectedThreadId={props.selectedThreadId}
+          showAllThreads={props.showAllThreads}
+          pinnedThreadIds={props.pinnedThreadIds}
+          onSelectThread={props.onSelectThread}
+          onOpenMenu={props.onOpenMenu}
+          onTogglePinnedThread={props.onTogglePinnedThread}
+          onToggleShowAllThreads={props.onToggleShowAllThreads}
+        />
       ) : null}
     </div>
   );
@@ -338,6 +492,7 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
   const { t } = useI18n();
   const { expandedRootIds, toggleExpanded } = useExpandedRootIds(props.roots);
   const [expandedThreadRootIds, setExpandedThreadRootIds] = useState<ReadonlyArray<string>>([]);
+  const [pinnedThreadIds, setPinnedThreadIds] = useState<ReadonlyArray<string>>(() => readPinnedThreadIds());
   const { menuState, openThreadMenu, closeMenu, handleArchiveThread, handleDeleteThread } = useThreadMenuState(props);
   const worktreePathSet = useMemo(() => createWorktreePathSet(props.worktreePaths), [props.worktreePaths]);
   const workspaceRootMenu = useWorkspaceRootMenuState({
@@ -356,9 +511,28 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
     setExpandedThreadRootIds((current) => current.filter((rootId) => visibleRootIds.has(rootId)));
   }, [expandedThreadRootIds.length, props.roots]);
 
-  const threadsByRootId = useMemo(() => createThreadsByRootId(props.roots, props.codexSessions), [props.codexSessions, props.roots]);
+  useEffect(() => {
+    writePinnedThreadIds(pinnedThreadIds);
+  }, [pinnedThreadIds]);
+
+  const pinnedThreadIdSet = useMemo(() => new Set(pinnedThreadIds), [pinnedThreadIds]);
+  const pinnedThreadEntries = useMemo(
+    () => createPinnedThreadEntries(props.roots, props.codexSessions, pinnedThreadIds),
+    [pinnedThreadIds, props.codexSessions, props.roots],
+  );
+  const threadsByRootId = useMemo(
+    () => createThreadsByRootId(props.roots, props.codexSessions, pinnedThreadIdSet),
+    [pinnedThreadIdSet, props.codexSessions, props.roots],
+  );
   const toggleShowAllThreads = useCallback((rootId: string) => setExpandedThreadRootIds((current) => toggleRootId(current, rootId)), []);
-  const handleOpenThreadMenu = useCallback((event: MouseEvent<HTMLButtonElement>, thread: ThreadSummary) => {
+  const togglePinnedThread = useCallback((threadId: string) => {
+    setPinnedThreadIds((current) => (
+      current.includes(threadId)
+        ? current.filter((item) => item !== threadId)
+        : [threadId, ...current]
+    ));
+  }, []);
+  const handleOpenThreadMenu = useCallback((event: MouseEvent<HTMLElement>, thread: ThreadSummary) => {
     workspaceRootMenu.closeMenu();
     openThreadMenu(event, thread);
   }, [openThreadMenu, workspaceRootMenu]);
@@ -380,57 +554,69 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
 
   return (
     <section className="thread-section">
-      <div className="thread-section-header">
-        <div className="thread-section-title">{t("settings.environment.workspacesTitle")}</div>
-        <div className="thread-header-actions">
-          <button type="button" className="thread-header-btn" onClick={props.onAddRoot} aria-label={t("home.workspaceSection.addAction")}>
-            <OfficialFolderPlusIcon className="thread-header-icon" />
-          </button>
+      <PinnedThreadsSection
+        entries={pinnedThreadEntries}
+        selectedThreadId={props.selectedThreadId}
+        onSelectThread={handleSelectWorkspaceThread}
+        onOpenMenu={handleOpenThreadMenu}
+        onTogglePinnedThread={togglePinnedThread}
+      />
+      <div className="workspace-projects-section">
+        <div className="thread-section-header">
+          <div className="thread-section-title">{t("home.workspaceSection.projectsTitle")}</div>
+          <div className="thread-header-actions">
+            <OfficialSortIcon className="thread-header-icon workspace-root-sort-icon" />
+            <button type="button" className="thread-header-btn" onClick={props.onAddRoot} aria-label={t("home.workspaceSection.addAction")}>
+              <OfficialFolderPlusIcon className="thread-header-icon" />
+            </button>
+          </div>
         </div>
-      </div>
-      {props.error !== null ? <div className="thread-section-status" role="alert">{t("home.workspaceSection.loadFailed", { error: props.error })}</div> : null}
-      <DndContext
-        sensors={dnd.sensors}
-        collisionDetection={closestCenter}
-        onDragStart={dnd.handleDragStart}
-        onDragOver={dnd.handleDragOver}
-        onDragMove={dnd.handleDragMove}
-        onDragEnd={dnd.handleDragEnd}
-        onDragCancel={dnd.handleDragCancel}
-      >
-        <SortableContext items={props.roots.map((root) => root.id)} strategy={verticalListSortingStrategy}>
-          <ul className="thread-list workspace-root-list">
-            {props.roots.map((root) => (
-              <div key={root.id} className="workspace-root-sortable-wrapper">
-                {dnd.dropMarkerRootId === root.id ? <div className="workspace-root-drop-indicator" aria-hidden="true" /> : null}
-                <SortableWorkspaceRootItem
-                  root={root}
-                  expanded={expandedRootIds.includes(root.id)}
-                  selected={root.id === props.selectedRootId}
-                  selectedThreadId={props.selectedThreadId}
-                  threads={threadsByRootId.get(root.id) ?? []}
-                  showAllThreads={expandedThreadRootIds.includes(root.id)}
-                  onCreateThread={() => handleCreateThreadInRoot(root.id)}
-                  onSelectThread={(threadId) => handleSelectWorkspaceThread(root.id, threadId)}
-                  onToggleExpanded={toggleExpanded}
-                  onOpenMenu={handleOpenThreadMenu}
-                  onOpenRootMenu={handleOpenRootMenu}
-                  onToggleShowAllThreads={toggleShowAllThreads}
-                />
+        {props.error !== null ? <div className="thread-section-status" role="alert">{t("home.workspaceSection.loadFailed", { error: props.error })}</div> : null}
+        <DndContext
+          sensors={dnd.sensors}
+          collisionDetection={closestCenter}
+          onDragStart={dnd.handleDragStart}
+          onDragOver={dnd.handleDragOver}
+          onDragMove={dnd.handleDragMove}
+          onDragEnd={dnd.handleDragEnd}
+          onDragCancel={dnd.handleDragCancel}
+        >
+          <SortableContext items={props.roots.map((root) => root.id)} strategy={verticalListSortingStrategy}>
+            <ul className="thread-list workspace-root-list">
+              {props.roots.map((root) => (
+                <div key={root.id} className="workspace-root-sortable-wrapper">
+                  {dnd.dropMarkerRootId === root.id ? <div className="workspace-root-drop-indicator" aria-hidden="true" /> : null}
+                  <SortableWorkspaceRootItem
+                    root={root}
+                    expanded={expandedRootIds.includes(root.id)}
+                    selected={root.id === props.selectedRootId}
+                    selectedThreadId={props.selectedThreadId}
+                    threads={threadsByRootId.get(root.id) ?? []}
+                    showAllThreads={expandedThreadRootIds.includes(root.id)}
+                    pinnedThreadIds={pinnedThreadIdSet}
+                    onCreateThread={() => handleCreateThreadInRoot(root.id)}
+                    onSelectThread={(threadId) => handleSelectWorkspaceThread(root.id, threadId)}
+                    onToggleExpanded={toggleExpanded}
+                    onOpenMenu={handleOpenThreadMenu}
+                    onOpenRootMenu={handleOpenRootMenu}
+                    onTogglePinnedThread={togglePinnedThread}
+                    onToggleShowAllThreads={toggleShowAllThreads}
+                  />
+                </div>
+              ))}
+              {props.roots.length === 0 ? <li className="thread-empty">{t("home.workspaceSection.emptyRoots")}</li> : null}
+            </ul>
+          </SortableContext>
+          <DragOverlay>
+            {dnd.activeRoot ? (
+              <div className="workspace-root-overlay thread-item workspace-root-row thread-item-active">
+                <OfficialFolderClosedIcon className="workspace-folder-icon" />
+                <span className="thread-label">{dnd.activeRoot.name}</span>
               </div>
-            ))}
-            {props.roots.length === 0 ? <li className="thread-empty">{t("home.workspaceSection.emptyRoots")}</li> : null}
-          </ul>
-        </SortableContext>
-        <DragOverlay>
-          {dnd.activeRoot ? (
-            <div className="workspace-root-overlay thread-item workspace-root-row thread-item-active">
-              <OfficialFolderClosedIcon className="workspace-folder-icon" />
-                            <span className="thread-label">{dnd.activeRoot.name}</span>
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
       {menuState ? (
         <ThreadContextMenu
           x={menuState.x}

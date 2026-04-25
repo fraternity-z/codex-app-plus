@@ -83,15 +83,16 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 .thread-section-header {
   height: 30px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4px;
+  padding: 0 14px;
 }
 .thread-section-title {
   display: flex;
@@ -147,7 +148,7 @@
   background-color: var(--scrollbar-thumb-hover);
 }
 .thread-item {
-  height: 30px;
+  height: 32px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -156,7 +157,7 @@
   box-sizing: border-box;
   cursor: pointer;
   border-radius: 8px;
-  padding: 0 4px;
+  padding: 0 10px;
   color: var(--text-soft);
 }
 .thread-empty {
@@ -196,6 +197,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--app-ui-font-size-base);
+  line-height: 1.3;
 }
 .thread-item-tools {
   margin-left: auto;
