@@ -716,6 +716,11 @@ export const enUS = {
         senderThread: "Sender thread: {value}",
         taskList: "Task list",
         toolCall: "Tool call: {tool}",
+        toolGroupCommands: "Ran {count} commands",
+        toolGroupEditedFiles: "Edited {count} files",
+        toolGroupReadFiles: "Read {count} files",
+        toolGroupSeparator: ", ",
+        toolGroupTools: "Ran {count} tools",
         viewImage: "View image: {path}",
         webSearch: "Web search: {query}",
         commandIntent: {

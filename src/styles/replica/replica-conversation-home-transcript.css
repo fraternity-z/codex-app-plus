@@ -172,6 +172,15 @@
   cursor: pointer;
 }
 
+.home-assistant-transcript-tool-group details {
+  display: block;
+}
+
+.home-assistant-transcript-tool-group summary {
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
 .home-assistant-transcript-summary {
   display: block;
   max-width: 100%;
@@ -204,7 +213,8 @@
 .home-assistant-transcript-file-change-summary-inline,
 .home-assistant-transcript-file-change-open-summary,
 .home-assistant-transcript-command-summary-inline,
-.home-assistant-transcript-command-open-summary {
+.home-assistant-transcript-command-open-summary,
+.home-assistant-transcript-tool-group-summary {
   display: flex;
   min-width: 0;
   align-items: center;
@@ -234,6 +244,21 @@
   white-space: nowrap;
 }
 
+.home-assistant-transcript-tool-group-summary-text {
+  min-width: 0;
+  flex: 0 1 auto;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-assistant-transcript-tool-group-body {
+  display: grid;
+  gap: 2px;
+  margin: 8px 0 0 16px;
+}
+
 .home-assistant-transcript-file-change-counts {
   display: inline-flex;
   flex: 0 0 auto;
@@ -244,7 +269,8 @@
 }
 
 .home-assistant-transcript-summary-chevron,
-.home-assistant-transcript-file-diff-chevron {
+.home-assistant-transcript-file-diff-chevron,
+.home-assistant-transcript-tool-group-chevron {
   flex: 0 0 auto;
   width: 12px;
   height: 12px;
@@ -252,7 +278,8 @@
 }
 
 .home-assistant-transcript-summary-chevron::before,
-.home-assistant-transcript-file-diff-chevron::before {
+.home-assistant-transcript-file-diff-chevron::before,
+.home-assistant-transcript-tool-group-chevron::before {
   display: block;
   width: 7px;
   height: 7px;
@@ -265,7 +292,8 @@
 
 .home-assistant-transcript-file-change-open-summary .home-assistant-transcript-summary-chevron::before,
 .home-assistant-transcript-command-open-summary .home-assistant-transcript-summary-chevron::before,
-.home-assistant-transcript-file-diff-card[open] .home-assistant-transcript-file-diff-chevron::before {
+.home-assistant-transcript-file-diff-card[open] .home-assistant-transcript-file-diff-chevron::before,
+.home-assistant-transcript-tool-group details[open] > .home-assistant-transcript-tool-group-summary .home-assistant-transcript-tool-group-chevron::before {
   transform: rotate(45deg);
 }
 

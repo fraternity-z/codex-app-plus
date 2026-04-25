@@ -293,6 +293,38 @@ const DEBUG_ENTRY: TimelineEntry = {
   payload: { ok: false },
 };
 
+function createCompletedCommandEntry(id: string, command: string): TimelineEntry {
+  const baseCommand = COMMAND_ENTRY as Extract<TimelineEntry, { kind: "commandExecution" }>;
+  return {
+    ...baseCommand,
+    id,
+    itemId: `item-${id}`,
+    command,
+    processId: `proc-${id}`,
+    status: "completed",
+    output: "done",
+    exitCode: 0,
+    durationMs: 1200,
+  };
+}
+
+function createFileChangeEntry(
+  changes: Extract<TimelineEntry, { kind: "fileChange" }>["changes"],
+  id = "file-change-1",
+): TimelineEntry {
+  return {
+    id,
+    kind: "fileChange",
+    threadId: "thread-1",
+    turnId: "turn-1",
+    itemId: `item-${id}`,
+    changes,
+    status: "completed",
+    output: "patched",
+    approvalRequestId: null,
+  };
+}
+
 describe("HomeConversationCanvas", () => {
   it("renders a single bottom thinking indicator immediately after user input", () => {
     const { container } = renderCanvas([USER_MESSAGE], { activeTurnId: "turn-1" });
@@ -328,6 +360,133 @@ describe("HomeConversationCanvas", () => {
     expect(assistantClassNames[2]).toContain("home-assistant-transcript-message");
     expect(assistantClassNames[3]).toContain("home-chat-message-actions");
     expect(screen.queryByText(/正在思考|Thinking/)).toBeNull();
+  });
+
+  it("folds multiple commands between assistant text after the turn stops", () => {
+    const commandOne = createCompletedCommandEntry("command-1", "pnpm test");
+    const commandTwo = createCompletedCommandEntry("command-2", "pnpm typecheck");
+    const { container } = renderCanvas(
+      [USER_MESSAGE, ASSISTANT_MESSAGE, commandOne, commandTwo, SECOND_ASSISTANT_MESSAGE],
+      { turnStatuses: { "turn-1": "completed" } },
+    );
+    const assistantFlow = container.querySelector(".home-turn-assistant-flow");
+    const assistantClassNames = Array.from(assistantFlow?.children ?? []).map((element) => (element as HTMLElement).className);
+    const toolGroup = container.querySelector(".home-assistant-transcript-tool-group");
+    const groupDetails = toolGroup?.querySelector(":scope > details") as HTMLDetailsElement | null;
+    const groupSummary = toolGroup?.querySelector(":scope > details > summary");
+    const nestedCommandDetails = Array.from(toolGroup?.querySelectorAll(".home-assistant-transcript-details-trace") ?? []);
+
+    expect(assistantClassNames[0]).toContain("home-assistant-transcript-message");
+    expect(assistantClassNames[1]).toContain("home-assistant-transcript-tool-group");
+    expect(assistantClassNames[2]).toContain("home-assistant-transcript-message");
+    expect(groupSummary?.textContent).toBe("已执行2个命令");
+    expect(groupDetails?.open).toBe(false);
+    expect(nestedCommandDetails).toHaveLength(2);
+
+    fireEvent.click(groupSummary as Element);
+    expect(groupDetails?.open).toBe(true);
+  });
+
+  it("keeps between-text commands ungrouped while the assistant stream is active", () => {
+    const commandOne = createCompletedCommandEntry("command-1", "pnpm test");
+    const commandTwo = createCompletedCommandEntry("command-2", "pnpm typecheck");
+    const { container } = renderCanvas(
+      [USER_MESSAGE, ASSISTANT_MESSAGE, commandOne, commandTwo, STREAMING_ASSISTANT_MESSAGE],
+      { activeTurnId: "turn-1", turnStatuses: { "turn-1": "inProgress" } },
+    );
+    const assistantFlow = container.querySelector(".home-turn-assistant-flow");
+    const assistantClassNames = Array.from(assistantFlow?.children ?? []).map((element) => (element as HTMLElement).className);
+
+    expect(container.querySelector(".home-assistant-transcript-tool-group")).toBeNull();
+    expect(assistantClassNames.filter((className) => className.includes("home-assistant-transcript-details"))).toHaveLength(2);
+    expect(screen.getByText(/正在思考|Thinking/)).toBeInTheDocument();
+  });
+
+  it("folds between-text commands after an interrupted turn even if the active id is still present", () => {
+    const commandOne = createCompletedCommandEntry("command-1", "pnpm test");
+    const commandTwo = createCompletedCommandEntry("command-2", "pnpm typecheck");
+    const { container } = renderCanvas(
+      [USER_MESSAGE, ASSISTANT_MESSAGE, commandOne, commandTwo, SECOND_ASSISTANT_MESSAGE],
+      { activeTurnId: "turn-1", turnStatuses: { "turn-1": "interrupted" } },
+    );
+
+    expect(container.querySelector(".home-assistant-transcript-tool-group summary")?.textContent).toBe("已执行2个命令");
+  });
+
+  it("does not fold tools below a single assistant text block", () => {
+    const commandOne = createCompletedCommandEntry("command-1", "pnpm test");
+    const commandTwo = createCompletedCommandEntry("command-2", "pnpm typecheck");
+    const { container } = renderCanvas([USER_MESSAGE, ASSISTANT_MESSAGE, commandOne, commandTwo]);
+    const assistantFlow = container.querySelector(".home-turn-assistant-flow");
+    const assistantClassNames = Array.from(assistantFlow?.children ?? []).map((element) => (element as HTMLElement).className);
+
+    expect(container.querySelector(".home-assistant-transcript-tool-group")).toBeNull();
+    expect(assistantClassNames[0]).toContain("home-assistant-transcript-message");
+    expect(assistantClassNames[1]).toContain("home-assistant-transcript-details");
+    expect(assistantClassNames[2]).toContain("home-assistant-transcript-details");
+  });
+
+  it("summarizes folded read commands by file count", () => {
+    const readOne = createCompletedCommandEntry("command-1", "Get-Content src/App.tsx");
+    const readTwo = createCompletedCommandEntry("command-2", "Get-Content src/main.tsx");
+    const { container } = renderCanvas([USER_MESSAGE, ASSISTANT_MESSAGE, readOne, readTwo, SECOND_ASSISTANT_MESSAGE]);
+    const groupSummary = container.querySelector(".home-assistant-transcript-tool-group summary");
+
+    expect(groupSummary?.textContent).toBe("已读取2个文件");
+  });
+
+  it("summarizes folded file changes by edited file count", () => {
+    const fileChange = createFileChangeEntry([
+      {
+        path: "src/App.tsx",
+        kind: { type: "update", move_path: null },
+        diff: ["@@ -1 +1 @@", "-old", "+new"].join("\n"),
+      },
+      {
+        path: "src/main.tsx",
+        kind: { type: "update", move_path: null },
+        diff: ["@@ -1 +1 @@", "-old", "+new"].join("\n"),
+      },
+    ]);
+    const { container } = renderCanvas([USER_MESSAGE, ASSISTANT_MESSAGE, fileChange, SECOND_ASSISTANT_MESSAGE]);
+    const groupSummary = container.querySelector(".home-assistant-transcript-tool-group summary");
+
+    expect(groupSummary?.textContent).toBe("已编辑2个文件");
+  });
+
+  it("summarizes mixed folded tools by edited files and executed commands", () => {
+    const commandOne = createCompletedCommandEntry("command-1", "Get-Content src/App.tsx");
+    const commandTwo = createCompletedCommandEntry("command-2", "Get-Content src/main.tsx");
+    const commandThree = createCompletedCommandEntry("command-3", "git diff -- src/App.tsx");
+    const commandFour = createCompletedCommandEntry("command-4", "rg -n \"File Explorer\" src");
+    const fileChangeOne = createFileChangeEntry([
+      {
+        path: "src/WorkspaceSidebarSection.test.tsx",
+        kind: { type: "update", move_path: null },
+        diff: ["@@ -1 +1 @@", "-old", "+new"].join("\n"),
+      },
+    ], "file-change-1");
+    const fileChangeTwo = createFileChangeEntry([
+      {
+        path: "src/HomeSidebar.test.tsx",
+        kind: { type: "update", move_path: null },
+        diff: ["@@ -1 +1 @@", "-old", "+new"].join("\n"),
+      },
+    ], "file-change-2");
+    const { container } = renderCanvas([
+      USER_MESSAGE,
+      ASSISTANT_MESSAGE,
+      commandOne,
+      commandTwo,
+      commandThree,
+      fileChangeOne,
+      commandFour,
+      fileChangeTwo,
+      SECOND_ASSISTANT_MESSAGE,
+    ]);
+    const groupSummary = container.querySelector(".home-assistant-transcript-tool-group summary");
+
+    expect(groupSummary?.textContent).toBe("已编辑2个文件，已执行4个命令");
   });
 
   it("keeps the context compaction divider between assistant messages", () => {

@@ -15,6 +15,7 @@ import {
   flattenConversationRenderGroup,
   splitActivitiesIntoRenderGroups,
 } from "../model/localConversationGroups";
+import { classifyCommand } from "../model/commandIntent";
 import { HomeConnectionStatusToast } from "../../home/ui/HomeConnectionStatusToast";
 import { HomeChatMessageActions } from "./HomeChatMessage";
 import { HomeTimelineEntry } from "./HomeTimelineEntry";
@@ -50,6 +51,16 @@ interface RenderGroup {
   readonly showThinkingIndicator: boolean;
   readonly turnStatus: TurnStatus | null;
 }
+
+type AssistantFlowRenderNode = Exclude<RenderGroup["nodes"][number], { readonly kind: "userBubble" }>;
+type AssistantTraceNode = Extract<AssistantFlowRenderNode, { readonly kind: "traceItem" }>;
+type AssistantDisplayNode =
+  | AssistantFlowRenderNode
+  | {
+    readonly key: string;
+    readonly kind: "assistantToolGroup";
+    readonly nodes: ReadonlyArray<AssistantTraceNode>;
+  };
 
 function useMeasuredRenderGroups(groups: ReadonlyArray<RenderGroup>) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -173,7 +184,12 @@ export function HomeConversationCanvas(
                 return null;
               }
               const userNodes = group.nodes.filter((node) => node.kind === "userBubble");
-              const assistantNodes = group.nodes.filter((node) => node.kind !== "userBubble");
+              const assistantNodes = group.nodes.filter((node): node is AssistantFlowRenderNode => node.kind !== "userBubble");
+              const assistantDisplayNodes = createAssistantDisplayNodes(
+                assistantNodes,
+                group.turnStatus,
+                group.showThinkingIndicator,
+              );
               const assistantCopyText = createAssistantCopyText(group.nodes);
               const assistantCopyId = `assistant:${group.key}`;
               return (
@@ -199,18 +215,14 @@ export function HomeConversationCanvas(
                     ))}
                     {assistantNodes.length > 0 || group.showThinkingIndicator ? (
                       <div className="home-turn-assistant-flow">
-                        {assistantNodes.map((node) => (
-                          <HomeTimelineEntry
-                            key={node.key}
-                            node={node}
-                            turnStatus={group.turnStatus}
-                            onResolveServerRequest={props.onResolveServerRequest}
-                            copiedMessageId={copiedMessageId}
-                            canEditMessages={false}
-                            onCopyMessage={(message) => void handleCopyMessage(message)}
-                            onEditUserMessage={handleEditUserMessage}
-                          />
-                        ))}
+                        {assistantDisplayNodes.map((node) => renderAssistantDisplayNode({
+                          node,
+                          turnStatus: group.turnStatus,
+                          onResolveServerRequest: props.onResolveServerRequest,
+                          copiedMessageId,
+                          onCopyMessage: (message) => void handleCopyMessage(message),
+                          onEditUserMessage: handleEditUserMessage,
+                        }))}
                         {assistantCopyText !== null ? (
                           <HomeChatMessageActions
                             assistant
@@ -246,6 +258,79 @@ export function HomeConversationCanvas(
   );
 }
 
+function renderAssistantDisplayNode(props: {
+  readonly node: AssistantDisplayNode;
+  readonly turnStatus: TurnStatus | null;
+  readonly onResolveServerRequest: HomeConversationCanvasProps["onResolveServerRequest"];
+  readonly copiedMessageId: string | null;
+  readonly onCopyMessage: (message: ConversationMessage) => void;
+  readonly onEditUserMessage: (message: ConversationMessage, text: string) => Promise<void>;
+}): JSX.Element {
+  if (props.node.kind === "assistantToolGroup") {
+    return (
+      <HomeAssistantToolGroup
+        key={props.node.key}
+        node={props.node}
+        turnStatus={props.turnStatus}
+        onResolveServerRequest={props.onResolveServerRequest}
+        copiedMessageId={props.copiedMessageId}
+        onCopyMessage={props.onCopyMessage}
+        onEditUserMessage={props.onEditUserMessage}
+      />
+    );
+  }
+
+  return (
+    <HomeTimelineEntry
+      key={props.node.key}
+      node={props.node}
+      turnStatus={props.turnStatus}
+      onResolveServerRequest={props.onResolveServerRequest}
+      copiedMessageId={props.copiedMessageId}
+      canEditMessages={false}
+      onCopyMessage={props.onCopyMessage}
+      onEditUserMessage={props.onEditUserMessage}
+    />
+  );
+}
+
+function HomeAssistantToolGroup(props: {
+  readonly node: Extract<AssistantDisplayNode, { readonly kind: "assistantToolGroup" }>;
+  readonly turnStatus: TurnStatus | null;
+  readonly onResolveServerRequest: HomeConversationCanvasProps["onResolveServerRequest"];
+  readonly copiedMessageId: string | null;
+  readonly onCopyMessage: (message: ConversationMessage) => void;
+  readonly onEditUserMessage: (message: ConversationMessage, text: string) => Promise<void>;
+}): JSX.Element {
+  const { t } = useI18n();
+  return (
+    <section className="home-assistant-transcript-entry home-assistant-transcript-tool-group">
+      <details>
+        <summary className="home-assistant-transcript-line home-assistant-transcript-summary home-assistant-transcript-tool-group-summary">
+          <span className="home-assistant-transcript-tool-group-summary-text">
+            {createAssistantToolGroupSummary(props.node.nodes, t)}
+          </span>
+          <span className="home-assistant-transcript-tool-group-chevron" aria-hidden="true" />
+        </summary>
+        <div className="home-assistant-transcript-tool-group-body">
+          {props.node.nodes.map((node) => (
+            <HomeTimelineEntry
+              key={node.key}
+              node={node}
+              turnStatus={props.turnStatus}
+              onResolveServerRequest={props.onResolveServerRequest}
+              copiedMessageId={props.copiedMessageId}
+              canEditMessages={false}
+              onCopyMessage={props.onCopyMessage}
+              onEditUserMessage={props.onEditUserMessage}
+            />
+          ))}
+        </div>
+      </details>
+    </section>
+  );
+}
+
 function createRenderGroups(
   activities: ReadonlyArray<TimelineEntry>,
   activeTurnId: string | null,
@@ -260,6 +345,211 @@ function createRenderGroups(
       turnStatus: group.turnId === null ? null : turnStatuses[group.turnId] ?? null,
     }))
     .filter((group) => group.nodes.length > 0 || group.showThinkingIndicator);
+}
+
+function createAssistantDisplayNodes(
+  nodes: ReadonlyArray<AssistantFlowRenderNode>,
+  turnStatus: TurnStatus | null,
+  showThinkingIndicator: boolean,
+): Array<AssistantDisplayNode> {
+  if (!shouldFoldAssistantToolGroups(nodes, turnStatus, showThinkingIndicator)) {
+    return [...nodes];
+  }
+
+  const hasAssistantTextBefore = createAssistantTextBeforeMap(nodes);
+  const hasAssistantTextAfter = createAssistantTextAfterMap(nodes);
+  const displayNodes: Array<AssistantDisplayNode> = [];
+  let index = 0;
+
+  while (index < nodes.length) {
+    const node = nodes[index];
+    if (
+      node !== undefined
+      && isFoldableTraceNode(node)
+      && hasAssistantTextBefore[index] === true
+      && hasAssistantTextAfter[index] === true
+    ) {
+      const run: Array<AssistantTraceNode> = [];
+      let cursor = index;
+      while (cursor < nodes.length) {
+        const runNode = nodes[cursor];
+        if (
+          !isFoldableTraceNode(runNode)
+          || hasAssistantTextBefore[cursor] !== true
+          || hasAssistantTextAfter[cursor] !== true
+        ) {
+          break;
+        }
+        run.push(runNode);
+        cursor += 1;
+      }
+
+      if (shouldCreateAssistantToolGroup(run)) {
+        displayNodes.push({
+          key: `tool-group:${run.map((entry) => entry.key).join(":")}`,
+          kind: "assistantToolGroup",
+          nodes: run,
+        });
+      } else {
+        displayNodes.push(...run);
+      }
+      index = cursor;
+      continue;
+    }
+
+    if (node !== undefined) {
+      displayNodes.push(node);
+    }
+    index += 1;
+  }
+
+  return displayNodes;
+}
+
+function shouldFoldAssistantToolGroups(
+  nodes: ReadonlyArray<AssistantFlowRenderNode>,
+  turnStatus: TurnStatus | null,
+  showThinkingIndicator: boolean,
+): boolean {
+  const streamStillActive = turnStatus === "inProgress" || (turnStatus === null && showThinkingIndicator);
+  return streamStillActive === false
+    && nodes.every((node) => node.kind !== "assistantMessage" || node.message.status !== "streaming");
+}
+
+function createAssistantTextBeforeMap(nodes: ReadonlyArray<AssistantFlowRenderNode>): ReadonlyArray<boolean> {
+  const result: boolean[] = [];
+  let hasText = false;
+  for (let index = 0; index < nodes.length; index += 1) {
+    result[index] = hasText;
+    if (isAssistantTextNode(nodes[index])) {
+      hasText = true;
+    }
+  }
+  return result;
+}
+
+function createAssistantTextAfterMap(nodes: ReadonlyArray<AssistantFlowRenderNode>): ReadonlyArray<boolean> {
+  const result: boolean[] = [];
+  let hasText = false;
+  for (let index = nodes.length - 1; index >= 0; index -= 1) {
+    result[index] = hasText;
+    if (isAssistantTextNode(nodes[index])) {
+      hasText = true;
+    }
+  }
+  return result;
+}
+
+function isAssistantTextNode(node: AssistantFlowRenderNode | undefined): boolean {
+  return node?.kind === "assistantMessage" && node.message.text.trim().length > 0;
+}
+
+function isFoldableTraceNode(node: AssistantFlowRenderNode | undefined): node is AssistantTraceNode {
+  if (node?.kind !== "traceItem") {
+    return false;
+  }
+  return node.item.kind === "commandExecution"
+    || node.item.kind === "fileChange"
+    || node.item.kind === "mcpToolCall"
+    || node.item.kind === "dynamicToolCall"
+    || node.item.kind === "collabAgentToolCall"
+    || node.item.kind === "webSearch";
+}
+
+function shouldCreateAssistantToolGroup(nodes: ReadonlyArray<AssistantTraceNode>): boolean {
+  if (nodes.length > 1) {
+    return true;
+  }
+
+  const node = nodes[0];
+  if (node?.item.kind === "fileChange") {
+    return countEditedFiles(nodes) > 1;
+  }
+  if (node?.item.kind === "commandExecution") {
+    return countReadFiles(nodes) > 1;
+  }
+  return false;
+}
+
+function createAssistantToolGroupSummary(
+  nodes: ReadonlyArray<AssistantTraceNode>,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  const editedFileCount = countEditedFiles(nodes);
+  if (editedFileCount > 0 && nodes.every((node) => node.item.kind === "fileChange")) {
+    return t("home.conversation.transcript.toolGroupEditedFiles", { count: String(editedFileCount) });
+  }
+
+  const readFileCount = countReadFiles(nodes);
+  if (readFileCount > 0 && nodes.every((node) => node.item.kind === "commandExecution" && getCommandReadPaths(node.item.command).length > 0)) {
+    return t("home.conversation.transcript.toolGroupReadFiles", { count: String(readFileCount) });
+  }
+
+  const commandCount = nodes.filter((node) => node.item.kind === "commandExecution").length;
+  if (commandCount === nodes.length) {
+    return t("home.conversation.transcript.toolGroupCommands", { count: String(commandCount) });
+  }
+
+  const fileChangeNodeCount = nodes.filter((node) => node.item.kind === "fileChange").length;
+  const otherToolCount = nodes.length - commandCount - fileChangeNodeCount;
+  const parts = [
+    editedFileCount > 0
+      ? t("home.conversation.transcript.toolGroupEditedFiles", { count: String(editedFileCount) })
+      : null,
+    commandCount > 0
+      ? t("home.conversation.transcript.toolGroupCommands", { count: String(commandCount) })
+      : null,
+    otherToolCount > 0
+      ? t("home.conversation.transcript.toolGroupTools", { count: String(otherToolCount) })
+      : null,
+  ].filter((part): part is string => part !== null);
+
+  return parts.length > 0
+    ? parts.join(t("home.conversation.transcript.toolGroupSeparator"))
+    : t("home.conversation.transcript.toolGroupTools", { count: String(nodes.length) });
+}
+
+function countEditedFiles(nodes: ReadonlyArray<AssistantTraceNode>): number {
+  const paths = new Set<string>();
+  let fallbackCount = 0;
+  for (const node of nodes) {
+    if (node.item.kind !== "fileChange") {
+      continue;
+    }
+    for (const change of node.item.changes) {
+      const path = change.path.trim();
+      if (path.length > 0) {
+        paths.add(path);
+      } else {
+        fallbackCount += 1;
+      }
+    }
+  }
+  return paths.size + fallbackCount;
+}
+
+function countReadFiles(nodes: ReadonlyArray<AssistantTraceNode>): number {
+  const paths = new Set<string>();
+  for (const node of nodes) {
+    if (node.item.kind !== "commandExecution") {
+      continue;
+    }
+    for (const path of getCommandReadPaths(node.item.command)) {
+      paths.add(path);
+    }
+  }
+  return paths.size;
+}
+
+function getCommandReadPaths(command: string): ReadonlyArray<string> {
+  const intent = classifyCommand(command);
+  if (intent?.kind === "readFile") {
+    return [intent.path];
+  }
+  if (intent?.kind === "readFiles") {
+    return intent.paths;
+  }
+  return [];
 }
 
 function createAssistantCopyText(nodes: ReadonlyArray<RenderGroup["nodes"][number]>): string | null {

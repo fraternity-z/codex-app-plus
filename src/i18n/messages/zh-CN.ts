@@ -715,6 +715,11 @@ export const zhCN = {
         senderThread: "发送线程：{value}",
         taskList: "任务清单",
         toolCall: "工具调用：{tool}",
+        toolGroupCommands: "已执行{count}个命令",
+        toolGroupEditedFiles: "已编辑{count}个文件",
+        toolGroupReadFiles: "已读取{count}个文件",
+        toolGroupSeparator: "，",
+        toolGroupTools: "已运行{count}个工具",
         viewImage: "查看图片：{path}",
         webSearch: "网页搜索：{query}",
         commandIntent: {
