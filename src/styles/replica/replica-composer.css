@@ -889,26 +889,113 @@
   font-size: 13px;
   font-weight: 600;
 }
-.composer-attachment-choice-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.composer-attachment-folder {
+  position: relative;
 }
-.composer-attachment-choice {
-  min-width: 64px;
-  height: 30px;
+.composer-attachment-folder::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 100%;
+  width: 14px;
+  height: calc(100% + 16px);
+}
+.composer-attachment-folder-trigger {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 0 10px;
-  border: 1px solid #dcdcdc;
-  border-radius: 999px;
-  background: #f8f8f8;
   color: #2f2f2f;
-  font-size: 13px;
+  font-size: 14px;
+  text-align: left;
   cursor: pointer;
 }
-.composer-attachment-choice-selected {
-  border-color: #1f1f1f;
-  background: #1f1f1f;
-  color: #ffffff;
+.composer-attachment-folder-trigger:hover,
+.composer-attachment-folder-trigger-active {
+  background: #f3f3f3;
+}
+.composer-attachment-folder-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.composer-attachment-folder-caret {
+  width: 16px;
+  height: 16px;
+  color: #8f8f8f;
+  flex-shrink: 0;
+}
+.composer-attachment-service-menu {
+  position: absolute;
+  left: calc(100% + 2px);
+  bottom: -8px;
+  width: 288px;
+  border: 1px solid #dedede;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 6px 10px 22px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.composer-attachment-service-menu-open {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+.composer-attachment-service-title {
+  padding: 4px 10px 6px;
+  color: #8a8a8a;
+  font-size: 13px;
+}
+.composer-attachment-service-option {
+  width: 100%;
+  min-height: 60px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px 8px 10px;
+  color: #2f2f2f;
+  text-align: left;
+  cursor: pointer;
+}
+.composer-attachment-service-option:hover,
+.composer-attachment-service-option-selected {
+  background: #f1f1f1;
+}
+.composer-attachment-service-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.composer-attachment-service-label {
+  font-size: 14px;
+  line-height: 18px;
+  color: #2f2f2f;
+}
+.composer-attachment-service-description {
+  font-size: 13px;
+  line-height: 17px;
+  color: #8a8a8a;
+}
+.composer-attachment-service-check {
+  color: #1f1f1f;
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 .composer-attachment-toggle:disabled {
   cursor: not-allowed;

@@ -59,6 +59,7 @@ html[data-theme="dark"] .composer-area {
 .composer-select-check,
 .composer-attachment-item,
 .composer-attachment-row,
+.composer-attachment-folder-trigger,
 .composer-attachment-mode-copy,
 .composer-footer-popover-item,
 .popover-check {
@@ -87,6 +88,7 @@ html[data-theme="dark"] .composer-area {
 .popover-item-right,
 .composer-attachment-icon,
 .composer-attachment-chevron,
+.composer-attachment-folder-caret,
 .composer-attachment-group-title {
   color: var(--text-muted);
 }
@@ -119,6 +121,7 @@ html[data-theme="dark"] .composer-area {
 .composer-select-trigger-active,
 .composer-select-menu-item-selected,
 .composer-select-folder-trigger-active,
+.composer-attachment-folder-trigger-active,
 .composer-footer-item-active {
   border-color: var(--border-strong);
   background: var(--surface-active);
@@ -136,7 +139,30 @@ html[data-theme="dark"] .composer-area {
 .composer-queue-promote:hover,
 .composer-attachment-item:hover,
 .composer-attachment-row:hover,
+.composer-attachment-folder-trigger:hover,
 .attachment-clip-remove:hover {
+  background: var(--surface-hover);
+}
+
+.composer-attachment-service-menu {
+  border-color: var(--border-light);
+  background: var(--surface-panel);
+  color-scheme: inherit;
+}
+
+.composer-attachment-service-title,
+.composer-attachment-service-description {
+  color: var(--text-muted);
+}
+
+.composer-attachment-service-option,
+.composer-attachment-service-label,
+.composer-attachment-service-check {
+  color: var(--text-main);
+}
+
+.composer-attachment-service-option:hover,
+.composer-attachment-service-option-selected {
   background: var(--surface-hover);
 }
 

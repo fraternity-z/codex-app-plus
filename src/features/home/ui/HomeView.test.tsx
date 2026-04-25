@@ -431,7 +431,8 @@ describe("HomeView", () => {
     renderHomeView({ onSendTurn });
 
     fireEvent.click(screen.getByRole("button", { name: "打开附件菜单" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Fast" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "速度" }));
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: /快速/ }));
     fireEvent.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(

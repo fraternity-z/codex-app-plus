@@ -1,6 +1,8 @@
 import type { CollaborationPreset } from "../../../domain/timeline";
 import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
 import { useI18n } from "../../../i18n/useI18n";
+import { useEffect, useRef, useState } from "react";
+import { OfficialChevronRightIcon } from "../../shared/ui/officialIcons";
 import { ComposerPlanModeIcon } from "./ComposerPlanModeIcon";
 
 interface ComposerAttachmentMenuProps {
@@ -28,14 +30,7 @@ export function ComposerAttachmentMenu(props: ComposerAttachmentMenuProps): JSX.
       <div className="composer-attachment-group">
         <PlanModeRow collaborationPreset={props.collaborationPreset} onToggle={() => props.onSelectCollaborationPreset(toggleCollaborationPreset(props.collaborationPreset))} />
       </div>
-      <div className="composer-attachment-group">
-        <div className="composer-attachment-group-title">{t("home.composer.serviceTier")}</div>
-        <div className="composer-attachment-choice-grid" role="group" aria-label={t("home.composer.serviceTier")}>
-          <MenuChoiceButton label={t("home.composer.serviceTierAuto")} selected={props.serviceTier === null} onClick={() => props.onSelectServiceTier(null)} />
-          <MenuChoiceButton label="Fast" selected={props.serviceTier === "fast"} onClick={() => props.onSelectServiceTier("fast")} />
-          <MenuChoiceButton label="Flex" selected={props.serviceTier === "flex"} onClick={() => props.onSelectServiceTier("flex")} />
-        </div>
-      </div>
+      <ServiceTierFolder serviceTier={props.serviceTier} onSelectServiceTier={props.onSelectServiceTier} />
       {props.multiAgentAvailable ? (
         <>
           <div className="composer-attachment-separator" />
@@ -46,6 +41,133 @@ export function ComposerAttachmentMenu(props: ComposerAttachmentMenuProps): JSX.
         </>
       ) : null}
     </div>
+  );
+}
+
+const SERVICE_TIER_CLOSE_DELAY_MS = 160;
+
+function useDelayedSubmenuState(): {
+  readonly open: boolean;
+  readonly openMenu: () => void;
+  readonly closeMenu: () => void;
+  readonly toggleMenu: () => void;
+} {
+  const [open, setOpen] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => clearCloseTimer, []);
+
+  return {
+    open,
+    openMenu: () => {
+      clearCloseTimer();
+      setOpen(true);
+    },
+    closeMenu: () => {
+      clearCloseTimer();
+      closeTimerRef.current = window.setTimeout(() => {
+        setOpen(false);
+        closeTimerRef.current = null;
+      }, SERVICE_TIER_CLOSE_DELAY_MS);
+    },
+    toggleMenu: () => {
+      clearCloseTimer();
+      setOpen((value) => !value);
+    }
+  };
+}
+
+function MenuCheck(): JSX.Element {
+  return (
+    <span className="composer-attachment-service-check" aria-hidden="true">
+      {"\u2713"}
+    </span>
+  );
+}
+
+function ServiceTierFolder(props: {
+  readonly serviceTier: ServiceTier | null;
+  readonly onSelectServiceTier: (serviceTier: ServiceTier | null) => void;
+}): JSX.Element {
+  const { t } = useI18n();
+  const submenu = useDelayedSubmenuState();
+  const open = submenu.open;
+  const triggerClassName = open
+    ? "composer-attachment-folder-trigger composer-attachment-folder-trigger-active"
+    : "composer-attachment-folder-trigger";
+  const submenuClassName = open
+    ? "composer-attachment-service-menu composer-attachment-service-menu-open"
+    : "composer-attachment-service-menu";
+
+  return (
+    <div className="composer-attachment-folder" onMouseEnter={submenu.openMenu} onMouseLeave={submenu.closeMenu}>
+      <button
+        type="button"
+        className={triggerClassName}
+        role="menuitem"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={submenu.toggleMenu}
+      >
+        <span className="composer-attachment-folder-label">{t("home.composer.serviceTierMenuLabel")}</span>
+        <OfficialChevronRightIcon className="composer-attachment-folder-caret" />
+      </button>
+      <div className={submenuClassName} role="menu" aria-label={t("home.composer.serviceTierMenuTitle")} aria-hidden={!open}>
+        <div className="composer-attachment-service-title">{t("home.composer.serviceTierMenuTitle")}</div>
+        <ServiceTierMenuItem
+          label={t("home.composer.serviceTierStandard")}
+          description={t("home.composer.serviceTierStandardDescription")}
+          selected={props.serviceTier === null}
+          onClick={() => props.onSelectServiceTier(null)}
+        />
+        <ServiceTierMenuItem
+          label={t("home.composer.serviceTierFast")}
+          description={t("home.composer.serviceTierFastDescription")}
+          selected={props.serviceTier === "fast"}
+          onClick={() => props.onSelectServiceTier("fast")}
+        />
+        <ServiceTierMenuItem
+          label={t("home.composer.serviceTierFlex")}
+          description={t("home.composer.serviceTierFlexDescription")}
+          selected={props.serviceTier === "flex"}
+          onClick={() => props.onSelectServiceTier("flex")}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ServiceTierMenuItem(props: {
+  readonly label: string;
+  readonly description: string;
+  readonly selected: boolean;
+  readonly onClick: () => void;
+}): JSX.Element {
+  const className = props.selected
+    ? "composer-attachment-service-option composer-attachment-service-option-selected"
+    : "composer-attachment-service-option";
+
+  return (
+    <button
+      type="button"
+      className={className}
+      role="menuitemradio"
+      aria-checked={props.selected}
+      onClick={props.onClick}
+    >
+      <span className="composer-attachment-service-copy">
+        <span className="composer-attachment-service-label">{props.label}</span>
+        <span className="composer-attachment-service-description">{props.description}</span>
+      </span>
+      {props.selected ? <MenuCheck /> : null}
+    </button>
   );
 }
 
@@ -71,23 +193,6 @@ function PlanModeRow(props: {
         <span className="composer-attachment-toggle-knob" />
       </button>
     </div>
-  );
-}
-
-function MenuChoiceButton(props: {
-  readonly label: string;
-  readonly selected: boolean;
-  readonly onClick: () => void;
-}): JSX.Element {
-  return (
-    <button
-      type="button"
-      className={props.selected ? "composer-attachment-choice composer-attachment-choice-selected" : "composer-attachment-choice"}
-      aria-pressed={props.selected}
-      onClick={props.onClick}
-    >
-      {props.label}
-    </button>
   );
 }
 
