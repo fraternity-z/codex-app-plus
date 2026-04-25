@@ -17,6 +17,8 @@ import type { ThreadItem } from "../../../protocol/generated/v2/ThreadItem";
 import type { ThreadTokenUsage } from "../../../protocol/generated/v2/ThreadTokenUsage";
 import type { Turn } from "../../../protocol/generated/v2/Turn";
 
+export const MAX_MCP_PROGRESS_MESSAGES_PER_ITEM = 50;
+
 function toIsoFromUnixSeconds(value: number): string {
   return new Date(value * 1000).toISOString();
 }
@@ -288,7 +290,13 @@ export function appendConversationRawResponse(conversation: ConversationState, t
 }
 
 export function addConversationMcpProgress(conversation: ConversationState, turnId: string, itemId: string, message: string): ConversationState {
-  return updateTurn(conversation, turnId, (turn) => ({ ...turn, items: turn.items.map((itemState) => itemState.item.id === itemId ? { ...itemState, progressMessages: [...itemState.progressMessages, message] } : itemState) }));
+  return updateTurn(conversation, turnId, (turn) => ({ ...turn, items: turn.items.map((itemState) => {
+    if (itemState.item.id !== itemId) {
+      return itemState;
+    }
+    const progressMessages = [...itemState.progressMessages, message].slice(-MAX_MCP_PROGRESS_MESSAGES_PER_ITEM);
+    return { ...itemState, progressMessages };
+  }) }));
 }
 
 export function addConversationSystemNotice(conversation: ConversationState, turnId: string | null, title: string, detail: string | null, level: NoticeLevel, source: string): ConversationState {

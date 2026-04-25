@@ -201,6 +201,56 @@
   font-weight: 600;
 }
 
+.home-assistant-transcript-file-change-summary-inline,
+.home-assistant-transcript-file-change-open-summary {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.home-assistant-transcript-file-change-summary-inline > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-assistant-transcript-file-change-counts {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--app-ui-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-assistant-transcript-summary-chevron,
+.home-assistant-transcript-file-diff-chevron {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  color: var(--text-subtle);
+}
+
+.home-assistant-transcript-summary-chevron::before,
+.home-assistant-transcript-file-diff-chevron::before {
+  display: block;
+  width: 7px;
+  height: 7px;
+  margin: 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  content: "";
+  transform: rotate(-45deg);
+}
+
+.home-assistant-transcript-file-change-open-summary .home-assistant-transcript-summary-chevron::before,
+.home-assistant-transcript-file-diff-card[open] .home-assistant-transcript-file-diff-chevron::before {
+  transform: rotate(45deg);
+}
+
 .home-assistant-transcript-details details:not([open]) .home-assistant-transcript-summary[data-truncate-summary="true"] {
   overflow: hidden;
 }
@@ -315,38 +365,112 @@
 }
 
 .home-assistant-transcript-detail-panel[data-variant="fileDiff"] {
+  margin: 8px 0 0 0;
   padding: 0;
   border: none;
   background: none;
   box-shadow: none;
 }
 
-.home-assistant-transcript-detail-panel[data-variant="fileDiff"] .home-assistant-transcript-file-diff-list {
-  gap: 0;
-}
-
-.home-assistant-transcript-detail-panel[data-variant="fileDiff"] .home-assistant-transcript-file-diff-card {
-  margin-top: 8px;
-}
-
-.home-assistant-transcript-detail-panel[data-variant="fileDiff"] .home-assistant-transcript-file-diff-card:first-child {
-  margin-top: 0;
-}
-
 .home-assistant-transcript-file-diff-list {
   display: grid;
-  gap: 12px;
-}
-
-.home-assistant-transcript-file-diff-meta {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
   gap: 8px;
 }
 
 .home-assistant-transcript-file-diff-card {
   min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--surface-panel);
+  box-shadow: none;
+}
+
+.home-assistant-transcript-file-diff-card summary {
+  list-style: none;
+}
+
+.home-assistant-transcript-file-diff-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.home-assistant-transcript-file-diff-summary {
+  min-width: 0;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 12px;
+  background: color-mix(in srgb, var(--surface-panel-muted) 82%, var(--surface-panel));
+  cursor: pointer;
+}
+
+.home-assistant-transcript-file-diff-summary-main {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-md);
+  line-height: 1.35;
+}
+
+.home-assistant-transcript-file-diff-kind {
+  flex: 0 0 auto;
+  color: var(--text-soft);
+}
+
+.home-assistant-transcript-file-diff-card[open] .home-assistant-transcript-file-diff-kind {
+  display: none;
+}
+
+.home-assistant-transcript-file-diff-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-assistant-transcript-file-diff-counts {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--app-ui-font-size-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-assistant-transcript-file-diff-counts-muted {
+  color: var(--text-muted);
+}
+
+.home-assistant-transcript-file-diff-copy {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.home-assistant-transcript-file-diff-copy:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+.home-assistant-transcript-file-diff-copy-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+  background-color: currentColor;
+  -webkit-mask: url("../../assets/icons/copy.svg") no-repeat center / contain;
+  mask: url("../../assets/icons/copy.svg") no-repeat center / contain;
 }
 
 .home-assistant-transcript-file-diff-card-body {
@@ -357,6 +481,36 @@
 .home-assistant-transcript-file-diff-card-body .workspace-diff-code-scroll,
 .home-assistant-transcript-file-diff-card-body .workspace-diff-raw {
   max-height: 260px;
+}
+
+.home-assistant-transcript-file-diff-card-body .workspace-diff-code-horizontal-scroll {
+  min-height: 14px;
+}
+
+.home-assistant-transcript-file-diff-card-body .workspace-diff-code-horizontal-spacer {
+  height: 12px;
+}
+
+.home-assistant-transcript-file-diff-card-body .workspace-diff-hunk {
+  padding: 4px 0;
+}
+
+.home-assistant-transcript-file-diff-card-body .workspace-diff-code-row,
+.home-assistant-transcript-file-diff-card-body .workspace-diff-raw-content {
+  line-height: 1.65;
+}
+
+.home-assistant-transcript-file-diff-card-body .workspace-diff-code-row {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.home-assistant-transcript-file-diff-card-body .workspace-diff-line-number {
+  padding: 0 9px;
+}
+
+.home-assistant-transcript-file-diff-card-body .workspace-diff-code-content,
+.home-assistant-transcript-file-diff-card-body .workspace-diff-collapsed-pill {
+  padding: 0 12px;
 }
 
 .home-assistant-transcript-file-diff-empty {

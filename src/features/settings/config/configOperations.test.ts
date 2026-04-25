@@ -3,6 +3,7 @@ import type { ProtocolClient } from "../../../protocol/client";
 import {
   batchWriteConfigAndReadSnapshot,
   batchWriteConfigAndRefresh,
+  listAllMcpServerStatuses,
   writeConfigValueAndRefresh
 } from "./configOperations";
 
@@ -100,5 +101,23 @@ describe("configOperations", () => {
       "config/read"
     ]);
     expect(dispatch).toHaveBeenCalledWith({ type: "config/loaded", config: SNAPSHOT });
+  });
+
+  it("reuses MCP status requests within the cache window", async () => {
+    const { client, request } = createClient();
+
+    await listAllMcpServerStatuses(client);
+    await listAllMcpServerStatuses(client);
+
+    expect(request.mock.calls.map(([method]) => method)).toEqual(["mcpServerStatus/list"]);
+  });
+
+  it("bypasses the MCP status cache when forced", async () => {
+    const { client, request } = createClient();
+
+    await listAllMcpServerStatuses(client);
+    await listAllMcpServerStatuses(client, { force: true });
+
+    expect(request.mock.calls.map(([method]) => method)).toEqual(["mcpServerStatus/list", "mcpServerStatus/list"]);
   });
 });

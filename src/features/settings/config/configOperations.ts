@@ -12,6 +12,15 @@ import { ProtocolClient } from "../../../protocol/client";
 
 const EXPERIMENTAL_FEATURE_PAGE_SIZE = 100;
 const MCP_STATUS_PAGE_SIZE = 100;
+export const MCP_STATUS_CACHE_TTL_MS = 30 * 1000;
+
+interface McpStatusCacheEntry {
+  readonly statuses?: ReadonlyArray<McpServerStatus>;
+  readonly expiresAt: number;
+  readonly inFlight?: Promise<ReadonlyArray<McpServerStatus>>;
+}
+
+const mcpStatusCache = new WeakMap<ProtocolClient, McpStatusCacheEntry>();
 
 export interface McpRefreshResult {
   readonly config: ConfigReadResponse;
@@ -41,7 +50,7 @@ export async function readConfigSnapshot(
   return config;
 }
 
-export async function listAllMcpServerStatuses(client: ProtocolClient): Promise<ReadonlyArray<McpServerStatus>> {
+async function fetchAllMcpServerStatuses(client: ProtocolClient): Promise<ReadonlyArray<McpServerStatus>> {
   const statuses: Array<McpServerStatus> = [];
   let cursor: string | null = null;
 
@@ -55,6 +64,37 @@ export async function listAllMcpServerStatuses(client: ProtocolClient): Promise<
   } while (cursor !== null);
 
   return statuses;
+}
+
+export function invalidateMcpServerStatusCache(client: ProtocolClient): void {
+  mcpStatusCache.delete(client);
+}
+
+export async function listAllMcpServerStatuses(
+  client: ProtocolClient,
+  options: { readonly force?: boolean } = {},
+): Promise<ReadonlyArray<McpServerStatus>> {
+  const now = Date.now();
+  const cached = mcpStatusCache.get(client);
+  if (options.force !== true) {
+    if (cached?.statuses !== undefined && cached.expiresAt > now) {
+      return cached.statuses;
+    }
+    if (cached?.inFlight !== undefined) {
+      return cached.inFlight;
+    }
+  }
+
+  const inFlight = fetchAllMcpServerStatuses(client);
+  mcpStatusCache.set(client, { inFlight, expiresAt: now + MCP_STATUS_CACHE_TTL_MS });
+  try {
+    const statuses = await inFlight;
+    mcpStatusCache.set(client, { statuses, expiresAt: Date.now() + MCP_STATUS_CACHE_TTL_MS });
+    return statuses;
+  } catch (error) {
+    mcpStatusCache.delete(client);
+    throw error;
+  }
 }
 
 export async function listAllExperimentalFeatures(client: ProtocolClient): Promise<ReadonlyArray<ExperimentalFeature>> {
@@ -74,10 +114,11 @@ export async function listAllExperimentalFeatures(client: ProtocolClient): Promi
 }
 
 export async function refreshMcpData(client: ProtocolClient, dispatch: Dispatch): Promise<McpRefreshResult> {
+  invalidateMcpServerStatusCache(client);
   const reload = (await client.request("config/mcpServer/reload", undefined)) as McpServerRefreshResponse;
   const [config, statuses] = await Promise.all([
     readConfigSnapshot(client, dispatch),
-    listAllMcpServerStatuses(client)
+    listAllMcpServerStatuses(client, { force: true })
   ]);
   dispatch({ type: "mcp/statusesLoaded", statuses });
   return { config, statuses, reload };

@@ -3,7 +3,7 @@ import { useI18n } from "../../../i18n/useI18n";
 import { WorkspaceGitButtonLauncher } from "../../workspace/ui/WorkspaceGitButtonLauncher";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { WorkspaceOpenButton } from "../../workspace/ui/WorkspaceOpenButton";
-import { GitDiffIcon } from "../../git/ui/gitIcons";
+import { OfficialSidebarToggleIcon } from "../../shared/ui/officialIcons";
 import type { WorkspaceLaunchScriptsState } from "../hooks/useWorkspaceLaunchScripts";
 import { LaunchScriptsToolbar } from "./LaunchScriptsToolbar";
 
@@ -114,7 +114,7 @@ export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
             label={diffLabel}
             onClick={props.onToggleDiff}
           >
-            <GitDiffIcon className="toolbar-terminal-icon" />
+            <OfficialSidebarToggleIcon className="toolbar-terminal-icon" />
           </ToolbarIconButton>
           <ToolbarIconButton active={props.terminalOpen} label={terminalLabel} onClick={props.onToggleTerminal}>
             <TerminalIcon className="toolbar-terminal-icon" />

@@ -11,15 +11,22 @@ import {
   createRpcThreadRuntimeCleanupTransport,
   forceCloseThreadRuntime,
   reportThreadCleanupError,
+  softDetachThreadRuntime,
 } from "../service/threadRuntimeCleanup";
+import type { ThreadLifecycleCoordinator } from "../service/threadLifecycleCoordinator";
 
 interface UseThreadResourceCleanupOptions {
   readonly appServerClient: AppServerClient;
   readonly store: Pick<AppStoreApi, "getState" | "subscribe">;
   readonly dispatch: (action: AppAction) => void;
+  readonly lifecycle: ThreadLifecycleCoordinator;
 }
 
 type PendingRequestsByConversationId = AppState["pendingRequestsByConversationId"];
+type CleanupMode = "soft" | "force";
+
+export const MAIN_THREAD_SOFT_DETACH_DELAY_MS = 2 * 60 * 1000;
+export const FINAL_SUBAGENT_CLEANUP_DELAY_MS = 30 * 1000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -130,39 +137,58 @@ function collectFinalSubagentIds(
 }
 
 export function useThreadResourceCleanup(options: UseThreadResourceCleanupOptions): void {
-  const { appServerClient, dispatch, store } = options;
+  const { appServerClient, dispatch, lifecycle, store } = options;
   const cleanupInFlightIds = useRef(new Set<string>());
   const cleanedThreadIds = useRef(new Set<string>());
   const cleanupScheduledRef = useRef(false);
   const conversationsByIdRef = useRef(store.getState().conversationsById);
-  const pendingRequestsByConversationIdRef = useRef(store.getState().pendingRequestsByConversationId);
-  const selectedConversationIdRef = useRef(store.getState().selectedConversationId);
   const transport = useMemo(
     () => createRpcThreadRuntimeCleanupTransport(appServerClient),
     [appServerClient],
   );
 
-  const cleanupThread = useCallback(async (threadId: string) => {
+  const markThreadDetached = useCallback((threadId: string, conversation: ConversationState | null) => {
+    if (conversation === null) {
+      return;
+    }
+    dispatch({ type: "conversation/statusChanged", conversationId: threadId, status: "notLoaded", activeFlags: [] });
+    dispatch({ type: "conversation/resumeStateChanged", conversationId: threadId, resumeState: "needs_resume" });
+  }, [dispatch]);
+
+  const cleanupThread = useCallback(async (threadId: string, mode: CleanupMode) => {
     if (cleanupInFlightIds.current.has(threadId) || cleanedThreadIds.current.has(threadId)) {
       return;
     }
     const conversation = conversationsByIdRef.current[threadId] ?? null;
     cleanupInFlightIds.current.add(threadId);
     try {
-      await forceCloseThreadRuntime(threadId, conversation, transport);
-      cleanedThreadIds.current.add(threadId);
+      const didCleanup = await lifecycle.runCleanup(
+        threadId,
+        async () => {
+          if (mode === "soft") {
+            await softDetachThreadRuntime(threadId, transport);
+            return;
+          }
+          await forceCloseThreadRuntime(threadId, conversation, transport);
+        },
+        { force: mode === "force" },
+      );
+      if (didCleanup) {
+        cleanedThreadIds.current.add(threadId);
+        markThreadDetached(threadId, conversation);
+      }
     } catch (error) {
       reportThreadCleanupError(dispatch, conversation, error);
     } finally {
       cleanupInFlightIds.current.delete(threadId);
     }
-  }, [dispatch, transport]);
+  }, [dispatch, lifecycle, markThreadDetached, transport]);
 
-  const cleanupThreadTree = useCallback(async (rootThreadId: string, includeRoot: boolean) => {
+  const cleanupThreadTree = useCallback(async (rootThreadId: string, includeRoot: boolean, mode: CleanupMode) => {
     const descendantThreadIds = collectDescendantThreadIds(rootThreadId, conversationsByIdRef.current);
     const cleanupOrder = includeRoot ? [...descendantThreadIds, rootThreadId] : descendantThreadIds;
     for (const threadId of cleanupOrder) {
-      await cleanupThread(threadId);
+      await cleanupThread(threadId, mode);
     }
   }, [cleanupThread]);
 
@@ -178,8 +204,6 @@ export function useThreadResourceCleanup(options: UseThreadResourceCleanupOption
       const state = store.getState();
       const { conversationsById, pendingRequestsByConversationId, selectedConversationId } = state;
       conversationsByIdRef.current = conversationsById;
-      pendingRequestsByConversationIdRef.current = pendingRequestsByConversationId;
-      selectedConversationIdRef.current = selectedConversationId;
 
       for (const conversation of Object.values(conversationsById)) {
         if (conversation?.resumeState === "resumed") {
@@ -189,19 +213,30 @@ export function useThreadResourceCleanup(options: UseThreadResourceCleanupOption
 
       for (const conversation of Object.values(conversationsById)) {
         if (conversation !== undefined && shouldUnloadMainConversation(conversation, selectedConversationId, pendingRequestsByConversationId)) {
-          void cleanupThreadTree(conversation.id, true);
+          lifecycle.scheduleCleanup(conversation.id, MAIN_THREAD_SOFT_DETACH_DELAY_MS, async () => {
+            const currentState = store.getState();
+            const currentConversation = currentState.conversationsById[conversation.id];
+            if (
+              currentConversation === undefined
+              || !shouldUnloadMainConversation(currentConversation, currentState.selectedConversationId, currentState.pendingRequestsByConversationId)
+            ) {
+              return;
+            }
+            await cleanupThreadTree(conversation.id, false, "force");
+            await cleanupThread(conversation.id, "soft");
+          });
         }
       }
 
       for (const conversation of Object.values(conversationsById)) {
         if (conversation !== undefined && shouldUnloadHiddenMainConversation(conversation, selectedConversationId)) {
-          void cleanupThreadTree(conversation.id, true);
+          void cleanupThreadTree(conversation.id, true, "force");
         }
       }
 
       for (const conversation of Object.values(conversationsById)) {
         if (conversation !== undefined && shouldCleanupClosedMainConversation(conversation)) {
-          void cleanupThreadTree(conversation.id, false);
+          void cleanupThreadTree(conversation.id, false, "force");
         }
       }
 
@@ -213,7 +248,15 @@ export function useThreadResourceCleanup(options: UseThreadResourceCleanupOption
         cleanedThreadIds.current.add(threadId);
       }
       for (const threadId of cleanupIds) {
-        void cleanupThread(threadId);
+        if (threadId === selectedConversationId) {
+          continue;
+        }
+        lifecycle.scheduleCleanup(threadId, FINAL_SUBAGENT_CLEANUP_DELAY_MS, async () => {
+          if (store.getState().selectedConversationId === threadId) {
+            return;
+          }
+          await cleanupThread(threadId, "force");
+        });
       }
     };
 
@@ -236,5 +279,5 @@ export function useThreadResourceCleanup(options: UseThreadResourceCleanupOption
       cleanupScheduledRef.current = false;
       unsubscribe();
     };
-  }, [cleanupThread, cleanupThreadTree, store]);
+  }, [cleanupThread, cleanupThreadTree, lifecycle, store]);
 }

@@ -3,9 +3,11 @@ import type { ConversationState, ConversationTurnState } from "../../../domain/c
 import type { Turn } from "../../../protocol/generated/v2/Turn";
 import type { ThreadTokenUsage } from "../../../protocol/generated/v2/ThreadTokenUsage";
 import {
+  addConversationMcpProgress,
   appendConversationContextCompaction,
   createConversationFromThread,
   hydrateConversationFromThread,
+  MAX_MCP_PROGRESS_MESSAGES_PER_ITEM,
   setConversationTokenUsage,
   syncCompletedTurn,
   syncStartedTurn,
@@ -182,5 +184,35 @@ describe("conversationState", () => {
 
     expect(nextTurn?.contextCompactions).toEqual([]);
     expect(nextTurn?.items.some((itemState) => itemState.item.type === "contextCompaction")).toBe(true);
+  });
+
+  it("keeps only the latest MCP progress messages", () => {
+    const mcpItem: ConversationTurnState["items"][number] = {
+      item: {
+        type: "mcpToolCall",
+        id: "mcp-1",
+        server: "filesystem",
+        tool: "read_file",
+        status: "inProgress",
+        arguments: {},
+        result: null,
+        error: null,
+        durationMs: null,
+      },
+      approvalRequestId: null,
+      outputText: "",
+      terminalInteractions: [],
+      rawResponse: null,
+      progressMessages: [],
+    };
+    let conversation = createConversation([createTurnState({ items: [mcpItem] })]);
+    for (let index = 0; index < MAX_MCP_PROGRESS_MESSAGES_PER_ITEM + 5; index += 1) {
+      conversation = addConversationMcpProgress(conversation, "turn-1", "mcp-1", `progress-${index}`);
+    }
+
+    const progress = conversation.turns[0]?.items[0]?.progressMessages;
+    expect(progress).toHaveLength(MAX_MCP_PROGRESS_MESSAGES_PER_ITEM);
+    expect(progress?.[0]).toBe("progress-5");
+    expect(progress?.[progress.length - 1]).toBe(`progress-${MAX_MCP_PROGRESS_MESSAGES_PER_ITEM + 4}`);
   });
 });

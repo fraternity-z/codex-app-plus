@@ -23,6 +23,7 @@ import { deriveConversationPreviewTitle, pickConversationTitle } from "../model/
 import { getActiveTurnId, isConversationStreaming } from "../model/conversationSelectors";
 import { consumePrewarmedThread } from "../service/prewarmedThreadManager";
 import { collectDescendantThreadIds, createRpcThreadRuntimeCleanupTransport, forceCloseThreadRuntime, reportThreadCleanupError } from "../service/threadRuntimeCleanup";
+import { ThreadLifecycleCoordinator } from "../service/threadLifecycleCoordinator";
 import { useThreadResourceCleanup } from "./useThreadResourceCleanup";
 import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsListResponse";
 import type { SkillMetadata } from "../../../protocol/generated/v2/SkillMetadata";
@@ -80,6 +81,7 @@ export function useWorkspaceConversationController({
   const drainingConversationIds = useRef(new Set<string>());
   const interruptRequestKeys = useRef(new Set<string>());
   const deferredResumeConversationIds = useRef(new Set<string>());
+  const lifecycle = useMemo(() => new ThreadLifecycleCoordinator(), []);
   const appServerClient = useMemo(
     () => options.appServerClient ?? createHostBridgeAppServerClient(options.hostBridge),
     [options.appServerClient, options.hostBridge],
@@ -107,7 +109,11 @@ export function useWorkspaceConversationController({
     return listAvailableSkills(cwd);
   }, [listAvailableSkills]);
 
-  useThreadResourceCleanup({ appServerClient, store, dispatch });
+  useThreadResourceCleanup({ appServerClient, store, dispatch, lifecycle });
+
+  useEffect(() => () => {
+    lifecycle.dispose();
+  }, [lifecycle]);
 
   const getConversation = useCallback((conversationId: string) => {
     const conversation = store.getState().conversationsById[conversationId] ?? null;
@@ -134,42 +140,44 @@ export function useWorkspaceConversationController({
   }, [activeTurnId, interruptPending, selectedConversation]);
 
   const ensureConversationResumed = useCallback(async (conversationId: string) => {
-    if (!appServerReady) {
-      return;
-    }
-    deferredResumeConversationIds.current.delete(conversationId);
-    const conversation = getConversation(conversationId);
-    if (
-      conversation === null
-      || conversation.resumeState === "resumed"
-      || conversation.resumeState === "resume_failed"
-      || resumingConversationIds.current.has(conversationId)
-    ) {
-      return;
-    }
-    resumingConversationIds.current.add(conversationId);
-    dispatch({ type: "conversation/resumeStateChanged", conversationId, resumeState: "resuming" });
-    try {
-      const response = await appServerClient.request("thread/resume", {
-        threadId: conversationId,
-        persistExtendedHistory: true,
-      }) as ThreadResumeResponse;
-      dispatch({ type: "conversation/loaded", conversationId, thread: response.thread });
-    } catch (error) {
-      dispatch({ type: "conversation/resumeStateChanged", conversationId, resumeState: "resume_failed" });
-      dispatch({
-        type: "conversation/systemNoticeAdded",
-        conversationId,
-        turnId: null,
-        title: "Failed to resume workspace conversation",
-        detail: toErrorMessage(error),
-        level: "error",
-        source: "thread/resume",
-      });
-    } finally {
-      resumingConversationIds.current.delete(conversationId);
-    }
-  }, [appServerClient, appServerReady, dispatch, getConversation]);
+    await lifecycle.runWithResume(conversationId, async () => {
+      if (!appServerReady) {
+        return;
+      }
+      deferredResumeConversationIds.current.delete(conversationId);
+      const conversation = getConversation(conversationId);
+      if (
+        conversation === null
+        || conversation.resumeState === "resumed"
+        || conversation.resumeState === "resume_failed"
+        || resumingConversationIds.current.has(conversationId)
+      ) {
+        return;
+      }
+      resumingConversationIds.current.add(conversationId);
+      dispatch({ type: "conversation/resumeStateChanged", conversationId, resumeState: "resuming" });
+      try {
+        const response = await appServerClient.request("thread/resume", {
+          threadId: conversationId,
+          persistExtendedHistory: true,
+        }) as ThreadResumeResponse;
+        dispatch({ type: "conversation/loaded", conversationId, thread: response.thread });
+      } catch (error) {
+        dispatch({ type: "conversation/resumeStateChanged", conversationId, resumeState: "resume_failed" });
+        dispatch({
+          type: "conversation/systemNoticeAdded",
+          conversationId,
+          turnId: null,
+          title: "Failed to resume workspace conversation",
+          detail: toErrorMessage(error),
+          level: "error",
+          source: "thread/resume",
+        });
+      } finally {
+        resumingConversationIds.current.delete(conversationId);
+      }
+    });
+  }, [appServerClient, appServerReady, dispatch, getConversation, lifecycle]);
 
   useEffect(() => {
     if (!appServerReady) {
@@ -193,39 +201,41 @@ export function useWorkspaceConversationController({
   }, [dispatch, options.selectedRootPath]);
 
   const startTurn = useCallback(async (conversationId: string, sendOptions: SendTurnOptions, cwdOverride: string | null) => {
-    if (!appServerReady) {
-      throw createAppServerNotReadyError();
-    }
-    const collaborationMode = resolveRequestedCollaborationMode(options.collaborationModes, sendOptions);
-    const availableSkills = await resolveInputSkills(sendOptions.text, cwdOverride ?? options.selectedRootPath);
-    const input = createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment, availableSkills);
-    const resolvedCwd = resolveConversationCwd(cwdOverride, options.agentEnvironment);
-    dispatch({
-      type: "conversation/turnPlaceholderAdded",
-      conversationId,
-      params: {
+    await lifecycle.runWithActivity(conversationId, async () => {
+      if (!appServerReady) {
+        throw createAppServerNotReadyError();
+      }
+      const collaborationMode = resolveRequestedCollaborationMode(options.collaborationModes, sendOptions);
+      const availableSkills = await resolveInputSkills(sendOptions.text, cwdOverride ?? options.selectedRootPath);
+      const input = createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment, availableSkills);
+      const resolvedCwd = resolveConversationCwd(cwdOverride, options.agentEnvironment);
+      dispatch({
+        type: "conversation/turnPlaceholderAdded",
+        conversationId,
+        params: {
+          input,
+          cwd: resolvedCwd,
+          model: sendOptions.selection.model,
+          effort: sendOptions.selection.effort,
+          serviceTier: sendOptions.selection.serviceTier,
+          collaborationMode: collaborationMode ?? null,
+        },
+      });
+      const params: TurnStartParams = {
+        threadId: conversationId,
+        model: sendOptions.selection.model ?? undefined,
+        effort: sendOptions.selection.effort ?? undefined,
+        serviceTier: sendOptions.selection.serviceTier ?? null,
+        cwd: resolvedCwd ?? undefined,
         input,
-        cwd: resolvedCwd,
-        model: sendOptions.selection.model,
-        effort: sendOptions.selection.effort,
-        serviceTier: sendOptions.selection.serviceTier,
-        collaborationMode: collaborationMode ?? null,
-      },
+        collaborationMode,
+        ...createTurnPermissionOverrides(sendOptions.permissionLevel, options.permissionSettings),
+      };
+      const response = await appServerClient.request("turn/start", params) as TurnStartResponse;
+      dispatch({ type: "conversation/turnStarted", conversationId, turn: response.turn });
+      dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });
     });
-    const params: TurnStartParams = {
-      threadId: conversationId,
-      model: sendOptions.selection.model ?? undefined,
-      effort: sendOptions.selection.effort ?? undefined,
-      serviceTier: sendOptions.selection.serviceTier ?? null,
-      cwd: resolvedCwd ?? undefined,
-      input,
-      collaborationMode,
-      ...createTurnPermissionOverrides(sendOptions.permissionLevel, options.permissionSettings),
-    };
-    const response = await appServerClient.request("turn/start", params) as TurnStartResponse;
-    dispatch({ type: "conversation/turnStarted", conversationId, turn: response.turn });
-    dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });
-  }, [appServerClient, appServerReady, dispatch, options.agentEnvironment, options.collaborationModes, options.permissionSettings, options.selectedRootPath, resolveInputSkills]);
+  }, [appServerClient, appServerReady, dispatch, lifecycle, options.agentEnvironment, options.collaborationModes, options.permissionSettings, options.selectedRootPath, resolveInputSkills]);
 
   const startNewConversation = useCallback(async (sendOptions: SendTurnOptions) => {
     if (!appServerReady) {
@@ -443,11 +453,14 @@ export function useWorkspaceConversationController({
   }, [activeTurnId, interruptAndUnloadConversation, selectedConversation]);
 
   const selectThread = useCallback((threadId: string | null) => {
+    if (threadId !== null) {
+      lifecycle.noteThreadActivity(threadId);
+    }
     if (threadId !== null && getConversation(threadId)?.resumeState === "resume_failed") {
       dispatch({ type: "conversation/resumeStateChanged", conversationId: threadId, resumeState: "needs_resume" });
     }
     dispatch({ type: "conversation/selected", conversationId: threadId });
-  }, [dispatch, getConversation]);
+  }, [dispatch, getConversation, lifecycle]);
 
   const selectCollaborationPreset = useCallback((preset: CollaborationPreset) => {
     if (selectedConversation === null) {

@@ -15,9 +15,7 @@ export function HomeAssistantTranscriptDetailBlock(
   if (props.panel.variant === "fileDiff") {
     return (
       <HomeAssistantTranscriptFileDiffPanel
-        label={props.panel.label}
         changes={props.panel.changes}
-        footerStatus={props.panel.footerStatus}
       />
     );
   }

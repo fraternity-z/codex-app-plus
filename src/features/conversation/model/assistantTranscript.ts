@@ -361,7 +361,7 @@ function createFileChangeDetailPanel(
 ): AssistantTranscriptDetailPanel | null {
   const footerStatus = formatPatchFooterStatus(entry.status, t);
   if (entry.status === "completed" && hasRenderableFileDiff(entry.changes)) {
-    return createFileDiffDetailPanel({ label: "Patch", changes: entry.changes, footerStatus });
+    return createFileDiffDetailPanel({ label: "已编辑的文件", changes: entry.changes, footerStatus: null });
   }
   return createDetailBlockPanel({
     body: joinDetailLines([
@@ -369,7 +369,7 @@ function createFileChangeDetailPanel(
       ...entry.changes.map((change) => getFileChangeDisplayName(change.path)),
       entry.output.trim().length > 0 ? entry.output : null,
     ]),
-    label: "Patch",
+    label: "已编辑的文件",
     footerStatus,
   });
 }

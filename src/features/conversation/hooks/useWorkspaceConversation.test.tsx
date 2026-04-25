@@ -9,6 +9,7 @@ import { createConversationFromThread } from "../model/conversationState";
 import { FrameTextDeltaQueue } from "../model/frameTextDeltaQueue";
 import { OutputDeltaQueue } from "../model/outputDeltaQueue";
 import { useWorkspaceConversation } from "./useWorkspaceConversation";
+import { FINAL_SUBAGENT_CLEANUP_DELAY_MS, MAIN_THREAD_SOFT_DETACH_DELAY_MS } from "./useThreadResourceCleanup";
 import { createComposerFuzzySessionId } from "../../composer/service/composerCommandBridge";
 import { serializeComposerFileReferenceDraft } from "../../composer/model/composerFileReferences";
 import {
@@ -1408,6 +1409,7 @@ describe("useWorkspaceConversation", () => {
   });
 
   it("unloads a non-selected idle main thread after switching selection", async () => {
+    vi.useFakeTimers();
     const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
       if (input.method === "thread/backgroundTerminals/clean") {
         return { requestId: "clean-1", result: {} };
@@ -1420,18 +1422,191 @@ describe("useWorkspaceConversation", () => {
     const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
     const { result } = renderConversation(hostBridge);
 
-    act(() => {
-      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-1", turns: [createTurn("completed")] }), { resumeState: "resumed" }) });
-      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-2", preview: "thread 2" }), { resumeState: "resumed" }) });
-      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-2" });
-    });
+    try {
+      act(() => {
+        result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-1", turns: [createTurn("completed")] }), { resumeState: "resumed" }) });
+        result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-2", preview: "thread 2" }), { resumeState: "resumed" }) });
+        result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-2" });
+      });
 
-    await act(async () => {
-      await Promise.resolve();
-    });
+      await act(async () => {
+        await Promise.resolve();
+      });
 
-    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/backgroundTerminals/clean", params: { threadId: "thread-1" } }));
-    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
+      expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/backgroundTerminals/clean", params: { threadId: "thread-1" } }));
+      expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(MAIN_THREAD_SOFT_DETACH_DELAY_MS);
+      });
+
+      expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/backgroundTerminals/clean", params: { threadId: "thread-1" } }));
+      expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
+      expect(result.current.store.state.conversationsById["thread-1"]?.resumeState).toBe("needs_resume");
+      expect(result.current.store.state.conversationsById["thread-1"]?.status).toBe("notLoaded");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("force cleans descendant agents when soft detaching an idle main thread", async () => {
+    vi.useFakeTimers();
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/backgroundTerminals/clean") {
+        return { requestId: "clean-1", result: {} };
+      }
+      if (input.method === "thread/unsubscribe") {
+        return { requestId: "unsubscribe-1", result: { status: "unsubscribed" } };
+      }
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    try {
+      act(() => {
+        result.current.store.dispatch({
+          type: "conversation/upserted",
+          conversation: createConversationFromThread(createThread({
+            id: "thread-1",
+            turns: [createRunningCollabTurn("thread-1", ["thread-2"])],
+          }), { resumeState: "resumed" })
+        });
+        result.current.store.dispatch({
+          type: "conversation/upserted",
+          conversation: createConversationFromThread(createThread({
+            id: "thread-2",
+            preview: "child",
+            source: createSubAgentSource("thread-1"),
+          }), { resumeState: "resumed" })
+        });
+        result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-3", preview: "thread 3" }), { resumeState: "resumed" }) });
+        result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-3" });
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/backgroundTerminals/clean", params: { threadId: "thread-2" } }));
+      expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(MAIN_THREAD_SOFT_DETACH_DELAY_MS);
+      });
+
+      expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/backgroundTerminals/clean", params: { threadId: "thread-2" } }));
+      expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-2" } }));
+      expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/backgroundTerminals/clean", params: { threadId: "thread-1" } }));
+      expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
+      expect(result.current.store.state.conversationsById["thread-2"]?.resumeState).toBe("needs_resume");
+      expect(result.current.store.state.conversationsById["thread-1"]?.resumeState).toBe("needs_resume");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("cancels scheduled soft cleanup when the thread is selected again", async () => {
+    vi.useFakeTimers();
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "turn/start") {
+        return { requestId: "turn-start", result: { turn: createTurn() } };
+      }
+      if (input.method === "thread/unsubscribe") {
+        return { requestId: "unsubscribe-1", result: { status: "unsubscribed" } };
+      }
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    try {
+      act(() => {
+        result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-1", turns: [createTurn("completed")] }), { resumeState: "resumed" }) });
+        result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-2", preview: "thread 2" }), { resumeState: "resumed" }) });
+        result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-2" });
+      });
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      act(() => {
+        result.current.conversation.selectThread("thread-1");
+      });
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(result.current.conversation.selectedThreadId).toBe("thread-1");
+      await act(async () => {
+        await result.current.conversation.sendTurn(createSendOptions("continue"));
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(MAIN_THREAD_SOFT_DETACH_DELAY_MS);
+      });
+
+      expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/start", params: expect.objectContaining({ threadId: "thread-1" }) }));
+      expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("waits for in-flight soft cleanup before resuming and sending", async () => {
+    vi.useFakeTimers();
+    const unsubscribeDeferred = createDeferred<{ requestId: string; result: { status: "unsubscribed" } }>();
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/unsubscribe") {
+        return unsubscribeDeferred.promise;
+      }
+      if (input.method === "thread/resume") {
+        return { requestId: "resume-1", result: { thread: createThread({ id: "thread-1", turns: [createTurn("completed")] }) } };
+      }
+      if (input.method === "turn/start") {
+        return { requestId: "turn-start", result: { turn: createTurn() } };
+      }
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    try {
+      act(() => {
+        result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-1", turns: [createTurn("completed")] }), { resumeState: "resumed" }) });
+        result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-2", preview: "thread 2" }), { resumeState: "resumed" }) });
+        result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-2" });
+      });
+      await act(async () => {
+        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(MAIN_THREAD_SOFT_DETACH_DELAY_MS);
+      });
+      expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
+
+      let sendPromise: Promise<void> | null = null;
+      act(() => {
+        result.current.conversation.selectThread("thread-1");
+      });
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(result.current.conversation.selectedThreadId).toBe("thread-1");
+      await act(async () => {
+        sendPromise = result.current.conversation.sendTurn(createSendOptions("continue"));
+        await Promise.resolve();
+      });
+
+      expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/resume", params: expect.objectContaining({ threadId: "thread-1" }) }));
+      expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "turn/start", params: expect.objectContaining({ threadId: "thread-1" }) }));
+
+      await act(async () => {
+        unsubscribeDeferred.resolve({ requestId: "unsubscribe-1", result: { status: "unsubscribed" } });
+        await sendPromise;
+      });
+
+      expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/resume", params: expect.objectContaining({ threadId: "thread-1" }) }));
+      expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/start", params: expect.objectContaining({ threadId: "thread-1" }) }));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does not unload a non-selected thread with pending user input", async () => {
@@ -1616,6 +1791,7 @@ describe("useWorkspaceConversation", () => {
   });
 
   it("cleans up completed sub-agent threads", async () => {
+    vi.useFakeTimers();
     const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
       if (input.method === "thread/backgroundTerminals/clean") {
         return { requestId: "clean-1", result: {} };
@@ -1628,31 +1804,42 @@ describe("useWorkspaceConversation", () => {
     const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
     const { result } = renderConversation(hostBridge);
 
-    act(() => {
-      result.current.store.dispatch({
-        type: "conversation/upserted",
-        conversation: createConversationFromThread(createThread({
-          id: "thread-1",
-          turns: [createCollabTurn("thread-2", "completed")],
-        }), { resumeState: "resumed" })
+    try {
+      act(() => {
+        result.current.store.dispatch({
+          type: "conversation/upserted",
+          conversation: createConversationFromThread(createThread({
+            id: "thread-1",
+            turns: [createCollabTurn("thread-2", "completed")],
+          }), { resumeState: "resumed" })
+        });
+        result.current.store.dispatch({
+          type: "conversation/upserted",
+          conversation: createConversationFromThread(createThread({
+            id: "thread-2",
+            preview: "child",
+            source: createSubAgentSource(),
+          }), { resumeState: "resumed" })
+        });
+        result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
       });
-      result.current.store.dispatch({
-        type: "conversation/upserted",
-        conversation: createConversationFromThread(createThread({
-          id: "thread-2",
-          preview: "child",
-          source: createSubAgentSource(),
-        }), { resumeState: "resumed" })
+
+      await act(async () => {
+        await Promise.resolve();
       });
-      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
-    });
 
-    await act(async () => {
-      await Promise.resolve();
-    });
+      expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/backgroundTerminals/clean", params: { threadId: "thread-2" } }));
 
-    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/backgroundTerminals/clean", params: { threadId: "thread-2" } }));
-    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-2" } }));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(FINAL_SUBAGENT_CLEANUP_DELAY_MS);
+      });
+
+      expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/backgroundTerminals/clean", params: { threadId: "thread-2" } }));
+      expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-2" } }));
+      expect(result.current.store.state.conversationsById["thread-2"]?.resumeState).toBe("needs_resume");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("does not retry cleanup for sub-agents already marked notFound", async () => {

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { MouseEvent as ReactMouseEvent, RefObject } from "react";
+import type { MouseEvent as ReactMouseEvent, RefObject, SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { ConversationMessageContent } from "./ConversationMessageContent";
@@ -15,6 +15,8 @@ import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismis
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
 import type { ImageGenerationEntry } from "../../../domain/timeline";
 import { useI18n } from "../../../i18n/useI18n";
+import { parseUnifiedDiffCached } from "../../git/model/diffPreviewModel";
+import type { FileUpdateChange } from "../../../protocol/generated/v2/FileUpdateChange";
 
 type AssistantNode = Extract<ConversationRenderNode, { kind: "assistantMessage" | "reasoningBlock" | "traceItem" | "auxiliaryBlock" }>;
 
@@ -27,6 +29,7 @@ type ImageMenuAction = "openFolder" | "copyImage";
 
 export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntryProps): JSX.Element {
   const { t } = useI18n();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   if (props.node.kind === "reasoningBlock") {
     return <ReasoningTranscriptEntry block={props.node.block} />;
   }
@@ -65,7 +68,10 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
   const model = createAssistantTranscriptEntryModel(props.node, t);
   const truncateSummaryWhenCollapsed = model.kind === "details" && model.truncateSummaryWhenCollapsed === true;
   const traceEntry = props.node.kind === "traceItem";
-  const summaryContent = model.kind === "message" ? null : createSummaryContent(props.node, model.summary, t);
+  const summaryContent = model.kind === "message" ? null : createSummaryContent(props.node, model.summary, t, detailsOpen);
+  const handleDetailsToggle = useCallback((event: SyntheticEvent<HTMLDetailsElement>) => {
+    setDetailsOpen(event.currentTarget.open);
+  }, []);
 
   if (props.node.kind === "traceItem" && props.node.item.kind === "imageGeneration" && model.kind === "details") {
     return <ImageGenerationTranscriptEntry entry={props.node.item} />;
@@ -90,7 +96,7 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
   if (model.kind === "details") {
     return (
       <section className={`home-assistant-transcript-entry home-assistant-transcript-details${traceEntry ? " home-assistant-transcript-details-trace" : ""}`}>
-        <details>
+        <details onToggle={handleDetailsToggle}>
           <summary
             className="home-assistant-transcript-line home-assistant-transcript-summary"
             data-truncate-summary={truncateSummaryWhenCollapsed ? "true" : undefined}
@@ -278,22 +284,90 @@ async function copyImageToClipboard(src: string): Promise<void> {
   await clipboard?.writeText(src);
 }
 
-function createSummaryContent(node: AssistantNode, summary: string, t: ReturnType<typeof useI18n>["t"]): JSX.Element | string {
+interface FileChangeDiffStats {
+  readonly additions: number;
+  readonly deletions: number;
+}
+
+function summarizeFileChangeDiffStats(changes: ReadonlyArray<FileUpdateChange>): FileChangeDiffStats | null {
+  let additions = 0;
+  let deletions = 0;
+  let hasDiff = false;
+  for (const change of changes) {
+    if (change.diff.trim().length === 0) {
+      continue;
+    }
+    const parsed = parseUnifiedDiffCached(change.diff);
+    additions += parsed.additions;
+    deletions += parsed.deletions;
+    hasDiff = true;
+  }
+  return hasDiff ? { additions, deletions } : null;
+}
+
+function FileChangeSummaryCounts(props: { readonly stats: FileChangeDiffStats | null }): JSX.Element | null {
+  if (props.stats === null) {
+    return null;
+  }
+  return (
+    <span
+      className="home-assistant-transcript-file-change-counts"
+      aria-label={`新增 ${props.stats.additions} 行，删除 ${props.stats.deletions} 行`}
+    >
+      <span className="workspace-diff-file-summary-add">+{props.stats.additions}</span>
+      <span className="workspace-diff-file-summary-delete">-{props.stats.deletions}</span>
+    </span>
+  );
+}
+
+function FileChangeSummaryContent(props: {
+  readonly item: Extract<AssistantNode, { kind: "traceItem" }>["item"] & { kind: "fileChange" };
+  readonly open: boolean;
+}): JSX.Element | string {
+  if (props.open) {
+    return (
+      <span className="home-assistant-transcript-file-change-open-summary">
+        <span>已编辑的文件</span>
+        <span className="home-assistant-transcript-summary-chevron" aria-hidden="true" />
+      </span>
+    );
+  }
+
+  const parts = createFileChangeSummaryParts(props.item.status, props.item.changes);
+  const stats = summarizeFileChangeDiffStats(props.item.changes);
+  if (parts.fileName === null) {
+    return (
+      <span className="home-assistant-transcript-file-change-summary-inline">
+        <span>{parts.text}</span>
+        <FileChangeSummaryCounts stats={stats} />
+        <span className="home-assistant-transcript-summary-chevron" aria-hidden="true" />
+      </span>
+    );
+  }
+  return (
+    <span className="home-assistant-transcript-file-change-summary-inline">
+      <span>
+        {parts.prefix}
+        <span className="home-assistant-transcript-file-name">{parts.fileName}</span>
+        {parts.suffix}
+      </span>
+      <FileChangeSummaryCounts stats={stats} />
+      <span className="home-assistant-transcript-summary-chevron" aria-hidden="true" />
+    </span>
+  );
+}
+
+function createSummaryContent(
+  node: AssistantNode,
+  summary: string,
+  t: ReturnType<typeof useI18n>["t"],
+  detailsOpen: boolean,
+): JSX.Element | string {
   if (node.kind !== "traceItem") {
     return summary;
   }
   if (node.item.kind === "fileChange") {
-    const parts = createFileChangeSummaryParts(node.item.status, node.item.changes);
-    if (parts.fileName === null) {
-      return parts.text;
-    }
-    return (
-      <>
-        {parts.prefix}
-        <span className="home-assistant-transcript-file-name">{parts.fileName}</span>
-        {parts.suffix}
-      </>
-    );
+    return <FileChangeSummaryContent item={node.item} open={detailsOpen} />;
   }
   if (node.item.kind !== "commandExecution") {
     return summary;

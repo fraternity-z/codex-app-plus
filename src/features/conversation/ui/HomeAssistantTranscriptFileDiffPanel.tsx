@@ -1,3 +1,4 @@
+import { useCallback, useRef } from "react";
 import type { FileUpdateChange } from "../../../protocol/generated/v2/FileUpdateChange";
 import type { PatchChangeKind } from "../../../protocol/generated/v2/PatchChangeKind";
 import { parseUnifiedDiffCached, type ParsedDiffFile } from "../../git/model/diffPreviewModel";
@@ -5,51 +6,59 @@ import { GitDiffCodeView } from "../../git/ui/GitDiffCodeView";
 import { getFileChangeDisplayName } from "../model/fileChangeSummary";
 
 interface HomeAssistantTranscriptFileDiffPanelProps {
-  readonly label: string;
   readonly changes: ReadonlyArray<FileUpdateChange>;
-  readonly footerStatus: string | null;
 }
 
 export function HomeAssistantTranscriptFileDiffPanel(
   props: HomeAssistantTranscriptFileDiffPanelProps,
 ): JSX.Element {
-  const hasFooter = props.footerStatus !== null;
   return (
     <div className="home-assistant-transcript-detail-panel" data-variant="fileDiff">
-      {hasFooter ? (
-        <div className="home-assistant-transcript-detail-header">
-          <span className="home-assistant-transcript-detail-label">{props.label}</span>
-        </div>
-      ) : null}
       <div className="home-assistant-transcript-file-diff-list">
-        {props.changes.map((change) => (
-          <TranscriptFileDiffCard key={createChangeKey(change)} change={change} />
+        {props.changes.map((change, index) => (
+          <TranscriptFileDiffCard key={createChangeKey(change)} change={change} defaultOpen={index === 0} />
         ))}
       </div>
-      {hasFooter ? (
-        <div className="home-assistant-transcript-detail-footer">
-          <span className="home-assistant-transcript-detail-footer-status">{props.footerStatus}</span>
-        </div>
-      ) : null}
     </div>
   );
 }
 
-function TranscriptFileDiffCard(props: { readonly change: FileUpdateChange }): JSX.Element {
+function TranscriptFileDiffCard(props: { readonly change: FileUpdateChange; readonly defaultOpen: boolean }): JSX.Element {
+  const initializedRef = useRef(false);
   const title = getDiffTitle(props.change);
   const parsedDiff = getParsedDiff(props.change.diff);
+  const actionLabel = `复制 ${title} diff`;
+  const setDetailsRef = useCallback((node: HTMLDetailsElement | null) => {
+    if (node === null || initializedRef.current) {
+      return;
+    }
+    node.open = props.defaultOpen;
+    initializedRef.current = true;
+  }, [props.defaultOpen]);
 
   return (
-    <section className="workspace-diff-preview-card home-assistant-transcript-file-diff-card">
-      <header className="workspace-diff-preview-header">
-        <div className="workspace-diff-preview-meta">
-          <h3 className="workspace-diff-preview-title" title={title}>{title}</h3>
-          <div className="home-assistant-transcript-file-diff-meta">
-            <span className="workspace-diff-file-badge">{formatChangeKindLabel(props.change.kind)}</span>
-            <DiffSummary parsedDiff={parsedDiff} />
-          </div>
-        </div>
-      </header>
+    <details ref={setDetailsRef} className="home-assistant-transcript-file-diff-card">
+      <summary className="home-assistant-transcript-file-diff-summary">
+        <span className="home-assistant-transcript-file-diff-summary-main">
+          <span className="home-assistant-transcript-file-diff-kind">{formatChangeKindLabel(props.change.kind)}</span>
+          <span className="home-assistant-transcript-file-diff-title" title={title}>{title}</span>
+          <DiffSummary parsedDiff={parsedDiff} />
+        </span>
+        <button
+          type="button"
+          className="home-assistant-transcript-file-diff-copy"
+          aria-label={actionLabel}
+          title={actionLabel}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void copyDiffToClipboard(props.change.diff);
+          }}
+        >
+          <span className="home-assistant-transcript-file-diff-copy-icon" aria-hidden="true" />
+        </button>
+        <span className="home-assistant-transcript-file-diff-chevron" aria-hidden="true" />
+      </summary>
       <div className="home-assistant-transcript-file-diff-card-body">
         {parsedDiff === null ? (
           <div className="home-assistant-transcript-file-diff-empty">未提供 diff 内容</div>
@@ -57,20 +66,20 @@ function TranscriptFileDiffCard(props: { readonly change: FileUpdateChange }): J
           <GitDiffCodeView parsed={parsedDiff} path={props.change.path} />
         )}
       </div>
-    </section>
+    </details>
   );
 }
 
 function DiffSummary(props: { readonly parsedDiff: ParsedDiffFile | null }): JSX.Element {
   if (props.parsedDiff === null) {
-    return <span className="workspace-diff-preview-summary workspace-diff-file-row-summary-pending">无 diff</span>;
+    return <span className="home-assistant-transcript-file-diff-counts home-assistant-transcript-file-diff-counts-muted">无 diff</span>;
   }
   if (props.parsedDiff.hunks.length === 0) {
-    return <span className="workspace-diff-preview-summary workspace-diff-file-row-summary-pending">原始 diff</span>;
+    return <span className="home-assistant-transcript-file-diff-counts home-assistant-transcript-file-diff-counts-muted">原始 diff</span>;
   }
   return (
     <span
-      className="workspace-diff-preview-summary"
+      className="home-assistant-transcript-file-diff-counts"
       aria-label={`新增 ${props.parsedDiff.additions} 行，删除 ${props.parsedDiff.deletions} 行`}
     >
       <span className="workspace-diff-file-summary-add">+{props.parsedDiff.additions}</span>
@@ -91,6 +100,14 @@ function getParsedDiff(diff: string): ParsedDiffFile | null {
   return parseUnifiedDiffCached(diff);
 }
 
+async function copyDiffToClipboard(diff: string): Promise<void> {
+  try {
+    await navigator.clipboard?.writeText(diff);
+  } catch {
+    // Clipboard writes may be unavailable in restricted webviews.
+  }
+}
+
 function getDiffTitle(change: FileUpdateChange): string {
   const currentPath = getFileChangeDisplayName(change.path);
   if (change.kind.type !== "update" || change.kind.move_path === null) {
@@ -101,13 +118,13 @@ function getDiffTitle(change: FileUpdateChange): string {
 
 function formatChangeKindLabel(kind: PatchChangeKind): string {
   if (kind.type === "add") {
-    return "新增";
+    return "已新增";
   }
   if (kind.type === "delete") {
-    return "删除";
+    return "已删除";
   }
   if (kind.move_path !== null) {
-    return "移动";
+    return "已移动";
   }
-  return "修改";
+  return "已编辑";
 }

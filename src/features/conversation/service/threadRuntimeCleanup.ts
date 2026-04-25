@@ -98,6 +98,13 @@ export async function forceCloseThreadRuntime(
   await closeThreadSubscription(threadId, transport);
 }
 
+export async function softDetachThreadRuntime(
+  threadId: string,
+  transport: ThreadRuntimeCleanupTransport,
+): Promise<void> {
+  await closeThreadSubscription(threadId, transport);
+}
+
 export function reportThreadCleanupError(
   dispatch: (action: AppAction) => void,
   conversation: ConversationState | null,
