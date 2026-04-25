@@ -316,7 +316,7 @@
 
 .thread-context-menu {
   position: fixed;
-  z-index: 40;
+  z-index: 120;
   min-width: 120px;
   padding: 6px;
   border: 1px solid var(--border-light);

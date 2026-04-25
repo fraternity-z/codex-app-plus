@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 
 interface ThreadContextMenuProps {
@@ -48,7 +49,7 @@ export function ThreadContextMenu(props: ThreadContextMenuProps): JSX.Element {
 
   useToolbarMenuDismissal(true, containerRef, closeOverlay);
 
-  return (
+  const menu = (
     <div ref={containerRef} className="thread-context-menu" style={{ left: props.x, top: props.y }} role="menu" aria-label="会话操作菜单">
       {props.canArchive ? (
         <button type="button" className="thread-context-menu-item" role="menuitem" onClick={() => void runAction("archive", props.onArchive)} disabled={pendingAction !== null}>
@@ -66,4 +67,6 @@ export function ThreadContextMenu(props: ThreadContextMenuProps): JSX.Element {
       </button>
     </div>
   );
+
+  return <>{typeof document === "undefined" ? menu : createPortal(menu, document.body)}</>;
 }

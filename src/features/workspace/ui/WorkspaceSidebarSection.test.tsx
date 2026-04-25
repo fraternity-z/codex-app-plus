@@ -272,6 +272,13 @@ describe("WorkspaceSidebarSection", () => {
     await waitFor(() => expect(onRemoveRoot).toHaveBeenCalledWith(ROOTS[0]!.id));
   });
 
+  it("renders the workspace menu through a body portal", () => {
+    renderSection([createThread(ROOTS[0]!, 1)]);
+    fireEvent.contextMenu(screen.getByText("FPGA").closest(".workspace-root-row") as HTMLElement);
+
+    expect(screen.getByRole("menu", { name: "工作区更多操作 FPGA" }).parentElement).toBe(document.body);
+  });
+
   it("opens the same workspace menu when right clicking either action button", () => {
     renderSection([createThread(ROOTS[0]!, 1)]);
 
@@ -300,6 +307,14 @@ describe("WorkspaceSidebarSection", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "删除会话" }));
 
     await waitFor(() => expect(onDeleteThread).toHaveBeenCalledWith(thread));
+  });
+
+  it("renders the thread context menu through a body portal", () => {
+    renderSection([createThread(ROOTS[0]!, 1)]);
+    fireEvent.click(screen.getByText("FPGA"));
+    fireEvent.contextMenu(screen.getByRole("button", { name: /FPGA Thread 1/ }));
+
+    expect(screen.getByRole("menu", { name: "会话操作菜单" }).parentElement).toBe(document.body);
   });
 
   it("shows archive for rpc threads and calls the archive handler", async () => {

@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useI18n } from "../../../i18n/useI18n";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 
@@ -43,7 +44,7 @@ export function WorkspaceRootMenu(props: WorkspaceRootMenuProps): JSX.Element {
 
   useToolbarMenuDismissal(true, containerRef, closeOverlay);
 
-  return (
+  const menu = (
     <div ref={containerRef} className="thread-context-menu workspace-root-menu" style={{ left: props.x, top: props.y }} role="menu" aria-label={t("home.workspaceSection.rootMoreAria", { name: props.rootName })}>
       {props.onCreateWorktree ? (
         <button type="button" className="thread-context-menu-item" role="menuitem" onClick={() => void runAction("createWorktree", props.onCreateWorktree)} disabled={pendingAction !== null}>
@@ -60,4 +61,6 @@ export function WorkspaceRootMenu(props: WorkspaceRootMenuProps): JSX.Element {
       </button>
     </div>
   );
+
+  return <>{typeof document === "undefined" ? menu : createPortal(menu, document.body)}</>;
 }
