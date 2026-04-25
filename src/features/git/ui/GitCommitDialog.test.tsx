@@ -88,15 +88,16 @@ describe("GitCommitDialog", () => {
   it("opens with focus on the commit message and keeps submit disabled until filled", async () => {
     renderDialog();
 
-    const textarea = screen.getByLabelText("提交说明");
+    const textarea = screen.getByLabelText("提交消息");
     await waitFor(() => expect(textarea).toHaveFocus());
-    expect(screen.getByRole("button", { name: "正式提交" })).toBeDisabled();
-    expect(screen.getByText("请填写提交说明后再正式提交。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "继续" })).toBeDisabled();
+    expect(screen.getByText("请填写提交消息后再继续。")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("留空以自动生成提交消息（未接入）")).toBeInTheDocument();
   });
 
   it("submits with Ctrl+Enter after the user enters a message", async () => {
     const { commit } = renderDialog();
-    const textarea = screen.getByLabelText("提交说明");
+    const textarea = screen.getByLabelText("提交消息");
 
     fireEvent.change(textarea, { target: { value: "feat: improve commit flow" } });
     fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true });
@@ -120,15 +121,26 @@ describe("GitCommitDialog", () => {
     });
 
     expect(
-      screen.getByText("填写提交说明后，将自动暂存当前更改并提交。"),
+      screen.getByText("填写提交消息后，将自动暂存当前更改并提交。"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "正式提交" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "继续" })).toBeDisabled();
   });
 
-  it("closes when the user clicks cancel", () => {
+  it("renders unwired follow-up copy and keeps those actions disabled", () => {
+    renderDialog();
+
+    expect(screen.getByRole("switch", { name: "包含取消暂存的更改（未接入）" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("switch", { name: "草稿（未接入）" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("radio", { name: "提交" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "提交并推送（未接入）" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "提交并创建 PR（未接入）" })).toBeDisabled();
+    expect(screen.getByText("自定义指令（未接入）")).toBeInTheDocument();
+  });
+
+  it("closes when the user clicks the close button", () => {
     const { closeCommitDialog } = renderDialog();
 
-    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    fireEvent.click(screen.getByRole("button", { name: "关闭提交卡片" }));
 
     expect(closeCommitDialog).toHaveBeenCalledTimes(1);
   });

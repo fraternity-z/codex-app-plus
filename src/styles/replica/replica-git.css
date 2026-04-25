@@ -18,6 +18,11 @@
   z-index: 160;
 }
 
+.git-dialog-backdrop-main {
+  position: absolute;
+  padding: 18px;
+}
+
 .git-dialog {
   width: min(1400px, calc(100vw - 48px));
   height: min(860px, calc(100vh - 48px));
@@ -74,11 +79,11 @@
 }
 
 .git-commit-dialog {
-  width: min(620px, calc(100vw - 48px));
+  width: min(432px, calc(100vw - 28px));
   border: 1px solid #dfdfdf;
-  border-radius: 24px;
-  background: #ffffff;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.18);
+  border-radius: 20px;
+  background: #fbfbfb;
+  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.18);
   overflow: hidden;
 }
 
@@ -115,10 +120,6 @@
   padding: 12px 24px 24px;
 }
 
-.git-commit-dialog-body {
-  gap: 12px;
-}
-
 .git-push-confirm-title,
 .git-push-confirm-text {
   margin: 0;
@@ -147,24 +148,6 @@
   line-height: 1.6;
 }
 
-.git-commit-dialog-label {
-  color: #3d3d3d;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.git-commit-dialog-textarea {
-  min-height: 148px;
-  margin-top: -2px;
-}
-
-.git-commit-dialog-error {
-  margin: -2px 0 0;
-  color: #aa3434;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
 .git-commit-dialog-actions {
   display: flex;
   justify-content: flex-end;
@@ -174,6 +157,231 @@
 
 .git-push-confirm-submit {
   margin-top: 2px;
+}
+
+.git-commit-dialog-header {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px 0 20px;
+}
+
+.git-commit-dialog-icon-box {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #242424;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
+}
+
+.git-commit-dialog-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.git-commit-dialog-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 20px 20px;
+}
+
+.git-commit-dialog-title {
+  margin: 0 0 2px;
+  color: #111111;
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.git-commit-dialog-label,
+.git-commit-dialog-section-title {
+  color: #3d3d3d;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.git-commit-dialog-meta-row,
+.git-commit-dialog-message-header,
+.git-commit-dialog-followup,
+.git-commit-dialog-followup-main,
+.git-commit-dialog-footer,
+.git-commit-dialog-toggle-row {
+  display: flex;
+  align-items: center;
+}
+
+.git-commit-dialog-meta-row,
+.git-commit-dialog-message-header,
+.git-commit-dialog-footer {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.git-commit-dialog-meta-value {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  color: #303030;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.git-commit-dialog-meta-icon {
+  width: 16px;
+  height: 16px;
+  color: #555555;
+}
+
+.git-commit-dialog-muted {
+  color: #aaaaaa;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.git-commit-dialog-textarea {
+  min-height: 58px;
+  border-radius: 13px;
+  padding: 12px 14px;
+  background: #ffffff;
+  color: #252525;
+  resize: none;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.02);
+}
+
+.git-commit-dialog-textarea::placeholder {
+  color: #a5a5a5;
+}
+
+.git-commit-dialog-helper {
+  margin: -4px 0 0;
+  color: #8a8a8a;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.git-commit-dialog-error {
+  margin: -4px 0 0;
+  color: #aa3434;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.git-commit-dialog-section-title {
+  margin-top: 2px;
+}
+
+.git-commit-dialog-followups {
+  display: grid;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.git-commit-dialog-followup {
+  width: 100%;
+  min-height: 38px;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  border-bottom: 1px solid #eeeeee;
+  padding: 0 16px;
+  background: transparent;
+  color: #222222;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.git-commit-dialog-followup:last-child {
+  border-bottom: 0;
+}
+
+.git-commit-dialog-followup:disabled {
+  cursor: not-allowed;
+}
+
+.git-commit-dialog-followup:not(.git-commit-dialog-followup-selected):disabled {
+  color: #b6b6b6;
+}
+
+.git-commit-dialog-followup-main {
+  min-width: 0;
+  gap: 12px;
+}
+
+.git-commit-dialog-followup-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.git-commit-dialog-check-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: #222222;
+}
+
+.git-commit-dialog-toggle-row {
+  min-width: 0;
+  gap: 10px;
+  color: #3b3b3b;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.git-commit-dialog-toggle {
+  width: 38px;
+  height: 22px;
+  flex: 0 0 auto;
+  position: relative;
+  border-radius: 999px;
+  border: 1px solid #d7d7d7;
+  background: #dadada;
+}
+
+.git-commit-dialog-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.git-commit-dialog-toggle-on {
+  border-color: #4aa3ff;
+  background: #4aa3ff;
+}
+
+.git-commit-dialog-toggle-on .git-commit-dialog-toggle-knob {
+  left: 18px;
+}
+
+.git-commit-dialog-continue {
+  min-width: 156px;
+  height: 32px;
+  border: 0;
+  border-radius: 12px;
+  background: #111111;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.git-commit-dialog-continue:disabled {
+  background: #a9a9a9;
+  cursor: not-allowed;
 }
 
 .git-workspace {
@@ -675,6 +883,26 @@
   }
 }
 
+@media (max-width: 460px) {
+  .git-commit-dialog-header {
+    padding: 12px 18px 0 20px;
+  }
+
+  .git-commit-dialog-body {
+    padding: 0 20px 20px;
+  }
+
+  .git-commit-dialog-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .git-commit-dialog-continue {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 
 .worktree-create-dialog {
   width: min(560px, calc(100vw - 48px));
@@ -759,6 +987,8 @@ html[data-theme="dark"] .workspace-diff-sidebar-header {
 }
 
 html[data-theme="dark"] .git-push-confirm-icon-box,
+html[data-theme="dark"] .git-commit-dialog-icon-box,
+html[data-theme="dark"] .git-commit-dialog-followups,
 html[data-theme="dark"] .git-inline-btn,
 html[data-theme="dark"] .git-badge,
 html[data-theme="dark"] .workspace-diff-scope-trigger,
@@ -783,9 +1013,14 @@ html[data-theme="dark"] .git-overview-title,
 html[data-theme="dark"] .git-card-title,
 html[data-theme="dark"] .git-state-title,
 html[data-theme="dark"] .git-push-confirm-title,
+html[data-theme="dark"] .git-commit-dialog-title,
 html[data-theme="dark"] .git-push-confirm-value,
+html[data-theme="dark"] .git-commit-dialog-meta-value,
 html[data-theme="dark"] .git-entry-name,
 html[data-theme="dark"] .git-commit-dialog-label,
+html[data-theme="dark"] .git-commit-dialog-section-title,
+html[data-theme="dark"] .git-commit-dialog-followup,
+html[data-theme="dark"] .git-commit-dialog-check-icon,
 html[data-theme="dark"] .workspace-diff-sidebar-title,
 html[data-theme="dark"] .workspace-diff-scope-option[aria-checked="true"] .workspace-diff-scope-option-label,
 html[data-theme="dark"] .workspace-diff-scope-check {
@@ -800,6 +1035,9 @@ html[data-theme="dark"] .git-state-body,
 html[data-theme="dark"] .git-empty-tip,
 html[data-theme="dark"] .git-entry-meta,
 html[data-theme="dark"] .git-push-confirm-row,
+html[data-theme="dark"] .git-commit-dialog-helper,
+html[data-theme="dark"] .git-commit-dialog-muted,
+html[data-theme="dark"] .git-commit-dialog-meta-icon,
 html[data-theme="dark"] .git-push-confirm-text,
 html[data-theme="dark"] .workspace-diff-sidebar-subtitle,
 html[data-theme="dark"] .workspace-diff-scope-chevron {
@@ -833,6 +1071,39 @@ html[data-theme="dark"] .git-textarea {
   border-color: var(--border-light);
   background: var(--surface-panel-muted);
   color: var(--text-main);
+}
+
+html[data-theme="dark"] .git-commit-dialog-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .git-commit-dialog-followup {
+  border-color: var(--border-light);
+}
+
+html[data-theme="dark"] .git-commit-dialog-followup:not(.git-commit-dialog-followup-selected):disabled {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+html[data-theme="dark"] .git-commit-dialog-toggle {
+  border-color: var(--border-light);
+  background: var(--surface-panel-muted);
+}
+
+html[data-theme="dark"] .git-commit-dialog-toggle-on {
+  border-color: var(--accent-color);
+  background: var(--accent-color);
+}
+
+html[data-theme="dark"] .git-commit-dialog-continue {
+  background: var(--accent-color);
+  color: var(--text-inverse);
+}
+
+html[data-theme="dark"] .git-commit-dialog-continue:disabled {
+  background: var(--surface-panel-soft);
+  color: var(--text-muted);
 }
 
 html[data-theme="dark"] .git-diff-content {

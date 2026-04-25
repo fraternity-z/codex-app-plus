@@ -39,6 +39,44 @@ export function GitCommitIcon(props: { readonly className?: string }): JSX.Eleme
   );
 }
 
+export function GitCommitNodeIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M2.9 10h4.35" stroke="currentColor" strokeWidth="1.45" strokeLinecap="round" />
+      <circle cx="10" cy="10" r="2.75" stroke="currentColor" strokeWidth="1.45" />
+      <path d="M12.75 10h4.35" stroke="currentColor" strokeWidth="1.45" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function GitArrowUpIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M10 16V4" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" />
+      <path d="m5.75 8.25 4.25-4.25 4.25 4.25" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function GitHubMarkIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M10 2.3A7.7 7.7 0 0 0 7.57 17.3c.39.07.52-.17.52-.38v-1.34c-2.15.47-2.6-1.04-2.6-1.04-.35-.9-.86-1.14-.86-1.14-.7-.48.05-.47.05-.47.78.05 1.19.8 1.19.8.69 1.18 1.8.84 2.24.64.07-.5.27-.84.49-1.03-1.72-.2-3.53-.86-3.53-3.82 0-.84.3-1.53.8-2.07-.08-.2-.35-.98.08-2.04 0 0 .65-.21 2.12.79A7.4 7.4 0 0 1 10 5.94c.66 0 1.31.09 1.93.26 1.47-1 2.12-.79 2.12-.79.43 1.06.16 1.84.08 2.04.5.54.8 1.23.8 2.07 0 2.97-1.81 3.62-3.54 3.82.28.24.53.72.53 1.45v2.13c0 .21.14.46.53.38A7.7 7.7 0 0 0 10 2.3Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+export function GitCheckIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="m4.7 10.25 3.35 3.35 7.25-7.2" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function GitRefreshIcon(props: { readonly className?: string }): JSX.Element {
   return (
     <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
