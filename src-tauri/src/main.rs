@@ -47,15 +47,14 @@ use commands::{
     app_server_stop, app_set_agents_core, app_set_user_model_instructions_file,
     app_set_window_theme, app_show_context_menu, app_show_notification, app_start_window_dragging,
     app_update_agent, app_upsert_managed_prompt, app_write_agent_config,
-    app_write_chatgpt_auth_tokens, app_write_global_agent_instructions,
-    app_write_proxy_settings, app_write_workspace_state, rpc_cancel, rpc_notify, rpc_request,
-    server_request_resolve,
+    app_write_chatgpt_auth_tokens, app_write_global_agent_instructions, app_write_proxy_settings,
+    app_write_workspace_state, rpc_cancel, rpc_notify, rpc_request, server_request_resolve,
 };
 use git::commands::{
     git_add_worktree, git_checkout, git_commit, git_delete_branch, git_discard_paths, git_fetch,
-    git_get_branch_refs, git_get_diff, git_get_remote_url, git_get_status_snapshot,
-    git_get_workspace_diffs, git_get_worktrees, git_init_repository, git_pull, git_push,
-    git_remove_worktree, git_stage_paths, git_unstage_paths,
+    git_generate_commit_message, git_get_branch_refs, git_get_diff, git_get_remote_url,
+    git_get_status_snapshot, git_get_workspace_diffs, git_get_worktrees, git_init_repository,
+    git_pull, git_push, git_remove_worktree, git_stage_paths, git_unstage_paths,
 };
 use git::runtime::GitRuntimeState;
 use process_manager::ProcessManager;
@@ -145,6 +144,7 @@ fn main() {
             git_unstage_paths,
             git_discard_paths,
             git_commit,
+            git_generate_commit_message,
             git_fetch,
             git_pull,
             git_push,

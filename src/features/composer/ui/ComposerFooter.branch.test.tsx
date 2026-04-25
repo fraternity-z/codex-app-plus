@@ -72,6 +72,7 @@ function renderPopover(options: RenderOptions = {}) {
       branchRefsLoading: options.branchRefsLoading ?? false,
       branchRefsLoaded: options.branchRefsLoaded ?? true,
       commitMessage: "",
+      commitInstructions: "",
       selectedBranch,
       newBranchName,
       diff: null,

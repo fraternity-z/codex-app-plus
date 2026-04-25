@@ -84,6 +84,8 @@ function renderSection(
         setPreferences((current) => ({ ...current, gitBranchPrefix })),
       setGitPushForceWithLease: (gitPushForceWithLease) =>
         setPreferences((current) => ({ ...current, gitPushForceWithLease })),
+      setGitCommitInstructions: (gitCommitInstructions) =>
+        setPreferences((current) => ({ ...current, gitCommitInstructions })),
       setContrast: (contrast) =>
         setPreferences((current) => ({
           ...current,

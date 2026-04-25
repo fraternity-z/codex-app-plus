@@ -152,6 +152,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       embeddedTerminalUtf8={props.preferences.embeddedTerminalUtf8}
       gitBranchPrefix={props.preferences.gitBranchPrefix}
       gitPushForceWithLease={props.preferences.gitPushForceWithLease}
+      gitCommitInstructions={props.preferences.gitCommitInstructions}
       threadDetailLevel={props.preferences.threadDetailLevel}
       followUpQueueMode={props.preferences.followUpQueueMode}
       resolvedTheme={props.resolvedTheme}

@@ -35,6 +35,7 @@ function createPreferencesController(): AppPreferencesController {
     setCodeFontSize: vi.fn(),
     setGitBranchPrefix: vi.fn(),
     setGitPushForceWithLease: vi.fn(),
+    setGitCommitInstructions: vi.fn(),
     setContrast: vi.fn(),
     setAppearanceThemeColors: vi.fn(),
     setCodeStyle: vi.fn(),

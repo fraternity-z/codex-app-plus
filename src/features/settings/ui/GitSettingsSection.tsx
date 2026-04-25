@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { AppPreferencesController } from "../hooks/useAppPreferences";
 import { useI18n } from "../../../i18n";
 
@@ -92,7 +92,18 @@ function GitInstructionsSection(props: {
   readonly description: string;
   readonly placeholder: string;
   readonly saveLabel: string;
+  readonly value: string;
+  readonly disabled?: boolean;
+  readonly onSave?: (value: string) => void;
 }): JSX.Element {
+  const [draft, setDraft] = useState(props.value);
+
+  useEffect(() => {
+    setDraft(props.value);
+  }, [props.value]);
+
+  const dirty = draft !== props.value;
+
   return (
     <section className="git-settings-instructions-section">
       <div className="git-settings-instructions-head">
@@ -103,7 +114,8 @@ function GitInstructionsSection(props: {
         <button
           type="button"
           className="settings-head-action git-settings-save"
-          disabled
+          disabled={props.disabled === true || !dirty}
+          onClick={() => props.onSave?.(draft)}
         >
           {props.saveLabel}
         </button>
@@ -112,7 +124,9 @@ function GitInstructionsSection(props: {
         className="git-settings-instructions-textarea"
         aria-label={props.title}
         placeholder={props.placeholder}
-        disabled
+        value={draft}
+        disabled={props.disabled}
+        onChange={(event) => setDraft(event.currentTarget.value)}
       />
     </section>
   );
@@ -201,12 +215,16 @@ export function GitSettingsSection(props: GitSettingsSectionProps): JSX.Element 
         description={t("settings.git.commitInstructionsDescription")}
         placeholder={t("settings.git.commitInstructionsPlaceholder")}
         saveLabel={t("settings.git.save")}
+        value={props.preferences.gitCommitInstructions}
+        onSave={props.preferences.setGitCommitInstructions}
       />
       <GitInstructionsSection
         title={t("settings.git.pullRequestInstructionsTitle")}
         description={t("settings.git.pullRequestInstructionsDescription")}
         placeholder={t("settings.git.pullRequestInstructionsPlaceholder")}
         saveLabel={t("settings.git.save")}
+        value=""
+        disabled
       />
     </div>
   );

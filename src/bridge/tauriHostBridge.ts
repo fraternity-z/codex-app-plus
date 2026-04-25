@@ -23,6 +23,8 @@ import type {
   GitBranchRef,
   GitCheckoutInput,
   GitCommitInput,
+  GitGenerateCommitMessageInput,
+  GitGenerateCommitMessageOutput,
   GitDeleteBranchInput,
   GitDiffInput,
   GitDiffOutput,
@@ -302,6 +304,11 @@ export function createTauriHostBridge(): HostBridge {
       unstagePaths: (input: GitPathsInput) => invokeWithInput("git_unstage_paths", input),
       discardPaths: (input: GitDiscardInput) => invokeWithInput("git_discard_paths", input),
       commit: (input: GitCommitInput) => invokeWithInput("git_commit", input),
+      generateCommitMessage: (input: GitGenerateCommitMessageInput) =>
+        invokeWithInput<GitGenerateCommitMessageInput, GitGenerateCommitMessageOutput>(
+          "git_generate_commit_message",
+          input
+        ),
       fetch: (input: GitRepoInput) => invokeWithInput("git_fetch", input),
       pull: (input: GitRepoInput) => invokeWithInput("git_pull", input),
       push: (input: GitPushInput) => invokeWithInput("git_push", input),

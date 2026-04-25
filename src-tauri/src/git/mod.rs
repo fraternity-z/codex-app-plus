@@ -1,4 +1,5 @@
 pub mod commands;
+mod commit_message;
 pub mod diff;
 pub mod models;
 pub mod parse;

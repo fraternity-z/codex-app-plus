@@ -38,6 +38,8 @@ function renderSection(): void {
             setPreferences((current) => ({ ...current, gitBranchPrefix })),
           setGitPushForceWithLease: (gitPushForceWithLease) =>
             setPreferences((current) => ({ ...current, gitPushForceWithLease })),
+          setGitCommitInstructions: (gitCommitInstructions) =>
+            setPreferences((current) => ({ ...current, gitCommitInstructions })),
           setContrast: () => undefined,
           setAppearanceThemeColors: () => undefined,
           setCodeStyle: () => undefined,
@@ -71,13 +73,24 @@ describe("GitSettingsSection", () => {
     expect(screen.getByRole("switch", { name: "始终强制推送" })).toHaveAttribute("aria-checked", "true");
   });
 
+  it("saves commit instructions", () => {
+    renderSection();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "提交指令" }), {
+      target: { value: "使用 Conventional Commits。" },
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "保存" })[0]);
+
+    expect(screen.getByDisplayValue("使用 Conventional Commits。")).toBeInTheDocument();
+  });
+
   it("marks unfinished Git controls in the copy", () => {
     renderSection();
 
     expect(screen.getByText("选择 Codex 合并拉取请求的方法（未完成：暂未接入保存）")).toBeInTheDocument();
-    expect(screen.getByText("未完成：暂未添加到提交信息生成提示中")).toBeInTheDocument();
+    expect(screen.getByText("留空自动生成提交消息时，会把这些指令加入提示。")).toBeInTheDocument();
     expect(screen.getByText("未完成：暂未添加到 PR 标题/描述生成提示中")).toBeInTheDocument();
     expect(screen.getByRole("spinbutton", { name: "自动删除限制" })).toBeDisabled();
-    expect(screen.getByRole("textbox", { name: "提交指令" })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: "提交指令" })).toBeEnabled();
   });
 });

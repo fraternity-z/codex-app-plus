@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import type { HostBridge } from "../../../bridge/types";
+import type { AgentEnvironment, HostBridge } from "../../../bridge/types";
 import type { WorkspaceGitController } from "../model/types";
 import { useWorkspaceGitActions } from "./useWorkspaceGitActions";
 import { useWorkspaceGitAutoRefresh } from "./useWorkspaceGitAutoRefresh";
@@ -13,6 +13,8 @@ interface UseWorkspaceGitOptions {
   readonly autoRefreshEnabled: boolean;
   readonly gitBranchPrefix: string;
   readonly gitPushForceWithLease: boolean;
+  readonly gitCommitInstructions: string;
+  readonly agentEnvironment?: AgentEnvironment;
 }
 
 export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitController {
@@ -38,10 +40,12 @@ export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitCo
     selectedRootPath: options.selectedRootPath,
     status: state.status,
     commitMessage: state.commitMessage,
+    commitInstructions: options.gitCommitInstructions,
     selectedBranch: state.selectedBranch,
     newBranchName: state.newBranchName,
     branchPrefix: options.gitBranchPrefix,
     pushForceWithLease: options.gitPushForceWithLease,
+    agentEnvironment: options.agentEnvironment,
     setCommitMessage: state.setCommitMessage,
     setSelectedBranch: state.setSelectedBranch,
     setNewBranchName: state.setNewBranchName,
@@ -75,6 +79,7 @@ export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitCo
     remoteUrlLoading: state.remoteUrlLoading,
     remoteUrlLoaded: state.remoteUrlLoaded,
     commitMessage: state.commitMessage,
+    commitInstructions: options.gitCommitInstructions,
     selectedBranch: state.selectedBranch,
     newBranchName: state.newBranchName,
     diff: state.diff,
@@ -133,6 +138,7 @@ export function useWorkspaceGit(options: UseWorkspaceGitOptions): WorkspaceGitCo
     state.commitDialogError,
     state.commitDialogOpen,
     state.commitMessage,
+    options.gitCommitInstructions,
     state.diff,
     state.diffCache,
     state.diffTarget,

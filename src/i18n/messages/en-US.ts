@@ -334,7 +334,7 @@ export const enUS = {
       autoDeleteRetentionLabel: "Auto-delete limit",
       autoDeleteRetentionDescription: "Number of Codex worktrees kept before automatic cleanup. Codex will create snapshots before deleting worktrees so cleaned worktrees should remain recoverable. (Unfinished: cleanup jobs are not connected yet.)",
       commitInstructionsTitle: "Commit instructions",
-      commitInstructionsDescription: "Unfinished: not added to commit message generation prompts yet.",
+      commitInstructionsDescription: "These instructions are added when Codex generates a commit message from an empty field.",
       commitInstructionsPlaceholder: "Add commit message guidance...",
       pullRequestInstructionsTitle: "Pull request instructions",
       pullRequestInstructionsDescription: "Unfinished: not added to PR title/description generation prompts yet.",

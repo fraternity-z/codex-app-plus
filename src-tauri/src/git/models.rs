@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::models::AgentEnvironment;
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GitRepoInput {
@@ -59,6 +61,20 @@ pub struct GitWorkspaceDiffsInput {
 #[serde(rename_all = "camelCase")]
 pub struct GitCommitInput {
     pub repo_path: String,
+    pub message: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitGenerateCommitMessageInput {
+    pub repo_path: String,
+    pub instructions: Option<String>,
+    pub agent_environment: Option<AgentEnvironment>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitGenerateCommitMessageOutput {
     pub message: String,
 }
 
@@ -206,4 +222,3 @@ pub struct GitWorktreeEntry {
     pub is_locked: bool,
     pub prunable: bool,
 }
-

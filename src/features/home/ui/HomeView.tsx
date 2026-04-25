@@ -94,6 +94,7 @@ export interface HomeViewProps {
   readonly embeddedTerminalUtf8?: boolean;
   readonly gitBranchPrefix: string;
   readonly gitPushForceWithLease: boolean;
+  readonly gitCommitInstructions?: string;
   readonly resolvedTheme?: ResolvedTheme;
   readonly threadDetailLevel: ThreadDetailLevel;
   readonly followUpQueueMode: FollowUpMode;
@@ -164,6 +165,8 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
     autoRefreshEnabled: uiState.canShowDiffSidebar,
     gitBranchPrefix: props.gitBranchPrefix,
     gitPushForceWithLease: props.gitPushForceWithLease,
+    gitCommitInstructions: props.gitCommitInstructions ?? "",
+    agentEnvironment: props.agentEnvironment,
   });
   useWorkspaceSwitchTracker({
     selectedRootId: props.selectedRootId,

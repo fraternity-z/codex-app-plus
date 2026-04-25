@@ -45,6 +45,7 @@ function createHostBridge(getStatusSnapshot: ReturnType<typeof vi.fn>): HostBrid
       unstagePaths: vi.fn().mockResolvedValue(undefined),
       discardPaths: vi.fn().mockResolvedValue(undefined),
       commit: vi.fn().mockResolvedValue(undefined),
+      generateCommitMessage: vi.fn().mockResolvedValue({ message: "feat: generated" }),
       fetch: vi.fn().mockResolvedValue(undefined),
       pull: vi.fn().mockResolvedValue(undefined),
       push: vi.fn().mockResolvedValue(undefined),
@@ -64,6 +65,7 @@ function createOptions(
     autoRefreshEnabled: false,
     gitBranchPrefix: "codex/",
     gitPushForceWithLease: false,
+    gitCommitInstructions: "",
   };
 }
 

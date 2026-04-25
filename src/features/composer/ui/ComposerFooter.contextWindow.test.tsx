@@ -89,6 +89,7 @@ function createController(): WorkspaceGitController {
     remoteUrlLoading: false,
     remoteUrlLoaded: true,
     commitMessage: "",
+    commitInstructions: "",
     selectedBranch: "",
     newBranchName: "",
     diff: null,

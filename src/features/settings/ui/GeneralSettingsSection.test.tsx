@@ -61,6 +61,8 @@ function renderSection(locale: Locale = "zh-CN", steerAvailable = true): void {
             setPreferences((current) => ({ ...current, gitBranchPrefix })),
           setGitPushForceWithLease: (gitPushForceWithLease) =>
             setPreferences((current) => ({ ...current, gitPushForceWithLease })),
+          setGitCommitInstructions: (gitCommitInstructions) =>
+            setPreferences((current) => ({ ...current, gitCommitInstructions })),
           setContrast: (contrast) =>
             setPreferences((current) => ({ ...current, contrast })),
           setAppearanceThemeColors: () => undefined,
@@ -154,6 +156,8 @@ describe("GeneralSettingsSection", () => {
               setPreferences((current) => ({ ...current, gitBranchPrefix })),
             setGitPushForceWithLease: (gitPushForceWithLease) =>
               setPreferences((current) => ({ ...current, gitPushForceWithLease })),
+            setGitCommitInstructions: (gitCommitInstructions) =>
+              setPreferences((current) => ({ ...current, gitCommitInstructions })),
             setContrast: (contrast) =>
               setPreferences((current) => ({ ...current, contrast })),
             setAppearanceThemeColors: () => undefined,

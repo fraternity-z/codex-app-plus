@@ -65,6 +65,7 @@ function createHostBridge(
       unstagePaths: vi.fn().mockResolvedValue(undefined),
       discardPaths: vi.fn().mockResolvedValue(undefined),
       commit: vi.fn().mockResolvedValue(undefined),
+      generateCommitMessage: vi.fn().mockResolvedValue({ message: "feat: generated commit" }),
       fetch: vi.fn().mockResolvedValue(undefined),
       pull: vi.fn().mockResolvedValue(undefined),
       push: vi.fn().mockResolvedValue(undefined),
@@ -84,6 +85,7 @@ function createGitOptions(
     autoRefreshEnabled: false,
     gitBranchPrefix: "codex/",
     gitPushForceWithLease: false,
+    gitCommitInstructions: "",
     ...overrides,
   };
 }
@@ -430,5 +432,155 @@ describe("useWorkspaceGit", () => {
     expect(stagePaths.mock.invocationCallOrder[0]).toBeLessThan(
       commit.mock.invocationCallOrder[0],
     );
+  });
+
+  it("generates a commit message when the input is empty", async () => {
+    const generateCommitMessage = vi.fn().mockResolvedValue({ message: "feat: generated commit" });
+    const commit = vi.fn().mockResolvedValue(undefined);
+    const hostBridge = createHostBridge(
+      vi.fn().mockResolvedValue(createSnapshot({
+        staged: [{ path: "src/App.tsx", originalPath: null, indexStatus: "M", worktreeStatus: " " }],
+      })),
+      vi.fn().mockResolvedValue(createDiff("src/App.tsx")),
+      undefined,
+      undefined,
+      { generateCommitMessage, commit },
+    );
+
+    const { result } = renderHook(() => useWorkspaceGit(createGitOptions(hostBridge, {
+      gitCommitInstructions: "Use conventional commits.",
+      agentEnvironment: "windowsNative",
+    })));
+
+    await waitFor(() => expect(result.current.status?.staged).toHaveLength(1));
+    act(() => {
+      result.current.openCommitDialog();
+    });
+
+    await act(async () => {
+      await result.current.commit();
+    });
+
+    expect(generateCommitMessage).toHaveBeenCalledWith({
+      repoPath: "E:/code/project",
+      instructions: "Use conventional commits.",
+      agentEnvironment: "windowsNative",
+    });
+    expect(commit).toHaveBeenCalledWith({
+      repoPath: "E:/code/project",
+      message: "feat: generated commit",
+    });
+  });
+
+  it("does not auto-stage unstaged changes when includeUnstaged is false", async () => {
+    const stagePaths = vi.fn().mockResolvedValue(undefined);
+    const commit = vi.fn().mockResolvedValue(undefined);
+    const hostBridge = createHostBridge(
+      vi.fn().mockResolvedValue(createSnapshot({
+        staged: [{ path: "src/App.tsx", originalPath: null, indexStatus: "M", worktreeStatus: " " }],
+        unstaged: [{ path: "src/Other.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }],
+      })),
+      vi.fn().mockResolvedValue(createDiff("src/App.tsx")),
+      undefined,
+      undefined,
+      { stagePaths, commit },
+    );
+
+    const { result } = renderHook(() => useWorkspaceGit(createGitOptions(hostBridge)));
+
+    await waitFor(() => expect(result.current.statusLoaded).toBe(true));
+    act(() => {
+      result.current.openCommitDialog();
+      result.current.setCommitMessage("feat: commit staged");
+    });
+
+    await act(async () => {
+      await result.current.commit({ includeUnstaged: false, followUp: "commit" });
+    });
+
+    expect(stagePaths).not.toHaveBeenCalled();
+    expect(commit).toHaveBeenCalledWith({
+      repoPath: "E:/code/project",
+      message: "feat: commit staged",
+    });
+  });
+
+  it("pushes after commit when requested", async () => {
+    const commit = vi.fn().mockResolvedValue(undefined);
+    const push = vi.fn().mockResolvedValue(undefined);
+    const hostBridge = createHostBridge(
+      vi.fn().mockResolvedValue(createSnapshot({
+        staged: [{ path: "src/App.tsx", originalPath: null, indexStatus: "M", worktreeStatus: " " }],
+      })),
+      vi.fn().mockResolvedValue(createDiff("src/App.tsx")),
+      undefined,
+      undefined,
+      { commit, push },
+    );
+
+    const { result } = renderHook(() => useWorkspaceGit(
+      createGitOptions(hostBridge, { gitPushForceWithLease: true }),
+    ));
+
+    await waitFor(() => expect(result.current.statusLoaded).toBe(true));
+    act(() => {
+      result.current.openCommitDialog();
+      result.current.setCommitMessage("feat: commit and push");
+    });
+
+    await act(async () => {
+      await result.current.commit({ includeUnstaged: true, followUp: "push" });
+    });
+
+    expect(commit).toHaveBeenCalledWith({
+      repoPath: "E:/code/project",
+      message: "feat: commit and push",
+    });
+    expect(push).toHaveBeenCalledWith({
+      repoPath: "E:/code/project",
+      forceWithLease: true,
+    });
+    expect(commit.mock.invocationCallOrder[0]).toBeLessThan(
+      push.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("reports push failure without treating the created commit as failed", async () => {
+    const commit = vi.fn().mockResolvedValue(undefined);
+    const push = vi.fn().mockRejectedValue(new Error("remote rejected"));
+    const hostBridge = createHostBridge(
+      vi.fn().mockResolvedValue(createSnapshot({
+        staged: [{ path: "src/App.tsx", originalPath: null, indexStatus: "M", worktreeStatus: " " }],
+      })),
+      vi.fn().mockResolvedValue(createDiff("src/App.tsx")),
+      undefined,
+      undefined,
+      { commit, push },
+    );
+
+    const { result } = renderHook(() => useWorkspaceGit(createGitOptions(hostBridge)));
+
+    await waitFor(() => expect(result.current.statusLoaded).toBe(true));
+    act(() => {
+      result.current.openCommitDialog();
+      result.current.setCommitMessage("feat: commit before push failure");
+    });
+
+    await act(async () => {
+      await result.current.commit({ includeUnstaged: true, followUp: "push" });
+    });
+
+    expect(commit).toHaveBeenCalledWith({
+      repoPath: "E:/code/project",
+      message: "feat: commit before push failure",
+    });
+    expect(push).toHaveBeenCalledWith({
+      repoPath: "E:/code/project",
+      forceWithLease: false,
+    });
+    expect(result.current.commitDialogOpen).toBe(false);
+    expect(result.current.commitMessage).toBe("");
+    expect(result.current.commitDialogError).toContain("推送分支失败");
+    expect(result.current.notice?.text).toContain("提交已创建，但推送分支失败");
   });
 });

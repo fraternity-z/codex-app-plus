@@ -70,6 +70,7 @@ function createController(): WorkspaceGitController {
     commitDialogOpen: false,
     commitDialogError: null,
     commitMessage: "",
+    commitInstructions: "",
     selectedBranch: "",
     newBranchName: "",
     diff: null,

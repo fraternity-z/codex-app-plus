@@ -164,6 +164,7 @@ function createHostBridge(): HostBridge {
       unstagePaths: vi.fn(),
       discardPaths: vi.fn(),
       commit: vi.fn(),
+      generateCommitMessage: vi.fn(),
       fetch: vi.fn(),
       pull: vi.fn(),
       push: vi.fn(),

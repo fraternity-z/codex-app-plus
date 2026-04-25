@@ -87,6 +87,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   codeFontSize: CODE_FONT_SIZE_DEFAULT,
   gitBranchPrefix: DEFAULT_GIT_BRANCH_PREFIX,
   gitPushForceWithLease: false,
+  gitCommitInstructions: "",
   contrast: APP_CONTRAST_DEFAULT,
   appearanceColors: DEFAULT_APPEARANCE_COLOR_SCHEME,
   codeStyle: DEFAULT_CODE_STYLE,
@@ -104,6 +105,10 @@ function sanitizeGitBranchPrefix(value: unknown): string {
     return DEFAULT_APP_PREFERENCES.gitBranchPrefix;
   }
   return value.trim();
+}
+
+function sanitizeStringPreference(value: unknown): string {
+  return typeof value === "string" ? value : "";
 }
 
 function readStoredUiLanguage(record: Record<string, unknown>): UiLanguage {
@@ -293,6 +298,7 @@ function sanitizeStoredPreferences(value: unknown): AppPreferences {
       typeof record.gitPushForceWithLease === "boolean"
         ? record.gitPushForceWithLease
         : DEFAULT_APP_PREFERENCES.gitPushForceWithLease,
+    gitCommitInstructions: sanitizeStringPreference(record.gitCommitInstructions),
     contrast: clampContrast(
       typeof record.contrast === "number"
         ? record.contrast

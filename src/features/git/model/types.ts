@@ -5,6 +5,13 @@ export interface GitNotice {
   readonly text: string;
 }
 
+export type GitCommitFollowUp = "commit" | "push";
+
+export interface GitCommitOptions {
+  readonly includeUnstaged: boolean;
+  readonly followUp: GitCommitFollowUp;
+}
+
 export interface WorkspaceGitController {
   readonly loading: boolean;
   readonly pendingAction: string | null;
@@ -20,6 +27,7 @@ export interface WorkspaceGitController {
   readonly remoteUrlLoading?: boolean;
   readonly remoteUrlLoaded?: boolean;
   readonly commitMessage: string;
+  readonly commitInstructions: string;
   readonly selectedBranch: string;
   readonly newBranchName: string;
   readonly diff: GitDiffOutput | null;
@@ -35,7 +43,7 @@ export interface WorkspaceGitController {
   readonly stagePaths: (paths: ReadonlyArray<string>) => Promise<void>;
   readonly unstagePaths: (paths: ReadonlyArray<string>) => Promise<void>;
   readonly discardPaths: (paths: ReadonlyArray<string>, deleteUntracked: boolean) => Promise<void>;
-  readonly commit: () => Promise<void>;
+  readonly commit: (options?: GitCommitOptions) => Promise<void>;
   readonly openCommitDialog: () => void;
   readonly closeCommitDialog: () => void;
   readonly checkoutBranch: (branchName: string) => Promise<boolean>;

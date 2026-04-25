@@ -76,6 +76,7 @@ function createController(overrides?: Partial<WorkspaceGitController>): Workspac
     commitDialogOpen: false,
     commitDialogError: null,
     commitMessage: "",
+    commitInstructions: "",
     selectedBranch: "main",
     newBranchName: "",
     diff: null,

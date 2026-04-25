@@ -333,7 +333,7 @@ export const zhCN = {
       autoDeleteRetentionLabel: "自动删除限制",
       autoDeleteRetentionDescription: "自动清理我们工作树前保留的 Codex 工作树数量。Codex 会在删除前为工作树创建快照，因此被清理的工作树应始终可恢复。（未完成：暂未接入清理任务）",
       commitInstructionsTitle: "提交指令",
-      commitInstructionsDescription: "未完成：暂未添加到提交信息生成提示中",
+      commitInstructionsDescription: "留空自动生成提交消息时，会把这些指令加入提示。",
       commitInstructionsPlaceholder: "添加提交消息指引...",
       pullRequestInstructionsTitle: "拉取请求指令",
       pullRequestInstructionsDescription: "未完成：暂未添加到 PR 标题/描述生成提示中",

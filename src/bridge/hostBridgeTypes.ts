@@ -59,6 +59,8 @@ import type {
   GitBranchRef,
   GitCheckoutInput,
   GitCommitInput,
+  GitGenerateCommitMessageInput,
+  GitGenerateCommitMessageOutput,
   GitDeleteBranchInput,
   GitDiffInput,
   GitDiffOutput,
@@ -161,6 +163,7 @@ export interface HostBridge {
     unstagePaths(input: GitPathsInput): Promise<void>;
     discardPaths(input: GitDiscardInput): Promise<void>;
     commit(input: GitCommitInput): Promise<void>;
+    generateCommitMessage(input: GitGenerateCommitMessageInput): Promise<GitGenerateCommitMessageOutput>;
     fetch(input: GitRepoInput): Promise<void>;
     pull(input: GitRepoInput): Promise<void>;
     push(input: GitPushInput): Promise<void>;

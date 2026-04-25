@@ -4,9 +4,10 @@ use crate::error::AppResult;
 
 use super::models::{
     GitBranchRef, GitCheckoutInput, GitCommitInput, GitDeleteBranchInput, GitDiffInput,
-    GitDiffOutput, GitDiscardInput, GitPathsInput, GitPushInput, GitRemoteInput, GitRepoInput,
-    GitStatusSnapshotOutput, GitWorkspaceDiffOutput, GitWorkspaceDiffsInput, GitWorktreeAddInput,
-    GitWorktreeEntry, GitWorktreeRemoveInput,
+    GitDiffOutput, GitDiscardInput, GitGenerateCommitMessageInput, GitGenerateCommitMessageOutput,
+    GitPathsInput, GitPushInput, GitRemoteInput, GitRepoInput, GitStatusSnapshotOutput,
+    GitWorkspaceDiffOutput, GitWorkspaceDiffsInput, GitWorktreeAddInput, GitWorktreeEntry,
+    GitWorktreeRemoveInput,
 };
 use super::repository::resolve_workspace;
 use super::runtime::GitRuntimeState;
@@ -150,6 +151,17 @@ pub async fn git_commit(
 ) -> Result<(), String> {
     let cache = state.repository_cache();
     run_blocking(move || service::commit(input, &cache)).await
+}
+
+#[tauri::command]
+pub async fn git_generate_commit_message(
+    state: State<'_, GitRuntimeState>,
+    input: GitGenerateCommitMessageInput,
+) -> Result<GitGenerateCommitMessageOutput, String> {
+    let cache = state.repository_cache();
+    super::commit_message::generate_commit_message(input, &cache)
+        .await
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]

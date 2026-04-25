@@ -34,6 +34,7 @@ function createGitController(): import("../../git/model/types").WorkspaceGitCont
     remoteUrlLoading: false,
     remoteUrlLoaded: true,
     commitMessage: "",
+    commitInstructions: "",
     selectedBranch: "",
     newBranchName: "",
     diff: null,

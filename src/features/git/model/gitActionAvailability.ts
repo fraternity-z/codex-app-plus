@@ -23,10 +23,7 @@ export function canOpenCommitDialog(controller: WorkspaceGitController): boolean
 }
 
 export function canCommitChanges(controller: WorkspaceGitController): boolean {
-  if (!canOpenCommitDialog(controller)) {
-    return false;
-  }
-  return controller.commitMessage.trim().length > 0;
+  return canOpenCommitDialog(controller);
 }
 
 export function canPullChanges(controller: WorkspaceGitController): boolean {

@@ -37,6 +37,7 @@ function createController(overrides?: Partial<WorkspaceGitController>): Workspac
     remoteUrlLoading: false,
     remoteUrlLoaded: true,
     commitMessage: "",
+    commitInstructions: "",
     selectedBranch: "main",
     newBranchName: "",
     diff: null,

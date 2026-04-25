@@ -1,3 +1,5 @@
+import type { AgentEnvironment } from "./sharedTypes";
+
 export interface GitRepoInput {
   readonly repoPath: string;
 }
@@ -23,6 +25,15 @@ export interface GitWorkspaceDiffsInput extends GitRepoInput {
 }
 
 export interface GitCommitInput extends GitRepoInput {
+  readonly message: string;
+}
+
+export interface GitGenerateCommitMessageInput extends GitRepoInput {
+  readonly instructions?: string;
+  readonly agentEnvironment?: AgentEnvironment;
+}
+
+export interface GitGenerateCommitMessageOutput {
   readonly message: string;
 }
 

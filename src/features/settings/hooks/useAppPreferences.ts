@@ -66,6 +66,7 @@ export interface AppPreferences {
   readonly codeFontSize: number;
   readonly gitBranchPrefix: string;
   readonly gitPushForceWithLease: boolean;
+  readonly gitCommitInstructions: string;
   readonly contrast: number;
   readonly appearanceColors: AppearanceColorScheme;
   readonly codeStyle: CodeStyleId;
@@ -95,6 +96,7 @@ export interface AppPreferencesController extends AppPreferences {
   setCodeFontSize: (fontSize: number) => void;
   setGitBranchPrefix: (prefix: string) => void;
   setGitPushForceWithLease: (enabled: boolean) => void;
+  setGitCommitInstructions: (instructions: string) => void;
   setContrast: (contrast: number) => void;
   setAppearanceThemeColors: (
     theme: AppearanceTheme,
@@ -174,6 +176,7 @@ export function useAppPreferences(): AppPreferencesController {
     (value) => normalizeGitBranchPrefix(value),
   );
   const setGitPushForceWithLease = usePreferenceSetter(setPreferences, "gitPushForceWithLease");
+  const setGitCommitInstructions = usePreferenceSetter(setPreferences, "gitCommitInstructions");
   const setContrast = usePreferenceSetter(
     setPreferences,
     "contrast",
@@ -221,6 +224,7 @@ export function useAppPreferences(): AppPreferencesController {
       setCodeFontSize,
       setGitBranchPrefix,
       setGitPushForceWithLease,
+      setGitCommitInstructions,
       setContrast,
       setAppearanceThemeColors,
       setCodeStyle,
@@ -246,6 +250,7 @@ export function useAppPreferences(): AppPreferencesController {
       setCodeFontSize,
       setGitBranchPrefix,
       setGitPushForceWithLease,
+      setGitCommitInstructions,
       setThemeMode,
       setThreadDetailLevel,
       setUiLanguage,

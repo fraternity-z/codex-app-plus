@@ -87,7 +87,7 @@ impl CodexCli {
         })
     }
 
-    fn command_for_args(&self, args: &[&str]) -> Command {
+    pub(crate) fn command_for_args(&self, args: &[&str]) -> Command {
         let mut command = Command::new(&self.program);
         command.args(&self.prefix_args);
         command.args(args);

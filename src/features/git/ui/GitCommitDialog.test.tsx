@@ -43,6 +43,7 @@ function renderDialog(overrides?: Partial<WorkspaceGitController>) {
       remoteUrlLoading: false,
       remoteUrlLoaded: true,
       commitMessage,
+      commitInstructions: "",
       selectedBranch: "main",
       newBranchName: "",
       diff: null,
@@ -85,14 +86,14 @@ function renderDialog(overrides?: Partial<WorkspaceGitController>) {
 }
 
 describe("GitCommitDialog", () => {
-  it("opens with focus on the commit message and keeps submit disabled until filled", async () => {
+  it("opens with focus on the commit message and allows empty input for generation", async () => {
     renderDialog();
 
     const textarea = screen.getByLabelText("提交消息");
     await waitFor(() => expect(textarea).toHaveFocus());
-    expect(screen.getByRole("button", { name: "继续" })).toBeDisabled();
-    expect(screen.getByText("请填写提交消息后再继续。")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("留空以自动生成提交消息（未接入）")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "继续" })).toBeEnabled();
+    expect(screen.getByText("留空时会根据已暂存更改自动生成提交消息。")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("留空以自动生成提交消息")).toBeInTheDocument();
   });
 
   it("submits with Ctrl+Enter after the user enters a message", async () => {
@@ -120,21 +121,37 @@ describe("GitCommitDialog", () => {
       }),
     });
 
-    expect(
-      screen.getByText("填写提交消息后，将自动暂存当前更改并提交。"),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "继续" })).toBeDisabled();
+    expect(screen.getByText("将先暂存当前更改；留空时会自动生成提交消息。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "继续" })).toBeEnabled();
   });
 
-  it("renders unwired follow-up copy and keeps those actions disabled", () => {
+  it("renders connected follow-up controls and keeps PR creation disabled", () => {
     renderDialog();
 
-    expect(screen.getByRole("switch", { name: "包含取消暂存的更改（未接入）" })).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByRole("switch", { name: "草稿（未接入）" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("switch", { name: "包含未暂存的更改" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("switch", { name: "草稿 PR（未接入）" })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByRole("radio", { name: "提交" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByRole("radio", { name: "提交并推送（未接入）" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "提交并推送" })).toBeEnabled();
     expect(screen.getByRole("radio", { name: "提交并创建 PR（未接入）" })).toBeDisabled();
-    expect(screen.getByText("自定义指令（未接入）")).toBeInTheDocument();
+    expect(screen.getByText("自定义指令未设置")).toBeInTheDocument();
+  });
+
+  it("submits commit-and-push follow-up", async () => {
+    const { commit } = renderDialog();
+
+    fireEvent.click(screen.getByRole("radio", { name: "提交并推送" }));
+    fireEvent.click(screen.getByRole("button", { name: "提交并推送" }));
+
+    await waitFor(() => expect(commit).toHaveBeenCalledWith({
+      includeUnstaged: true,
+      followUp: "push",
+    }));
+  });
+
+  it("shows when custom commit instructions are enabled", () => {
+    renderDialog({ commitInstructions: "Use concise messages." });
+
+    expect(screen.getByText("自定义指令已启用")).toBeInTheDocument();
   });
 
   it("closes when the user clicks the close button", () => {

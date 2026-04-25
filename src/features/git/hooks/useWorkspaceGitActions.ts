@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import type { HostBridge } from "../../../bridge/types";
-import type { GitNotice } from "../model/types";
+import type { AgentEnvironment, HostBridge } from "../../../bridge/types";
+import type { GitCommitFollowUp, GitCommitOptions, GitNotice } from "../model/types";
 import {
   collectAutoStagePaths,
   formatActionError,
@@ -19,6 +19,8 @@ interface UseWorkspaceGitActionsOptions {
   readonly newBranchName: string;
   readonly branchPrefix: string;
   readonly pushForceWithLease: boolean;
+  readonly commitInstructions: string;
+  readonly agentEnvironment?: AgentEnvironment;
   readonly setCommitMessage: (value: string) => void;
   readonly setSelectedBranch: (value: string) => void;
   readonly setNewBranchName: (value: string) => void;
@@ -33,9 +35,10 @@ interface UseWorkspaceGitActionsOptions {
 }
 
 const COMMIT_ACTION_NAME = "提交更改";
-const COMMIT_EMPTY_MESSAGE = "请先填写提交说明。";
+const COMMIT_GENERATE_ACTION_NAME = "生成提交消息";
 const COMMIT_CONFLICT_MESSAGE = "请先解决冲突后再提交。";
 const COMMIT_EMPTY_CHANGES_MESSAGE = "当前没有可提交的更改。";
+const COMMIT_STAGED_REQUIRED_MESSAGE = "请先暂存更改，或开启包含未暂存的更改。";
 
 function applyBranchPrefix(branchPrefix: string, branchName: string): string {
   const normalizedPrefix = branchPrefix.trim();
@@ -73,6 +76,7 @@ function useRunAction(options: UseWorkspaceGitActionsOptions) {
 async function prepareCommit(
   options: UseWorkspaceGitActionsOptions,
   repoPath: string,
+  includeUnstaged: boolean,
 ): Promise<string | null> {
   if (hasUnresolvedConflicts(options.status)) {
     return COMMIT_CONFLICT_MESSAGE;
@@ -81,15 +85,51 @@ async function prepareCommit(
     return COMMIT_EMPTY_CHANGES_MESSAGE;
   }
   if (options.status === null || options.status.staged.length > 0) {
+    if (!includeUnstaged) {
+      return null;
+    }
+  }
+
+  if (options.status === null) {
     return null;
+  }
+
+  if (!includeUnstaged) {
+    return options.status.staged.length > 0 ? null : COMMIT_STAGED_REQUIRED_MESSAGE;
   }
 
   const paths = collectAutoStagePaths(options.status);
   if (paths.length === 0) {
-    return COMMIT_EMPTY_CHANGES_MESSAGE;
+    return options.status.staged.length > 0 ? null : COMMIT_EMPTY_CHANGES_MESSAGE;
   }
   await options.hostBridge.git.stagePaths({ repoPath, paths });
   return null;
+}
+
+async function resolveCommitMessage(
+  options: UseWorkspaceGitActionsOptions,
+  repoPath: string,
+): Promise<string> {
+  const message = options.commitMessage.trim();
+  if (message.length > 0) {
+    return message;
+  }
+  options.setPendingAction(COMMIT_GENERATE_ACTION_NAME);
+  const generated = await options.hostBridge.git.generateCommitMessage({
+    repoPath,
+    instructions: options.commitInstructions,
+    agentEnvironment: options.agentEnvironment,
+  });
+  const generatedMessage = generated.message.trim();
+  if (generatedMessage.length === 0) {
+    throw new Error("Codex 未返回提交消息。");
+  }
+  options.setCommitMessage(generatedMessage);
+  return generatedMessage;
+}
+
+function commitSuccessText(followUp: GitCommitFollowUp): string {
+  return followUp === "push" ? "提交已创建并推送。" : "提交已创建。";
 }
 
 export function useWorkspaceGitActions(options: UseWorkspaceGitActionsOptions) {
@@ -117,12 +157,11 @@ export function useWorkspaceGitActions(options: UseWorkspaceGitActionsOptions) {
     const successText = deleteUntracked ? "未跟踪文件已删除。" : "工作区更改已还原。";
     await runAction(actionName, (repoPath) => options.hostBridge.git.discardPaths({ repoPath, paths: normalized, deleteUntracked }), successText);
   }, [options.hostBridge.git, runAction]);
-  const commit = useCallback(async () => {
-    const message = options.commitMessage.trim();
-    if (message.length === 0) {
-      options.setCommitDialogError(COMMIT_EMPTY_MESSAGE);
-      return;
-    }
+  const commit = useCallback(async (commitOptions?: GitCommitOptions) => {
+    const resolvedOptions = commitOptions ?? {
+      includeUnstaged: true,
+      followUp: "commit" as const,
+    };
     if (options.selectedRootPath === null) {
       return;
     }
@@ -130,28 +169,55 @@ export function useWorkspaceGitActions(options: UseWorkspaceGitActionsOptions) {
     options.setError(null);
     options.setNotice(null);
     options.setCommitDialogError(null);
+    let commitCreated = false;
     try {
-      const preparationError = await prepareCommit(options, options.selectedRootPath);
+      const preparationError = await prepareCommit(
+        options,
+        options.selectedRootPath,
+        resolvedOptions.includeUnstaged,
+      );
       if (preparationError !== null) {
         options.setCommitDialogError(preparationError);
         options.setNotice({ kind: "error", text: preparationError });
         return;
       }
+      const message = await resolveCommitMessage(options, options.selectedRootPath);
+      options.setPendingAction(COMMIT_ACTION_NAME);
       await options.hostBridge.git.commit({ repoPath: options.selectedRootPath, message });
-      options.setNotice({ kind: "success", text: "提交已创建。" });
+      commitCreated = true;
+      if (resolvedOptions.followUp === "push") {
+        options.setPendingAction("推送分支");
+        await options.hostBridge.git.push({
+          repoPath: options.selectedRootPath,
+          forceWithLease: options.pushForceWithLease,
+        });
+      }
+      options.setNotice({ kind: "success", text: commitSuccessText(resolvedOptions.followUp) });
       options.setCommitDialogOpen(false);
       options.setCommitMessage("");
       await options.refresh();
     } catch (reason) {
-      const errorText = formatActionError(COMMIT_ACTION_NAME, reason);
+      const errorText = commitCreated
+        ? formatActionError("推送分支", reason)
+        : formatActionError(COMMIT_ACTION_NAME, reason);
       options.setNotice({ kind: "error", text: errorText });
       options.setCommitDialogError(errorText);
+      options.setError(errorText);
+      if (commitCreated) {
+        options.setNotice({ kind: "error", text: `提交已创建，但${errorText}` });
+        options.setCommitDialogOpen(false);
+        options.setCommitMessage("");
+        await options.refresh();
+      }
     } finally {
       options.setPendingAction(null);
     }
   }, [
     options.commitMessage,
+    options.commitInstructions,
+    options.agentEnvironment,
     options.hostBridge.git,
+    options.pushForceWithLease,
     options.refresh,
     options.status,
     options.selectedRootPath,
