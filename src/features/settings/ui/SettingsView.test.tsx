@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import { INITIAL_APP_UPDATE_STATE } from "../../../domain/appUpdate";
@@ -73,6 +73,7 @@ function createBaseProps(
     onAddRoot: vi.fn(),
     onOpenConfigToml: vi.fn().mockResolvedValue(undefined),
     onOpenConfigDocs: vi.fn().mockResolvedValue(undefined),
+    onOpenMcpDocs: vi.fn().mockResolvedValue(undefined),
     refreshConfigSnapshot: vi.fn().mockResolvedValue({ config: {}, origins: {}, layers: [] }),
     readGlobalAgentInstructions: vi.fn().mockResolvedValue({ path: "~/.codex/AGENTS.md", content: "" }),
     listManagedPrompts: vi.fn().mockResolvedValue([]),
@@ -202,5 +203,24 @@ describe("SettingsView", () => {
     });
 
     expect(container.querySelector(".settings-layout-sidebar-collapsed")).not.toBeNull();
+  });
+
+  it("keeps the settings sidebar visible while adding an MCP server", async () => {
+    const { container } = render(<SettingsView {...createBaseProps({
+      section: "mcp",
+      refreshMcpData: vi.fn().mockResolvedValue({ config: createConfigSnapshot(), reload: {}, statuses: [] }),
+    })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.getByRole("button", { name: "MCP 服务" })).toBeInTheDocument();
+    expect(container.querySelector(".settings-sidebar")).toHaveAttribute("aria-hidden", "false");
+
+    fireEvent.click(await screen.findByRole("button", { name: "添加服务器" }));
+
+    expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "MCP 服务" })).toBeInTheDocument();
+    expect(container.querySelector(".settings-sidebar")).toHaveAttribute("aria-hidden", "false");
+    expect(container.querySelector(".settings-dialog-backdrop")).toBeNull();
   });
 });

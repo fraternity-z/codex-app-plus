@@ -83,37 +83,53 @@ describe("McpSettingsPanel", () => {
     });
 
     fireEvent.click(await screen.findByRole("button", { name: "添加服务器" }));
-    fireEvent.change(screen.getByLabelText("服务器 ID"), { target: { value: "bad.id" } });
-    fireEvent.change(screen.getByLabelText("Command"), { target: { value: "npx" } });
+    fireEvent.change(screen.getByLabelText("名称"), { target: { value: "bad.id" } });
+    fireEvent.change(screen.getByLabelText("启动命令"), { target: { value: "npx" } });
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
 
-    expect(await screen.findByText("服务器 ID 不能包含 .")).not.toBeNull();
+    expect(await screen.findByText("名称不能包含 .")).not.toBeNull();
     expect(writeConfigValue).not.toHaveBeenCalled();
   });
 
-  it("deletes a server by replacing the root mcp_servers object", async () => {
-    const batchWriteConfig = vi.fn().mockResolvedValue(createMutationResult({
-      ...createSnapshot(),
-      config: { mcp_servers: { projectOnly: { url: "https://project.example/mcp" } } }
-    } as unknown as ReturnType<typeof createSnapshot>));
+  it("opens the editor from the row gear button", async () => {
+    const writeConfigValue = vi.fn().mockResolvedValue(createMutationResult());
 
     renderPanel({
       busy: false,
       configSnapshot: createSnapshot(),
       refreshMcpData: vi.fn().mockResolvedValue(createRefreshResult()),
+      writeConfigValue,
+      batchWriteConfig: vi.fn().mockResolvedValue(createMutationResult())
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "编辑 fetch" }));
+    fireEvent.change(screen.getByLabelText("启动命令"), { target: { value: "uvx" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => expect(writeConfigValue).toHaveBeenCalled());
+    expect(writeConfigValue.mock.calls[0]?.[0].keyPath).toBe("mcp_servers.fetch");
+  });
+
+  it("keeps the editor open on empty-page clicks and returns only from the back button", async () => {
+    const { container } = renderPanel({
+      busy: false,
+      configSnapshot: createSnapshot(),
+      refreshMcpData: vi.fn().mockResolvedValue(createRefreshResult()),
       writeConfigValue: vi.fn().mockResolvedValue(createMutationResult()),
-      batchWriteConfig
+      batchWriteConfig: vi.fn().mockResolvedValue(createMutationResult())
     });
 
-    fireEvent.click(await screen.findByRole("button", { name: "删除" }));
-    fireEvent.click(screen.getByRole("button", { name: "确认删除" }));
+    fireEvent.click(await screen.findByRole("button", { name: "添加服务器" }));
+    expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
+    expect(screen.queryByText("服务器")).toBeNull();
 
-    await waitFor(() => expect(batchWriteConfig).toHaveBeenCalled());
-    expect(batchWriteConfig).toHaveBeenCalledWith({
-      edits: [{ keyPath: "mcp_servers", value: {}, mergeStrategy: "replace" }],
-      filePath: USER_FILE,
-      expectedVersion: "u1"
-    });
+    const editorPage = container.querySelector(".mcp-editor-page");
+    expect(editorPage).not.toBeNull();
+    fireEvent.click(editorPage!);
+    expect(screen.getByLabelText("名称")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "返回" }));
+    expect(screen.getByText("服务器")).toBeInTheDocument();
   });
 
   it("renders English copy when locale is en-US", async () => {
@@ -126,7 +142,7 @@ describe("McpSettingsPanel", () => {
     }, "en-US");
 
     expect(await screen.findByText("MCP Servers")).toBeInTheDocument();
-    expect(screen.getByText("Custom servers")).toBeInTheDocument();
+    expect(screen.getByText("Servers")).toBeInTheDocument();
     expect(screen.queryByText("Read-only")).not.toBeInTheDocument();
     expect(screen.queryByText("Recommended servers")).not.toBeInTheDocument();
   });

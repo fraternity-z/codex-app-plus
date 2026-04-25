@@ -41,6 +41,7 @@ describe("mcpFormModel", () => {
       argsText: "mcp-server-fetch",
       cwd: "/repo",
       envText: "TOKEN=secret",
+      envVarsText: "LOCAL_TOKEN",
       enabled: true,
     }, TEST_MESSAGES);
     const httpValue = buildMcpServerConfigValue({
@@ -48,7 +49,9 @@ describe("mcpFormModel", () => {
       id: "linear",
       type: "http",
       url: "https://mcp.linear.app/mcp",
-      headersText: "Authorization=Bearer token",
+      bearerTokenEnvVar: "LINEAR_TOKEN",
+      httpHeadersText: "X-Region=us",
+      envHttpHeadersText: "Authorization=LINEAR_AUTH_HEADER",
       enabled: false,
     }, TEST_MESSAGES);
 
@@ -60,12 +63,15 @@ describe("mcpFormModel", () => {
       args: ["mcp-server-fetch"],
       cwd: "/repo",
       env: { TOKEN: "secret" },
+      env_vars: ["LOCAL_TOKEN"],
     });
     expect(httpValue).toEqual({
       enabled: false,
       type: "http",
       url: "https://mcp.linear.app/mcp",
-      headers: { Authorization: "Bearer token" },
+      bearer_token_env_var: "LINEAR_TOKEN",
+      http_headers: { "X-Region": "us" },
+      env_http_headers: { Authorization: "LINEAR_AUTH_HEADER" },
     });
   });
 });

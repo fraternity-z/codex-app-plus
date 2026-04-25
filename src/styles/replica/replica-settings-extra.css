@@ -1335,133 +1335,384 @@
   line-height: 1.6;
 }
 
-.mcp-head-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+.mcp-settings-page {
+  width: min(100%, 840px);
 }
 
-.mcp-error-note {
-  color: #b33131;
+.mcp-settings-page .settings-title-wrap {
+  margin-bottom: 86px;
 }
 
-.mcp-server-row {
-  border-top: 1px solid var(--border-light);
-  padding: 14px 18px;
+.mcp-server-section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
 
-.mcp-server-main {
-  min-width: 0;
-  display: grid;
-  gap: 8px;
+.mcp-server-section-head strong {
+  color: var(--text-main);
+  font-size: 16px;
+  line-height: 1.45;
+  font-weight: 650;
 }
 
-.mcp-server-title-row,
-.mcp-server-meta-row,
+.mcp-add-server-button {
+  min-height: 35px;
+  border: 0;
+  border-radius: 12px;
+  background: #f4f4f5;
+  color: #2b2f36;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.mcp-add-server-button:hover {
+  background: #ececef;
+}
+
+.mcp-add-server-button:focus-visible,
+.mcp-icon-button:focus-visible,
+.mcp-add-row-button:focus-visible,
+.mcp-save-button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.mcp-add-server-button:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+}
+
+.mcp-inline-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.mcp-server-list-card {
+  margin-top: 12px;
+  border-radius: 11px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.mcp-error-note {
+  color: #b33131;
+  padding: 8px 0 0;
+}
+
+.mcp-server-row {
+  min-height: 66px;
+  border-top: 1px solid var(--border-light);
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mcp-server-list-card .mcp-server-row:first-child {
+  border-top: 0;
+}
+
+.mcp-server-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mcp-server-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 12px;
+  flex: 0 0 auto;
 }
 
-.mcp-server-title-row strong {
-  font-size: 15px;
-  color: var(--text-main);
-  line-height: 1.5;
-}
-
-.mcp-chip,
-.mcp-runtime-badge,
-.mcp-readonly-label {
+.mcp-icon-button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #8a8f98;
   display: inline-flex;
   align-items: center;
-  min-height: 24px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--surface-panel-soft);
-  border: 1px solid var(--border-light);
-  color: var(--text-soft);
-  font-size: 12px;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
 }
 
-.mcp-readonly-label {
-  background: #e0ecff;
-  border-color: #c7ddff;
-  color: #1d4ed8;
+.mcp-icon-button:hover {
+  background: #f4f4f5;
+  color: #4b5563;
 }
 
-.mcp-danger-btn {
-  color: #b33131;
+.mcp-icon-button:disabled {
+  opacity: 0.52;
+  cursor: not-allowed;
 }
 
-.mcp-dialog {
-  width: min(860px, 100%);
+.mcp-action-icon {
+  width: 18px;
+  height: 18px;
 }
 
-.mcp-form {
+.mcp-server-row .settings-toggle {
+  width: 40px;
+  height: 24px;
+  border: 0;
+  background: #e5e7eb;
+}
+
+.mcp-server-row .settings-toggle-knob {
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+}
+
+.mcp-server-row .settings-toggle-on {
+  background: #3b9cff;
+}
+
+.mcp-server-row .settings-toggle-on .settings-toggle-knob {
+  left: 18px;
+}
+
+.mcp-editor-page {
+  width: 100%;
+  min-height: 100%;
+  color: #202329;
+}
+
+.mcp-editor-dialog {
+  width: min(674px, 100%);
+  margin: 40px auto 0;
+  color: #202329;
+}
+
+.mcp-return-button {
+  border: 0;
+  background: transparent;
+  color: #8a8f98;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.mcp-return-button:hover {
+  color: #4b5563;
+}
+
+.mcp-return-button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.mcp-back-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.mcp-editor-header {
   display: grid;
-  gap: 18px;
+  gap: 12px;
 }
 
-.mcp-form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 18px;
+.mcp-editor-header h2 {
+  margin: 0;
+  color: #202329;
+  font-size: 26px;
+  line-height: 1.25;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
-.mcp-form-field {
+.mcp-doc-link {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #5f6670;
+  font-size: 14px;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.mcp-doc-link:hover {
+  color: #202329;
+}
+
+.mcp-external-link-icon {
+  width: 13px;
+  height: 13px;
+}
+
+.mcp-editor-form {
   display: grid;
-  gap: 8px;
-  color: #1f2937;
+  gap: 10px;
+  margin-top: 52px;
+}
+
+.mcp-editor-card {
+  overflow: hidden;
+  border: 1px solid #e4e6ea;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.mcp-form-field,
+.mcp-repeat-field {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  color: #202329;
   font-size: 14px;
 }
 
-.mcp-form-label {
-  font-weight: 600;
-  font-size: 13px;
-  color: #334155;
+.mcp-editor-card > .mcp-form-field + .mcp-form-field,
+.mcp-editor-card > .mcp-form-field + .mcp-repeat-field,
+.mcp-editor-card > .mcp-repeat-field + .mcp-form-field,
+.mcp-editor-card > .mcp-repeat-field + .mcp-repeat-field {
+  border-top: 1px solid #f0f1f3;
 }
 
-.mcp-form-input,
-.mcp-form-select,
-.mcp-form-textarea {
+.mcp-form-label {
+  color: #202329;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.mcp-form-input {
   width: 100%;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  height: 42px;
+  border: 1px solid #e4e6ea;
+  border-radius: 10px;
   background: #ffffff;
-  color: #1f2937;
-  padding: 10px 12px;
+  color: #202329;
+  padding: 0 12px;
   font-size: 14px;
   line-height: 1.5;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.mcp-form-input:focus,
-.mcp-form-select:focus,
-.mcp-form-textarea:focus {
+.mcp-form-input::placeholder {
+  color: #8c929c;
+}
+
+.mcp-form-input:focus {
   outline: none;
   border-color: #7aa2ff;
-  box-shadow: 0 0 0 3px rgba(122, 162, 255, 0.2);
+  box-shadow: 0 0 0 3px rgba(122, 162, 255, 0.18);
 }
 
-.mcp-form-textarea {
-  resize: vertical;
-  min-height: 96px;
-  line-height: 1.7;
+.mcp-form-input:disabled {
+  color: #6b7280;
+  -webkit-text-fill-color: #6b7280;
+  background: #f8f8f9;
 }
 
-.mcp-form-toggle-row {
-  min-height: 42px;
+.mcp-transport-toggle {
+  min-height: 38px;
+  border-top: 1px solid #e4e6ea;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+}
+
+.mcp-transport-option {
+  min-width: 0;
+  border: 0;
+  border-right: 1px solid #e4e6ea;
+  background: #ffffff;
+  color: #4d535d;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.mcp-transport-option:last-child {
+  border-right: 0;
+}
+
+.mcp-transport-option:hover {
+  background: #f4f4f5;
+}
+
+.mcp-transport-option-active {
+  background: #c6c7c9;
+  color: #4a4f57;
+}
+
+.mcp-transport-option-active:hover {
+  background: #c6c7c9;
+}
+
+.mcp-repeat-list {
+  display: grid;
+  gap: 9px;
+}
+
+.mcp-repeat-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  gap: 10px;
+  align-items: center;
+}
+
+.mcp-repeat-row-key-value {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 30px;
+}
+
+.mcp-delete-row-button {
+  width: 30px;
+  height: 30px;
+  color: #c8cdd4;
+}
+
+.mcp-delete-row-button:hover {
+  color: #8a8f98;
+}
+
+.mcp-trash-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.mcp-add-row-button {
+  width: 100%;
+  min-height: 35px;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f1f3;
+  color: #7b818b;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  color: #1f2937;
+  justify-content: center;
+  gap: 6px;
   font-size: 14px;
+  cursor: pointer;
+}
+
+.mcp-add-row-button:hover {
+  background: #e9e9ec;
+  color: #4b5563;
 }
 
 .mcp-form-error,
@@ -1471,20 +1722,53 @@
   line-height: 1.5;
 }
 
+.mcp-form-submit-error {
+  padding: 4px 2px;
+}
+
 .mcp-form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
 }
 
+.mcp-save-button {
+  min-width: 54px;
+  min-height: 35px;
+  border: 0;
+  border-radius: 10px;
+  background: #9fa1a4;
+  color: #ffffff;
+  padding: 0 14px;
+  font-size: 16px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.mcp-save-button:hover {
+  background: #8f9296;
+}
+
+.mcp-save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 900px) {
-  .mcp-form-grid {
-    grid-template-columns: 1fr;
+  .mcp-server-row {
+    align-items: center;
   }
 
-  .mcp-server-row {
-    align-items: flex-start;
-    flex-direction: column;
+  .mcp-editor-dialog {
+    margin-top: 28px;
+  }
+
+  .mcp-editor-form {
+    margin-top: 34px;
+  }
+
+  .mcp-repeat-row-key-value {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 30px;
   }
 
   .codex-provider-row {
@@ -1575,6 +1859,9 @@ html[data-theme="dark"] .settings-mini-btn,
 html[data-theme="dark"] .settings-action-btn,
 html[data-theme="dark"] .settings-plus-btn,
 html[data-theme="dark"] .settings-dialog-close,
+html[data-theme="dark"] .mcp-add-server-button,
+html[data-theme="dark"] .mcp-icon-button,
+html[data-theme="dark"] .mcp-add-row-button,
 html[data-theme="dark"] .settings-licenses-search,
 html[data-theme="dark"] .settings-licenses-summary,
 html[data-theme="dark"] .settings-license-toggle,
@@ -1610,6 +1897,14 @@ html[data-theme="dark"] .settings-dialog-close:hover {
   color: var(--text-main);
 }
 
+html[data-theme="dark"] .mcp-add-server-button:hover,
+html[data-theme="dark"] .mcp-icon-button:hover,
+html[data-theme="dark"] .mcp-add-row-button:hover,
+html[data-theme="dark"] .mcp-return-button:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
 html[data-theme="dark"] .settings-head-action:focus-visible,
 html[data-theme="dark"] .settings-select-trigger:focus-visible,
 html[data-theme="dark"] .settings-action-btn:focus-visible {
@@ -1626,6 +1921,8 @@ html[data-theme="dark"] .settings-license-summary-title,
 html[data-theme="dark"] .settings-license-title,
 html[data-theme="dark"] .settings-env-main strong,
 html[data-theme="dark"] .mcp-server-title-row strong,
+html[data-theme="dark"] .mcp-server-name,
+html[data-theme="dark"] .mcp-editor-header h2,
 html[data-theme="dark"] .mcp-form-field,
 html[data-theme="dark"] .mcp-form-label,
 html[data-theme="dark"] .mcp-form-toggle-row,
@@ -1701,6 +1998,22 @@ html[data-theme="dark"] .settings-memory-doc-link {
   color: var(--accent-color);
 }
 
+html[data-theme="dark"] .mcp-doc-link {
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .mcp-return-button {
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .mcp-doc-link:hover {
+  color: var(--text-main);
+}
+
+html[data-theme="dark"] .mcp-return-button:hover {
+  background: transparent;
+}
+
 html[data-theme="dark"] .settings-memory-reset-btn {
   background: color-mix(in srgb, var(--error-fg) 14%, transparent);
   border-color: color-mix(in srgb, var(--error-fg) 28%, transparent);
@@ -1713,6 +2026,11 @@ html[data-theme="dark"] .settings-license-group {
   border-color: var(--border-light);
   background: var(--surface-panel);
   box-shadow: var(--shadow-lg);
+}
+
+html[data-theme="dark"] .mcp-editor-card {
+  background: var(--surface-panel);
+  box-shadow: none;
 }
 
 html[data-theme="dark"] .windows-sandbox-meta {
@@ -1732,6 +2050,14 @@ html[data-theme="dark"] .settings-toggle-knob {
 html[data-theme="dark"] .settings-toggle-on {
   background: var(--accent-color);
   border-color: var(--accent-color);
+}
+
+html[data-theme="dark"] .mcp-server-row .settings-toggle {
+  background: var(--surface-panel-soft);
+}
+
+html[data-theme="dark"] .mcp-server-row .settings-toggle-on {
+  background: var(--accent-color);
 }
 
 html[data-theme="dark"] .settings-toggle-button-group {
@@ -1762,6 +2088,30 @@ html[data-theme="dark"] .settings-env-row,
 html[data-theme="dark"] .mcp-server-row,
 html[data-theme="dark"] .archived-thread-row {
   border-top-color: var(--border-light);
+}
+
+html[data-theme="dark"] .mcp-server-list-card,
+html[data-theme="dark"] .mcp-editor-card,
+html[data-theme="dark"] .mcp-form-input,
+html[data-theme="dark"] .mcp-transport-toggle,
+html[data-theme="dark"] .mcp-transport-option {
+  border-color: var(--border-light);
+}
+
+html[data-theme="dark"] .mcp-transport-option {
+  background: var(--surface-panel);
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .mcp-transport-option:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+html[data-theme="dark"] .mcp-transport-option-active,
+html[data-theme="dark"] .mcp-transport-option-active:hover {
+  background: var(--surface-active);
+  color: var(--text-main);
 }
 
 html[data-theme="dark"] .settings-reco-avatar {
@@ -1837,6 +2187,25 @@ html[data-theme="dark"] .mcp-form-input,
 html[data-theme="dark"] .mcp-form-select,
 html[data-theme="dark"] .mcp-form-textarea {
   color: var(--text-main);
+}
+
+html[data-theme="dark"] .mcp-form-input::placeholder {
+  color: var(--text-subtle);
+}
+
+html[data-theme="dark"] .mcp-form-input:disabled {
+  background: var(--surface-panel-soft);
+  color: var(--text-muted);
+  -webkit-text-fill-color: var(--text-muted);
+}
+
+html[data-theme="dark"] .mcp-save-button {
+  background: var(--surface-active);
+  color: var(--text-main);
+}
+
+html[data-theme="dark"] .mcp-save-button:hover {
+  background: var(--surface-hover);
 }
 
 html[data-theme="dark"] .settings-licenses-search-input::placeholder {

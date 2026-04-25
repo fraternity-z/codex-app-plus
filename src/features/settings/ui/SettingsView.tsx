@@ -76,6 +76,7 @@ export interface SettingsViewProps {
   onAddRoot: () => void;
   onOpenConfigToml: () => Promise<void>;
   onOpenConfigDocs: () => Promise<void>;
+  onOpenMcpDocs: () => Promise<void>;
   refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
   readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
   listManagedPrompts: () => Promise<ReadonlyArray<ManagedPromptOutput>>;
@@ -269,6 +270,7 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
         refreshMcpData={props.refreshMcpData}
         writeConfigValue={props.writeConfigValue}
         batchWriteConfig={props.batchWriteConfig}
+        onOpenMcpDocs={props.onOpenMcpDocs}
       />
     );
   }

@@ -106,6 +106,16 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     }
   }, [props.hostBridge.app, reportError]);
 
+  const openMcpDocs = useCallback(async () => {
+    try {
+      await props.hostBridge.app.openExternal(
+        "https://developers.openai.com/codex/mcp",
+      );
+    } catch (error) {
+      reportError("打开 MCP 文档失败", error);
+    }
+  }, [props.hostBridge.app, reportError]);
+
   const createWorktree = useCallback(async () => {
     if (selectedRootPath === null) {
       return;
@@ -209,6 +219,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     onAddRoot: () => void addRoot(),
     onOpenConfigToml: openConfigToml,
     onOpenConfigDocs: openConfigDocs,
+    onOpenMcpDocs: openMcpDocs,
     refreshConfigSnapshot: props.controller.refreshConfigSnapshot,
     readGlobalAgentInstructions: () =>
       props.hostBridge.app.readGlobalAgentInstructions({

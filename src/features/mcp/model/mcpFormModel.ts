@@ -8,8 +8,11 @@ export interface McpServerFormState {
   readonly argsText: string;
   readonly cwd: string;
   readonly envText: string;
+  readonly envVarsText: string;
   readonly url: string;
-  readonly headersText: string;
+  readonly bearerTokenEnvVar: string;
+  readonly httpHeadersText: string;
+  readonly envHttpHeadersText: string;
   readonly enabled: boolean;
 }
 
@@ -26,7 +29,21 @@ export interface McpServerFormMessages {
   readonly keyValueEmptyKey: (label: string) => string;
 }
 
-const MANAGED_KEYS = new Set(["name", "type", "enabled", "command", "args", "cwd", "env", "url", "headers"]);
+const MANAGED_KEYS = new Set([
+  "name",
+  "type",
+  "enabled",
+  "command",
+  "args",
+  "cwd",
+  "env",
+  "env_vars",
+  "url",
+  "bearer_token_env_var",
+  "headers",
+  "http_headers",
+  "env_http_headers",
+]);
 
 function splitNonEmptyLines(value: string): Array<string> {
   return value
@@ -47,6 +64,40 @@ function parseKeyValueRecord(value: unknown): string {
     .filter((entry): entry is [string, string] => typeof entry[1] === "string")
     .map(([key, item]) => `${key}=${item}`)
     .join("\n");
+}
+
+function parseEnvVars(value: unknown): string {
+  if (!Array.isArray(value)) {
+    return "";
+  }
+  return value
+    .map((item) => {
+      if (typeof item === "string") {
+        return item;
+      }
+      if (typeof item === "object" && item !== null && !Array.isArray(item)) {
+        return JSON.stringify(item);
+      }
+      return "";
+    })
+    .filter((item) => item.length > 0)
+    .join("\n");
+}
+
+function parseEnvVarLines(value: string): Array<string | JsonObject> {
+  return splitNonEmptyLines(value).map((line) => {
+    if (line.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(line) as unknown;
+        if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+          return parsed as JsonObject;
+        }
+      } catch {
+        return line;
+      }
+    }
+    return line;
+  });
 }
 
 function parseKeyValueLines(
@@ -79,8 +130,11 @@ export function createMcpServerFormState(server: McpConfigServerView | null): Mc
       argsText: "",
       cwd: "",
       envText: "",
+      envVarsText: "",
       url: "",
-      headersText: "",
+      bearerTokenEnvVar: "",
+      httpHeadersText: "",
+      envHttpHeadersText: "",
       enabled: true
     };
   }
@@ -93,8 +147,11 @@ export function createMcpServerFormState(server: McpConfigServerView | null): Mc
     argsText: parseStringArray(server.config.args).join("\n"),
     cwd: typeof server.config.cwd === "string" ? server.config.cwd : "",
     envText: parseKeyValueRecord(server.config.env),
+    envVarsText: parseEnvVars(server.config.env_vars),
     url: typeof server.config.url === "string" ? server.config.url : "",
-    headersText: parseKeyValueRecord(server.config.headers),
+    bearerTokenEnvVar: typeof server.config.bearer_token_env_var === "string" ? server.config.bearer_token_env_var : "",
+    httpHeadersText: parseKeyValueRecord(server.config.http_headers ?? server.config.headers),
+    envHttpHeadersText: parseKeyValueRecord(server.config.env_http_headers),
     enabled: server.enabled
   };
 }
@@ -124,9 +181,11 @@ export function validateMcpServerForm(
     }
   }
   const envError = parseKeyValueLines(state.envText, messages.envLabel, messages).error;
-  const headersError = parseKeyValueLines(state.headersText, messages.headersLabel, messages).error;
+  const httpHeadersError = parseKeyValueLines(state.httpHeadersText, messages.headersLabel, messages).error;
+  const envHttpHeadersError = parseKeyValueLines(state.envHttpHeadersText, messages.headersLabel, messages).error;
   if (envError !== null) errors.envText = envError;
-  if (headersError !== null) errors.headersText = headersError;
+  if (httpHeadersError !== null) errors.httpHeadersText = httpHeadersError;
+  if (envHttpHeadersError !== null) errors.envHttpHeadersText = envHttpHeadersError;
   return errors;
 }
 
@@ -152,11 +211,17 @@ export function buildMcpServerConfigValue(
     if (cwd.length > 0) next.cwd = cwd;
     const env = parseKeyValueLines(state.envText, messages.envLabel, messages).data;
     if (Object.keys(env).length > 0) next.env = env;
+    const envVars = parseEnvVarLines(state.envVarsText);
+    if (envVars.length > 0) next.env_vars = envVars;
     return next;
   }
   next.type = state.type;
   next.url = state.url.trim();
-  const headers = parseKeyValueLines(state.headersText, messages.headersLabel, messages).data;
-  if (Object.keys(headers).length > 0) next.headers = headers;
+  const bearerTokenEnvVar = state.bearerTokenEnvVar.trim();
+  if (bearerTokenEnvVar.length > 0) next.bearer_token_env_var = bearerTokenEnvVar;
+  const httpHeaders = parseKeyValueLines(state.httpHeadersText, messages.headersLabel, messages).data;
+  if (Object.keys(httpHeaders).length > 0) next.http_headers = httpHeaders;
+  const envHttpHeaders = parseKeyValueLines(state.envHttpHeadersText, messages.headersLabel, messages).data;
+  if (Object.keys(envHttpHeaders).length > 0) next.env_http_headers = envHttpHeaders;
   return next;
 }
