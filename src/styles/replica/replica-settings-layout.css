@@ -230,4 +230,19 @@
     width: 100%;
     max-width: none;
   }
+
+  .git-settings-page .settings-row-control {
+    min-width: 0;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .git-settings-page .settings-text-input,
+  .git-settings-page .git-settings-instructions-textarea {
+    width: 100%;
+  }
+
+  .git-settings-instructions-head {
+    align-items: stretch;
+  }
 }

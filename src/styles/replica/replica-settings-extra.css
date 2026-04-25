@@ -778,6 +778,142 @@
   height: 100%;
 }
 
+.git-settings-page {
+  width: min(100%, 840px);
+}
+
+.git-settings-page .settings-title-wrap {
+  margin-bottom: 50px;
+}
+
+.git-settings-page .settings-card {
+  margin-top: 0;
+  border-radius: 12px;
+}
+
+.git-settings-page .settings-row {
+  min-height: 79px;
+  padding: 16px;
+  gap: 24px;
+}
+
+.git-settings-page .settings-row strong {
+  font-size: 14px;
+  font-weight: 550;
+}
+
+.git-settings-page .settings-row p {
+  max-width: 64ch;
+  margin-top: 5px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.git-settings-page .settings-row-control {
+  min-width: 280px;
+}
+
+.git-settings-page .settings-text-input {
+  width: 280px;
+  height: 42px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--surface-panel);
+  padding: 0 13px;
+  font-size: 14px;
+}
+
+.git-settings-page .settings-number-input {
+  width: 120px;
+  text-align: left;
+}
+
+.git-settings-page .settings-toggle-button-group {
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+}
+
+.git-settings-page .settings-toggle-button {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 14px;
+}
+
+.git-settings-page .settings-toggle-button-active {
+  background: var(--surface-panel-soft);
+  box-shadow: none;
+}
+
+.git-settings-page .settings-toggle:disabled,
+.git-settings-page .settings-toggle-button:disabled,
+.git-settings-page .settings-text-input:disabled,
+.git-settings-page .git-settings-save:disabled,
+.git-settings-page .git-settings-instructions-textarea:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.git-settings-page .settings-text-input:disabled,
+.git-settings-page .git-settings-instructions-textarea:disabled {
+  color: var(--text-main);
+  -webkit-text-fill-color: var(--text-main);
+}
+
+.git-settings-instructions-section {
+  margin-top: 38px;
+}
+
+.git-settings-instructions-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.git-settings-instructions-copy {
+  min-width: 0;
+}
+
+.git-settings-instructions-copy h2 {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 16px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.git-settings-instructions-copy p {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.git-settings-save {
+  min-width: 54px;
+  height: 34px;
+}
+
+.git-settings-instructions-textarea {
+  width: 100%;
+  min-height: 150px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--surface-panel);
+  color: var(--text-main);
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.git-settings-instructions-textarea::placeholder {
+  color: var(--text-subtle);
+}
+
 .app-update-card {
   overflow: visible;
 }

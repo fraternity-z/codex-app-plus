@@ -50,7 +50,7 @@ function renderSection(): void {
 }
 
 describe("GitSettingsSection", () => {
-  it("updates branch prefix preview when the input changes", () => {
+  it("updates branch prefix input when the value changes", () => {
     renderSection();
 
     fireEvent.change(screen.getByRole("textbox", { name: "分支前缀" }), {
@@ -58,19 +58,26 @@ describe("GitSettingsSection", () => {
     });
 
     expect(screen.getByDisplayValue("feature/")).toBeInTheDocument();
-    expect(screen.getByText("创建时会得到：feature/feature/login")).toBeInTheDocument();
   });
 
-  it("toggles force-with-lease state and copy", () => {
+  it("toggles force-with-lease state", () => {
     renderSection();
 
-    const switchControl = screen.getByRole("switch");
+    const switchControl = screen.getByRole("switch", { name: "始终强制推送" });
     expect(switchControl).toHaveAttribute("aria-checked", "false");
-    expect(screen.getByText("当前未启用，内置推送会保持普通 `git push`。")).toBeInTheDocument();
 
     fireEvent.click(switchControl);
 
-    expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByText("当前已启用，推送确认框也会明确展示该参数。")).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "始终强制推送" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("marks unfinished Git controls in the copy", () => {
+    renderSection();
+
+    expect(screen.getByText("选择 Codex 合并拉取请求的方法（未完成：暂未接入保存）")).toBeInTheDocument();
+    expect(screen.getByText("未完成：暂未添加到提交信息生成提示中")).toBeInTheDocument();
+    expect(screen.getByText("未完成：暂未添加到 PR 标题/描述生成提示中")).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton", { name: "自动删除限制" })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: "提交指令" })).toBeDisabled();
   });
 });
