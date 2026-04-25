@@ -1,21 +1,13 @@
 export type CommandIntent =
   | { readonly kind: "readFile"; readonly path: string }
   | { readonly kind: "readFiles"; readonly paths: readonly string[] }
-  | { readonly kind: "editFile"; readonly path: string | null }
-  | { readonly kind: "listDir"; readonly path: string | null }
-  | { readonly kind: "searchContent"; readonly pattern: string; readonly path: string | null }
-  | { readonly kind: "searchFiles"; readonly path: string | null; readonly pattern: string | null };
+  | { readonly kind: "editFile"; readonly path: string | null };
 
 type AtomicCommandIntent =
   | { readonly kind: "readFile"; readonly path: string }
-  | { readonly kind: "editFile"; readonly path: string | null }
-  | { readonly kind: "listDir"; readonly path: string | null }
-  | { readonly kind: "searchContent"; readonly pattern: string; readonly path: string | null }
-  | { readonly kind: "searchFiles"; readonly path: string | null; readonly pattern: string | null };
+  | { readonly kind: "editFile"; readonly path: string | null };
 
 const READ_PROGRAMS = new Set(["cat", "head", "tail", "less", "more", "nl", "bat", "type", "get-content", "gc"]);
-const LIST_PROGRAMS = new Set(["ls", "dir", "get-childitem", "gci"]);
-const SEARCH_CONTENT_PROGRAMS = new Set(["rg", "grep", "egrep", "fgrep", "ag", "ack", "select-string", "sls"]);
 const POSIX_SHELL_PROGRAMS = new Set(["bash", "sh", "zsh"]);
 const POWERSHELL_PROGRAMS = new Set(["pwsh", "powershell"]);
 const IGNORED_PROGRAMS = new Set([
@@ -32,29 +24,6 @@ const IGNORED_PROGRAMS = new Set([
 const HEAD_TAIL_VALUE_FLAGS: ReadonlySet<string> = new Set(["-n", "--lines", "-c", "--bytes"]);
 const POWERSHELL_READ_VALUE_FLAGS = new Set(["-tail", "-head", "-totalcount", "-encoding", "-readcount", "-wait"]);
 const POWERSHELL_READ_PATH_FLAGS = new Set(["-path", "-literalpath"]);
-const POWERSHELL_LIST_VALUE_FLAGS = new Set(["-filter", "-include", "-exclude", "-depth"]);
-const POWERSHELL_LIST_PATH_FLAGS = new Set(["-path", "-literalpath"]);
-const POWERSHELL_SEARCH_VALUE_FLAGS = new Set(["-pattern", "-simplematch", "-casesensitive", "-list", "-allmatches", "-notmatch", "-encoding", "-context"]);
-const POWERSHELL_SEARCH_PATH_FLAGS = new Set(["-path", "-literalpath"]);
-const SEARCH_CONTENT_VALUE_FLAGS = new Set([
-  "-A",
-  "-B",
-  "-C",
-  "-e",
-  "-f",
-  "-g",
-  "-m",
-  "-t",
-  "-T",
-  "--context",
-  "--file",
-  "--glob",
-  "--iglob",
-  "--max-count",
-  "--regexp",
-  "--type",
-  "--type-not",
-]);
 const EMPTY_FLAGS: ReadonlySet<string> = new Set<string>();
 
 export function classifyCommand(command: string): CommandIntent | null {
@@ -79,9 +48,6 @@ function classifySingleCommand(command: string): AtomicCommandIntent | null {
   if (program === "apply_patch" || program === "apply-patch") return classifyApplyPatch(command);
   if (program === "sed") return classifySed(rest);
   if (READ_PROGRAMS.has(program)) return classifyRead(program, rest);
-  if (LIST_PROGRAMS.has(program)) return classifyList(program, rest);
-  if (SEARCH_CONTENT_PROGRAMS.has(program)) return classifySearchContent(program, rest);
-  if (program === "find") return classifyFind(rest);
   return null;
 }
 
@@ -93,14 +59,6 @@ function classifyRead(program: string, args: readonly string[]): AtomicCommandIn
     : findPath(args, usesHeadTailFlags ? HEAD_TAIL_VALUE_FLAGS : EMPTY_FLAGS, EMPTY_FLAGS);
   if (path === null) return null;
   return { kind: "readFile", path };
-}
-
-function classifyList(program: string, args: readonly string[]): AtomicCommandIntent | null {
-  const isPowerShell = program === "get-childitem" || program === "gci";
-  const path = isPowerShell
-    ? findPath(args, POWERSHELL_LIST_VALUE_FLAGS, POWERSHELL_LIST_PATH_FLAGS)
-    : findPath(args, EMPTY_FLAGS, EMPTY_FLAGS);
-  return { kind: "listDir", path };
 }
 
 function classifyApplyPatch(command: string): AtomicCommandIntent {
@@ -129,38 +87,6 @@ function isSedPositional(arg: string, index: number, args: readonly string[]): b
   return true;
 }
 
-function classifySearchContent(program: string, args: readonly string[]): AtomicCommandIntent | null {
-  if (program === "select-string" || program === "sls") {
-    const pattern = findFlagValue(args, new Set(["-pattern"])) ?? collectPositionals(args, POWERSHELL_SEARCH_VALUE_FLAGS)[0] ?? null;
-    const path = findFlagValue(args, POWERSHELL_SEARCH_PATH_FLAGS) ?? collectPositionals(args, POWERSHELL_SEARCH_VALUE_FLAGS).at(-1) ?? null;
-    if (pattern === null) return null;
-    return { kind: "searchContent", pattern, path: path === pattern ? null : path };
-  }
-  const positionals = collectPositionals(args, SEARCH_CONTENT_VALUE_FLAGS);
-  if (positionals.length === 0) return null;
-  const [pattern, ...tail] = positionals;
-  const path = tail.length > 0 ? tail[tail.length - 1] : null;
-  return { kind: "searchContent", pattern, path };
-}
-
-function classifyFind(args: readonly string[]): AtomicCommandIntent | null {
-  let path: string | null = null;
-  let pattern: string | null = null;
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = sanitizeValue(args[index]);
-    if (arg === null) continue;
-    if (arg === "-name" || arg === "-iname" || arg === "-path" || arg === "-ipath") {
-      pattern = sanitizeValue(args[index + 1]) ?? null;
-      index += 1;
-      continue;
-    }
-    if (arg.startsWith("-")) continue;
-    if (path === null) path = arg;
-  }
-  if (path === null && pattern === null) return null;
-  return { kind: "searchFiles", path, pattern };
-}
-
 function findPath(args: readonly string[], valueFlags: ReadonlySet<string>, pathFlags: ReadonlySet<string>): string | null {
   for (let index = 0; index < args.length; index += 1) {
     const arg = sanitizeValue(args[index]);
@@ -175,38 +101,6 @@ function findPath(args: readonly string[], valueFlags: ReadonlySet<string>, path
     return arg;
   }
   return null;
-}
-
-function findFlagValue(args: readonly string[], flags: ReadonlySet<string>): string | null {
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = sanitizeValue(args[index]);
-    if (arg === null) continue;
-    if (flags.has(arg.toLowerCase())) return sanitizeValue(args[index + 1]) ?? null;
-  }
-  return null;
-}
-
-function collectPositionals(args: readonly string[], valueFlags: ReadonlySet<string>): string[] {
-  const positionals: string[] = [];
-  for (let index = 0; index < args.length; index += 1) {
-    const arg = sanitizeValue(args[index]);
-    if (arg === null) continue;
-    if (arg === "--") {
-      positionals.push(
-        ...args
-          .slice(index + 1)
-          .map((value) => sanitizeValue(value))
-          .filter((value): value is string => value !== null),
-      );
-      break;
-    }
-    if (arg.startsWith("-")) {
-      if (valueFlags.has(arg.toLowerCase())) index += 1;
-      continue;
-    }
-    positionals.push(arg);
-  }
-  return positionals;
 }
 
 function unwrapShell(command: string): string {
@@ -319,12 +213,6 @@ function combineCommandIntents(intents: readonly AtomicCommandIntent[]): Command
     return { kind: "editFile", path: editPaths.length === 1 ? editPaths[0] : null };
   }
 
-  const searchContent = findLastIntent(intents, "searchContent");
-  if (searchContent !== null) return searchContent;
-
-  const searchFiles = findLastIntent(intents, "searchFiles");
-  if (searchFiles !== null) return searchFiles;
-
   const readPaths = uniquePaths(
     intents
       .filter((intent): intent is Extract<AtomicCommandIntent, { readonly kind: "readFile" }> => intent.kind === "readFile")
@@ -333,21 +221,7 @@ function combineCommandIntents(intents: readonly AtomicCommandIntent[]): Command
   if (readPaths.length === 1) return { kind: "readFile", path: readPaths[0] };
   if (readPaths.length > 1) return { kind: "readFiles", paths: readPaths };
 
-  const listDir = findLastIntent(intents, "listDir");
-  if (listDir !== null) return listDir;
-
   return { kind: "editFile", path: null };
-}
-
-function findLastIntent<Kind extends AtomicCommandIntent["kind"]>(
-  intents: readonly AtomicCommandIntent[],
-  kind: Kind,
-): Extract<AtomicCommandIntent, { readonly kind: Kind }> | null {
-  for (let index = intents.length - 1; index >= 0; index -= 1) {
-    const intent = intents[index];
-    if (intent.kind === kind) return intent as Extract<AtomicCommandIntent, { readonly kind: Kind }>;
-  }
-  return null;
 }
 
 function uniquePaths(paths: readonly string[]): string[] {

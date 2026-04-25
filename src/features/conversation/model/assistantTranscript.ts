@@ -408,9 +408,6 @@ export function createCommandSummaryParts(
   if (intent.kind === "readFiles") {
     return createReadCommandSummaryParts(intent.paths, status, t);
   }
-  if (intent.kind === "searchContent" && intent.path !== null) {
-    return createPlainCommandSummaryParts(renderSearchContentInPathSummary(intent.path, status, t));
-  }
   const action = renderCommandIntent(intent, t);
   if (action === null) return null;
   return createPlainCommandSummaryParts(renderCommandActionSummary(action, status, t));
@@ -428,26 +425,7 @@ function renderCommandIntent(intent: CommandIntent, t: TranslateFn): string | nu
       ? t("home.conversation.transcript.commandIntent.editFileUnspecified")
       : t("home.conversation.transcript.commandIntent.editFile", { path: intent.path });
   }
-  if (intent.kind === "listDir") {
-    return intent.path === null
-      ? t("home.conversation.transcript.commandIntent.listRoot")
-      : t("home.conversation.transcript.commandIntent.listPath", { path: intent.path });
-  }
-  if (intent.kind === "searchContent") {
-    return intent.path === null
-      ? t("home.conversation.transcript.commandIntent.searchContent", { pattern: intent.pattern })
-      : t("home.conversation.transcript.commandIntent.searchContentInPath", { pattern: intent.pattern, path: intent.path });
-  }
-  if (intent.path === null && intent.pattern === null) {
-    return t("home.conversation.transcript.commandIntent.searchFiles");
-  }
-  if (intent.path !== null && intent.pattern !== null) {
-    return t("home.conversation.transcript.commandIntent.searchFilesInPathByPattern", { path: intent.path, pattern: intent.pattern });
-  }
-  if (intent.pattern !== null) {
-    return t("home.conversation.transcript.commandIntent.searchFilesByPattern", { pattern: intent.pattern });
-  }
-  return t("home.conversation.transcript.commandIntent.searchFilesInPath", { path: intent.path ?? "" });
+  return null;
 }
 
 function createReadCommandSummaryParts(
@@ -468,13 +446,6 @@ function readCommandPrefix(status: CommandExecutionStatus, t: TranslateFn): stri
   if (status === "failed") return t("home.conversation.transcript.commandIntentSummary.read.failedPrefix");
   if (status === "declined") return t("home.conversation.transcript.commandIntentSummary.read.declinedPrefix");
   return t("home.conversation.transcript.commandIntentSummary.read.runningPrefix");
-}
-
-function renderSearchContentInPathSummary(path: string, status: CommandExecutionStatus, t: TranslateFn): string {
-  if (status === "completed") return t("home.conversation.transcript.commandIntentSummary.searchContentInPath.completed", { path });
-  if (status === "failed") return t("home.conversation.transcript.commandIntentSummary.searchContentInPath.failed", { path });
-  if (status === "declined") return t("home.conversation.transcript.commandIntentSummary.searchContentInPath.declined", { path });
-  return t("home.conversation.transcript.commandIntentSummary.searchContentInPath.running", { path });
 }
 
 function renderCommandActionSummary(action: string, status: CommandExecutionStatus, t: TranslateFn): string {

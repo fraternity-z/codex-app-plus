@@ -528,7 +528,7 @@ export const zhCN = {
     sidebar: {
       newThread: "新会话",
       search: "搜索",
-      skills: "技能",
+      skills: "插件",
       settings: "设置",
       closeMenu: "关闭菜单",
       searchDialog: {
@@ -826,15 +826,46 @@ export const zhCN = {
       },
     },
     skills: {
-      title: "技能",
+      title: "让 Codex 按你的方式工作",
       subtitle: "赋予 Codex 更强大的能力。",
       learnMore: "了解更多",
       back: "← 返回应用",
       refresh: "刷新",
       refreshing: "刷新中",
-      search: "搜索技能",
-      newSkill: "+ 新技能",
-      newSkillDisabled: "暂未接入本地创建技能链路",
+      search: "搜索",
+      searchPlugins: "搜索插件",
+      searchSkills: "搜索技能",
+      create: "创建",
+      createDisabled: "暂未接入从市场页创建自定义插件。",
+      tabs: {
+        label: "市场分区",
+        plugins: "插件",
+        skills: "技能",
+      },
+      manage: {
+        action: "管理",
+        updating: "更新中",
+      },
+      filters: {
+        marketplace: "插件市场",
+        status: "插件状态",
+        allMarketplaces: "全部市场",
+        all: "全部",
+        installed: "已安装",
+        available: "可安装",
+      },
+      hero: {
+        try: "在对话中试用",
+      },
+      sections: {
+        featured: "Featured",
+      },
+      marketplace: {
+        empty: "没有匹配的插件。",
+        loadingTitle: "正在加载插件",
+        loadingDetail: "请稍候，正在通过官方 app-server 协议获取最新插件目录。",
+        errorTitle: "无法加载插件",
+      },
       installed: {
         title: "已安装",
         empty: "当前没有匹配的已安装技能。",
@@ -854,6 +885,12 @@ export const zhCN = {
       card: {
         install: "安装",
         installing: "安装中",
+        uninstall: "卸载",
+        notAvailable: "不可安装",
+        installPlugin: "安装 {name}",
+        uninstallPlugin: "卸载 {name}",
+        enablePlugin: "启用 {name}",
+        disablePlugin: "停用 {name}",
         enabled: "已启用",
         disabled: "已禁用",
         scopeRepo: "仓库",

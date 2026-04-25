@@ -5,7 +5,7 @@ import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { ConversationMessageContent } from "./ConversationMessageContent";
 import { HomeImagePreviewDialog } from "./HomeImagePreviewDialog";
 import type { ConversationRenderNode } from "../model/localConversationGroups";
-import { createAssistantTranscriptEntryModel } from "../model/assistantTranscript";
+import { createAssistantTranscriptEntryModel, createCommandSummaryParts } from "../model/assistantTranscript";
 import { createDetailPanel } from "../model/assistantTranscriptDetailModel";
 import { createFileChangeSummaryParts } from "../model/fileChangeSummary";
 import { HomeAssistantTranscriptDetailBlock } from "./HomeAssistantTranscriptDetailBlock";
@@ -390,6 +390,32 @@ function CommandSummaryContent(props: {
   readonly status: CommandExecutionEntry["status"];
   readonly t: ReturnType<typeof useI18n>["t"];
 }): JSX.Element {
+  if (!props.open) {
+    const parts = createCommandSummaryParts(props.command, props.status, props.t);
+    if (parts !== null && parts.fileName !== null) {
+      return (
+        <span className="home-assistant-transcript-command-summary-inline">
+          <span className="home-assistant-transcript-command-summary-label" title={props.command}>
+            {parts.prefix}
+            <span className="home-assistant-transcript-file-name">{parts.fileName}</span>
+            {parts.suffix}
+          </span>
+          <span className="home-assistant-transcript-summary-chevron" aria-hidden="true" />
+        </span>
+      );
+    }
+    if (parts !== null) {
+      return (
+        <span className="home-assistant-transcript-command-summary-inline">
+          <span className="home-assistant-transcript-command-summary-label" title={props.command}>
+            {parts.text}
+          </span>
+          <span className="home-assistant-transcript-summary-chevron" aria-hidden="true" />
+        </span>
+      );
+    }
+  }
+
   const label = props.open ? createOpenCommandSummary(props.status, props.t) : props.collapsedSummary;
   return (
     <span className={props.open ? "home-assistant-transcript-command-open-summary" : "home-assistant-transcript-command-summary-inline"}>

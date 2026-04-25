@@ -391,7 +391,7 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(container.querySelector(".home-assistant-transcript-detail-footer-status")?.textContent).toBe("失败");
   });
 
-  it("uses raw command text in collapsed read command summaries", () => {
+  it("uses read summaries in collapsed read command summaries", () => {
     const { container } = render(
       <HomeAssistantTranscriptEntry node={createCommandNode("Get-Content src/i18n/messages/schema.ts")} />,
       { wrapper: createI18nWrapper("zh-CN") },
@@ -399,8 +399,8 @@ describe("HomeAssistantTranscriptEntry", () => {
 
     const summaryText = container.querySelector(".home-assistant-transcript-summary-text");
 
-    expect(container.querySelector(".home-assistant-transcript-file-name")).toBeNull();
-    expect(summaryText?.textContent).toBe("已运行 Get-Content src/i18n/messages/schema.ts");
+    expect(container.querySelector(".home-assistant-transcript-file-name")?.textContent).toBe("schema.ts");
+    expect(summaryText?.textContent).toBe("已读取文件 schema.ts");
   });
 
   it("uses raw command text in collapsed search command summaries", () => {
@@ -413,6 +413,18 @@ describe("HomeAssistantTranscriptEntry", () => {
 
     expect(container.querySelector(".home-assistant-transcript-file-name")).toBeNull();
     expect(summaryText?.textContent).toBe("已运行 rg -n \"ConversationPane|ControlBar\" src");
+  });
+
+  it("uses raw command text in collapsed listing command summaries", () => {
+    const { container } = render(
+      <HomeAssistantTranscriptEntry node={createCommandNodeWithStatus("Get-ChildItem -Path src/features", "completed")} />,
+      { wrapper: createI18nWrapper("zh-CN") },
+    );
+
+    const summaryText = container.querySelector(".home-assistant-transcript-summary-text");
+
+    expect(container.querySelector(".home-assistant-transcript-file-name")).toBeNull();
+    expect(summaryText?.textContent).toBe("已运行 Get-ChildItem -Path src/features");
   });
 
   it("marks MCP, dynamic, and collab tool summaries for collapsed truncation", () => {

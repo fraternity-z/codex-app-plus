@@ -18,17 +18,40 @@ export interface MarketplacePluginCard {
   readonly id: string;
   readonly name: string;
   readonly description: string;
+  readonly longDescription: string | null;
   readonly pluginName: string;
   readonly marketplaceName: string;
+  readonly marketplaceDisplayName: string;
   readonly marketplacePath: string | null;
+  readonly installed: boolean;
+  readonly enabled: boolean;
+  readonly installPolicy: "NOT_AVAILABLE" | "AVAILABLE" | "INSTALLED_BY_DEFAULT";
+  readonly authPolicy: "ON_INSTALL" | "ON_USE";
   readonly icon: string | null;
   readonly brandColor: string | null;
+  readonly category: string;
+  readonly featured: boolean;
+  readonly defaultPrompts: ReadonlyArray<string>;
+}
+
+export interface MarketplaceFilterOption {
+  readonly id: string;
+  readonly label: string;
+}
+
+export interface MarketplacePluginsCatalog {
+  readonly plugins: ReadonlyArray<MarketplacePluginCard>;
+  readonly marketplaces: ReadonlyArray<MarketplaceFilterOption>;
 }
 
 export interface InstalledSkillsCatalog {
   readonly skills: ReadonlyArray<InstalledSkillCard>;
   readonly scanErrors: ReadonlyArray<SkillErrorInfo>;
 }
+
+const HIDDEN_MARKETPLACE_NAMES = new Set(["openai-bundled"]);
+const OFFICIAL_MARKETPLACE_NAME = "openai-curated";
+const DEFAULT_PLUGIN_CATEGORY = "Coding";
 
 export function createInstalledSkillsCatalog(
   entries: ReadonlyArray<SkillsListEntry>,
@@ -48,16 +71,36 @@ export function createInstalledSkillsCatalog(
 
 export function createMarketplacePluginCards(
   response: PluginListResponse,
-): ReadonlyArray<MarketplacePluginCard> {
-  const cards = response.marketplaces.flatMap((marketplace) => marketplace.plugins
-    .filter((plugin) => !plugin.installed && plugin.installPolicy !== "NOT_AVAILABLE")
+): MarketplacePluginsCatalog {
+  const featuredPluginIds = new Set(response.featuredPluginIds);
+  const visibleMarketplaces = response.marketplaces.filter((marketplace) => (
+    !HIDDEN_MARKETPLACE_NAMES.has(marketplace.name)
+  ));
+  const marketplaceOptions = visibleMarketplaces
+    .map((marketplace) => ({
+      id: marketplace.name,
+      label: resolveMarketplaceDisplayName(marketplace.name, marketplace.interface?.displayName ?? null),
+    }))
+    .sort(compareOptionLabels);
+  const cards = visibleMarketplaces.flatMap((marketplace) => {
+    const marketplaceDisplayName = resolveMarketplaceDisplayName(
+      marketplace.name,
+      marketplace.interface?.displayName ?? null,
+    );
+    return marketplace.plugins
       .map((plugin) => ({
         id: plugin.id,
         name: resolvePluginName(plugin.name, plugin.interface?.displayName ?? null),
         description: resolvePluginDescription(plugin.interface?.shortDescription ?? null, plugin.name),
+        longDescription: resolveNullableText(plugin.interface?.longDescription ?? null),
         pluginName: plugin.name,
         marketplaceName: marketplace.name,
+        marketplaceDisplayName,
         marketplacePath: marketplace.path,
+        installed: plugin.installed,
+        enabled: plugin.enabled,
+        installPolicy: plugin.installPolicy,
+        authPolicy: plugin.authPolicy,
         icon:
           plugin.interface?.logoUrl
           ?? plugin.interface?.composerIconUrl
@@ -65,8 +108,15 @@ export function createMarketplacePluginCards(
           ?? plugin.interface?.composerIcon
           ?? null,
         brandColor: plugin.interface?.brandColor ?? null,
-      })));
-  return cards.sort(compareNamedItems);
+        category: resolvePluginCategory(plugin.interface?.category ?? null),
+        featured: featuredPluginIds.has(plugin.id),
+        defaultPrompts: plugin.interface?.defaultPrompt ?? [],
+      }));
+  });
+  return {
+    plugins: cards.sort(compareMarketplacePlugins),
+    marketplaces: marketplaceOptions,
+  };
 }
 
 export function filterInstalledSkillCards(
@@ -79,8 +129,24 @@ export function filterInstalledSkillCards(
 export function filterMarketplacePluginCards(
   skills: ReadonlyArray<MarketplacePluginCard>,
   query: string,
+  marketplaceName: string,
+  status: "all" | "installed" | "available",
 ): ReadonlyArray<MarketplacePluginCard> {
-  return skills.filter((skill) => matchesSkillQuery(skill.name, skill.description, query));
+  return skills.filter((skill) => {
+    if (!matchesSkillQuery(skill.name, `${skill.description}\n${skill.marketplaceDisplayName}`, query)) {
+      return false;
+    }
+    if (marketplaceName !== "all" && skill.marketplaceName !== marketplaceName) {
+      return false;
+    }
+    if (status === "installed") {
+      return skill.installed;
+    }
+    if (status === "available") {
+      return !skill.installed && skill.installPolicy !== "NOT_AVAILABLE";
+    }
+    return true;
+  });
 }
 
 export function replaceInstalledSkillEnabled(
@@ -128,9 +194,27 @@ function resolvePluginDescription(shortDescription: string | null, fallbackName:
   return normalized.length > 0 ? normalized : fallbackName.trim();
 }
 
+function resolveNullableText(value: string | null): string | null {
+  const normalized = value?.trim() ?? "";
+  return normalized.length > 0 ? normalized : null;
+}
+
 function resolvePluginName(name: string, displayName: string | null): string {
   const normalizedDisplayName = displayName?.trim() ?? "";
   return normalizedDisplayName.length > 0 ? normalizedDisplayName : name.trim();
+}
+
+function resolveMarketplaceDisplayName(name: string, displayName: string | null): string {
+  if (name === OFFICIAL_MARKETPLACE_NAME) {
+    return "Codex official";
+  }
+  const normalizedDisplayName = displayName?.trim() ?? "";
+  return normalizedDisplayName.length > 0 ? normalizedDisplayName : name.trim();
+}
+
+function resolvePluginCategory(category: string | null): string {
+  const normalized = category?.trim() ?? "";
+  return normalized.length > 0 ? normalized : DEFAULT_PLUGIN_CATEGORY;
 }
 
 function matchesSkillQuery(name: string, description: string, query: string): boolean {
@@ -143,4 +227,16 @@ function matchesSkillQuery(name: string, description: string, query: string): bo
 
 function compareNamedItems<T extends { readonly name: string }>(left: T, right: T): number {
   return left.name.localeCompare(right.name, "zh-CN", { sensitivity: "base" });
+}
+
+function compareOptionLabels(left: MarketplaceFilterOption, right: MarketplaceFilterOption): number {
+  if (left.id === OFFICIAL_MARKETPLACE_NAME) return -1;
+  if (right.id === OFFICIAL_MARKETPLACE_NAME) return 1;
+  return left.label.localeCompare(right.label, "zh-CN", { sensitivity: "base" });
+}
+
+function compareMarketplacePlugins(left: MarketplacePluginCard, right: MarketplacePluginCard): number {
+  return Number(right.installed) - Number(left.installed)
+    || left.name.localeCompare(right.name, "zh-CN", { sensitivity: "base" })
+    || left.id.localeCompare(right.id, "zh-CN", { sensitivity: "base" });
 }

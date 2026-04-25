@@ -24,6 +24,7 @@ export const CLIENT_REQUEST_METHODS = [
   "skills/list",
   "marketplace/add",
   "marketplace/remove",
+  "marketplace/upgrade",
   "plugin/list",
   "plugin/read",
   "app/list",

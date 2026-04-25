@@ -18,15 +18,11 @@ describe("classifyCommand", () => {
     expect(classifyCommand("type file.txt")).toEqual({ kind: "readFile", path: "file.txt" });
   });
 
-  it("unwraps absolute PowerShell wrappers with UTF-8 prologue", () => {
+  it("does not classify search commands inside absolute PowerShell wrappers", () => {
     expect(classifyCommand(`"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command '[Console]::InputEncoding  = [Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 chcp 65001 > $null
-rg -n "ConversationPane|ControlBar" src'`)).toEqual({
-      kind: "searchContent",
-      pattern: "ConversationPane|ControlBar",
-      path: "src",
-    });
+rg -n "ConversationPane|ControlBar" src'`)).toBeNull();
   });
 
   it("aggregates multi-file reads from compound PowerShell commands", () => {
@@ -51,27 +47,27 @@ if (Test-Path .trellis\\spec) { Get-ChildItem .trellis\\spec -Recurse -File | Se
     expect(classifyCommand("apply_patch")).toEqual({ kind: "editFile", path: null });
   });
 
-  it("classifies ls/dir as listDir", () => {
-    expect(classifyCommand("ls")).toEqual({ kind: "listDir", path: null });
-    expect(classifyCommand("ls -la src/")).toEqual({ kind: "listDir", path: "src/" });
-    expect(classifyCommand("dir src\\state")).toEqual({ kind: "listDir", path: "src\\state" });
-    expect(classifyCommand("Get-ChildItem -Path src/features")).toEqual({ kind: "listDir", path: "src/features" });
+  it("does not classify directory listing commands", () => {
+    expect(classifyCommand("ls")).toBeNull();
+    expect(classifyCommand("ls -la src/")).toBeNull();
+    expect(classifyCommand("dir src\\state")).toBeNull();
+    expect(classifyCommand("Get-ChildItem -Path src/features")).toBeNull();
   });
 
-  it("classifies rg/grep as searchContent", () => {
-    expect(classifyCommand("rg pattern")).toEqual({ kind: "searchContent", pattern: "pattern", path: null });
-    expect(classifyCommand("rg -n pattern src/")).toEqual({ kind: "searchContent", pattern: "pattern", path: "src/" });
-    expect(classifyCommand("grep -r foo lib")).toEqual({ kind: "searchContent", pattern: "foo", path: "lib" });
+  it("does not classify content search commands", () => {
+    expect(classifyCommand("rg pattern")).toBeNull();
+    expect(classifyCommand("rg -n pattern src/")).toBeNull();
+    expect(classifyCommand("grep -r foo lib")).toBeNull();
   });
 
-  it("classifies find as searchFiles", () => {
-    expect(classifyCommand("find src -name \"*.ts\"")).toEqual({ kind: "searchFiles", path: "src", pattern: "*.ts" });
-    expect(classifyCommand("find .")).toEqual({ kind: "searchFiles", path: ".", pattern: null });
+  it("does not classify file search commands", () => {
+    expect(classifyCommand("find src -name \"*.ts\"")).toBeNull();
+    expect(classifyCommand("find .")).toBeNull();
   });
 
   it("unwraps bash -lc wrappers", () => {
     expect(classifyCommand("bash -lc \"cat src/foo.ts\"")).toEqual({ kind: "readFile", path: "src/foo.ts" });
-    expect(classifyCommand("bash -c 'rg pattern src/'")).toEqual({ kind: "searchContent", pattern: "pattern", path: "src/" });
+    expect(classifyCommand("bash -c 'rg pattern src/'")).toBeNull();
   });
 
   it("unwraps WSL wrappers", () => {
@@ -79,11 +75,7 @@ if (Test-Path .trellis\\spec) { Get-ChildItem .trellis\\spec -Recurse -File | Se
       kind: "readFile",
       path: "src/foo.ts",
     });
-    expect(classifyCommand(`wsl.exe -d Ubuntu bash -lc "rg pattern src/"`)).toEqual({
-      kind: "searchContent",
-      pattern: "pattern",
-      path: "src/",
-    });
+    expect(classifyCommand(`wsl.exe -d Ubuntu bash -lc "rg pattern src/"`)).toBeNull();
   });
 
   it("returns null for unknown commands", () => {

@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReceivedNotification } from "../../../domain/types";
-import type { AuthMode } from "../../../protocol/generated/AuthMode";
+import type { ConfigWriteResponse } from "../../../protocol/generated/v2/ConfigWriteResponse";
+import type { MarketplaceUpgradeParams } from "../../../protocol/generated/v2/MarketplaceUpgradeParams";
+import type { MarketplaceUpgradeResponse } from "../../../protocol/generated/v2/MarketplaceUpgradeResponse";
 import type { PluginInstallParams } from "../../../protocol/generated/v2/PluginInstallParams";
 import type { PluginInstallResponse } from "../../../protocol/generated/v2/PluginInstallResponse";
 import type { PluginListParams } from "../../../protocol/generated/v2/PluginListParams";
 import type { PluginListResponse } from "../../../protocol/generated/v2/PluginListResponse";
+import type { PluginUninstallParams } from "../../../protocol/generated/v2/PluginUninstallParams";
+import type { PluginUninstallResponse } from "../../../protocol/generated/v2/PluginUninstallResponse";
 import type { SkillsConfigWriteParams } from "../../../protocol/generated/v2/SkillsConfigWriteParams";
 import type { SkillsConfigWriteResponse } from "../../../protocol/generated/v2/SkillsConfigWriteResponse";
 import type { SkillsListParams } from "../../../protocol/generated/v2/SkillsListParams";
@@ -17,7 +21,9 @@ import {
   replaceInstalledSkillEnabled,
   type InstalledSkillCard,
   type InstalledSkillsCatalog,
+  type MarketplaceFilterOption,
   type MarketplacePluginCard,
+  type MarketplacePluginsCatalog,
 } from "../model/skillCatalog";
 
 interface AsyncState<T> {
@@ -27,8 +33,6 @@ interface AsyncState<T> {
 }
 
 interface SkillsViewModelOptions {
-  readonly authStatus: "unknown" | "authenticated" | "needs_login";
-  readonly authMode: AuthMode | null;
   readonly ready?: boolean;
   readonly selectedRootPath: string | null;
   readonly notifications: ReadonlyArray<ReceivedNotification>;
@@ -36,34 +40,46 @@ interface SkillsViewModelOptions {
   readonly listMarketplacePlugins: (params: PluginListParams) => Promise<PluginListResponse>;
   readonly writeSkillConfig: (params: SkillsConfigWriteParams) => Promise<SkillsConfigWriteResponse>;
   readonly installMarketplacePlugin: (params: PluginInstallParams) => Promise<PluginInstallResponse>;
+  readonly uninstallMarketplacePlugin: (params: PluginUninstallParams) => Promise<PluginUninstallResponse>;
+  readonly setMarketplacePluginEnabled: (pluginId: string, enabled: boolean) => Promise<ConfigWriteResponse>;
+  readonly upgradeMarketplaces: (params: MarketplaceUpgradeParams) => Promise<MarketplaceUpgradeResponse>;
 }
 
 export interface SkillsViewModel {
+  readonly activeTab: "plugins" | "skills";
   readonly query: string;
+  readonly marketplaceFilter: string;
+  readonly pluginStatusFilter: "all" | "installed" | "available";
   readonly installedSkills: ReadonlyArray<InstalledSkillCard>;
-  readonly recommendedSkills: ReadonlyArray<MarketplacePluginCard>;
+  readonly marketplacePlugins: ReadonlyArray<MarketplacePluginCard>;
+  readonly marketplaceOptions: ReadonlyArray<MarketplaceFilterOption>;
   readonly scanErrors: ReadonlyArray<{ readonly path: string; readonly message: string }>;
   readonly installedError: string | null;
-  readonly recommendedError: string | null;
+  readonly marketplaceError: string | null;
   readonly actionError: string | null;
   readonly loadingInstalled: boolean;
-  readonly loadingRecommended: boolean;
+  readonly loadingMarketplace: boolean;
   readonly refreshPending: boolean;
   readonly pendingPaths: Readonly<Record<string, boolean>>;
-  readonly installingIds: Readonly<Record<string, boolean>>;
+  readonly pendingPluginIds: Readonly<Record<string, boolean>>;
+  readonly upgradePending: boolean;
+  readonly setActiveTab: (value: "plugins" | "skills") => void;
   readonly setQuery: (value: string) => void;
+  readonly setMarketplaceFilter: (value: string) => void;
+  readonly setPluginStatusFilter: (value: "all" | "installed" | "available") => void;
   readonly refresh: () => Promise<void>;
   readonly toggleSkillEnabled: (skill: InstalledSkillCard) => Promise<void>;
-  readonly installMarketplaceSkill: (skill: MarketplacePluginCard) => Promise<void>;
+  readonly installMarketplacePluginCard: (skill: MarketplacePluginCard) => Promise<void>;
+  readonly uninstallMarketplacePluginCard: (skill: MarketplacePluginCard) => Promise<void>;
+  readonly toggleMarketplacePluginEnabled: (skill: MarketplacePluginCard) => Promise<void>;
+  readonly upgradeMarketplaceCatalog: () => Promise<void>;
 }
 
 const EMPTY_LOCAL_CATALOG: InstalledSkillsCatalog = { skills: [], scanErrors: [] };
-const EMPTY_RECOMMENDED_SKILLS: ReadonlyArray<MarketplacePluginCard> = [];
+const EMPTY_MARKETPLACE_CATALOG: MarketplacePluginsCatalog = { plugins: [], marketplaces: [] };
 
 export function useSkillsViewModel(options: SkillsViewModelOptions): SkillsViewModel {
   const {
-    authStatus,
-    authMode,
     ready,
     selectedRootPath,
     notifications,
@@ -71,23 +87,25 @@ export function useSkillsViewModel(options: SkillsViewModelOptions): SkillsViewM
     listMarketplacePlugins,
     writeSkillConfig,
     installMarketplacePlugin,
+    uninstallMarketplacePlugin,
+    setMarketplacePluginEnabled,
+    upgradeMarketplaces,
   } = options;
+  const [activeTab, setActiveTab] = useState<"plugins" | "skills">("plugins");
   const [query, setQuery] = useState("");
+  const [marketplaceFilter, setMarketplaceFilter] = useState("all");
+  const [pluginStatusFilter, setPluginStatusFilter] = useState<"all" | "installed" | "available">("all");
   const [installedState, setInstalledState] = useState<AsyncState<InstalledSkillsCatalog>>(
     createAsyncState(EMPTY_LOCAL_CATALOG),
   );
-  const [recommendedState, setRecommendedState] = useState<AsyncState<ReadonlyArray<MarketplacePluginCard>>>(
-    createAsyncState(EMPTY_RECOMMENDED_SKILLS),
+  const [marketplaceState, setMarketplaceState] = useState<AsyncState<MarketplacePluginsCatalog>>(
+    createAsyncState(EMPTY_MARKETPLACE_CATALOG),
   );
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingPaths, setPendingPaths] = useState<Readonly<Record<string, boolean>>>({});
-  const [installingIds, setInstallingIds] = useState<Readonly<Record<string, boolean>>>({});
+  const [pendingPluginIds, setPendingPluginIds] = useState<Readonly<Record<string, boolean>>>({});
+  const [upgradePending, setUpgradePending] = useState(false);
   const lastHandledSkillsChangeRef = useRef(0);
-
-  const recommendedUnavailableReason = useMemo(
-    () => getRecommendedUnavailableReason(authStatus, authMode),
-    [authMode, authStatus],
-  );
 
   const refreshInstalled = useCallback(async (forceReload: boolean) => {
     if (ready === false) {
@@ -103,35 +121,27 @@ export function useSkillsViewModel(options: SkillsViewModelOptions): SkillsViewM
     }
   }, [listSkills, ready, selectedRootPath]);
 
-  const refreshRecommended = useCallback(async () => {
+  const refreshMarketplace = useCallback(async () => {
     if (ready === false) {
-      setRecommendedState((current) => ({ ...current, loading: true, error: null }));
+      setMarketplaceState((current) => ({ ...current, loading: true, error: null }));
       return;
     }
-    if (recommendedUnavailableReason !== null) {
-      setRecommendedState({
-        data: EMPTY_RECOMMENDED_SKILLS,
-        loading: false,
-        error: recommendedUnavailableReason,
-      });
-      return;
-    }
-    setRecommendedState((current) => ({ ...current, loading: true, error: null }));
+    setMarketplaceState((current) => ({ ...current, loading: true, error: null }));
     try {
       const response = await listMarketplacePlugins(createPluginListParams(selectedRootPath));
-      setRecommendedState({
+      setMarketplaceState({
         data: createMarketplacePluginCards(response),
         loading: false,
         error: formatMarketplaceLoadErrors(response),
       });
     } catch (error) {
-      setRecommendedState((current) => ({ ...current, loading: false, error: toErrorMessage(error) }));
+      setMarketplaceState((current) => ({ ...current, loading: false, error: toErrorMessage(error) }));
     }
-  }, [listMarketplacePlugins, ready, recommendedUnavailableReason, selectedRootPath]);
+  }, [listMarketplacePlugins, ready, selectedRootPath]);
 
   const refresh = useCallback(async () => {
-    await Promise.all([refreshInstalled(true), refreshRecommended()]);
-  }, [refreshInstalled, refreshRecommended]);
+    await Promise.all([refreshInstalled(true), refreshMarketplace()]);
+  }, [refreshInstalled, refreshMarketplace]);
 
   const toggleSkillEnabled = useCallback(async (skill: InstalledSkillCard) => {
     setActionError(null);
@@ -149,13 +159,9 @@ export function useSkillsViewModel(options: SkillsViewModelOptions): SkillsViewM
     }
   }, [writeSkillConfig]);
 
-  const installMarketplaceSkill = useCallback(async (skill: MarketplacePluginCard) => {
-    if (recommendedUnavailableReason !== null) {
-      setActionError(recommendedUnavailableReason);
-      return;
-    }
+  const installMarketplacePluginCard = useCallback(async (skill: MarketplacePluginCard) => {
     setActionError(null);
-    setInstallingIds((current) => ({ ...current, [skill.id]: true }));
+    setPendingPluginIds((current) => ({ ...current, [skill.id]: true }));
     try {
       await installMarketplacePlugin(
         skill.marketplacePath === null
@@ -169,17 +175,60 @@ export function useSkillsViewModel(options: SkillsViewModelOptions): SkillsViewM
           },
       );
       await refreshInstalled(true);
-      await refreshRecommended();
+      await refreshMarketplace();
     } catch (error) {
-      setActionError(`安装推荐插件失败：${toErrorMessage(error)}`);
+      setActionError(`安装插件失败：${toErrorMessage(error)}`);
     } finally {
-      setInstallingIds((current) => omitRecordKey(current, skill.id));
+      setPendingPluginIds((current) => omitRecordKey(current, skill.id));
     }
-  }, [installMarketplacePlugin, recommendedUnavailableReason, refreshInstalled, refreshRecommended]);
+  }, [installMarketplacePlugin, refreshInstalled, refreshMarketplace]);
+
+  const uninstallMarketplacePluginCard = useCallback(async (skill: MarketplacePluginCard) => {
+    setActionError(null);
+    setPendingPluginIds((current) => ({ ...current, [skill.id]: true }));
+    try {
+      await uninstallMarketplacePlugin({ pluginId: skill.id });
+      await refreshInstalled(true);
+      await refreshMarketplace();
+    } catch (error) {
+      setActionError(`卸载插件失败：${toErrorMessage(error)}`);
+    } finally {
+      setPendingPluginIds((current) => omitRecordKey(current, skill.id));
+    }
+  }, [refreshInstalled, refreshMarketplace, uninstallMarketplacePlugin]);
+
+  const toggleMarketplacePluginEnabled = useCallback(async (skill: MarketplacePluginCard) => {
+    setActionError(null);
+    setPendingPluginIds((current) => ({ ...current, [skill.id]: true }));
+    try {
+      await setMarketplacePluginEnabled(skill.id, !skill.enabled);
+      await refreshMarketplace();
+    } catch (error) {
+      setActionError(`更新插件状态失败：${toErrorMessage(error)}`);
+    } finally {
+      setPendingPluginIds((current) => omitRecordKey(current, skill.id));
+    }
+  }, [refreshMarketplace, setMarketplacePluginEnabled]);
+
+  const upgradeMarketplaceCatalog = useCallback(async () => {
+    setActionError(null);
+    setUpgradePending(true);
+    try {
+      const response = await upgradeMarketplaces({});
+      if (response.errors.length > 0) {
+        setActionError(response.errors.map((error) => `${error.marketplaceName}: ${error.message}`).join("；"));
+      }
+      await refreshMarketplace();
+    } catch (error) {
+      setActionError(`更新插件市场失败：${toErrorMessage(error)}`);
+    } finally {
+      setUpgradePending(false);
+    }
+  }, [refreshMarketplace, upgradeMarketplaces]);
 
   useEffect(() => {
-    void Promise.all([refreshInstalled(false), refreshRecommended()]);
-  }, [refreshInstalled, refreshRecommended]);
+    void Promise.all([refreshInstalled(false), refreshMarketplace()]);
+  }, [refreshInstalled, refreshMarketplace]);
 
   useEffect(() => {
     const latestChangeIndex = findLastSkillsChangedIndex(notifications);
@@ -194,45 +243,45 @@ export function useSkillsViewModel(options: SkillsViewModelOptions): SkillsViewM
     () => filterInstalledSkillCards(installedState.data.skills, query),
     [installedState.data.skills, query],
   );
-  const recommendedSkills = useMemo(
-    () => filterMarketplacePluginCards(recommendedState.data, query),
-    [query, recommendedState.data],
+  const marketplacePlugins = useMemo(
+    () => filterMarketplacePluginCards(
+      marketplaceState.data.plugins,
+      query,
+      marketplaceFilter,
+      pluginStatusFilter,
+    ),
+    [marketplaceFilter, marketplaceState.data.plugins, pluginStatusFilter, query],
   );
 
   return {
+    activeTab,
     query,
+    marketplaceFilter,
+    pluginStatusFilter,
     installedSkills,
-    recommendedSkills,
+    marketplacePlugins,
+    marketplaceOptions: marketplaceState.data.marketplaces,
     scanErrors: installedState.data.scanErrors,
     installedError: installedState.error,
-    recommendedError: recommendedState.error,
+    marketplaceError: marketplaceState.error,
     actionError,
     loadingInstalled: installedState.loading,
-    loadingRecommended: recommendedState.loading,
-    refreshPending: installedState.loading || recommendedState.loading,
+    loadingMarketplace: marketplaceState.loading,
+    refreshPending: installedState.loading || marketplaceState.loading || upgradePending,
     pendingPaths,
-    installingIds,
+    pendingPluginIds,
+    upgradePending,
+    setActiveTab,
     setQuery,
+    setMarketplaceFilter,
+    setPluginStatusFilter,
     refresh,
     toggleSkillEnabled,
-    installMarketplaceSkill,
+    installMarketplacePluginCard,
+    uninstallMarketplacePluginCard,
+    toggleMarketplacePluginEnabled,
+    upgradeMarketplaceCatalog,
   };
-}
-
-function getRecommendedUnavailableReason(
-  authStatus: "unknown" | "authenticated" | "needs_login",
-  authMode: AuthMode | null,
-): string | null {
-  if (authStatus === "needs_login") {
-    return "推荐插件仅支持 ChatGPT 登录。请先完成 ChatGPT 登录后再刷新。";
-  }
-  if (authStatus === "unknown") {
-    return "正在检测认证状态，暂时无法加载推荐插件。";
-  }
-  if (authMode === "chatgpt" || authMode === "chatgptAuthTokens") {
-    return null;
-  }
-  return "推荐插件仅支持 ChatGPT 登录；当前是 API Key 认证，官方插件市场链路不可用。";
 }
 
 function createAsyncState<T>(data: T): AsyncState<T> {

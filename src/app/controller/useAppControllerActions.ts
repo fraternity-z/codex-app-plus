@@ -32,10 +32,21 @@ import type {
   ConfigReadResponse,
   ConfigBatchWriteParams,
   ConfigValueWriteParams,
+  ConfigWriteResponse,
+  MarketplaceAddParams,
+  MarketplaceAddResponse,
+  MarketplaceRemoveParams,
+  MarketplaceRemoveResponse,
+  MarketplaceUpgradeParams,
+  MarketplaceUpgradeResponse,
   PluginInstallParams,
   PluginInstallResponse,
   PluginListParams,
   PluginListResponse,
+  PluginReadParams,
+  PluginReadResponse,
+  PluginUninstallParams,
+  PluginUninstallResponse,
   SkillsConfigWriteParams,
   SkillsConfigWriteResponse,
   SkillsListParams,
@@ -155,11 +166,35 @@ export function useAppControllerActions({
   const listMarketplacePlugins = useCallback((params: PluginListParams) => (
     client.request("plugin/list", params) as Promise<PluginListResponse>
   ), [client]);
+  const addMarketplace = useCallback((params: MarketplaceAddParams) => (
+    client.request("marketplace/add", params) as Promise<MarketplaceAddResponse>
+  ), [client]);
+  const removeMarketplace = useCallback((params: MarketplaceRemoveParams) => (
+    client.request("marketplace/remove", params) as Promise<MarketplaceRemoveResponse>
+  ), [client]);
+  const upgradeMarketplaces = useCallback((params: MarketplaceUpgradeParams) => (
+    client.request("marketplace/upgrade", params) as Promise<MarketplaceUpgradeResponse>
+  ), [client]);
+  const readMarketplacePlugin = useCallback((params: PluginReadParams) => (
+    client.request("plugin/read", params) as Promise<PluginReadResponse>
+  ), [client]);
   const writeSkillConfig = useCallback((params: SkillsConfigWriteParams) => (
     client.request("skills/config/write", params) as Promise<SkillsConfigWriteResponse>
   ), [client]);
   const installMarketplacePlugin = useCallback((params: PluginInstallParams) => (
     client.request("plugin/install", params) as Promise<PluginInstallResponse>
+  ), [client]);
+  const uninstallMarketplacePlugin = useCallback((params: PluginUninstallParams) => (
+    client.request("plugin/uninstall", params) as Promise<PluginUninstallResponse>
+  ), [client]);
+  const setMarketplacePluginEnabled = useCallback((pluginId: string, enabled: boolean) => (
+    client.request("config/value/write", {
+      keyPath: `plugins.${pluginId}`,
+      value: { enabled },
+      mergeStrategy: "upsert",
+      filePath: null,
+      expectedVersion: null,
+    }) as Promise<ConfigWriteResponse>
   ), [client]);
   const setMultiAgentEnabled = useCallback(async (enabled: boolean) => {
     await runBusy(async () => {
@@ -227,6 +262,7 @@ export function useAppControllerActions({
   }, [agentEnvironment, allowlistRef, client, dispatch, hostBridge, pendingRequestsRef]);
 
   return {
+    addMarketplace,
     archiveThread,
     batchWriteConfig,
     batchWriteConfigSnapshot,
@@ -240,8 +276,11 @@ export function useAppControllerActions({
     refreshAuthState,
     refreshConfigSnapshot,
     refreshMcpData,
+    readMarketplacePlugin,
+    removeMarketplace,
     resolveServerRequest,
     resetMemories,
+    setMarketplacePluginEnabled,
     setMultiAgentEnabled,
     setThreadMemoryMode,
     getAgentsSettings,
@@ -251,6 +290,8 @@ export function useAppControllerActions({
     readAgentConfig,
     writeAgentConfig,
     unarchiveThread,
+    uninstallMarketplacePlugin,
+    upgradeMarketplaces,
     writeConfigValue,
     writeSkillConfig,
   };

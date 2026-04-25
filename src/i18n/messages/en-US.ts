@@ -529,7 +529,7 @@ export const enUS = {
     sidebar: {
       newThread: "New thread",
       search: "Search",
-      skills: "Skills",
+      skills: "Plugins",
       settings: "Settings",
       closeMenu: "Close menu",
       searchDialog: {
@@ -827,15 +827,46 @@ export const enUS = {
       },
     },
     skills: {
-      title: "Skills",
+      title: "Let Codex work your way",
       subtitle: "Empower Codex with stronger capabilities.",
       learnMore: "Learn more",
       back: "← Back to app",
       refresh: "Refresh",
       refreshing: "Refreshing",
-      search: "Search skills",
-      newSkill: "+ New skill",
-      newSkillDisabled: "Local skill creation not yet available",
+      search: "Search",
+      searchPlugins: "Search plugins",
+      searchSkills: "Search skills",
+      create: "Create",
+      createDisabled: "Creating custom plugins from the marketplace screen is not available yet.",
+      tabs: {
+        label: "Marketplace section",
+        plugins: "Plugins",
+        skills: "Skills",
+      },
+      manage: {
+        action: "Manage",
+        updating: "Updating",
+      },
+      filters: {
+        marketplace: "Marketplace",
+        status: "Plugin status",
+        allMarketplaces: "All marketplaces",
+        all: "All",
+        installed: "Installed",
+        available: "Available",
+      },
+      hero: {
+        try: "Try in conversation",
+      },
+      sections: {
+        featured: "Featured",
+      },
+      marketplace: {
+        empty: "No matching plugins.",
+        loadingTitle: "Loading plugins",
+        loadingDetail: "Please wait, fetching the latest plugin catalog from the official app-server protocol.",
+        errorTitle: "Unable to load plugins",
+      },
       installed: {
         title: "Installed",
         empty: "No matching installed skills found.",
@@ -855,6 +886,12 @@ export const enUS = {
       card: {
         install: "Install",
         installing: "Installing",
+        uninstall: "Uninstall",
+        notAvailable: "Not available",
+        installPlugin: "Install {name}",
+        uninstallPlugin: "Uninstall {name}",
+        enablePlugin: "Enable {name}",
+        disablePlugin: "Disable {name}",
         enabled: "enabled",
         disabled: "disabled",
         scopeRepo: "Repo",
