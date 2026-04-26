@@ -11,9 +11,14 @@ Add-Type -AssemblyName System.Drawing
 
 Add-Type -TypeDefinition @"
 using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 public static class OCUWin32 {
+    private const UInt32 INPUT_KEYBOARD = 1;
+    private const UInt32 KEYEVENTF_EXTENDEDKEY = 0x0001;
+    private const UInt32 KEYEVENTF_KEYUP = 0x0002;
+
     [StructLayout(LayoutKind.Sequential)]
     public struct RECT {
         public int Left;
@@ -28,11 +33,44 @@ public static class OCUWin32 {
         public int Y;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct INPUT {
+        public UInt32 type;
+        public INPUTUNION U;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct INPUTUNION {
+        [FieldOffset(0)]
+        public KEYBDINPUT ki;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KEYBDINPUT {
+        public UInt16 wVk;
+        public UInt16 wScan;
+        public UInt32 dwFlags;
+        public UInt32 time;
+        public IntPtr dwExtraInfo;
+    }
+
     [DllImport("user32.dll")]
     public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
 
     [DllImport("user32.dll")]
     public static extern bool ScreenToClient(IntPtr hWnd, ref POINT point);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern UInt32 GetWindowThreadProcessId(IntPtr hWnd, out int processId);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern UInt32 SendInput(UInt32 nInputs, INPUT[] pInputs, int cbSize);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern bool PostMessage(IntPtr hWnd, UInt32 msg, IntPtr wParam, IntPtr lParam);
@@ -42,6 +80,64 @@ public static class OCUWin32 {
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     public static extern IntPtr SendMessage(IntPtr hWnd, UInt32 msg, IntPtr wParam, string lParam);
+
+    public static void SendKeyboardChord(UInt16[] virtualKeys) {
+        if (virtualKeys == null || virtualKeys.Length == 0) {
+            throw new ArgumentException("No virtual keys were provided.", "virtualKeys");
+        }
+
+        INPUT[] inputs = new INPUT[virtualKeys.Length * 2];
+        int index = 0;
+        for (int i = 0; i < virtualKeys.Length; i++) {
+            inputs[index++] = CreateKeyboardInput(virtualKeys[i], false);
+        }
+        for (int i = virtualKeys.Length - 1; i >= 0; i--) {
+            inputs[index++] = CreateKeyboardInput(virtualKeys[i], true);
+        }
+
+        UInt32 sent = SendInput((UInt32)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
+        if (sent != (UInt32)inputs.Length) {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "SendInput did not send the complete keyboard chord.");
+        }
+    }
+
+    private static INPUT CreateKeyboardInput(UInt16 virtualKey, bool keyUp) {
+        UInt32 flags = keyUp ? KEYEVENTF_KEYUP : 0;
+        if (IsExtendedKey(virtualKey)) {
+            flags |= KEYEVENTF_EXTENDEDKEY;
+        }
+
+        INPUT input = new INPUT();
+        input.type = INPUT_KEYBOARD;
+        input.U.ki.wVk = virtualKey;
+        input.U.ki.wScan = 0;
+        input.U.ki.dwFlags = flags;
+        input.U.ki.time = 0;
+        input.U.ki.dwExtraInfo = IntPtr.Zero;
+        return input;
+    }
+
+    private static bool IsExtendedKey(UInt16 virtualKey) {
+        switch (virtualKey) {
+            case 0x21:
+            case 0x22:
+            case 0x23:
+            case 0x24:
+            case 0x25:
+            case 0x26:
+            case 0x27:
+            case 0x28:
+            case 0x2D:
+            case 0x2E:
+            case 0x5B:
+            case 0x5C:
+            case 0xA3:
+            case 0xA5:
+                return true;
+            default:
+                return false;
+        }
+    }
 }
 "@
 
@@ -252,32 +348,121 @@ function Get-VirtualKey([string]$key) {
     throw "Unsupported key: $key"
 }
 
-function Send-Key([IntPtr]$hwnd, [string]$key) {
-    $parts = $key -split "\+"
-    $main = $parts[$parts.Length - 1]
-    $modifiers = @()
-    for ($i = 0; $i -lt $parts.Length - 1; $i++) {
-        switch ($parts[$i].ToLowerInvariant()) {
-            "ctrl" { $modifiers += 0x11 }
-            "control" { $modifiers += 0x11 }
-            "shift" { $modifiers += 0x10 }
-            "alt" { $modifiers += 0x12 }
-            "super" { $modifiers += 0x5B }
-            "win" { $modifiers += 0x5B }
-            "cmd" { $modifiers += 0x5B }
+function Get-ModifierVirtualKey([string]$modifier) {
+    switch ($modifier.Trim().ToLowerInvariant()) {
+        "ctrl" { return 0x11 }
+        "control" { return 0x11 }
+        "ctrl_l" { return 0x11 }
+        "ctrl_r" { return 0x11 }
+        "control_l" { return 0x11 }
+        "control_r" { return 0x11 }
+        "shift" { return 0x10 }
+        "shift_l" { return 0x10 }
+        "shift_r" { return 0x10 }
+        "alt" { return 0x12 }
+        "alt_l" { return 0x12 }
+        "alt_r" { return 0x12 }
+        "super" { return 0x5B }
+        "super_l" { return 0x5B }
+        "super_r" { return 0x5B }
+        "win" { return 0x5B }
+        "win_l" { return 0x5B }
+        "win_r" { return 0x5B }
+        "cmd" { return 0x5B }
+        "cmd_l" { return 0x5B }
+        "cmd_r" { return 0x5B }
+        default {
+            throw "Unsupported key modifier: $modifier"
         }
     }
-    foreach ($modifier in $modifiers) {
+}
+
+function ConvertTo-KeyChord([string]$key) {
+    $parts = @($key -split "\+")
+    if ($parts.Count -eq 0) {
+        throw "Unsupported key: $key"
+    }
+
+    $main = $parts[$parts.Length - 1].Trim()
+    if ([string]::IsNullOrWhiteSpace($main)) {
+        throw "Unsupported key: $key"
+    }
+
+    $modifiers = @()
+    for ($i = 0; $i -lt $parts.Length - 1; $i++) {
+        $modifiers += Get-ModifierVirtualKey $parts[$i]
+    }
+
+    [pscustomobject]@{
+        modifiers = $modifiers
+        main = Get-VirtualKey $main
+    }
+}
+
+function Test-ProcessForeground($process) {
+    $foreground = [OCUWin32]::GetForegroundWindow()
+    if ($foreground -eq [IntPtr]::Zero) {
+        return $false
+    }
+
+    $foregroundPid = 0
+    [void][OCUWin32]::GetWindowThreadProcessId($foreground, [ref]$foregroundPid)
+    return $foregroundPid -eq $process.Id
+}
+
+function Ensure-KeyboardInputTarget($process, [IntPtr]$hwnd) {
+    if (Test-ProcessForeground $process) {
+        return $true
+    }
+
+    if (-not (Test-EnvFlagEnabled "OPEN_COMPUTER_USE_WINDOWS_ALLOW_FOCUS_ACTIONS")) {
+        return $false
+    }
+
+    [void][OCUWin32]::SetForegroundWindow($hwnd)
+    for ($i = 0; $i -lt 10; $i++) {
+        Start-Sleep -Milliseconds 50
+        if (Test-ProcessForeground $process) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Send-PostedKey([IntPtr]$hwnd, $chord) {
+    foreach ($modifier in $chord.modifiers) {
         [void][OCUWin32]::PostMessage($hwnd, $WM_KEYDOWN, [IntPtr]$modifier, [IntPtr]::Zero)
     }
-    $vk = Get-VirtualKey $main
+    $vk = $chord.main
     [void][OCUWin32]::PostMessage($hwnd, $WM_KEYDOWN, [IntPtr]$vk, [IntPtr]::Zero)
     Start-Sleep -Milliseconds 25
     [void][OCUWin32]::PostMessage($hwnd, $WM_KEYUP, [IntPtr]$vk, [IntPtr]::Zero)
-    [array]::Reverse($modifiers)
-    foreach ($modifier in $modifiers) {
-        [void][OCUWin32]::PostMessage($hwnd, $WM_KEYUP, [IntPtr]$modifier, [IntPtr]::Zero)
+    for ($i = $chord.modifiers.Count - 1; $i -ge 0; $i--) {
+        [void][OCUWin32]::PostMessage($hwnd, $WM_KEYUP, [IntPtr]$chord.modifiers[$i], [IntPtr]::Zero)
     }
+}
+
+function Send-KeyChordWithInput($chord) {
+    $keys = [UInt16[]]::new($chord.modifiers.Count + 1)
+    for ($i = 0; $i -lt $chord.modifiers.Count; $i++) {
+        $keys[$i] = [UInt16]$chord.modifiers[$i]
+    }
+    $keys[$chord.modifiers.Count] = [UInt16]$chord.main
+    [OCUWin32]::SendKeyboardChord($keys)
+}
+
+function Send-Key($process, [IntPtr]$hwnd, [string]$key) {
+    $chord = ConvertTo-KeyChord $key
+    if ($chord.modifiers.Count -eq 0) {
+        Send-PostedKey $hwnd $chord
+        return
+    }
+
+    if (-not (Ensure-KeyboardInputTarget $process $hwnd)) {
+        throw "Modifier key combinations require the target app to be foreground; activate the app first or set OPEN_COMPUTER_USE_WINDOWS_ALLOW_FOCUS_ACTIONS=1 to allow Computer Use to bring it forward before pressing '$key'."
+    }
+
+    Send-KeyChordWithInput $chord
 }
 
 function Resolve-App([string]$query) {
@@ -902,7 +1087,7 @@ try {
                 }
             }
             "press_key" {
-                Send-Key $hwnd $operation.key
+                Send-Key $process $hwnd $operation.key
             }
             "set_value" {
                 if ($null -eq $element) { throw "unknown element_index '$($operation.element.index)'" }

@@ -239,12 +239,12 @@ mod tests {
 
     #[test]
     fn plugin_cache_root_matches_codex_store_layout() {
-        let root = plugin_cache_root(std::path::Path::new(r"C:\Users\me\.codex"), "0.1.36");
+        let root = plugin_cache_root(std::path::Path::new(r"C:\Users\me\.codex"), "0.1.38");
 
         assert_eq!(
             root,
             std::path::PathBuf::from(
-                r"C:\Users\me\.codex\plugins\cache\codex-app-plus-bundled\computer-use\0.1.36"
+                r"C:\Users\me\.codex\plugins\cache\codex-app-plus-bundled\computer-use\0.1.38"
             )
         );
     }
