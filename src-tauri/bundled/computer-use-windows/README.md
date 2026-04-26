@@ -15,4 +15,8 @@ Rebuild the runtime after changing `runtime/`:
 .\src-tauri\bundled\computer-use-windows\build.ps1
 ```
 
-Codex App Plus materializes this whole folder into a versioned local app data directory at startup and writes the required `marketplaces.codex-app-plus-bundled` / `plugins."computer-use@codex-app-plus-bundled"` entries into `~/.codex/config.toml` before starting `codex app-server`.
+Codex App Plus materializes this whole folder into a versioned local app data directory at startup, installs `plugins/computer-use/` into the Codex plugin cache at `~/.codex/plugins/cache/codex-app-plus-bundled/computer-use/<version>/`, and writes the required `marketplaces.codex-app-plus-bundled` / `plugins."computer-use@codex-app-plus-bundled"` entries into `~/.codex/config.toml` before starting `codex app-server`.
+
+## Attribution
+
+The Windows Computer Use runtime and plugin packaging in this module are based on and adapted from [iFurySt/open-codex-computer-use](https://github.com/iFurySt/open-codex-computer-use), which is licensed under the MIT License. Keep this attribution and the third-party license notice when modifying or redistributing this module. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).

@@ -11,6 +11,7 @@ use crate::models::AgentEnvironment;
 
 const MODULE_RESOURCE_PATH: &str = "bundled/computer-use-windows";
 const MARKETPLACE_NAME: &str = "codex-app-plus-bundled";
+const PLUGIN_NAME: &str = "computer-use";
 const PLUGIN_ID: &str = "computer-use@codex-app-plus-bundled";
 const PLUGIN_RELATIVE_PATH: &str = "plugins/computer-use";
 const USER_CONFIG_PATH: &str = ".codex/config.toml";
@@ -26,6 +27,14 @@ pub fn ensure_registered(app: &AppHandle, agent_environment: AgentEnvironment) -
     materialize_module(&source_root, &install_root)?;
 
     let config_path = resolve_codex_home_relative_path(agent_environment, USER_CONFIG_PATH)?;
+    let codex_home = config_path.host_path.parent().ok_or_else(|| {
+        AppError::InvalidInput(format!(
+            "无法解析 Codex home: {}",
+            config_path.host_path.display()
+        ))
+    })?;
+    let plugin_cache_root = plugin_cache_root(codex_home, &plugin_version);
+    materialize_plugin_cache(&install_root, &plugin_cache_root)?;
     register_marketplace_in_config(&config_path.host_path, &install_root)
 }
 
@@ -48,12 +57,13 @@ fn resolve_module_source_root(app: &AppHandle) -> AppResult<PathBuf> {
 
 fn is_module_root(path: &Path) -> bool {
     path.join(".agents/plugins/marketplace.json").is_file()
-        && path.join(PLUGIN_RELATIVE_PATH).join(".codex-plugin/plugin.json").is_file()
-        && path.join(PLUGIN_RELATIVE_PATH).join(".mcp.json").is_file()
-        && path
-            .join(PLUGIN_RELATIVE_PATH)
-            .join("open-computer-use.exe")
-            .is_file()
+        && is_plugin_root(&path.join(PLUGIN_RELATIVE_PATH))
+}
+
+fn is_plugin_root(path: &Path) -> bool {
+    path.join(".codex-plugin/plugin.json").is_file()
+        && path.join(".mcp.json").is_file()
+        && path.join("open-computer-use.exe").is_file()
 }
 
 fn read_plugin_version(module_root: &Path) -> AppResult<String> {
@@ -93,6 +103,37 @@ fn materialize_module(source_root: &Path, install_root: &Path) -> AppResult<()> 
         fs::remove_dir_all(install_root)?;
     }
     copy_directory(source_root, install_root)
+}
+
+fn plugin_cache_root(codex_home: &Path, plugin_version: &str) -> PathBuf {
+    codex_home
+        .join("plugins")
+        .join("cache")
+        .join(MARKETPLACE_NAME)
+        .join(PLUGIN_NAME)
+        .join(plugin_version)
+}
+
+fn materialize_plugin_cache(marketplace_root: &Path, plugin_cache_root: &Path) -> AppResult<()> {
+    if is_plugin_root(plugin_cache_root) {
+        return Ok(());
+    }
+
+    let plugin_source_root = marketplace_root.join(PLUGIN_RELATIVE_PATH);
+    if !is_plugin_root(&plugin_source_root) {
+        return Err(AppError::InvalidInput(format!(
+            "Bundled Computer Use plugin is missing: {}",
+            plugin_source_root.display()
+        )));
+    }
+
+    if let Some(plugin_base_root) = plugin_cache_root.parent() {
+        if plugin_base_root.exists() {
+            fs::remove_dir_all(plugin_base_root)?;
+        }
+    }
+
+    copy_directory(&plugin_source_root, plugin_cache_root)
 }
 
 fn copy_directory(source: &Path, destination: &Path) -> AppResult<()> {
@@ -163,13 +204,15 @@ fn normalize_path_for_toml(path: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{update_config, MARKETPLACE_NAME, PLUGIN_ID};
+    use super::{plugin_cache_root, update_config, MARKETPLACE_NAME, PLUGIN_ID};
 
     #[test]
     fn update_config_adds_bundled_marketplace_and_plugin() {
         let updated = update_config(
             "model = \"gpt-5.4\"\n",
-            std::path::Path::new(r"C:\Users\me\AppData\Local\CodexAppPlus\bundled-plugins\computer-use-windows"),
+            std::path::Path::new(
+                r"C:\Users\me\AppData\Local\CodexAppPlus\bundled-plugins\computer-use-windows",
+            ),
         )
         .expect("update config");
 
@@ -192,5 +235,17 @@ mod tests {
 
         assert!(updated.contains(&format!("[marketplaces.{MARKETPLACE_NAME}]")));
         assert!(updated.contains(&format!("[plugins.\"{PLUGIN_ID}\"]")));
+    }
+
+    #[test]
+    fn plugin_cache_root_matches_codex_store_layout() {
+        let root = plugin_cache_root(std::path::Path::new(r"C:\Users\me\.codex"), "0.1.36");
+
+        assert_eq!(
+            root,
+            std::path::PathBuf::from(
+                r"C:\Users\me\.codex\plugins\cache\codex-app-plus-bundled\computer-use\0.1.36"
+            )
+        );
     }
 }
