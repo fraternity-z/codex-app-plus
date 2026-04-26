@@ -1,10 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useEffect, useMemo, useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ComposerPermissionLevel } from "../model/composerPermission";
 import type { ComposerModelOption } from "../model/composerPreferences";
 import type { CustomPromptOutput } from "../../../bridge/types";
-import { AppStoreProvider, useAppStore } from "../../../state/store";
+import { AppStoreProvider, useAppSelector, useAppStore } from "../../../state/store";
 import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import { HomeComposer } from "./HomeComposer";
 import { INIT_COMMAND_PROMPT } from "../service/composerInitCommand";
@@ -105,8 +105,105 @@ function ComposerHarness(props: {
 }
 
 function renderHarness(props?: Parameters<typeof ComposerHarness>[0]) {
-  return render(<AppStoreProvider><ComposerHarness {...props} /></AppStoreProvider>, { wrapper: createI18nWrapper("en-US") });
+  function BannerProbe(): JSX.Element | null {
+    const latestBanner = useAppSelector((state) => state.banners[0] ?? null);
+    return latestBanner === null ? null : <span>{latestBanner.detail ?? latestBanner.title}</span>;
+  }
+
+  return render(<AppStoreProvider><ComposerHarness {...props} /><BannerProbe /></AppStoreProvider>, { wrapper: createI18nWrapper("en-US") });
 }
+
+class MockSpeechRecognition {
+  static instances: MockSpeechRecognition[] = [];
+
+  continuous = false;
+  interimResults = false;
+  lang = "";
+  maxAlternatives = 0;
+  onresult: ((event: { readonly resultIndex: number; readonly results: { readonly length: number; readonly [index: number]: { readonly isFinal: boolean; readonly 0?: { readonly transcript: string } } } }) => void) | null = null;
+  onerror: ((event: { readonly error?: string; readonly message?: string }) => void) | null = null;
+  onend: (() => void) | null = null;
+  start = vi.fn();
+  stop = vi.fn(() => this.onend?.());
+  abort = vi.fn();
+
+  constructor() {
+    MockSpeechRecognition.instances.push(this);
+  }
+
+  emitResult(transcript: string, isFinal = true): void {
+    this.onresult?.({
+      resultIndex: 0,
+      results: [
+        {
+          isFinal,
+          0: { transcript },
+        },
+      ],
+    });
+  }
+
+  emitError(error: string, message?: string): void {
+    this.onerror?.({ error, message });
+  }
+}
+
+function setGlobalProperty(name: string, value: unknown): () => void {
+  const hadValue = Object.prototype.hasOwnProperty.call(globalThis, name);
+  const previousValue = Reflect.get(globalThis, name);
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    writable: true,
+    value,
+  });
+  return () => {
+    if (hadValue) {
+      Object.defineProperty(globalThis, name, {
+        configurable: true,
+        writable: true,
+        value: previousValue,
+      });
+      return;
+    }
+    Reflect.deleteProperty(globalThis, name);
+  };
+}
+
+function setObjectProperty(target: object, name: string, value: unknown): () => void {
+  const hadValue = Object.prototype.hasOwnProperty.call(target, name);
+  const previousValue = Reflect.get(target, name);
+  Object.defineProperty(target, name, {
+    configurable: true,
+    writable: true,
+    value,
+  });
+  return () => {
+    if (hadValue) {
+      Object.defineProperty(target, name, {
+        configurable: true,
+        writable: true,
+        value: previousValue,
+      });
+      return;
+    }
+    Reflect.deleteProperty(target, name);
+  };
+}
+
+function installMockSpeechRecognition(): () => void {
+  MockSpeechRecognition.instances = [];
+  const restoreSpeechRecognition = setGlobalProperty("SpeechRecognition", undefined);
+  const restoreWebkitSpeechRecognition = setGlobalProperty("webkitSpeechRecognition", MockSpeechRecognition);
+  return () => {
+    restoreSpeechRecognition();
+    restoreWebkitSpeechRecognition();
+    MockSpeechRecognition.instances = [];
+  };
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("HomeComposer commands", () => {
   it("executes /init by sending the official init prompt and clears the input", async () => {
@@ -441,5 +538,123 @@ describe("HomeComposer commands", () => {
     fireEvent.change(textarea, { target: { value: "@app", selectionStart: 4 } });
 
     await waitFor(() => expect(screen.getAllByText("Choose a workspace before using @ file mentions.").length).toBeGreaterThan(0));
+  });
+
+  it("disables dictation when speech recognition is unavailable", () => {
+    renderHarness();
+
+    expect(screen.getByRole("button", { name: "Dictation unavailable" })).toBeDisabled();
+  });
+
+  it("starts dictation and inserts recognized speech into the composer", async () => {
+    const restoreSpeechRecognition = installMockSpeechRecognition();
+    try {
+      renderHarness();
+      const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+      fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
+
+      await waitFor(() => expect(MockSpeechRecognition.instances).toHaveLength(1));
+      expect(MockSpeechRecognition.instances[0].continuous).toBe(true);
+      expect(MockSpeechRecognition.instances[0].interimResults).toBe(false);
+      expect(MockSpeechRecognition.instances[0].lang).toBe("en-US");
+
+      act(() => MockSpeechRecognition.instances[0].emitResult("hello world"));
+
+      await waitFor(() => expect(textarea.value).toBe("hello world"));
+      expect(screen.getByRole("button", { name: "Stop dictation" })).toBeInTheDocument();
+    } finally {
+      restoreSpeechRecognition();
+    }
+  });
+
+  it("appends dictated text with natural spacing", async () => {
+    const restoreSpeechRecognition = installMockSpeechRecognition();
+    try {
+      renderHarness();
+      const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+      fireEvent.change(textarea, { target: { value: "Review", selectionStart: 6 } });
+      fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
+      await waitFor(() => expect(MockSpeechRecognition.instances).toHaveLength(1));
+      act(() => MockSpeechRecognition.instances[0].emitResult("the diff"));
+
+      await waitFor(() => expect(textarea.value).toBe("Review the diff"));
+    } finally {
+      restoreSpeechRecognition();
+    }
+  });
+
+  it("stops an active dictation session from the microphone button", async () => {
+    const restoreSpeechRecognition = installMockSpeechRecognition();
+    try {
+      renderHarness();
+
+      fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
+      await waitFor(() => expect(MockSpeechRecognition.instances).toHaveLength(1));
+      const recognition = MockSpeechRecognition.instances[0];
+
+      fireEvent.click(screen.getByRole("button", { name: "Stop dictation" }));
+
+      expect(recognition.stop).toHaveBeenCalled();
+      await waitFor(() => expect(screen.getByRole("button", { name: "Start dictation" })).toBeInTheDocument());
+    } finally {
+      restoreSpeechRecognition();
+    }
+  });
+
+  it("requests microphone access before starting speech recognition", async () => {
+    const restoreSpeechRecognition = installMockSpeechRecognition();
+    const stopTrack = vi.fn();
+    const getUserMedia = vi.fn().mockResolvedValue({
+      getTracks: () => [{ stop: stopTrack }],
+    });
+    const restoreMediaDevices = setObjectProperty(navigator, "mediaDevices", { getUserMedia });
+    try {
+      renderHarness();
+
+      fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
+
+      await waitFor(() => expect(getUserMedia).toHaveBeenCalledWith({ audio: true }));
+      await waitFor(() => expect(MockSpeechRecognition.instances).toHaveLength(1));
+      expect(MockSpeechRecognition.instances[0].start).toHaveBeenCalled();
+      expect(stopTrack).toHaveBeenCalled();
+    } finally {
+      restoreMediaDevices();
+      restoreSpeechRecognition();
+    }
+  });
+
+  it("shows an actionable permission message without starting recognition when microphone access is denied", async () => {
+    const restoreSpeechRecognition = installMockSpeechRecognition();
+    const getUserMedia = vi.fn().mockRejectedValue(new DOMException("denied", "NotAllowedError"));
+    const restoreMediaDevices = setObjectProperty(navigator, "mediaDevices", { getUserMedia });
+    try {
+      renderHarness();
+
+      fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
+
+      await waitFor(() => expect(screen.getByText(/Microphone access is blocked/)).toBeInTheDocument());
+      expect(MockSpeechRecognition.instances).toHaveLength(0);
+    } finally {
+      restoreMediaDevices();
+      restoreSpeechRecognition();
+    }
+  });
+
+  it("shows an actionable permission message when speech recognition denies microphone access", async () => {
+    const restoreSpeechRecognition = installMockSpeechRecognition();
+    try {
+      renderHarness();
+
+      fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
+      await waitFor(() => expect(MockSpeechRecognition.instances).toHaveLength(1));
+
+      act(() => MockSpeechRecognition.instances[0].emitError("not-allowed", "Microphone permission was denied."));
+
+      await waitFor(() => expect(screen.getByText(/Microphone access is blocked/)).toBeInTheDocument());
+    } finally {
+      restoreSpeechRecognition();
+    }
   });
 });

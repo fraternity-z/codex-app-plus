@@ -18,6 +18,7 @@ mod error;
 mod events;
 mod git;
 mod global_agent_instructions;
+mod media_permissions;
 mod models;
 mod process_manager;
 mod process_supervisor;
@@ -78,6 +79,7 @@ fn main() {
             #[cfg(target_os = "windows")]
             if let Some(main_window) = app.get_webview_window("main") {
                 let _ = main_window.set_decorations(false);
+                media_permissions::allow_microphone_capture(&main_window);
             }
             Ok(())
         })

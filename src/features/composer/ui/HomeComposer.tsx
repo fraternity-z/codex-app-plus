@@ -21,6 +21,7 @@ import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { OfficialPlusIcon } from "../../shared/ui/officialIcons";
 import { useComposerCommandPalette } from "../hooks/useComposerCommandPalette";
+import { isDictationPermissionDeniedError, useComposerDictation } from "../hooks/useComposerDictation";
 import { useComposerSelectionPersistence } from "../hooks/useComposerSelectionPersistence";
 import { useComposerAttachments } from "../hooks/useComposerAttachments";
 import { useComposerTextareaAutosize } from "../hooks/useComposerTextareaAutosize";
@@ -72,8 +73,8 @@ export interface HomeComposerProps {
 }
 
 export function HomeComposer(props: HomeComposerProps): JSX.Element {
-  const { t } = useI18n();
-  const { reportError } = useUiBannerNotifications("composer");
+  const { locale, t } = useI18n();
+  const { pushBanner, reportError } = useUiBannerNotifications("composer");
   const defaultServiceTier = props.defaultServiceTier ?? null;
   const multiAgentAvailable = props.multiAgentAvailable ?? false;
   const multiAgentEnabled = props.multiAgentEnabled ?? false;
@@ -138,6 +139,27 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
   const skillBadgeMatch = useMemo(() => detectSkillBadge(composerBodyText, commandPalette.open), [composerBodyText, commandPalette.open]);
   useComposerTextareaAutosize({ textareaRef: commandPalette.textareaRef, value: composerBodyText, maxExtraRows: MAX_COMPOSER_INPUT_EXTRA_ROWS });
   useToolbarMenuDismissal(commandPalette.open, containerRef, () => void commandPalette.dismiss());
+  const dictation = useComposerDictation({
+    disabled: interactionDisabled,
+    locale,
+    textareaRef: commandPalette.textareaRef,
+    text: composerBodyText,
+    onError: (error) => pushBanner({
+      level: "error",
+      title: t("home.composer.dictationFailed"),
+      detail: isDictationPermissionDeniedError(error)
+        ? t("home.composer.dictationPermissionDenied")
+        : error.message,
+    }),
+    onTextChange: (nextText, caret) => {
+      updateComposerBodyText(nextText);
+      commandPalette.syncFromTextInput(nextText, caret);
+    },
+  });
+  const dictationDisabled = interactionDisabled || dictation.pending || !dictation.supported;
+  const dictationLabel = dictation.supported
+    ? dictation.listening ? t("home.composer.stopDictation") : t("home.composer.startDictation")
+    : t("home.composer.dictationUnavailable");
 
   const { handlePromoteQueuedFollowUp, submit } = useHomeComposerActions({
     attachments,
@@ -153,6 +175,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     promoteFailedMessage: t("home.composer.promoteFailed"),
     reportError,
     sendFailedMessage: t("home.composer.sendFailed"),
+    stopDictation: dictation.stop,
   });
 
   const handleToggleMultiAgent = useCallback(async () => {
@@ -194,9 +217,14 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
               </div>
               <ComposerModelControls disabled={interactionDisabled} collaborationPreset={props.collaborationPreset} models={props.models} selectedModel={composerSelection.selectedModel} selectedEffort={composerSelection.selectedEffort} supportedEfforts={composerSelection.selectedModelOption?.supportedEfforts ?? []} onSelectModel={handleSelectModel} onSelectEffort={handleSelectEffort} />
             </div>
-            <button type="button" className="send-btn" aria-label={buttonLabel} disabled={buttonDisabled} onClick={() => showInterruptAction ? void props.onInterruptTurn() : submit()}>
-              {showInterruptAction ? <PauseResponseIcon className="send-icon" /> : <SendArrowIcon className="send-icon" />}
-            </button>
+            <div className="composer-actions">
+              <button type="button" className={dictation.listening ? "composer-dictation-btn composer-dictation-btn-active" : "composer-dictation-btn"} aria-label={dictationLabel} aria-pressed={dictation.listening} disabled={dictationDisabled} title={dictationLabel} onClick={dictation.toggle}>
+                <MicrophoneIcon className="composer-dictation-icon" />
+              </button>
+              <button type="button" className="send-btn" aria-label={buttonLabel} disabled={buttonDisabled} onClick={() => showInterruptAction ? void props.onInterruptTurn() : submit()}>
+                {showInterruptAction ? <PauseResponseIcon className="send-icon" /> : <SendArrowIcon className="send-icon" />}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -264,8 +292,12 @@ function useHomeComposerActions(args: {
   readonly promoteFailedMessage: string;
   readonly reportError: ReportErrorFn;
   readonly sendFailedMessage: string;
+  readonly stopDictation: () => void;
 }) {
   const submit = useCallback((followUpOverride?: FollowUpMode) => {
+    if (args.canSend) {
+      args.stopDictation();
+    }
     void submitTurn({
       attachments: args.attachments,
       canSend: args.canSend,
@@ -420,4 +452,8 @@ function SendArrowIcon(props: { readonly className?: string }): JSX.Element {
 
 function PauseResponseIcon(props: { readonly className?: string }): JSX.Element {
   return <svg className={props.className} viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5" fill="currentColor" /></svg>;
+}
+
+function MicrophoneIcon(props: { readonly className?: string }): JSX.Element {
+  return <svg className={props.className} viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8a2.1 2.1 0 0 0-2.1 2.1v3.3a2.1 2.1 0 1 0 4.2 0V3.9A2.1 2.1 0 0 0 8 1.8Z" fill="none" stroke="currentColor" strokeWidth="1.35" /><path d="M3.7 6.6v.6a4.3 4.3 0 0 0 8.6 0v-.6M8 11.5v2.7M5.9 14.2h4.2" fill="none" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" /></svg>;
 }
