@@ -28,6 +28,7 @@
   "bundle": {
     "active": true,
     "targets": "nsis",
+    "resources": ["bundled/computer-use-windows"],
     "createUpdaterArtifacts": true
   },
   "plugins": {

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "computer-use": {
+      "command": "./open-computer-use.exe",
+      "args": ["mcp"],
+      "cwd": "."
+    }
+  }
+}

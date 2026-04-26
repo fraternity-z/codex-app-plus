@@ -1,0 +1,37 @@
+{
+  "name": "computer-use",
+  "version": "0.1.36",
+  "description": "Bundled Windows Computer Use MCP server for Codex App Plus.",
+  "author": {
+    "name": "Codex App Plus"
+  },
+  "license": "MIT",
+  "keywords": [
+    "computer-use",
+    "windows",
+    "automation",
+    "mcp"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Computer Use",
+    "shortDescription": "Control Windows apps from Codex",
+    "longDescription": "Computer Use for Windows lets Codex inspect and control desktop apps through a local MCP server. It uses Windows UI Automation first, then Win32 window messages as fallback input when an app does not expose semantic actions.",
+    "developerName": "Codex App Plus",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Inspect the current UI state of a running Windows app before acting",
+      "Use element-targeted interactions before coordinate clicks",
+      "Type into Notepad and verify the updated app state"
+    ],
+    "brandColor": "#0E7490",
+    "composerIcon": "./assets/computer-use-small.svg",
+    "logo": "./assets/computer-use.svg",
+    "screenshots": []
+  }
+}

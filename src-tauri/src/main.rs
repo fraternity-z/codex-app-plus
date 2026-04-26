@@ -6,6 +6,7 @@ mod app_approval_rules;
 mod app_server_io;
 mod app_server_stderr;
 mod app_support;
+mod bundled_computer_use;
 mod codex_auth;
 mod codex_cli;
 mod codex_data;
