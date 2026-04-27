@@ -440,11 +440,12 @@
   position: relative;
   flex: 1;
   min-width: 0;
-  height: 30px;
+  height: 32px;
   display: grid;
-  grid-template-columns: repeat(64, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(2px, 1fr);
   align-items: center;
-  gap: 2px;
+  gap: 1px;
   overflow: hidden;
 }
 .composer-dictation-waveform::before {

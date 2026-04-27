@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { ComposerPermissionLevel } from "../model/composerPermission";
 import type { ComposerModelOption, ComposerSelection } from "../model/composerPreferences";
 import {
@@ -22,6 +22,13 @@ import type { WorkspaceGitController } from "../../git/model/types";
 import { OfficialPlusIcon } from "../../shared/ui/officialIcons";
 import { useComposerCommandPalette } from "../hooks/useComposerCommandPalette";
 import { isDictationPermissionDeniedError, useComposerDictation } from "../hooks/useComposerDictation";
+import {
+  appendDictationWaveSample,
+  createInitialDictationWaveSamples,
+  DICTATION_WAVE_TICK_MS,
+  getDictationWaveSampleHeight,
+  getDictationWaveSampleOpacity,
+} from "../model/dictationWaveform";
 import { useComposerSelectionPersistence } from "../hooks/useComposerSelectionPersistence";
 import { useComposerAttachments } from "../hooks/useComposerAttachments";
 import { useComposerTextareaAutosize } from "../hooks/useComposerTextareaAutosize";
@@ -32,13 +39,6 @@ import { ComposerSkillBadgeOverlay, detectSkillBadge } from "./ComposerSkillBadg
 
 const MIN_TRIMMED_MESSAGE_LENGTH = 1;
 const MAX_COMPOSER_INPUT_EXTRA_ROWS = 3;
-const DICTATION_WAVE_BAR_COUNT = 64;
-const DICTATION_WAVE_BAR_AMPLITUDES = Array.from({ length: DICTATION_WAVE_BAR_COUNT }, (_, index) => {
-  const primaryWave = (Math.sin(index * 0.74) + 1) / 2;
-  const secondaryWave = (Math.sin(index * 1.91) + 1) / 2;
-  return 0.28 + primaryWave * 0.42 + secondaryWave * 0.3;
-});
-const DICTATION_WAVE_ACTIVE_CENTER = Math.floor(DICTATION_WAVE_BAR_COUNT * 0.72);
 type ReportErrorFn = ReturnType<typeof useUiBannerNotifications>["reportError"];
 
 export interface HomeComposerProps {
@@ -379,15 +379,28 @@ function getComposerPlaceholder(selectedRootPath: string | null): string {
 
 function ComposerDictationWaveform(props: { readonly audioLevel: number }): JSX.Element {
   const audioLevel = Math.max(0, Math.min(1, props.audioLevel));
-  const speaking = audioLevel >= 0.04;
+  const audioLevelRef = useRef(audioLevel);
+  const tickRef = useRef(0);
+  const [samples, setSamples] = useState(createInitialDictationWaveSamples);
+  const speaking = audioLevel >= 0.04 || samples.some((sample) => sample.level >= 0.04);
+
+  useEffect(() => {
+    audioLevelRef.current = audioLevel;
+  }, [audioLevel]);
+
+  useEffect(() => {
+    const intervalId = globalThis.setInterval(() => {
+      tickRef.current += 1;
+      setSamples((currentSamples) => appendDictationWaveSample(currentSamples, audioLevelRef.current, tickRef.current));
+    }, DICTATION_WAVE_TICK_MS);
+    return () => globalThis.clearInterval(intervalId);
+  }, []);
+
   return (
     <div className="composer-dictation-waveform" data-speaking={speaking ? "true" : "false"} data-testid="composer-dictation-waveform" aria-hidden="true">
-      {DICTATION_WAVE_BAR_AMPLITUDES.map((amplitude, index) => {
-        const distanceFromVoice = Math.abs(index - DICTATION_WAVE_ACTIVE_CENTER);
-        const voiceInfluence = Math.max(0, 1 - distanceFromVoice / 8);
-        const idleAccent = index % 13 === 0 ? 1 : 0;
-        const height = 1.5 + idleAccent + audioLevel * voiceInfluence * (8 + amplitude * 28);
-        const opacity = audioLevel < 0.04 ? 0 : 0.12 + voiceInfluence * 0.76;
+      {samples.map((sample, index) => {
+        const height = getDictationWaveSampleHeight(sample);
+        const opacity = getDictationWaveSampleOpacity(sample);
         return <span key={index} className="composer-dictation-waveform-bar" style={{ height: `${height}px`, opacity }} />;
       })}
     </div>
