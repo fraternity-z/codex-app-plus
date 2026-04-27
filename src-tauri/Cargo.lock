@@ -460,6 +460,7 @@ dependencies = [
 name = "codex-app-plus"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "dirs",
  "fs2",
  "open",

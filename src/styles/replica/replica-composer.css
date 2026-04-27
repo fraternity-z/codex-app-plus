@@ -414,11 +414,60 @@
   justify-content: space-between;
   padding: 0 10px;
 }
+.composer-bar-dictating {
+  gap: 10px;
+}
 .composer-left {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+.composer-dictation-recording-left {
+  flex: 1;
+  gap: 10px;
+}
+.composer-bar-dictating .composer-mini-btn {
+  border-color: transparent;
+  background: transparent;
+  color: #b5b5b5;
+}
+.composer-bar-dictating .composer-mini-btn:hover {
+  background: transparent;
+  color: #7f7f7f;
+}
+.composer-dictation-waveform {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  display: grid;
+  grid-template-columns: repeat(64, minmax(0, 1fr));
+  align-items: center;
+  gap: 2px;
+  overflow: hidden;
+}
+.composer-dictation-waveform::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px dashed #c6c6c6;
+  transform: translateY(-50%);
+}
+.composer-dictation-waveform-bar {
+  position: relative;
+  z-index: 1;
+  justify-self: center;
+  width: 2px;
+  min-height: 2px;
+  border-radius: 999px;
+  background: #1f1f1f;
+  transition: height 80ms ease, background-color 80ms ease, opacity 80ms ease;
+}
+.composer-dictation-waveform[data-speaking="true"] .composer-dictation-waveform-bar {
+  background: #1f1f1f;
 }
 .composer-plus-anchor {
   position: relative;
@@ -685,6 +734,48 @@
   gap: 8px;
   flex-shrink: 0;
 }
+.composer-dictation-recording-actions {
+  gap: 9px;
+}
+.composer-dictation-time {
+  min-width: 32px;
+  color: #5f5f5f;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--app-ui-font-size-base);
+  line-height: 1;
+  text-align: right;
+}
+.composer-dictation-status {
+  max-width: 148px;
+  color: #5f5f5f;
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.composer-dictation-stop-btn {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: #f3f3f3;
+  color: #111111;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.composer-dictation-stop-btn:hover {
+  background: #e5e5e5;
+}
+.composer-dictation-stop-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
 .composer-dictation-btn {
   width: 30px;
   height: 30px;
@@ -714,10 +805,29 @@
   color: #cfcfcf;
   cursor: not-allowed;
 }
+.composer-dictation-btn-loading:disabled,
+.composer-dictation-btn-loading:disabled:hover {
+  color: #5f5f5f;
+  cursor: progress;
+}
 .composer-dictation-icon {
   width: 17px;
   height: 17px;
   display: block;
+}
+.composer-dictation-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 999px;
+  display: block;
+  animation: composer-dictation-spin 0.75s linear infinite;
+}
+@keyframes composer-dictation-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .send-btn {
   width: 34px;

@@ -6,9 +6,12 @@ import type { ComposerModelOption } from "../model/composerPreferences";
 import type { CustomPromptOutput } from "../../../bridge/types";
 import { AppStoreProvider, useAppSelector, useAppStore } from "../../../state/store";
 import type { ComposerCommandBridge } from "../service/composerCommandBridge";
+import { setComposerDictationTranscriberForTest } from "../service/composerDictationTranscription";
 import { HomeComposer } from "./HomeComposer";
 import { INIT_COMMAND_PROMPT } from "../service/composerInitCommand";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
+
+type RenderHarnessProps = Parameters<typeof ComposerHarness>[0];
 
 const MODELS: ReadonlyArray<ComposerModelOption> = [
   { id: "model-1", value: "gpt-5.5", label: "gpt-5.5", defaultEffort: "high", supportedEfforts: ["low", "medium", "high", "xhigh"], isDefault: true },
@@ -33,6 +36,7 @@ function createGitController(): import("../../git/model/types").WorkspaceGitCont
 }
 
 function ComposerHarness(props: {
+  readonly appServerReady?: boolean;
   readonly selectedRootPath?: string | null;
   readonly isResponding?: boolean;
   readonly onCreateThread?: ReturnType<typeof vi.fn>;
@@ -40,6 +44,7 @@ function ComposerHarness(props: {
   readonly onSelectCollaborationPreset?: ReturnType<typeof vi.fn>;
   readonly onSendTurn?: ReturnType<typeof vi.fn>;
   readonly request?: ReturnType<typeof vi.fn>;
+  readonly selectedThreadId?: string | null;
   readonly customPrompts?: ReadonlyArray<CustomPromptOutput>;
 }): JSX.Element {
   const { dispatch } = useAppStore();
@@ -71,6 +76,7 @@ function ComposerHarness(props: {
 
   return (
     <HomeComposer
+      appServerReady={props.appServerReady}
       busy={false}
       inputText={inputText}
       collaborationPreset="default"
@@ -83,7 +89,7 @@ function ComposerHarness(props: {
       composerEnterBehavior="enter"
       permissionLevel={permissionLevel}
       gitController={createGitController()}
-      selectedThreadId="thread-1"
+      selectedThreadId={props.selectedThreadId === undefined ? "thread-1" : props.selectedThreadId}
       selectedThreadBranch={null}
       isResponding={props.isResponding ?? false}
       interruptPending={false}
@@ -104,7 +110,7 @@ function ComposerHarness(props: {
   );
 }
 
-function renderHarness(props?: Parameters<typeof ComposerHarness>[0]) {
+function renderHarness(props?: RenderHarnessProps) {
   function BannerProbe(): JSX.Element | null {
     const latestBanner = useAppSelector((state) => state.banners[0] ?? null);
     return latestBanner === null ? null : <span>{latestBanner.detail ?? latestBanner.title}</span>;
@@ -113,38 +119,41 @@ function renderHarness(props?: Parameters<typeof ComposerHarness>[0]) {
   return render(<AppStoreProvider><ComposerHarness {...props} /><BannerProbe /></AppStoreProvider>, { wrapper: createI18nWrapper("en-US") });
 }
 
-class MockSpeechRecognition {
-  static instances: MockSpeechRecognition[] = [];
+class MockScriptProcessor {
+  onaudioprocess: ((event: {
+    readonly inputBuffer: { getChannelData: (channel: number) => Float32Array };
+    readonly outputBuffer: { getChannelData: (channel: number) => Float32Array };
+  }) => void) | null = null;
+  readonly connect = vi.fn();
+  readonly disconnect = vi.fn();
 
-  continuous = false;
-  interimResults = false;
-  lang = "";
-  maxAlternatives = 0;
-  onresult: ((event: { readonly resultIndex: number; readonly results: { readonly length: number; readonly [index: number]: { readonly isFinal: boolean; readonly 0?: { readonly transcript: string } } } }) => void) | null = null;
-  onerror: ((event: { readonly error?: string; readonly message?: string }) => void) | null = null;
-  onend: (() => void) | null = null;
-  start = vi.fn();
-  stop = vi.fn(() => this.onend?.());
-  abort = vi.fn();
-
-  constructor() {
-    MockSpeechRecognition.instances.push(this);
-  }
-
-  emitResult(transcript: string, isFinal = true): void {
-    this.onresult?.({
-      resultIndex: 0,
-      results: [
-        {
-          isFinal,
-          0: { transcript },
-        },
-      ],
+  emit(samples: Float32Array): void {
+    this.onaudioprocess?.({
+      inputBuffer: { getChannelData: () => samples },
+      outputBuffer: { getChannelData: () => new Float32Array(samples.length) },
     });
   }
+}
 
-  emitError(error: string, message?: string): void {
-    this.onerror?.({ error, message });
+class MockAudioContext {
+  static instances: MockAudioContext[] = [];
+
+  readonly sampleRate = 16000;
+  readonly destination = {};
+  readonly processor = new MockScriptProcessor();
+  readonly source = { connect: vi.fn(), disconnect: vi.fn() };
+  readonly close = vi.fn().mockResolvedValue(undefined);
+
+  constructor() {
+    MockAudioContext.instances.push(this);
+  }
+
+  createMediaStreamSource(): { readonly connect: ReturnType<typeof vi.fn>; readonly disconnect: ReturnType<typeof vi.fn> } {
+    return this.source;
+  }
+
+  createScriptProcessor(): MockScriptProcessor {
+    return this.processor;
   }
 }
 
@@ -190,19 +199,30 @@ function setObjectProperty(target: object, name: string, value: unknown): () => 
   };
 }
 
-function installMockSpeechRecognition(): () => void {
-  MockSpeechRecognition.instances = [];
-  const restoreSpeechRecognition = setGlobalProperty("SpeechRecognition", undefined);
-  const restoreWebkitSpeechRecognition = setGlobalProperty("webkitSpeechRecognition", MockSpeechRecognition);
+function installMockAudioRecorder(args?: {
+  readonly getUserMedia?: ReturnType<typeof vi.fn>;
+  readonly transcript?: string;
+}): () => void {
+  MockAudioContext.instances = [];
+  const stopTrack = vi.fn();
+  const getUserMedia = args?.getUserMedia ?? vi.fn().mockResolvedValue({
+    getTracks: () => [{ stop: stopTrack }],
+  });
+  const restoreMediaDevices = setObjectProperty(navigator, "mediaDevices", { getUserMedia });
+  const restoreAudioContext = setGlobalProperty("AudioContext", MockAudioContext);
+  setComposerDictationTranscriberForTest(vi.fn().mockResolvedValue(args?.transcript ?? "hello world"));
   return () => {
-    restoreSpeechRecognition();
-    restoreWebkitSpeechRecognition();
-    MockSpeechRecognition.instances = [];
+    restoreMediaDevices();
+    restoreAudioContext();
+    setComposerDictationTranscriberForTest(null);
+    MockAudioContext.instances = [];
   };
 }
 
 afterEach(() => {
   vi.restoreAllMocks();
+  setComposerDictationTranscriberForTest(null);
+  MockAudioContext.instances = [];
 });
 
 describe("HomeComposer commands", () => {
@@ -540,121 +560,124 @@ describe("HomeComposer commands", () => {
     await waitFor(() => expect(screen.getAllByText("Choose a workspace before using @ file mentions.").length).toBeGreaterThan(0));
   });
 
-  it("disables dictation when speech recognition is unavailable", () => {
+  it("reports why dictation cannot start when audio recording is unavailable", async () => {
     renderHarness();
 
-    expect(screen.getByRole("button", { name: "Dictation unavailable" })).toBeDisabled();
+    const button = screen.getByRole("button", { name: "Dictation unavailable" });
+    expect(button).not.toBeDisabled();
+    fireEvent.click(button);
+
+    await waitFor(() => expect(screen.getByText("Audio recording is not available in this environment.")).toBeInTheDocument());
   });
 
-  it("starts dictation and inserts recognized speech into the composer", async () => {
-    const restoreSpeechRecognition = installMockSpeechRecognition();
+  it("records dictation and inserts transcribed speech into the composer after stopping", async () => {
+    const restoreAudioRecorder = installMockAudioRecorder({ transcript: "hello world" });
     try {
       renderHarness();
       const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
 
       fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
 
-      await waitFor(() => expect(MockSpeechRecognition.instances).toHaveLength(1));
-      expect(MockSpeechRecognition.instances[0].continuous).toBe(true);
-      expect(MockSpeechRecognition.instances[0].interimResults).toBe(false);
-      expect(MockSpeechRecognition.instances[0].lang).toBe("en-US");
+      await waitFor(() => expect(MockAudioContext.instances).toHaveLength(1));
+      expect(screen.getByTestId("composer-dictation-waveform")).toHaveAttribute("data-speaking", "false");
+      expect(screen.getByText("0:00")).toBeInTheDocument();
 
-      act(() => MockSpeechRecognition.instances[0].emitResult("hello world"));
+      act(() => MockAudioContext.instances[0].processor.emit(new Float32Array([0.2, -0.2, 0.18, -0.18])));
+      expect(textarea.value).toBe("");
 
+      fireEvent.click(screen.getByRole("button", { name: "Stop dictation" }));
+      expect(screen.getByRole("button", { name: "Transcribing dictation" })).toHaveAttribute("aria-busy", "true");
       await waitFor(() => expect(textarea.value).toBe("hello world"));
-      expect(screen.getByRole("button", { name: "Stop dictation" })).toBeInTheDocument();
+      await waitFor(() => expect(screen.getByRole("button", { name: "Start dictation" })).toBeInTheDocument());
     } finally {
-      restoreSpeechRecognition();
+      restoreAudioRecorder();
     }
   });
 
   it("appends dictated text with natural spacing", async () => {
-    const restoreSpeechRecognition = installMockSpeechRecognition();
+    const restoreAudioRecorder = installMockAudioRecorder({ transcript: "the diff" });
     try {
       renderHarness();
       const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
 
       fireEvent.change(textarea, { target: { value: "Review", selectionStart: 6 } });
       fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
-      await waitFor(() => expect(MockSpeechRecognition.instances).toHaveLength(1));
-      act(() => MockSpeechRecognition.instances[0].emitResult("the diff"));
+      await waitFor(() => expect(MockAudioContext.instances).toHaveLength(1));
+      act(() => MockAudioContext.instances[0].processor.emit(new Float32Array([0.2, -0.2])));
 
+      expect(textarea.value).toBe("Review");
+      fireEvent.click(screen.getByRole("button", { name: "Stop dictation" }));
       await waitFor(() => expect(textarea.value).toBe("Review the diff"));
     } finally {
-      restoreSpeechRecognition();
+      restoreAudioRecorder();
     }
   });
 
   it("stops an active dictation session from the microphone button", async () => {
-    const restoreSpeechRecognition = installMockSpeechRecognition();
+    const restoreAudioRecorder = installMockAudioRecorder();
     try {
       renderHarness();
+      const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+      textarea.focus();
 
       fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
-      await waitFor(() => expect(MockSpeechRecognition.instances).toHaveLength(1));
-      const recognition = MockSpeechRecognition.instances[0];
+      await waitFor(() => expect(MockAudioContext.instances).toHaveLength(1));
+      act(() => MockAudioContext.instances[0].processor.emit(new Float32Array([0.2, -0.2])));
 
       fireEvent.click(screen.getByRole("button", { name: "Stop dictation" }));
 
-      expect(recognition.stop).toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Transcribing dictation" })).toHaveAttribute("aria-busy", "true");
       await waitFor(() => expect(screen.getByRole("button", { name: "Start dictation" })).toBeInTheDocument());
+      await waitFor(() => expect(document.activeElement).toBe(textarea));
     } finally {
-      restoreSpeechRecognition();
+      restoreAudioRecorder();
     }
   });
 
-  it("requests microphone access before starting speech recognition", async () => {
-    const restoreSpeechRecognition = installMockSpeechRecognition();
+  it("uses microphone levels for waveform feedback and releases the stream when stopped", async () => {
     const stopTrack = vi.fn();
     const getUserMedia = vi.fn().mockResolvedValue({
       getTracks: () => [{ stop: stopTrack }],
     });
-    const restoreMediaDevices = setObjectProperty(navigator, "mediaDevices", { getUserMedia });
+    const restoreAudioRecorder = installMockAudioRecorder({ getUserMedia });
     try {
-      renderHarness();
+      renderHarness({ appServerReady: false });
 
       fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
 
-      await waitFor(() => expect(getUserMedia).toHaveBeenCalledWith({ audio: true }));
-      await waitFor(() => expect(MockSpeechRecognition.instances).toHaveLength(1));
-      expect(MockSpeechRecognition.instances[0].start).toHaveBeenCalled();
+      await waitFor(() => expect(MockAudioContext.instances).toHaveLength(1));
+      await waitFor(() => expect(getUserMedia).toHaveBeenCalledWith({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      }));
+
+      act(() => MockAudioContext.instances[0].processor.emit(new Float32Array([0.2, -0.2, 0.18, -0.18])));
+      await waitFor(() => expect(screen.getByTestId("composer-dictation-waveform")).toHaveAttribute("data-speaking", "true"));
+
+      fireEvent.click(screen.getByRole("button", { name: "Stop dictation" }));
+
+      await waitFor(() => expect(screen.queryByTestId("composer-dictation-waveform")).not.toBeInTheDocument());
       expect(stopTrack).toHaveBeenCalled();
+      expect(MockAudioContext.instances[0].close).toHaveBeenCalled();
     } finally {
-      restoreMediaDevices();
-      restoreSpeechRecognition();
+      restoreAudioRecorder();
     }
   });
 
-  it("shows an actionable permission message without starting recognition when microphone access is denied", async () => {
-    const restoreSpeechRecognition = installMockSpeechRecognition();
+  it("shows an actionable permission message when microphone access is denied", async () => {
     const getUserMedia = vi.fn().mockRejectedValue(new DOMException("denied", "NotAllowedError"));
-    const restoreMediaDevices = setObjectProperty(navigator, "mediaDevices", { getUserMedia });
+    const restoreAudioRecorder = installMockAudioRecorder({ getUserMedia });
     try {
-      renderHarness();
+      renderHarness({ appServerReady: false });
 
       fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
 
       await waitFor(() => expect(screen.getByText(/Microphone access is blocked/)).toBeInTheDocument());
-      expect(MockSpeechRecognition.instances).toHaveLength(0);
     } finally {
-      restoreMediaDevices();
-      restoreSpeechRecognition();
-    }
-  });
-
-  it("shows an actionable permission message when speech recognition denies microphone access", async () => {
-    const restoreSpeechRecognition = installMockSpeechRecognition();
-    try {
-      renderHarness();
-
-      fireEvent.click(screen.getByRole("button", { name: "Start dictation" }));
-      await waitFor(() => expect(MockSpeechRecognition.instances).toHaveLength(1));
-
-      act(() => MockSpeechRecognition.instances[0].emitError("not-allowed", "Microphone permission was denied."));
-
-      await waitFor(() => expect(screen.getByText(/Microphone access is blocked/)).toBeInTheDocument());
-    } finally {
-      restoreSpeechRecognition();
+      restoreAudioRecorder();
     }
   });
 });

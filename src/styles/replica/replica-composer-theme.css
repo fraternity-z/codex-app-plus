@@ -178,6 +178,45 @@ html[data-theme="dark"] .composer-area {
   color: var(--text-muted);
 }
 
+.composer-bar-dictating .composer-mini-btn {
+  background: transparent;
+  color: var(--text-subtle);
+}
+
+.composer-bar-dictating .composer-mini-btn:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.composer-dictation-waveform::before {
+  border-top-color: var(--border-strong);
+}
+
+.composer-dictation-waveform-bar {
+  background: var(--text-subtle);
+}
+
+.composer-dictation-waveform[data-speaking="true"] .composer-dictation-waveform-bar {
+  background: var(--text-main);
+}
+
+.composer-dictation-time {
+  color: var(--text-muted);
+}
+
+.composer-dictation-status {
+  color: var(--text-muted);
+}
+
+.composer-dictation-stop-btn {
+  background: var(--surface-panel-muted);
+  color: var(--text-main);
+}
+
+.composer-dictation-stop-btn:hover {
+  background: var(--surface-hover);
+}
+
 .composer-dictation-btn:hover {
   background: var(--surface-hover);
   color: var(--text-main);
@@ -199,6 +238,11 @@ html[data-theme="dark"] .composer-dictation-btn-active:hover {
 .composer-dictation-btn:disabled:hover {
   background: transparent;
   color: var(--text-subtle);
+}
+
+.composer-dictation-btn-loading:disabled,
+.composer-dictation-btn-loading:disabled:hover {
+  color: var(--text-muted);
 }
 
 .plan-request-notes {

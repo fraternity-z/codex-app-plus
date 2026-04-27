@@ -1,93 +1,28 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import type { Locale } from "../../../i18n/types";
+import {
+  appendDictationTranscript,
+  isComposerDictationTranscriptionSupported,
+  isDictationPermissionDeniedError,
+  startComposerDictationTranscriptionSession,
+  type ComposerDictationTranscriptionSession,
+  type DictationErrorHandler,
+} from "../service/composerDictationTranscription";
 
-type DictationErrorHandler = (error: Error) => void;
-
-interface SpeechRecognitionAlternativeLike {
-  readonly transcript: string;
-}
-
-interface SpeechRecognitionResultLike {
-  readonly isFinal: boolean;
-  readonly 0?: SpeechRecognitionAlternativeLike;
-}
-
-interface SpeechRecognitionEventLike {
-  readonly resultIndex: number;
-  readonly results: {
-    readonly length: number;
-    readonly [index: number]: SpeechRecognitionResultLike;
-  };
-}
-
-interface SpeechRecognitionErrorEventLike {
-  readonly error?: string;
-  readonly message?: string;
-}
-
-interface ComposerSpeechRecognition {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  maxAlternatives: number;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-}
-
-type ComposerSpeechRecognitionConstructor = new () => ComposerSpeechRecognition;
-
-interface SpeechRecognitionGlobal {
-  readonly SpeechRecognition?: ComposerSpeechRecognitionConstructor;
-  readonly webkitSpeechRecognition?: ComposerSpeechRecognitionConstructor;
-}
+export {
+  appendDictationTranscript,
+  isDictationPermissionDeniedError,
+};
 
 export interface ComposerDictation {
   readonly listening: boolean;
   readonly pending: boolean;
+  readonly phase: "idle" | "starting" | "recording" | "transcribing";
   readonly supported: boolean;
+  readonly audioLevel: number;
+  readonly elapsedSeconds: number;
   readonly toggle: () => void;
   readonly stop: () => void;
-}
-
-const DICTATION_PERMISSION_DENIED_ERROR = "DictationPermissionDeniedError";
-
-export function resolveComposerSpeechRecognitionConstructor(scope: unknown): ComposerSpeechRecognitionConstructor | null {
-  const candidate = scope as SpeechRecognitionGlobal | null | undefined;
-  return candidate?.SpeechRecognition ?? candidate?.webkitSpeechRecognition ?? null;
-}
-
-export function appendDictationTranscript(text: string, transcript: string): string {
-  const normalizedTranscript = transcript.trim();
-  if (normalizedTranscript.length === 0) {
-    return text;
-  }
-  if (text.trim().length === 0 || /\s$/.test(text) || /^[,.;:!?，。；：！？、）)]/.test(normalizedTranscript)) {
-    return `${text}${normalizedTranscript}`;
-  }
-  if (endsWithCjk(text) || startsWithCjk(normalizedTranscript)) {
-    return `${text}${normalizedTranscript}`;
-  }
-  return `${text} ${normalizedTranscript}`;
-}
-
-export function collectFinalDictationTranscript(event: SpeechRecognitionEventLike): string {
-  let transcript = "";
-  for (let index = event.resultIndex; index < event.results.length; index += 1) {
-    const result = event.results[index];
-    if (!result.isFinal) {
-      continue;
-    }
-    transcript += result[0]?.transcript ?? "";
-  }
-  return transcript;
-}
-
-export function isDictationPermissionDeniedError(error: unknown): boolean {
-  return error instanceof Error && error.name === DICTATION_PERMISSION_DENIED_ERROR;
 }
 
 export function useComposerDictation(args: {
@@ -98,13 +33,17 @@ export function useComposerDictation(args: {
   readonly onError: DictationErrorHandler;
   readonly onTextChange: (text: string, caret: number) => void;
 }): ComposerDictation {
-  const recognitionRef = useRef<ComposerSpeechRecognition | null>(null);
+  const sessionRef = useRef<ComposerDictationTranscriptionSession | null>(null);
+  const committedTextRef = useRef(args.text);
   const textRef = useRef(args.text);
   const onErrorRef = useRef(args.onError);
   const onTextChangeRef = useRef(args.onTextChange);
   const [listening, setListening] = useState(false);
   const [pending, setPending] = useState(false);
-  const [supported, setSupported] = useState(() => resolveComposerSpeechRecognitionConstructor(globalThis) !== null);
+  const [phase, setPhase] = useState<ComposerDictation["phase"]>("idle");
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [supported, setSupported] = useState(() => isComposerDictationTranscriptionSupported());
 
   useEffect(() => {
     textRef.current = args.text;
@@ -119,73 +58,100 @@ export function useComposerDictation(args: {
   }, [args.onTextChange]);
 
   useEffect(() => {
-    setSupported(resolveComposerSpeechRecognitionConstructor(globalThis) !== null);
+    setSupported(isComposerDictationTranscriptionSupported());
   }, []);
 
-  const stop = useCallback(() => {
-    recognitionRef.current?.stop();
-  }, []);
+  useEffect(() => {
+    if (!listening) {
+      setElapsedSeconds(0);
+      return;
+    }
+    const startedAt = Date.now();
+    setElapsedSeconds(0);
+    const intervalId = globalThis.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => globalThis.clearInterval(intervalId);
+  }, [listening]);
+
+  const restoreTextareaFocus = useCallback(() => {
+    focusTextareaAt(args.textareaRef.current, textRef.current.length);
+  }, [args.textareaRef]);
+
+  const applyTranscript = useCallback((transcript: string) => {
+    const nextText = appendDictationTranscript(committedTextRef.current, transcript);
+    if (nextText === textRef.current) {
+      return;
+    }
+    committedTextRef.current = nextText;
+    textRef.current = nextText;
+    onTextChangeRef.current(nextText, nextText.length);
+    restoreTextareaFocus();
+  }, [restoreTextareaFocus]);
+
+  const endSession = useCallback(() => {
+    sessionRef.current = null;
+    setAudioLevel(0);
+    setListening(false);
+    setPending(false);
+    setPhase("idle");
+    restoreTextareaFocus();
+  }, [restoreTextareaFocus]);
 
   const start = useCallback(async () => {
     if (args.disabled || pending) {
       return;
     }
 
-    const SpeechRecognitionConstructor = resolveComposerSpeechRecognitionConstructor(globalThis);
-    if (SpeechRecognitionConstructor === null) {
+    if (!isComposerDictationTranscriptionSupported()) {
       setSupported(false);
-      onErrorRef.current(new Error("Speech recognition is not available in this environment."));
+      onErrorRef.current(new Error("Audio recording is not available in this environment."));
       return;
     }
 
+    setSupported(true);
     setPending(true);
-    let permissionProbe: MediaStream | null = null;
+    setPhase("starting");
     try {
-      permissionProbe = await requestMicrophoneCapture();
-      const recognition = new SpeechRecognitionConstructor();
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-      recognition.lang = args.locale === "zh-CN" ? "zh-CN" : "en-US";
-      recognition.onresult = (event) => {
-        const transcript = collectFinalDictationTranscript(event);
-        const nextText = appendDictationTranscript(textRef.current, transcript);
-        if (nextText === textRef.current) {
-          return;
-        }
-        textRef.current = nextText;
-        onTextChangeRef.current(nextText, nextText.length);
-        focusTextareaAt(args.textareaRef.current, nextText.length);
-      };
-      recognition.onerror = (event) => {
-        if (event.error === "no-speech" || event.error === "aborted") {
-          return;
-        }
-        onErrorRef.current(createSpeechRecognitionError(event));
-      };
-      recognition.onend = () => {
-        if (recognitionRef.current !== recognition) {
-          return;
-        }
-        recognitionRef.current = null;
-        setListening(false);
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
+      committedTextRef.current = textRef.current;
+      const session = await startComposerDictationTranscriptionSession({
+        locale: args.locale,
+        callbacks: {
+          onAudioLevel: setAudioLevel,
+          onEnd: endSession,
+          onError: (error) => onErrorRef.current(error),
+          onTranscript: applyTranscript,
+          onTranscribingStart: () => {
+            setAudioLevel(0);
+            setListening(false);
+            setPending(true);
+            setPhase("transcribing");
+            restoreTextareaFocus();
+          },
+        },
+      });
+      sessionRef.current = session;
       setListening(true);
+      setPhase("recording");
+      restoreTextareaFocus();
     } catch (error) {
-      recognitionRef.current = null;
+      sessionRef.current = null;
+      setAudioLevel(0);
       setListening(false);
+      setPhase("idle");
       onErrorRef.current(error instanceof Error ? error : new Error(String(error)));
     } finally {
-      stopMicrophoneProbe(permissionProbe);
       setPending(false);
     }
-  }, [args.disabled, args.locale, args.textareaRef, pending]);
+  }, [applyTranscript, args.disabled, args.locale, endSession, pending, restoreTextareaFocus]);
+
+  const stop = useCallback(() => {
+    sessionRef.current?.stop();
+    restoreTextareaFocus();
+  }, [restoreTextareaFocus]);
 
   const toggle = useCallback(() => {
-    if (recognitionRef.current !== null) {
+    if (sessionRef.current !== null) {
       stop();
       return;
     }
@@ -193,26 +159,11 @@ export function useComposerDictation(args: {
   }, [start, stop]);
 
   useEffect(() => () => {
-    recognitionRef.current?.abort();
-    recognitionRef.current = null;
+    sessionRef.current?.abort();
+    sessionRef.current = null;
   }, []);
 
-  return { listening, pending, supported, toggle, stop };
-}
-
-async function requestMicrophoneCapture(): Promise<MediaStream | null> {
-  if (navigator.mediaDevices?.getUserMedia === undefined) {
-    return null;
-  }
-  try {
-    return await navigator.mediaDevices.getUserMedia({ audio: true });
-  } catch (error) {
-    throw createMicrophonePermissionError(error);
-  }
-}
-
-function stopMicrophoneProbe(stream: MediaStream | null): void {
-  stream?.getTracks().forEach((track) => track.stop());
+  return { listening, pending, phase, supported, audioLevel, elapsedSeconds, toggle, stop };
 }
 
 function focusTextareaAt(textarea: HTMLTextAreaElement | null, caret: number): void {
@@ -226,34 +177,8 @@ function focusTextareaAt(textarea: HTMLTextAreaElement | null, caret: number): v
     textarea.focus();
     textarea.setSelectionRange(caret, caret);
   });
-}
-
-function createSpeechRecognitionError(event: SpeechRecognitionErrorEventLike): Error {
-  if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-    return createMicrophonePermissionError(event.message ?? event.error);
-  }
-  if (event.message !== undefined && event.message.length > 0) {
-    return new Error(event.message);
-  }
-  if (event.error !== undefined && event.error.length > 0) {
-    return new Error(`Speech recognition failed: ${event.error}`);
-  }
-  return new Error("Speech recognition failed.");
-}
-
-function createMicrophonePermissionError(cause: unknown): Error {
-  const error = new Error("Microphone permission was denied.");
-  error.name = DICTATION_PERMISSION_DENIED_ERROR;
-  if (cause !== undefined) {
-    error.cause = cause;
-  }
-  return error;
-}
-
-function endsWithCjk(value: string): boolean {
-  return /[\u3400-\u9fff]$/.test(value);
-}
-
-function startsWithCjk(value: string): boolean {
-  return /^[\u3400-\u9fff]/.test(value);
+  globalThis.setTimeout(() => {
+    textarea.focus();
+    textarea.setSelectionRange(caret, caret);
+  }, 0);
 }

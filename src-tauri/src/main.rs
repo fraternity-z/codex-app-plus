@@ -14,6 +14,7 @@ mod codex_session_text;
 mod command_utils;
 mod commands;
 mod custom_prompts;
+mod dictation_transcription;
 mod error;
 mod events;
 mod git;
@@ -52,6 +53,7 @@ use commands::{
     app_write_chatgpt_auth_tokens, app_write_global_agent_instructions, app_write_proxy_settings,
     app_write_workspace_state, rpc_cancel, rpc_notify, rpc_request, server_request_resolve,
 };
+use dictation_transcription::app_transcribe_dictation_audio;
 use git::commands::{
     git_add_worktree, git_checkout, git_commit, git_delete_branch, git_discard_paths, git_fetch,
     git_generate_commit_message, git_get_branch_refs, git_get_diff, git_get_remote_url,
@@ -127,6 +129,7 @@ fn main() {
             app_write_chatgpt_auth_tokens,
             app_clear_chatgpt_auth_state,
             app_show_notification,
+            app_transcribe_dictation_audio,
             app_show_context_menu,
             app_import_official_data,
             app_list_codex_sessions,

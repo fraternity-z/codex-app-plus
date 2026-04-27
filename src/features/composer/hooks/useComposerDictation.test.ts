@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   appendDictationTranscript,
-  collectFinalDictationTranscript,
-  resolveComposerSpeechRecognitionConstructor,
+  isDictationPermissionDeniedError,
 } from "./useComposerDictation";
 
 describe("composer dictation helpers", () => {
@@ -17,23 +16,10 @@ describe("composer dictation helpers", () => {
     expect(appendDictationTranscript("请检查", "这个文件")).toBe("请检查这个文件");
   });
 
-  it("collects only final speech recognition results", () => {
-    expect(collectFinalDictationTranscript({
-      resultIndex: 0,
-      results: [
-        { isFinal: true, 0: { transcript: "hello " } },
-        { isFinal: false, 0: { transcript: "ignored" } },
-        { isFinal: true, 0: { transcript: "world" } },
-      ],
-    })).toBe("hello world");
-  });
-
-  it("resolves standard and webkit speech recognition constructors", () => {
-    class StandardRecognition {}
-    class WebkitRecognition {}
-
-    expect(resolveComposerSpeechRecognitionConstructor({ SpeechRecognition: StandardRecognition })).toBe(StandardRecognition);
-    expect(resolveComposerSpeechRecognitionConstructor({ webkitSpeechRecognition: WebkitRecognition })).toBe(WebkitRecognition);
-    expect(resolveComposerSpeechRecognitionConstructor({})).toBeNull();
+  it("identifies dictation permission errors by name", () => {
+    const error = new Error("Microphone permission was denied.");
+    error.name = "DictationPermissionDeniedError";
+    expect(isDictationPermissionDeniedError(error)).toBe(true);
+    expect(isDictationPermissionDeniedError(new Error("other"))).toBe(false);
   });
 });

@@ -32,6 +32,13 @@ import { ComposerSkillBadgeOverlay, detectSkillBadge } from "./ComposerSkillBadg
 
 const MIN_TRIMMED_MESSAGE_LENGTH = 1;
 const MAX_COMPOSER_INPUT_EXTRA_ROWS = 3;
+const DICTATION_WAVE_BAR_COUNT = 64;
+const DICTATION_WAVE_BAR_AMPLITUDES = Array.from({ length: DICTATION_WAVE_BAR_COUNT }, (_, index) => {
+  const primaryWave = (Math.sin(index * 0.74) + 1) / 2;
+  const secondaryWave = (Math.sin(index * 1.91) + 1) / 2;
+  return 0.28 + primaryWave * 0.42 + secondaryWave * 0.3;
+});
+const DICTATION_WAVE_ACTIVE_CENTER = Math.floor(DICTATION_WAVE_BAR_COUNT * 0.72);
 type ReportErrorFn = ReturnType<typeof useUiBannerNotifications>["reportError"];
 
 export interface HomeComposerProps {
@@ -156,10 +163,17 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
       commandPalette.syncFromTextInput(nextText, caret);
     },
   });
-  const dictationDisabled = interactionDisabled || dictation.pending || !dictation.supported;
+  const dictationDisabled = interactionDisabled || dictation.pending;
   const dictationLabel = dictation.supported
-    ? dictation.listening ? t("home.composer.stopDictation") : t("home.composer.startDictation")
+    ? dictation.phase === "starting" ? t("home.composer.dictationStarting") : dictation.phase === "transcribing" ? t("home.composer.dictationTranscribing") : dictation.listening ? t("home.composer.stopDictation") : t("home.composer.startDictation")
     : t("home.composer.dictationUnavailable");
+  const dictationStatus = dictation.phase === "starting"
+    ? t("home.composer.dictationStarting")
+    : dictation.phase === "recording"
+      ? t("home.composer.dictationRecording")
+      : dictation.phase === "transcribing"
+        ? t("home.composer.dictationTranscribing")
+        : null;
 
   const { handlePromoteQueuedFollowUp, submit } = useHomeComposerActions({
     attachments,
@@ -188,6 +202,15 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     }
   }, [multiAgentEnabled, setMultiAgentEnabled]);
 
+  const attachmentControl = (
+    <div className="composer-plus-anchor">
+      {menuOpen ? <ComposerAttachmentMenu collaborationPreset={props.collaborationPreset} serviceTier={composerSelection.selectedServiceTier} multiAgentAvailable={multiAgentAvailable} multiAgentEnabled={multiAgentEnabled} multiAgentDisabled={interactionDisabled || props.isResponding} onAddAttachments={() => handleAddAttachments(openFilePicker, setMenuOpen)} onSelectCollaborationPreset={props.onSelectCollaborationPreset} onSelectServiceTier={handleSelectServiceTier} onToggleMultiAgent={handleToggleMultiAgent} onClose={() => setMenuOpen(false)} /> : null}
+      <button type="button" className={menuOpen ? "composer-mini-btn composer-mini-btn-active" : "composer-mini-btn"} aria-label={t("home.composer.openAttachmentMenu")} aria-haspopup="menu" aria-expanded={menuOpen} disabled={interactionDisabled} onClick={() => void toggleAttachmentMenu(menuOpen, setMenuOpen, commandPalette.dismiss)}>
+        <OfficialPlusIcon className="composer-plus-icon" />
+      </button>
+    </div>
+  );
+
   return (
     <footer className="composer-area">
       <div className="composer-stack">
@@ -207,24 +230,41 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
             {skillBadgeMatch !== null ? <ComposerSkillBadgeOverlay text={composerBodyText} match={skillBadgeMatch} textareaRef={commandPalette.textareaRef} /> : null}
             <textarea ref={commandPalette.textareaRef} rows={1} className={skillBadgeMatch !== null ? "composer-input composer-input-has-badge" : "composer-input"} placeholder={getComposerPlaceholder(props.selectedRootPath)} value={composerBodyText} disabled={interactionDisabled} onPaste={(event) => void handlePaste(event)} onSelect={commandPalette.syncFromTextareaSelection} onKeyDown={(event) => handleInputKeyDown(event, props, attachments.length > 0 || fileReferencePaths.length > 0, commandPalette.handleKeyDown, submit)} onChange={(event) => handleInputChange(event.currentTarget.value, event.currentTarget.selectionStart, updateComposerBodyText, commandPalette.syncFromTextInput)} />
           </div>
-          <div className="composer-bar">
-            <div className="composer-left">
-              <div className="composer-plus-anchor">
-                {menuOpen ? <ComposerAttachmentMenu collaborationPreset={props.collaborationPreset} serviceTier={composerSelection.selectedServiceTier} multiAgentAvailable={multiAgentAvailable} multiAgentEnabled={multiAgentEnabled} multiAgentDisabled={interactionDisabled || props.isResponding} onAddAttachments={() => handleAddAttachments(openFilePicker, setMenuOpen)} onSelectCollaborationPreset={props.onSelectCollaborationPreset} onSelectServiceTier={handleSelectServiceTier} onToggleMultiAgent={handleToggleMultiAgent} onClose={() => setMenuOpen(false)} /> : null}
-                <button type="button" className={menuOpen ? "composer-mini-btn composer-mini-btn-active" : "composer-mini-btn"} aria-label={t("home.composer.openAttachmentMenu")} aria-haspopup="menu" aria-expanded={menuOpen} disabled={interactionDisabled} onClick={() => void toggleAttachmentMenu(menuOpen, setMenuOpen, commandPalette.dismiss)}>
-                  <OfficialPlusIcon className="composer-plus-icon" />
-                </button>
-              </div>
-              <ComposerModelControls disabled={interactionDisabled} collaborationPreset={props.collaborationPreset} models={props.models} selectedModel={composerSelection.selectedModel} selectedEffort={composerSelection.selectedEffort} supportedEfforts={composerSelection.selectedModelOption?.supportedEfforts ?? []} onSelectModel={handleSelectModel} onSelectEffort={handleSelectEffort} />
-            </div>
-            <div className="composer-actions">
-              <button type="button" className={dictation.listening ? "composer-dictation-btn composer-dictation-btn-active" : "composer-dictation-btn"} aria-label={dictationLabel} aria-pressed={dictation.listening} disabled={dictationDisabled} title={dictationLabel} onClick={dictation.toggle}>
-                <MicrophoneIcon className="composer-dictation-icon" />
-              </button>
-              <button type="button" className="send-btn" aria-label={buttonLabel} disabled={buttonDisabled} onClick={() => showInterruptAction ? void props.onInterruptTurn() : submit()}>
-                {showInterruptAction ? <PauseResponseIcon className="send-icon" /> : <SendArrowIcon className="send-icon" />}
-              </button>
-            </div>
+          <div className={dictation.listening ? "composer-bar composer-bar-dictating" : "composer-bar"}>
+            {dictation.listening ? (
+              <>
+                <div className="composer-left composer-dictation-recording-left">
+                  {attachmentControl}
+                  <ComposerDictationWaveform audioLevel={dictation.audioLevel} />
+                </div>
+                <div className="composer-actions composer-dictation-recording-actions">
+                  {dictationStatus !== null ? <span className="composer-dictation-status" aria-live="polite">{dictationStatus}</span> : null}
+                  <span className="composer-dictation-time">{formatComposerDictationElapsed(dictation.elapsedSeconds)}</span>
+                  <button type="button" className="composer-dictation-stop-btn" aria-label={dictationLabel} title={dictationLabel} onPointerDown={preserveComposerFocus} onMouseDown={preserveComposerFocus} onClick={dictation.stop}>
+                    <PauseResponseIcon className="composer-dictation-stop-icon" />
+                  </button>
+                  <button type="button" className="send-btn" aria-label={buttonLabel} disabled={buttonDisabled} onClick={() => showInterruptAction ? void props.onInterruptTurn() : submit()}>
+                    {showInterruptAction ? <PauseResponseIcon className="send-icon" /> : <SendArrowIcon className="send-icon" />}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="composer-left">
+                  {attachmentControl}
+                  <ComposerModelControls disabled={interactionDisabled} collaborationPreset={props.collaborationPreset} models={props.models} selectedModel={composerSelection.selectedModel} selectedEffort={composerSelection.selectedEffort} supportedEfforts={composerSelection.selectedModelOption?.supportedEfforts ?? []} onSelectModel={handleSelectModel} onSelectEffort={handleSelectEffort} />
+                </div>
+                <div className="composer-actions">
+                  {dictationStatus !== null ? <span className="composer-dictation-status" aria-live="polite">{dictationStatus}</span> : null}
+                  <button type="button" className={dictation.pending ? "composer-dictation-btn composer-dictation-btn-loading" : "composer-dictation-btn"} aria-label={dictationLabel} aria-busy={dictation.pending ? "true" : undefined} aria-pressed={false} disabled={dictationDisabled} title={dictationLabel} onPointerDown={preserveComposerFocus} onMouseDown={preserveComposerFocus} onClick={dictation.toggle}>
+                    {dictation.pending ? <span className="composer-dictation-spinner" data-testid="composer-dictation-spinner" aria-hidden="true" /> : <MicrophoneIcon className="composer-dictation-icon" />}
+                  </button>
+                  <button type="button" className="send-btn" aria-label={buttonLabel} disabled={buttonDisabled} onClick={() => showInterruptAction ? void props.onInterruptTurn() : submit()}>
+                    {showInterruptAction ? <PauseResponseIcon className="send-icon" /> : <SendArrowIcon className="send-icon" />}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -335,6 +375,30 @@ function ComposerReloadOverlay(): JSX.Element {
 
 function getComposerPlaceholder(selectedRootPath: string | null): string {
   return selectedRootPath === null ? "Ask Codex anything" : "Describe the task, ask a question, or queue a follow-up";
+}
+
+function ComposerDictationWaveform(props: { readonly audioLevel: number }): JSX.Element {
+  const audioLevel = Math.max(0, Math.min(1, props.audioLevel));
+  const speaking = audioLevel >= 0.04;
+  return (
+    <div className="composer-dictation-waveform" data-speaking={speaking ? "true" : "false"} data-testid="composer-dictation-waveform" aria-hidden="true">
+      {DICTATION_WAVE_BAR_AMPLITUDES.map((amplitude, index) => {
+        const distanceFromVoice = Math.abs(index - DICTATION_WAVE_ACTIVE_CENTER);
+        const voiceInfluence = Math.max(0, 1 - distanceFromVoice / 8);
+        const idleAccent = index % 13 === 0 ? 1 : 0;
+        const height = 1.5 + idleAccent + audioLevel * voiceInfluence * (8 + amplitude * 28);
+        const opacity = audioLevel < 0.04 ? 0 : 0.12 + voiceInfluence * 0.76;
+        return <span key={index} className="composer-dictation-waveform-bar" style={{ height: `${height}px`, opacity }} />;
+      })}
+    </div>
+  );
+}
+
+function formatComposerDictationElapsed(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const secondsPart = safeSeconds % 60;
+  return `${minutes}:${secondsPart.toString().padStart(2, "0")}`;
 }
 
 function handleInputChange(
@@ -448,6 +512,10 @@ async function toggleAttachmentMenu(
 
 function SendArrowIcon(props: { readonly className?: string }): JSX.Element {
   return <svg className={props.className} viewBox="0 0 16 16" aria-hidden="true"><path d="M8 13.3V2.8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><path d="M3.2 7.1L8 2.3l4.8 4.8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+function preserveComposerFocus(event: { preventDefault: () => void }): void {
+  event.preventDefault();
 }
 
 function PauseResponseIcon(props: { readonly className?: string }): JSX.Element {
