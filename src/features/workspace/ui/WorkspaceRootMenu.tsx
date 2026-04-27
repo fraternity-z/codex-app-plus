@@ -13,9 +13,10 @@ interface WorkspaceRootMenuProps {
   readonly onOpenInFileExplorer?: () => void | Promise<void>;
   readonly onCreateWorktree?: () => void | Promise<void>;
   readonly onDeleteWorktree?: () => void | Promise<void>;
+  readonly onCleanupSessions?: () => void | Promise<void>;
 }
 
-type WorkspaceRootMenuAction = "openInFileExplorer" | "remove" | "createWorktree" | "deleteWorktree";
+type WorkspaceRootMenuAction = "openInFileExplorer" | "remove" | "createWorktree" | "deleteWorktree" | "cleanupSessions";
 
 export function WorkspaceRootMenu(props: WorkspaceRootMenuProps): JSX.Element {
   const { t } = useI18n();
@@ -57,6 +58,11 @@ export function WorkspaceRootMenu(props: WorkspaceRootMenuProps): JSX.Element {
       {props.onCreateWorktree ? (
         <button type="button" className="thread-context-menu-item" role="menuitem" onClick={() => void runAction("createWorktree", props.onCreateWorktree)} disabled={pendingAction !== null}>
           {pendingAction === "createWorktree" ? t("home.workspaceSection.creatingWorktree") : t("home.workspaceSection.createWorktree")}
+        </button>
+      ) : null}
+      {props.onCleanupSessions ? (
+        <button type="button" className="thread-context-menu-item thread-context-menu-item-danger" role="menuitem" onClick={() => void runAction("cleanupSessions", props.onCleanupSessions)} disabled={pendingAction !== null}>
+          {pendingAction === "cleanupSessions" ? t("home.workspaceSection.cleaningSessions") : t("home.workspaceSection.cleanupSessions")}
         </button>
       ) : null}
       {props.canDeleteWorktree && props.onDeleteWorktree ? (

@@ -43,6 +43,7 @@ function renderSection(
     readonly onCreateThreadInRoot?: (rootId: string) => Promise<void>;
     readonly onRemoveRoot?: (rootId: string) => void;
     readonly onOpenRootInFileExplorer?: (root: WorkspaceRoot) => Promise<void>;
+    readonly onCleanupSessions?: (root: WorkspaceRoot) => Promise<void>;
     readonly onSelectWorkspaceThread?: (rootId: string, threadId: string | null) => void;
     readonly locale?: Locale;
   }
@@ -71,6 +72,7 @@ function renderSection(
           onCreateThreadInRoot={options?.onCreateThreadInRoot}
           onRemoveRoot={options?.onRemoveRoot ?? vi.fn()}
           onOpenRootInFileExplorer={options?.onOpenRootInFileExplorer}
+          onCleanupSessions={options?.onCleanupSessions}
         />
       </>
     );
@@ -276,15 +278,27 @@ describe("WorkspaceSidebarSection", () => {
     await waitFor(() => expect(onOpenRootInFileExplorer).toHaveBeenCalledWith(ROOTS[0]));
   });
 
+  it("forwards workspace session cleanup from the menu", async () => {
+    const onCleanupSessions = vi.fn().mockResolvedValue(undefined);
+
+    renderSection([createThread(ROOTS[0]!, 1)], { onCleanupSessions });
+    fireEvent.contextMenu(screen.getByText("FPGA").closest(".workspace-root-row") as HTMLElement);
+    fireEvent.click(screen.getByRole("menuitem", { name: "清理旧会话..." }));
+
+    await waitFor(() => expect(onCleanupSessions).toHaveBeenCalledWith(ROOTS[0]));
+  });
+
   it("renders workspace menu actions in English", () => {
     renderSection([createThread(ROOTS[0]!, 1)], {
       locale: "en-US",
       onOpenRootInFileExplorer: vi.fn().mockResolvedValue(undefined),
+      onCleanupSessions: vi.fn().mockResolvedValue(undefined),
     });
 
     fireEvent.contextMenu(screen.getByText("FPGA").closest(".workspace-root-row") as HTMLElement);
 
     expect(screen.getByRole("menuitem", { name: "Open in Explorer" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Clean up old sessions..." })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Remove from list" })).toBeInTheDocument();
   });
 

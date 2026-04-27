@@ -13,7 +13,12 @@ import { OfficialSettingsGearIcon } from "../../shared/ui/officialIcons";
 import { useI18n } from "../../../i18n/useI18n";
 import { SettingsPopover } from "./SettingsPopover";
 import { WorkspaceSidebarSection } from "../../workspace/ui/WorkspaceSidebarSection";
-import { threadBelongsToWorkspace } from "../../workspace/model/workspaceThread";
+import { WorkspaceSessionCleanupDialog } from "../../workspace/ui/WorkspaceSessionCleanupDialog";
+import {
+  listWorkspaceSessionCleanupCandidates,
+  parseSessionRetentionDays,
+  threadBelongsToWorkspace,
+} from "../../workspace/model/workspaceThread";
 
 export interface HomeSidebarProps {
   readonly appServerClient: AppServerClient;
@@ -258,11 +263,27 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
   const [searchResults, setSearchResults] = useState<ReadonlyArray<CodexSessionSearchResultOutput>>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [cleanupRoot, setCleanupRoot] = useState<WorkspaceRoot | null>(null);
+  const [cleanupRetentionInput, setCleanupRetentionInput] = useState("30");
+  const [cleanupPending, setCleanupPending] = useState(false);
   const sidebarClassName = collapsed ? "replica-sidebar sidebar-collapsed" : "replica-sidebar";
   const cleanupTransport = useMemo(
     () => createRpcThreadRuntimeCleanupTransport(appServerClient),
     [appServerClient],
   );
+  const cleanupRetentionDays = useMemo(
+    () => parseSessionRetentionDays(cleanupRetentionInput),
+    [cleanupRetentionInput],
+  );
+  const cleanupCandidates = useMemo(
+    () => cleanupRoot === null || cleanupRetentionDays === null
+      ? []
+      : listWorkspaceSessionCleanupCandidates(codexSessions, cleanupRoot.path, cleanupRetentionDays),
+    [cleanupRetentionDays, cleanupRoot, codexSessions],
+  );
+  const cleanupError = cleanupRetentionDays === null
+    ? t("home.workspaceSection.cleanupSessionsInvalidDays")
+    : null;
 
   const clearSelectedThread = useCallback((threadId: string) => {
     if (threadId === selectedThreadId) {
@@ -300,6 +321,43 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
     dispatch({ type: "conversation/hiddenChanged", conversationId: thread.id, hidden: true });
     clearSelectedThread(thread.id);
   }, [cleanupTransport, clearSelectedThread, dispatch, hostBridge, store]);
+
+  const handleOpenCleanupSessions = useCallback(async (root: WorkspaceRoot) => {
+    setCleanupRoot(root);
+    setCleanupRetentionInput("30");
+    setCleanupPending(false);
+  }, []);
+
+  const handleCloseCleanupSessions = useCallback(() => {
+    if (!cleanupPending) {
+      setCleanupRoot(null);
+    }
+  }, [cleanupPending]);
+
+  const handleConfirmCleanupSessions = useCallback(async () => {
+    if (cleanupRoot === null || cleanupRetentionDays === null || cleanupCandidates.length === 0 || cleanupPending) {
+      return;
+    }
+    setCleanupPending(true);
+    try {
+      for (const thread of cleanupCandidates) {
+        await handleDeleteThread(thread);
+      }
+      setCleanupRoot(null);
+    } finally {
+      setCleanupPending(false);
+    }
+  }, [cleanupCandidates, cleanupPending, cleanupRetentionDays, cleanupRoot, handleDeleteThread]);
+
+  const handleCleanupRetentionInputChange = useCallback((value: string) => {
+    if (!cleanupPending) {
+      setCleanupRetentionInput(value);
+    }
+  }, [cleanupPending]);
+
+  const handleCleanupSessions = useCallback(async (root: WorkspaceRoot) => {
+    await handleOpenCleanupSessions(root);
+  }, [handleOpenCleanupSessions]);
 
   useEffect(() => {
     if (!searchOpen) {
@@ -403,8 +461,22 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
         onOpenRootInFileExplorer={handleOpenRootInFileExplorer}
         onCreateWorktree={onCreateWorktree}
         onDeleteWorktree={onDeleteWorktree}
+        onCleanupSessions={handleCleanupSessions}
         onReorderRoots={onReorderRoots}
       />
+      {cleanupRoot !== null ? (
+        <WorkspaceSessionCleanupDialog
+          rootName={cleanupRoot.name}
+          retentionDays={cleanupRetentionDays}
+          retentionInput={cleanupRetentionInput}
+          candidateCount={cleanupCandidates.length}
+          error={cleanupError}
+          pending={cleanupPending}
+          onChangeRetentionInput={handleCleanupRetentionInputChange}
+          onClose={handleCloseCleanupSessions}
+          onConfirm={handleConfirmCleanupSessions}
+        />
+      ) : null}
       <div className="settings-slot">
         {settingsMenuOpen ? (
           <SettingsPopover

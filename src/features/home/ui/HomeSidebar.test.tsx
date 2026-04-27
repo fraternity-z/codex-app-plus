@@ -1,6 +1,6 @@
 import { Profiler, useEffect, useState } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../../bridge/types";
 import type { ThreadSummary } from "../../../domain/types";
 import type { AppServerClient } from "../../../protocol/appServerClient";
@@ -12,7 +12,7 @@ import { HomeSidebar } from "./HomeSidebar";
 
 const ROOT = { id: "root-1", name: "FPGA", path: "E:/code/FPGA" };
 
-function createThread(source: ThreadSummary["source"]): ThreadSummary {
+function createThread(source: ThreadSummary["source"], overrides?: Partial<ThreadSummary>): ThreadSummary {
   return {
     id: `thread-${source}`,
     title: `线程 ${source}`,
@@ -24,7 +24,8 @@ function createThread(source: ThreadSummary["source"]): ThreadSummary {
     agentEnvironment: "windowsNative",
     status: source === "rpc" ? "idle" : "notLoaded",
     activeFlags: [],
-    queuedCount: 0
+    queuedCount: 0,
+    ...overrides,
   };
 }
 
@@ -80,7 +81,7 @@ function readThreadId(params: unknown): string {
   return (params as { threadId: string }).threadId;
 }
 
-function renderSidebar(thread: ThreadSummary, options?: {
+function renderSidebar(threadOrThreads: ThreadSummary | ReadonlyArray<ThreadSummary>, options?: {
   readonly onArchiveThread?: (threadId: string) => Promise<void>;
   readonly onOpenSkills?: () => void;
   readonly onCreateThread?: () => Promise<void>;
@@ -93,6 +94,8 @@ function renderSidebar(thread: ThreadSummary, options?: {
   readonly codexSessionsError?: string | null;
   readonly renderMainContainer?: boolean;
 }) {
+  const threads = Array.isArray(threadOrThreads) ? threadOrThreads : [threadOrThreads];
+  const selectedThread = threads[0] ?? null;
   const onArchiveThread = options?.onArchiveThread ?? vi.fn().mockResolvedValue(undefined);
   const onCreateThread = options?.onCreateThread ?? vi.fn().mockResolvedValue(undefined);
   const onOpenSkills = options?.onOpenSkills ?? vi.fn();
@@ -104,7 +107,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
   const hostBridge = { app: { deleteCodexSession, openWorkspace, searchCodexSessions }, rpc: { request } } as unknown as HostBridge;
 
   function Harness(): JSX.Element {
-    const [selectedThreadId, setSelectedThreadId] = useState<string | null>(thread.id);
+    const [selectedThreadId, setSelectedThreadId] = useState<string | null>(selectedThread?.id ?? null);
 
     return (
       <AppStoreProvider>
@@ -115,7 +118,7 @@ function renderSidebar(thread: ThreadSummary, options?: {
           agentEnvironment="windowsNative"
           hostBridge={hostBridge}
           roots={[ROOT]}
-          codexSessions={[thread]}
+          codexSessions={threads}
           codexSessionsError={options?.codexSessionsError ?? null}
           selectedRootId={ROOT.id}
           selectedThreadId={selectedThreadId}
@@ -160,6 +163,10 @@ function DispatchRecorder(props: { readonly onReady: (dispatch: AppStoreApi["dis
 }
 
 describe("HomeSidebar", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("does not render a startup loading overlay in the sidebar", () => {
     renderSidebar(createThread("codexData"));
 
@@ -263,6 +270,53 @@ describe("HomeSidebar", () => {
       path: ROOT.path,
       opener: "explorer",
     }));
+  });
+
+  it("cleans old workspace sessions from the folder menu", async () => {
+    const oldThread = createThread("codexData", {
+      id: "thread-old",
+      title: "旧会话",
+      updatedAt: "2000-01-01T00:00:00.000Z",
+    });
+    const recentThread = createThread("codexData", {
+      id: "thread-recent",
+      title: "新会话",
+      updatedAt: "2999-01-01T00:00:00.000Z",
+    });
+    const deleteCodexSession = vi.fn().mockResolvedValue(undefined);
+
+    renderSidebar([oldThread, recentThread], { deleteCodexSession });
+
+    fireEvent.contextMenu(screen.getByText("FPGA").closest(".workspace-root-row") as HTMLElement);
+    fireEvent.click(screen.getByRole("menuitem", { name: "清理旧会话..." }));
+    expect(screen.getByRole("dialog", { name: "清理旧会话" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("保留最近天数"), { target: { value: "7" } });
+    expect(screen.getByText("将删除 1 个早于最近 7 天的会话。此操作不可撤销。")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "清理 1 个会话" }));
+
+    await waitFor(() => expect(deleteCodexSession).toHaveBeenCalledWith({
+      threadId: oldThread.id,
+      agentEnvironment: "windowsNative",
+    }));
+    expect(deleteCodexSession).not.toHaveBeenCalledWith({
+      threadId: recentThread.id,
+      agentEnvironment: "windowsNative",
+    });
+  });
+
+  it("does not clean sessions when the retention input is invalid", async () => {
+    const deleteCodexSession = vi.fn().mockResolvedValue(undefined);
+
+    renderSidebar(createThread("codexData", { updatedAt: "2000-01-01T00:00:00.000Z" }), { deleteCodexSession });
+
+    fireEvent.contextMenu(screen.getByText("FPGA").closest(".workspace-root-row") as HTMLElement);
+    fireEvent.click(screen.getByRole("menuitem", { name: "清理旧会话..." }));
+    fireEvent.change(screen.getByLabelText("保留最近天数"), { target: { value: "1.5" } });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("请输入 0 或正整数天数。");
+    expect(screen.getByRole("button", { name: "清理 0 个会话" })).toBeDisabled();
+    expect(deleteCodexSession).not.toHaveBeenCalled();
   });
 
   it("clears the current selection after archiving the selected thread", async () => {

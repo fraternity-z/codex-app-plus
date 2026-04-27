@@ -49,6 +49,7 @@ interface WorkspaceSidebarSectionProps {
   readonly onOpenRootInFileExplorer?: (root: WorkspaceRoot) => Promise<void>;
   readonly onCreateWorktree?: (root: WorkspaceRoot) => Promise<void>;
   readonly onDeleteWorktree?: (root: WorkspaceRoot) => Promise<void>;
+  readonly onCleanupSessions?: (root: WorkspaceRoot) => Promise<void>;
   readonly onReorderRoots?: (fromIndex: number, toIndex: number) => void;
 }
 
@@ -501,6 +502,7 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
     onOpenRootInFileExplorer: props.onOpenRootInFileExplorer,
     onCreateWorktree: props.onCreateWorktree,
     onDeleteWorktree: props.onDeleteWorktree,
+    onCleanupSessions: props.onCleanupSessions,
     isWorktree: (root) => isWorktreeRoot(root, worktreePathSet),
   });
   const dnd = useWorkspaceDnD(props.roots, props.onReorderRoots);
@@ -638,6 +640,7 @@ export function WorkspaceSidebarSection(props: WorkspaceSidebarSectionProps): JS
           onOpenInFileExplorer={props.onOpenRootInFileExplorer && workspaceRootMenu.menuState ? () => workspaceRootMenu.handleOpenRootInFileExplorer() : undefined}
           onCreateWorktree={props.onCreateWorktree && workspaceRootMenu.menuState ? () => workspaceRootMenu.handleCreateWorktree() : undefined}
           onDeleteWorktree={props.onDeleteWorktree && workspaceRootMenu.menuState ? () => workspaceRootMenu.handleDeleteWorktree() : undefined}
+          onCleanupSessions={props.onCleanupSessions && workspaceRootMenu.menuState ? () => workspaceRootMenu.handleCleanupSessions() : undefined}
           onRemove={workspaceRootMenu.handleRemoveRoot}
           onClose={workspaceRootMenu.closeMenu}
         />

@@ -353,3 +353,95 @@
 .thread-context-menu-item-danger:hover {
   background: var(--error-bg);
 }
+
+.workspace-session-cleanup-backdrop {
+  background: var(--surface-overlay-strong);
+}
+
+.workspace-session-cleanup-dialog {
+  width: min(440px, calc(100vw - 32px));
+  border-color: var(--border-light);
+  border-radius: 16px;
+  background: var(--surface-panel);
+  color: var(--text-main);
+}
+
+.workspace-session-cleanup-dialog .git-push-confirm-header {
+  padding: 12px 16px 0;
+}
+
+.workspace-session-cleanup-dialog .git-dialog-close {
+  color: var(--text-muted);
+}
+
+.workspace-session-cleanup-body {
+  gap: 14px;
+  padding: 0 20px 20px;
+}
+
+.workspace-session-cleanup-dialog .git-push-confirm-title {
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-xl);
+}
+
+.workspace-session-cleanup-dialog .git-push-confirm-text {
+  color: var(--text-muted);
+}
+
+.workspace-session-cleanup-field {
+  display: grid;
+  gap: 8px;
+  color: var(--text-soft);
+  font-size: var(--app-ui-font-size-sm);
+}
+
+.workspace-session-cleanup-input {
+  height: 42px;
+  border-color: var(--border-light);
+  background: var(--surface-panel-muted);
+  color: var(--text-main);
+}
+
+.workspace-session-cleanup-input:focus {
+  border-color: var(--accent-color);
+  outline: 3px solid var(--focus-ring);
+}
+
+.workspace-session-cleanup-message {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-panel-muted);
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.45;
+}
+
+.workspace-session-cleanup-error,
+.workspace-session-cleanup-warning {
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+.workspace-session-cleanup-submit {
+  background: #b42318;
+  color: #ffffff;
+}
+
+.workspace-session-cleanup-submit:hover:not(:disabled) {
+  background: #991b1b;
+}
+
+html[data-theme="dark"] .workspace-session-cleanup-dialog .workspace-session-cleanup-input {
+  border-color: var(--border-light);
+  background: var(--surface-panel-muted);
+  color: var(--text-main);
+}
+
+html[data-theme="dark"] .workspace-session-cleanup-dialog .workspace-session-cleanup-submit {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .workspace-session-cleanup-dialog .workspace-session-cleanup-submit:hover:not(:disabled) {
+  background: #ef4444;
+}

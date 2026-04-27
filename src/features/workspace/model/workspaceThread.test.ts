@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { ThreadSummary } from "../../../domain/types";
-import { findLatestThreadForWorkspace, listThreadsForWorkspace } from "./workspaceThread";
+import {
+  findLatestThreadForWorkspace,
+  listThreadsForWorkspace,
+  listWorkspaceSessionCleanupCandidates,
+  parseSessionRetentionDays,
+} from "./workspaceThread";
 
 const THREADS: Array<ThreadSummary> = [
   {
@@ -145,5 +150,55 @@ describe("workspaceThread", () => {
         "\\\\wsl.localhost\\Ubuntu\\home\\me\\codex-app-plus"
       ).map((thread) => thread.id)
     ).toEqual(["thread-7"]);
+  });
+
+  it("parses retention days from whole-number input", () => {
+    expect(parseSessionRetentionDays(" 7 ")).toBe(7);
+    expect(parseSessionRetentionDays("0")).toBe(0);
+    expect(parseSessionRetentionDays("1.5")).toBeNull();
+    expect(parseSessionRetentionDays("-1")).toBeNull();
+    expect(parseSessionRetentionDays("days")).toBeNull();
+  });
+
+  it("selects workspace cleanup candidates older than the retention window", () => {
+    const nowMs = Date.parse("2026-03-10T00:00:00.000Z");
+
+    expect(
+      listWorkspaceSessionCleanupCandidates(
+        [
+          {
+            ...THREADS[0]!,
+            id: "thread-old",
+            updatedAt: "2026-03-06T08:00:00.000Z",
+          },
+          {
+            ...THREADS[1]!,
+            id: "thread-recent",
+            updatedAt: "2026-03-08T08:00:00.000Z",
+          },
+          {
+            ...THREADS[2]!,
+            id: "thread-other",
+            updatedAt: "2026-03-01T08:00:00.000Z",
+          },
+          {
+            id: "thread-invalid",
+            title: "invalid timestamp",
+            branch: null,
+            cwd: "E:/code/codex-app-plus",
+            archived: false,
+            updatedAt: "not-a-date",
+            source: "codexData",
+            agentEnvironment: "windowsNative",
+            status: "notLoaded",
+            activeFlags: [],
+            queuedCount: 0,
+          },
+        ],
+        "E:/code/codex-app-plus",
+        3,
+        nowMs,
+      ).map((thread) => thread.id)
+    ).toEqual(["thread-old"]);
   });
 });

@@ -26,6 +26,7 @@ export function useWorkspaceRootMenuState(options: {
   readonly onOpenRootInFileExplorer?: (root: WorkspaceRoot) => void | Promise<void>;
   readonly onCreateWorktree?: (root: WorkspaceRoot) => void | Promise<void>;
   readonly onDeleteWorktree?: (root: WorkspaceRoot) => void | Promise<void>;
+  readonly onCleanupSessions?: (root: WorkspaceRoot) => void | Promise<void>;
   readonly isWorktree?: (root: WorkspaceRoot) => boolean;
 }) {
   const [menuState, setMenuState] = useState<WorkspaceRootMenuState | null>(null);
@@ -69,6 +70,14 @@ export function useWorkspaceRootMenuState(options: {
     closeMenu();
   }, [closeMenu, menuState, options]);
 
+  const handleCleanupSessions = useCallback(async () => {
+    if (menuState === null || options.onCleanupSessions === undefined) {
+      return;
+    }
+    await options.onCleanupSessions(menuState.root);
+    closeMenu();
+  }, [closeMenu, menuState, options]);
+
   return {
     menuState,
     openMenu,
@@ -77,6 +86,7 @@ export function useWorkspaceRootMenuState(options: {
     handleCreateWorktree,
     handleOpenRootInFileExplorer,
     handleDeleteWorktree,
+    handleCleanupSessions,
     canDeleteWorktree: menuState !== null && (options.isWorktree?.(menuState.root) ?? false),
   };
 }

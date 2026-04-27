@@ -1,6 +1,8 @@
 import type { ThreadSummary } from "../../../domain/types";
 import { normalizeWorkspacePath } from "./workspacePath";
 
+const SESSION_RETENTION_DAY_MS = 24 * 60 * 60 * 1000;
+
 function toUpdatedAtTimestamp(updatedAt: string): number {
   const timestamp = Date.parse(updatedAt);
   return Number.isNaN(timestamp) ? 0 : timestamp;
@@ -63,4 +65,29 @@ export function findLatestThreadForWorkspace(
   workspacePath: string | null
 ): ThreadSummary | null {
   return listThreadsForWorkspace(threads, workspacePath)[0] ?? null;
+}
+
+export function parseSessionRetentionDays(value: string): number | null {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) {
+    return null;
+  }
+  const days = Number.parseInt(trimmed, 10);
+  return Number.isSafeInteger(days) ? days : null;
+}
+
+export function listWorkspaceSessionCleanupCandidates(
+  threads: ReadonlyArray<ThreadSummary>,
+  workspacePath: string | null,
+  retentionDays: number,
+  nowMs = Date.now(),
+): ReadonlyArray<ThreadSummary> {
+  if (!Number.isSafeInteger(retentionDays) || retentionDays < 0) {
+    return [];
+  }
+  const cutoff = nowMs - retentionDays * SESSION_RETENTION_DAY_MS;
+  return listThreadsForWorkspace(threads, workspacePath).filter((thread) => {
+    const updatedAt = Date.parse(thread.updatedAt);
+    return Number.isNaN(updatedAt) ? false : updatedAt < cutoff;
+  });
 }
