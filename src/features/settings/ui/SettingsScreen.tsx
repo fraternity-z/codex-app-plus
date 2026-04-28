@@ -53,6 +53,8 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     workspace: props.workspace,
     selectedRootPath,
     enabled: props.section === "worktree",
+    autoCleanupEnabled: props.preferences.gitAutoDeleteWorktrees,
+    autoCleanupRetention: props.preferences.gitAutoDeleteRetention,
     reportError,
   });
 

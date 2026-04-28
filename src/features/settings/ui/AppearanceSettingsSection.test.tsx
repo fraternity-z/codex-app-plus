@@ -86,6 +86,16 @@ function renderSection(
         setPreferences((current) => ({ ...current, gitPushForceWithLease })),
       setGitCommitInstructions: (gitCommitInstructions) =>
         setPreferences((current) => ({ ...current, gitCommitInstructions })),
+      setGitPullRequestMergeMethod: (gitPullRequestMergeMethod) =>
+        setPreferences((current) => ({ ...current, gitPullRequestMergeMethod })),
+      setGitDraftPullRequest: (gitDraftPullRequest) =>
+        setPreferences((current) => ({ ...current, gitDraftPullRequest })),
+      setGitAutoDeleteWorktrees: (gitAutoDeleteWorktrees) =>
+        setPreferences((current) => ({ ...current, gitAutoDeleteWorktrees })),
+      setGitAutoDeleteRetention: (gitAutoDeleteRetention) =>
+        setPreferences((current) => ({ ...current, gitAutoDeleteRetention })),
+      setGitPullRequestInstructions: (gitPullRequestInstructions) =>
+        setPreferences((current) => ({ ...current, gitPullRequestInstructions })),
       setContrast: (contrast) =>
         setPreferences((current) => ({
           ...current,

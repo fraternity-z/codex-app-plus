@@ -2064,6 +2064,10 @@ html[data-theme="dark"] .settings-toggle-button-group {
   background: var(--surface-panel-soft);
 }
 
+html[data-theme="dark"] .git-settings-page .settings-toggle-button-group {
+  background: transparent;
+}
+
 html[data-theme="dark"] .settings-toggle-button {
   color: var(--text-muted);
 }

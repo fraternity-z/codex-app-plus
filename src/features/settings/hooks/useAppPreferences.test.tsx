@@ -38,6 +38,12 @@ describe("useAppPreferences", () => {
     expect(result.current.codeFontSize).toBe(DEFAULT_APP_PREFERENCES.codeFontSize);
     expect(result.current.gitBranchPrefix).toBe(DEFAULT_APP_PREFERENCES.gitBranchPrefix);
     expect(result.current.gitPushForceWithLease).toBe(DEFAULT_APP_PREFERENCES.gitPushForceWithLease);
+    expect(result.current.gitCommitInstructions).toBe(DEFAULT_APP_PREFERENCES.gitCommitInstructions);
+    expect(result.current.gitPullRequestMergeMethod).toBe(DEFAULT_APP_PREFERENCES.gitPullRequestMergeMethod);
+    expect(result.current.gitDraftPullRequest).toBe(DEFAULT_APP_PREFERENCES.gitDraftPullRequest);
+    expect(result.current.gitAutoDeleteWorktrees).toBe(DEFAULT_APP_PREFERENCES.gitAutoDeleteWorktrees);
+    expect(result.current.gitAutoDeleteRetention).toBe(DEFAULT_APP_PREFERENCES.gitAutoDeleteRetention);
+    expect(result.current.gitPullRequestInstructions).toBe(DEFAULT_APP_PREFERENCES.gitPullRequestInstructions);
     expect(result.current.contrast).toBe(DEFAULT_APP_PREFERENCES.contrast);
     expect(result.current.appearanceColors).toEqual(DEFAULT_APPEARANCE_COLOR_SCHEME);
     expect(result.current.codeStyle).toBe(DEFAULT_APP_PREFERENCES.codeStyle);
@@ -68,6 +74,12 @@ describe("useAppPreferences", () => {
       first.result.current.setCodeFontSize(14);
       first.result.current.setGitBranchPrefix("feature/");
       first.result.current.setGitPushForceWithLease(true);
+      first.result.current.setGitCommitInstructions("Use Conventional Commits.");
+      first.result.current.setGitPullRequestMergeMethod("squash");
+      first.result.current.setGitDraftPullRequest(false);
+      first.result.current.setGitAutoDeleteWorktrees(false);
+      first.result.current.setGitAutoDeleteRetention(8);
+      first.result.current.setGitPullRequestInstructions("Summarize test coverage.");
       first.result.current.setContrast(72);
       first.result.current.setAppearanceThemeColors("dark", {
         accent: "#123456",
@@ -111,6 +123,12 @@ describe("useAppPreferences", () => {
     expect(second.result.current.codeFontSize).toBe(14);
     expect(second.result.current.gitBranchPrefix).toBe("feature/");
     expect(second.result.current.gitPushForceWithLease).toBe(true);
+    expect(second.result.current.gitCommitInstructions).toBe("Use Conventional Commits.");
+    expect(second.result.current.gitPullRequestMergeMethod).toBe("squash");
+    expect(second.result.current.gitDraftPullRequest).toBe(false);
+    expect(second.result.current.gitAutoDeleteWorktrees).toBe(false);
+    expect(second.result.current.gitAutoDeleteRetention).toBe(8);
+    expect(second.result.current.gitPullRequestInstructions).toBe("Summarize test coverage.");
     expect(second.result.current.contrast).toBe(72);
     expect(second.result.current.appearanceColors.dark).toEqual({
       accent: "#123456",
@@ -265,6 +283,28 @@ describe("useAppPreferences", () => {
 
     expect(result.current.composerFullApprovalPolicy).toBe("never");
     expect(result.current.composerFullSandboxMode).toBe("danger-full-access");
+  });
+
+  it("sanitizes stored Git settings", () => {
+    window.localStorage.setItem(
+      APP_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        ...DEFAULT_APP_PREFERENCES,
+        gitPullRequestMergeMethod: "rebase",
+        gitDraftPullRequest: "yes",
+        gitAutoDeleteWorktrees: "no",
+        gitAutoDeleteRetention: 0,
+        gitPullRequestInstructions: 42,
+      }),
+    );
+
+    const { result } = renderHook(() => useAppPreferences());
+
+    expect(result.current.gitPullRequestMergeMethod).toBe(DEFAULT_APP_PREFERENCES.gitPullRequestMergeMethod);
+    expect(result.current.gitDraftPullRequest).toBe(DEFAULT_APP_PREFERENCES.gitDraftPullRequest);
+    expect(result.current.gitAutoDeleteWorktrees).toBe(DEFAULT_APP_PREFERENCES.gitAutoDeleteWorktrees);
+    expect(result.current.gitAutoDeleteRetention).toBe(1);
+    expect(result.current.gitPullRequestInstructions).toBe("");
   });
 
   it("migrates legacy notification booleans into the combined notification settings", () => {

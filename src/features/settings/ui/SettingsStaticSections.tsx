@@ -190,24 +190,6 @@ export function WorktreeContent(props: {
   return (
     <div className="settings-panel-group">
       <SectionHeader title={t("settings.worktree.title")} />
-      <section className="settings-card">
-        <div className="settings-row">
-          <div>
-            <strong>{t("settings.worktree.autoCleanLabel")}</strong>
-            <p>{t("settings.worktree.autoCleanDescription")}</p>
-          </div>
-          <span className="settings-toggle settings-toggle-on">
-            <span className="settings-toggle-knob" />
-          </span>
-        </div>
-        <div className="settings-row">
-          <div>
-            <strong>{t("settings.worktree.retentionLabel")}</strong>
-            <p>{t("settings.worktree.retentionDescription")}</p>
-          </div>
-          <span className="settings-chip settings-chip-sm">15</span>
-        </div>
-      </section>
       <section className="settings-panel-group">
         <h2 className="settings-section-title">{t("settings.worktree.managedTitle")}</h2>
         <section className="settings-card">

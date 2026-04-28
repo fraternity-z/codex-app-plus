@@ -40,6 +40,16 @@ function renderSection(): void {
             setPreferences((current) => ({ ...current, gitPushForceWithLease })),
           setGitCommitInstructions: (gitCommitInstructions) =>
             setPreferences((current) => ({ ...current, gitCommitInstructions })),
+          setGitPullRequestMergeMethod: (gitPullRequestMergeMethod) =>
+            setPreferences((current) => ({ ...current, gitPullRequestMergeMethod })),
+          setGitDraftPullRequest: (gitDraftPullRequest) =>
+            setPreferences((current) => ({ ...current, gitDraftPullRequest })),
+          setGitAutoDeleteWorktrees: (gitAutoDeleteWorktrees) =>
+            setPreferences((current) => ({ ...current, gitAutoDeleteWorktrees })),
+          setGitAutoDeleteRetention: (gitAutoDeleteRetention) =>
+            setPreferences((current) => ({ ...current, gitAutoDeleteRetention })),
+          setGitPullRequestInstructions: (gitPullRequestInstructions) =>
+            setPreferences((current) => ({ ...current, gitPullRequestInstructions })),
           setContrast: () => undefined,
           setAppearanceThemeColors: () => undefined,
           setCodeStyle: () => undefined,
@@ -84,13 +94,38 @@ describe("GitSettingsSection", () => {
     expect(screen.getByDisplayValue("使用 Conventional Commits。")).toBeInTheDocument();
   });
 
-  it("marks unfinished Git controls in the copy", () => {
+  it("saves pull request preferences", () => {
     renderSection();
 
-    expect(screen.getByText("选择 Codex 合并拉取请求的方法（未完成：暂未接入保存）")).toBeInTheDocument();
-    expect(screen.getByText("留空自动生成提交消息时，会把这些指令加入提示。")).toBeInTheDocument();
-    expect(screen.getByText("未完成：暂未添加到 PR 标题/描述生成提示中")).toBeInTheDocument();
-    expect(screen.getByRole("spinbutton", { name: "自动删除限制" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "压缩" }));
+    expect(screen.getByRole("button", { name: "压缩" })).toHaveAttribute("aria-pressed", "true");
+
+    const draftSwitch = screen.getByRole("switch", { name: "创建草稿拉取请求" });
+    expect(draftSwitch).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(draftSwitch);
+    expect(draftSwitch).toHaveAttribute("aria-checked", "false");
+
+    fireEvent.change(screen.getByRole("textbox", { name: "拉取请求指令" }), {
+      target: { value: "突出风险和验证步骤。" },
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "保存" })[1]);
+
+    expect(screen.getByDisplayValue("突出风险和验证步骤。")).toBeInTheDocument();
+  });
+
+  it("updates worktree cleanup preferences", () => {
+    renderSection();
+
+    const autoDeleteSwitch = screen.getByRole("switch", { name: "自动删除旧工作树" });
+    expect(autoDeleteSwitch).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(autoDeleteSwitch);
+    expect(autoDeleteSwitch).toHaveAttribute("aria-checked", "false");
+
+    fireEvent.change(screen.getByRole("spinbutton", { name: "自动删除限制" }), {
+      target: { value: "8" },
+    });
+
+    expect(screen.getByDisplayValue("8")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "提交指令" })).toBeEnabled();
   });
 });

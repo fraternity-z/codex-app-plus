@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import type { AppPreferencesController } from "../hooks/useAppPreferences";
+import type { AppPreferencesController, GitPullRequestMergeMethod } from "../hooks/useAppPreferences";
 import { useI18n } from "../../../i18n";
 
 interface GitSettingsSectionProps {
@@ -56,15 +56,16 @@ function GitSettingsRow(props: {
 }
 
 function GitSegmentedControl(props: {
-  readonly value: "merge" | "squash";
+  readonly label: string;
+  readonly value: GitPullRequestMergeMethod;
   readonly options: ReadonlyArray<{
-    readonly value: "merge" | "squash";
+    readonly value: GitPullRequestMergeMethod;
     readonly label: string;
   }>;
-  readonly disabled?: boolean;
+  readonly onChange: (value: GitPullRequestMergeMethod) => void;
 }): JSX.Element {
   return (
-    <div className="settings-toggle-button-group" aria-label="Git merge method">
+    <div className="settings-toggle-button-group" aria-label={props.label}>
       {props.options.map((option) => {
         const isActive = option.value === props.value;
         return (
@@ -77,13 +78,62 @@ function GitSegmentedControl(props: {
                 : "settings-toggle-button"
             }
             aria-pressed={isActive}
-            disabled={props.disabled}
+            onClick={() => props.onChange(option.value)}
           >
             {option.label}
           </button>
         );
       })}
     </div>
+  );
+}
+
+function RetentionInput(props: {
+  readonly label: string;
+  readonly value: number;
+  readonly onChange: (value: number) => void;
+}): JSX.Element {
+  const [draft, setDraft] = useState(String(props.value));
+
+  useEffect(() => {
+    setDraft(String(props.value));
+  }, [props.value]);
+
+  const commitDraft = (value: string) => {
+    if (!/^\d+$/.test(value)) {
+      setDraft(String(props.value));
+      return;
+    }
+    props.onChange(Number.parseInt(value, 10));
+  };
+
+  return (
+    <input
+      className="settings-text-input settings-number-input"
+      aria-label={props.label}
+      type="number"
+      min={1}
+      max={100}
+      step={1}
+      value={draft}
+      onChange={(event) => {
+        const nextValue = event.currentTarget.value;
+        if (!/^\d*$/.test(nextValue)) {
+          return;
+        }
+        setDraft(nextValue);
+        if (/^\d+$/.test(nextValue)) {
+          props.onChange(Number.parseInt(nextValue, 10));
+        }
+      }}
+      onBlur={() => commitDraft(draft)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          commitDraft(draft);
+          event.currentTarget.blur();
+        }
+      }}
+    />
   );
 }
 
@@ -158,8 +208,9 @@ export function GitSettingsSection(props: GitSettingsSectionProps): JSX.Element 
           description={t("settings.git.mergeMethodDescription")}
         >
           <GitSegmentedControl
-            value="merge"
-            disabled
+            label={t("settings.git.mergeMethodLabel")}
+            value={props.preferences.gitPullRequestMergeMethod}
+            onChange={props.preferences.setGitPullRequestMergeMethod}
             options={[
               { value: "merge", label: t("settings.git.mergeMethodMerge") },
               { value: "squash", label: t("settings.git.mergeMethodSquash") },
@@ -182,8 +233,8 @@ export function GitSettingsSection(props: GitSettingsSectionProps): JSX.Element 
         >
           <ToggleSwitch
             label={t("settings.git.draftPullRequestLabel")}
-            checked
-            disabled
+            checked={props.preferences.gitDraftPullRequest}
+            onToggle={() => props.preferences.setGitDraftPullRequest(!props.preferences.gitDraftPullRequest)}
           />
         </GitSettingsRow>
         <GitSettingsRow
@@ -192,21 +243,18 @@ export function GitSettingsSection(props: GitSettingsSectionProps): JSX.Element 
         >
           <ToggleSwitch
             label={t("settings.git.autoDeleteWorktreeLabel")}
-            checked
-            disabled
+            checked={props.preferences.gitAutoDeleteWorktrees}
+            onToggle={() => props.preferences.setGitAutoDeleteWorktrees(!props.preferences.gitAutoDeleteWorktrees)}
           />
         </GitSettingsRow>
         <GitSettingsRow
           label={t("settings.git.autoDeleteRetentionLabel")}
           description={t("settings.git.autoDeleteRetentionDescription")}
         >
-          <input
-            className="settings-text-input settings-number-input"
-            aria-label={t("settings.git.autoDeleteRetentionLabel")}
-            type="number"
-            value={15}
-            disabled
-            readOnly
+          <RetentionInput
+            label={t("settings.git.autoDeleteRetentionLabel")}
+            value={props.preferences.gitAutoDeleteRetention}
+            onChange={props.preferences.setGitAutoDeleteRetention}
           />
         </GitSettingsRow>
       </section>
@@ -223,8 +271,8 @@ export function GitSettingsSection(props: GitSettingsSectionProps): JSX.Element 
         description={t("settings.git.pullRequestInstructionsDescription")}
         placeholder={t("settings.git.pullRequestInstructionsPlaceholder")}
         saveLabel={t("settings.git.save")}
-        value=""
-        disabled
+        value={props.preferences.gitPullRequestInstructions}
+        onSave={props.preferences.setGitPullRequestInstructions}
       />
     </div>
   );

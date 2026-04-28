@@ -111,6 +111,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
     controller: props.controller,
     conversation,
     workspace: props.workspace,
+    preferences: props.preferences,
     configSnapshot: state.configSnapshot,
     hostBridge: props.hostBridge,
     openCreateWorktreeDialog: (root) => setCreateDialogRoot(root),
@@ -226,6 +227,7 @@ function useHomeScreenActions(args: {
     "createThread" | "regenerateFromEditedUserMessage" | "sendTurn" | "selectThread"
   >;
   readonly workspace: WorkspaceRootController;
+  readonly preferences: Pick<AppPreferencesController, "gitAutoDeleteWorktrees" | "gitAutoDeleteRetention">;
   readonly hostBridge: HostBridge;
   readonly openCreateWorktreeDialog: (root: WorkspaceRoot) => void;
   readonly closeCreateWorktreeDialog: () => void;
@@ -266,6 +268,8 @@ function useHomeScreenActions(args: {
     hostBridge: args.hostBridge,
     workspace: args.workspace,
     selectedRootPath,
+    autoCleanupEnabled: args.preferences.gitAutoDeleteWorktrees,
+    autoCleanupRetention: args.preferences.gitAutoDeleteRetention,
   });
 
   const selectRoot = useCallback((rootId: string) => {

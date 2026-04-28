@@ -33,6 +33,8 @@ import {
   APP_PREFERENCES_STORAGE_KEY,
   DEFAULT_APP_PREFERENCES,
   DEFAULT_GIT_BRANCH_PREFIX,
+  type GitPullRequestMergeMethod,
+  normalizeGitAutoDeleteRetention,
   normalizeGitBranchPrefix,
   readStoredAppPreferences,
   serializePreferences,
@@ -67,6 +69,11 @@ export interface AppPreferences {
   readonly gitBranchPrefix: string;
   readonly gitPushForceWithLease: boolean;
   readonly gitCommitInstructions: string;
+  readonly gitPullRequestMergeMethod: GitPullRequestMergeMethod;
+  readonly gitDraftPullRequest: boolean;
+  readonly gitAutoDeleteWorktrees: boolean;
+  readonly gitAutoDeleteRetention: number;
+  readonly gitPullRequestInstructions: string;
   readonly contrast: number;
   readonly appearanceColors: AppearanceColorScheme;
   readonly codeStyle: CodeStyleId;
@@ -97,6 +104,11 @@ export interface AppPreferencesController extends AppPreferences {
   setGitBranchPrefix: (prefix: string) => void;
   setGitPushForceWithLease: (enabled: boolean) => void;
   setGitCommitInstructions: (instructions: string) => void;
+  setGitPullRequestMergeMethod: (method: GitPullRequestMergeMethod) => void;
+  setGitDraftPullRequest: (enabled: boolean) => void;
+  setGitAutoDeleteWorktrees: (enabled: boolean) => void;
+  setGitAutoDeleteRetention: (count: number) => void;
+  setGitPullRequestInstructions: (instructions: string) => void;
   setContrast: (contrast: number) => void;
   setAppearanceThemeColors: (
     theme: AppearanceTheme,
@@ -177,6 +189,15 @@ export function useAppPreferences(): AppPreferencesController {
   );
   const setGitPushForceWithLease = usePreferenceSetter(setPreferences, "gitPushForceWithLease");
   const setGitCommitInstructions = usePreferenceSetter(setPreferences, "gitCommitInstructions");
+  const setGitPullRequestMergeMethod = usePreferenceSetter(setPreferences, "gitPullRequestMergeMethod");
+  const setGitDraftPullRequest = usePreferenceSetter(setPreferences, "gitDraftPullRequest");
+  const setGitAutoDeleteWorktrees = usePreferenceSetter(setPreferences, "gitAutoDeleteWorktrees");
+  const setGitAutoDeleteRetention = usePreferenceSetter(
+    setPreferences,
+    "gitAutoDeleteRetention",
+    (value) => normalizeGitAutoDeleteRetention(value),
+  );
+  const setGitPullRequestInstructions = usePreferenceSetter(setPreferences, "gitPullRequestInstructions");
   const setContrast = usePreferenceSetter(
     setPreferences,
     "contrast",
@@ -225,6 +246,11 @@ export function useAppPreferences(): AppPreferencesController {
       setGitBranchPrefix,
       setGitPushForceWithLease,
       setGitCommitInstructions,
+      setGitPullRequestMergeMethod,
+      setGitDraftPullRequest,
+      setGitAutoDeleteWorktrees,
+      setGitAutoDeleteRetention,
+      setGitPullRequestInstructions,
       setContrast,
       setAppearanceThemeColors,
       setCodeStyle,
@@ -251,6 +277,11 @@ export function useAppPreferences(): AppPreferencesController {
       setGitBranchPrefix,
       setGitPushForceWithLease,
       setGitCommitInstructions,
+      setGitPullRequestMergeMethod,
+      setGitDraftPullRequest,
+      setGitAutoDeleteWorktrees,
+      setGitAutoDeleteRetention,
+      setGitPullRequestInstructions,
       setThemeMode,
       setThreadDetailLevel,
       setUiLanguage,
@@ -266,5 +297,6 @@ export {
   APP_PREFERENCES_STORAGE_KEY,
   DEFAULT_APP_PREFERENCES,
   DEFAULT_GIT_BRANCH_PREFIX,
+  type GitPullRequestMergeMethod,
   readStoredAppPreferences,
 };

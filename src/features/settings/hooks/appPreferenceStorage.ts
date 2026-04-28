@@ -49,6 +49,13 @@ import type {
 
 export const APP_PREFERENCES_STORAGE_KEY = "codex-app-plus.app-preferences";
 export const DEFAULT_GIT_BRANCH_PREFIX = "codex/";
+export type GitPullRequestMergeMethod = "merge" | "squash";
+export const DEFAULT_GIT_PULL_REQUEST_MERGE_METHOD: GitPullRequestMergeMethod = "merge";
+export const DEFAULT_GIT_DRAFT_PULL_REQUEST = true;
+export const DEFAULT_GIT_AUTO_DELETE_WORKTREES = true;
+export const DEFAULT_GIT_AUTO_DELETE_RETENTION = 15;
+export const GIT_AUTO_DELETE_RETENTION_MIN = 1;
+export const GIT_AUTO_DELETE_RETENTION_MAX = 100;
 
 const AGENT_ENVIRONMENTS: ReadonlyArray<AgentEnvironment> = ["windowsNative", "wsl"];
 const WORKSPACE_OPENERS: ReadonlyArray<WorkspaceOpener> = ["vscode", "visualStudio", "githubDesktop", "explorer", "terminal", "gitBash"];
@@ -60,6 +67,7 @@ const COMPOSER_ENTER_BEHAVIORS: ReadonlyArray<ComposerEnterBehavior> = ["enter",
 const SANDBOX_MODES: ReadonlyArray<SandboxMode> = ["read-only", "workspace-write", "danger-full-access"];
 const NOTIFICATION_DELIVERY_MODES: ReadonlyArray<NotificationDeliveryMode> = ["system+sound", "system", "sound"];
 const NOTIFICATION_TRIGGER_MODES: ReadonlyArray<NotificationTriggerMode> = ["never", "unfocused", "always"];
+const GIT_PULL_REQUEST_MERGE_METHODS: ReadonlyArray<GitPullRequestMergeMethod> = ["merge", "squash"];
 
 type LegacyComposerAccessMode = "read-only" | "current" | "full-access";
 
@@ -88,6 +96,11 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   gitBranchPrefix: DEFAULT_GIT_BRANCH_PREFIX,
   gitPushForceWithLease: false,
   gitCommitInstructions: "",
+  gitPullRequestMergeMethod: DEFAULT_GIT_PULL_REQUEST_MERGE_METHOD,
+  gitDraftPullRequest: DEFAULT_GIT_DRAFT_PULL_REQUEST,
+  gitAutoDeleteWorktrees: DEFAULT_GIT_AUTO_DELETE_WORKTREES,
+  gitAutoDeleteRetention: DEFAULT_GIT_AUTO_DELETE_RETENTION,
+  gitPullRequestInstructions: "",
   contrast: APP_CONTRAST_DEFAULT,
   appearanceColors: DEFAULT_APPEARANCE_COLOR_SCHEME,
   codeStyle: DEFAULT_CODE_STYLE,
@@ -109,6 +122,31 @@ function sanitizeGitBranchPrefix(value: unknown): string {
 
 function sanitizeStringPreference(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+function sanitizeGitPullRequestMergeMethod(value: unknown): GitPullRequestMergeMethod {
+  return isPreferenceValue(GIT_PULL_REQUEST_MERGE_METHODS, value)
+    ? value
+    : DEFAULT_APP_PREFERENCES.gitPullRequestMergeMethod;
+}
+
+export function normalizeGitAutoDeleteRetention(value: unknown): number {
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : typeof value === "string" && value.trim().length > 0
+        ? Number(value)
+        : Number.NaN;
+
+  if (!Number.isFinite(numericValue)) {
+    return DEFAULT_APP_PREFERENCES.gitAutoDeleteRetention;
+  }
+
+  const integerValue = Math.trunc(numericValue);
+  return Math.min(
+    GIT_AUTO_DELETE_RETENTION_MAX,
+    Math.max(GIT_AUTO_DELETE_RETENTION_MIN, integerValue),
+  );
 }
 
 function readStoredUiLanguage(record: Record<string, unknown>): UiLanguage {
@@ -299,6 +337,17 @@ function sanitizeStoredPreferences(value: unknown): AppPreferences {
         ? record.gitPushForceWithLease
         : DEFAULT_APP_PREFERENCES.gitPushForceWithLease,
     gitCommitInstructions: sanitizeStringPreference(record.gitCommitInstructions),
+    gitPullRequestMergeMethod: sanitizeGitPullRequestMergeMethod(record.gitPullRequestMergeMethod),
+    gitDraftPullRequest:
+      typeof record.gitDraftPullRequest === "boolean"
+        ? record.gitDraftPullRequest
+        : DEFAULT_APP_PREFERENCES.gitDraftPullRequest,
+    gitAutoDeleteWorktrees:
+      typeof record.gitAutoDeleteWorktrees === "boolean"
+        ? record.gitAutoDeleteWorktrees
+        : DEFAULT_APP_PREFERENCES.gitAutoDeleteWorktrees,
+    gitAutoDeleteRetention: normalizeGitAutoDeleteRetention(record.gitAutoDeleteRetention),
+    gitPullRequestInstructions: sanitizeStringPreference(record.gitPullRequestInstructions),
     contrast: clampContrast(
       typeof record.contrast === "number"
         ? record.contrast
