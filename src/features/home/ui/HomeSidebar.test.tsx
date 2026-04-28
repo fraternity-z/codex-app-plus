@@ -84,6 +84,7 @@ function readThreadId(params: unknown): string {
 function renderSidebar(threadOrThreads: ThreadSummary | ReadonlyArray<ThreadSummary>, options?: {
   readonly onArchiveThread?: (threadId: string) => Promise<void>;
   readonly onOpenSkills?: () => void;
+  readonly onOpenAutomation?: () => void;
   readonly onCreateThread?: () => Promise<void>;
   readonly onRemoveRoot?: (rootId: string) => void;
   readonly deleteCodexSession?: ReturnType<typeof vi.fn>;
@@ -99,6 +100,7 @@ function renderSidebar(threadOrThreads: ThreadSummary | ReadonlyArray<ThreadSumm
   const onArchiveThread = options?.onArchiveThread ?? vi.fn().mockResolvedValue(undefined);
   const onCreateThread = options?.onCreateThread ?? vi.fn().mockResolvedValue(undefined);
   const onOpenSkills = options?.onOpenSkills ?? vi.fn();
+  const onOpenAutomation = options?.onOpenAutomation ?? vi.fn();
   const deleteCodexSession = options?.deleteCodexSession ?? vi.fn().mockResolvedValue(undefined);
   const openWorkspace = options?.openWorkspace ?? vi.fn().mockResolvedValue(undefined);
   const searchCodexSessions = options?.searchCodexSessions ?? vi.fn().mockResolvedValue([]);
@@ -134,6 +136,7 @@ function renderSidebar(threadOrThreads: ThreadSummary | ReadonlyArray<ThreadSumm
           onDismissSettingsMenu={vi.fn()}
           onOpenSettings={vi.fn()}
           onOpenSkills={onOpenSkills}
+          onOpenAutomation={onOpenAutomation}
           onLogin={vi.fn().mockResolvedValue(undefined)}
           onLogout={vi.fn().mockResolvedValue(undefined)}
           onSelectRoot={vi.fn()}
@@ -149,7 +152,7 @@ function renderSidebar(threadOrThreads: ThreadSummary | ReadonlyArray<ThreadSumm
   }
 
   render(<Harness />, { wrapper: createI18nWrapper() });
-  return { onArchiveThread, onCreateThread, onOpenSkills, deleteCodexSession, openWorkspace, searchCodexSessions, request };
+  return { onArchiveThread, onCreateThread, onOpenSkills, onOpenAutomation, deleteCodexSession, openWorkspace, searchCodexSessions, request };
 }
 
 function DispatchRecorder(props: { readonly onReady: (dispatch: AppStoreApi["dispatch"]) => void }): null {
@@ -236,10 +239,13 @@ describe("HomeSidebar", () => {
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "搜索会话" })).not.toBeInTheDocument());
   });
 
-  it("does not render the automation nav item", () => {
-    renderSidebar(createThread("codexData"));
+  it("opens the automation screen from the sidebar nav", () => {
+    const { onOpenAutomation } = renderSidebar(createThread("codexData"));
 
-    expect(screen.queryByRole("button", { name: "自动化" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /自动化/ }));
+
+    expect(onOpenAutomation).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("实验性")).toBeInTheDocument();
   });
 
   it("forwards the workspace row new thread button", async () => {
@@ -432,6 +438,7 @@ describe("HomeSidebar", () => {
             onDismissSettingsMenu={vi.fn()}
             onOpenSettings={vi.fn()}
             onOpenSkills={vi.fn()}
+            onOpenAutomation={vi.fn()}
             onLogin={vi.fn().mockResolvedValue(undefined)}
             onLogout={vi.fn().mockResolvedValue(undefined)}
             onSelectRoot={vi.fn()}

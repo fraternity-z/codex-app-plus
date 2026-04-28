@@ -20,7 +20,7 @@ export function CodexGlyph({ className }: { readonly className?: string }): JSX.
   );
 }
 
-export function SidebarIcon({ kind }: { readonly kind: "new-thread" | "search" | "skills" }): JSX.Element {
+export function SidebarIcon({ kind }: { readonly kind: "new-thread" | "search" | "skills" | "automation" }): JSX.Element {
   if (kind === "skills") {
     return (
       <svg className="sidebar-icon" viewBox="0 0 16 16" aria-hidden="true">
@@ -28,6 +28,15 @@ export function SidebarIcon({ kind }: { readonly kind: "new-thread" | "search" |
         <rect x="9.5" y="2" width="4.5" height="4.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
         <rect x="2" y="9.5" width="4.5" height="4.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
         <rect x="9.5" y="9.5" width="4.5" height="4.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      </svg>
+    );
+  }
+
+  if (kind === "automation") {
+    return (
+      <svg className="sidebar-icon" viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.2" />
+        <path d="M8 4.7V8l2.3 2.1" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     );
   }

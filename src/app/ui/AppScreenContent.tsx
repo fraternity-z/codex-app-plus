@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { HostBridge } from "../../bridge/types";
 import type { ResolvedTheme } from "../../domain/theme";
+import type { AutomationsController } from "../../features/automation/hooks/useAutomations";
 import { AuthChoiceView } from "../../features/auth/ui/AuthChoiceView";
 import { HomeScreen } from "../../features/home/ui/HomeScreen";
 import { AppNotificationViewport } from "../../features/notifications/ui/AppNotificationViewport";
@@ -12,7 +13,7 @@ import type { WorkspaceRootController } from "../../features/workspace/hooks/use
 import type { AppController } from "../controller/appControllerTypes";
 import { WindowTitlebar } from "./WindowTitlebar";
 
-export type AppScreen = "home" | "skills" | SettingsSection;
+export type AppScreen = "home" | "skills" | "automation" | SettingsSection;
 
 interface AppScreenContentProps {
   readonly controller: AppController;
@@ -27,6 +28,7 @@ interface AppScreenContentProps {
   readonly workspace: WorkspaceRootController;
   readonly authBusy: boolean;
   readonly authLoginPending: boolean;
+  readonly automations: AutomationsController;
   readonly onGoBack: () => void;
   readonly onGoForward: () => void;
   readonly onBackHome: () => void;
@@ -36,6 +38,8 @@ interface AppScreenContentProps {
   readonly onOpenSettingsSection: (section: SettingsSection) => void;
   readonly onOpenSkills: () => void;
   readonly onOpenSkillsLearnMore: () => Promise<void>;
+  readonly onOpenAutomation: () => void;
+  readonly onOpenAutomationLearnMore: () => Promise<void>;
   readonly onToggleSettingsMenu: () => void;
 }
 
@@ -52,7 +56,7 @@ export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
     if (props.shouldShowAuthChoice) {
       return null;
     }
-    if (props.screen === "home" || props.screen === "skills") {
+    if (props.screen === "home" || props.screen === "skills" || props.screen === "automation") {
       return {
         collapsed: homeSidebarCollapsed,
         collapseLabel: "折叠工作区侧边栏",
@@ -131,6 +135,9 @@ function renderOverlayScreen(props: AppScreenContentProps & {
   if (props.screen === "skills") {
     return null;
   }
+  if (props.screen === "automation") {
+    return null;
+  }
   if (props.screen === "home") {
     return null;
   }
@@ -160,22 +167,37 @@ function renderHomeScreen(props: AppScreenContentProps & {
       preferences={props.preferences}
       resolvedTheme={props.resolvedTheme}
       settingsMenuOpen={props.settingsMenuOpen}
+      activeNavItem={props.screen === "skills" || props.screen === "automation" ? props.screen : null}
       sidebarCollapsed={props.homeSidebarCollapsed}
       workspace={props.workspace}
+      automations={props.automations}
       onDismissSettingsMenu={props.onDismissSettingsMenu}
       onOpenSettings={props.onOpenSettings}
       onOpenSettingsSection={props.onOpenSettingsSection}
       onOpenSkills={props.onOpenSkills}
+      onOpenAutomation={props.onOpenAutomation}
+      onOpenAutomationLearnMore={props.onOpenAutomationLearnMore}
       onToggleSettingsMenu={props.onToggleSettingsMenu}
-      mainContentOverride={props.screen === "skills" ? (
-        <SkillsScreen
-          controller={props.controller}
-          workspace={props.workspace}
-          onBackHome={props.onBackHome}
-          onOpenLearnMore={props.onOpenSkillsLearnMore}
-          onOpenMcpSettings={() => props.onOpenSettingsSection("mcp")}
-        />
-      ) : null}
+      mainContentOverride={renderMainContentOverride(props)}
     />
   );
+}
+
+function renderMainContentOverride(props: AppScreenContentProps & {
+  readonly homeSidebarCollapsed: boolean;
+  readonly settingsSidebarCollapsed: boolean;
+}): JSX.Element | null {
+  if (props.screen === "skills") {
+    return (
+      <SkillsScreen
+        controller={props.controller}
+        workspace={props.workspace}
+        onBackHome={props.onBackHome}
+        onOpenLearnMore={props.onOpenSkillsLearnMore}
+        onOpenMcpSettings={() => props.onOpenSettingsSection("mcp")}
+      />
+    );
+  }
+
+  return null;
 }

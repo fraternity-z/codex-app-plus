@@ -1,0 +1,635 @@
+.automation-screen {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--surface-canvas);
+  color: var(--text-main);
+  padding: 72px 72px 56px;
+}
+
+.automation-header {
+  width: min(860px, 100%);
+  margin: 0 auto 44px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.automation-header-copy {
+  min-width: 0;
+}
+
+.automation-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.automation-title {
+  margin: 0;
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-hero);
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.automation-experimental-badge {
+  flex-shrink: 0;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: var(--surface-panel-muted);
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.2;
+}
+
+.automation-subtitle {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-lg);
+  line-height: 1.45;
+}
+
+.automation-availability-notice {
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.4;
+}
+
+.automation-link {
+  margin-left: 8px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent-color);
+  cursor: pointer;
+}
+
+.automation-link:hover {
+  color: var(--accent-strong);
+}
+
+.automation-create-button {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.automation-create-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.automation-existing-section,
+.automation-template-section {
+  width: min(860px, 100%);
+  margin: 0 auto;
+}
+
+.automation-existing-section {
+  margin-bottom: 44px;
+}
+
+.automation-template-sections {
+  display: grid;
+  gap: 44px;
+}
+
+.automation-section-title {
+  margin: 0 0 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-2xl);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.automation-template-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.automation-template-card {
+  min-height: 150px;
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  background: var(--surface-panel);
+  color: var(--text-main);
+  text-align: left;
+  cursor: pointer;
+}
+
+.automation-template-card:hover:not(:disabled),
+.automation-template-card:focus-visible:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-panel-muted);
+  outline: 0;
+}
+
+.automation-template-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.automation-template-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  color: #5d6ef6;
+  background: #ecebff;
+}
+
+.automation-template-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.automation-template-icon-document,
+.automation-template-icon-book {
+  color: #d76d4a;
+  background: #fff0e9;
+}
+
+.automation-template-icon-grid,
+.automation-template-icon-terminal {
+  color: #555a63;
+  background: #eeeeef;
+}
+
+.automation-template-icon-check,
+.automation-template-icon-power {
+  color: #4da04c;
+  background: #ecf8ec;
+}
+
+.automation-template-icon-pencil,
+.automation-template-icon-test {
+  color: #c48a20;
+  background: #fff6d8;
+}
+
+.automation-template-icon-search,
+.automation-template-icon-dependency,
+.automation-template-icon-chart,
+.automation-template-icon-hierarchy {
+  color: #179b89;
+  background: #e8fbf7;
+}
+
+.automation-template-text {
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-lg);
+  line-height: 1.45;
+}
+
+.automation-existing-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.automation-existing-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  background: var(--surface-panel);
+}
+
+.automation-existing-card-main {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.automation-existing-name {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.automation-existing-meta {
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+}
+
+.automation-existing-error {
+  color: var(--error-fg);
+  font-size: var(--app-ui-font-size-sm);
+}
+
+.automation-existing-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.automation-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-soft);
+  font-size: var(--app-ui-font-size-sm);
+}
+
+.automation-delete-button,
+.automation-secondary-button,
+.automation-primary-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.automation-delete-button,
+.automation-secondary-button {
+  border: 1px solid var(--border-light);
+  background: var(--surface-panel);
+  color: var(--text-soft);
+}
+
+.automation-delete-button:hover,
+.automation-secondary-button:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+.automation-primary-button {
+  border: 0;
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+}
+
+.automation-primary-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.automation-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--surface-overlay);
+}
+
+.automation-dialog {
+  width: min(680px, 100%);
+  max-height: min(86vh, 760px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-light);
+  border-radius: 18px;
+  background: var(--surface-panel);
+  box-shadow: var(--shadow-lg);
+}
+
+.automation-dialog-header,
+.automation-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.automation-dialog-title {
+  margin: 0;
+  font-size: var(--app-ui-font-size-2xl);
+  font-weight: 600;
+}
+
+.automation-dialog-close {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.automation-dialog-close:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+.automation-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+  padding: 0 18px 18px;
+}
+
+.automation-field {
+  display: grid;
+  gap: 7px;
+  color: var(--text-soft);
+  font-size: var(--app-ui-font-size-sm);
+}
+
+.automation-field input,
+.automation-field select,
+.automation-field textarea {
+  width: 100%;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--surface-panel-muted);
+  color: var(--text-main);
+  outline: 0;
+}
+
+.automation-field input,
+.automation-field select {
+  height: 38px;
+  padding: 0 10px;
+}
+
+.automation-field textarea {
+  min-height: 170px;
+  resize: vertical;
+  padding: 10px;
+  line-height: 1.45;
+}
+
+.automation-field input:focus,
+.automation-field select:focus,
+.automation-field textarea:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.automation-schedule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 140px;
+  gap: 12px;
+}
+
+.automation-time-field {
+  min-width: 0;
+}
+
+.automation-dialog-footer {
+  border-top: 1px solid var(--border-light);
+  justify-content: flex-end;
+}
+
+.automation-dialog {
+  width: min(1200px, calc(100vw - 96px));
+  height: min(66vh, 640px);
+  max-height: calc(100vh - 96px);
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+.automation-dialog-header {
+  align-items: center;
+  padding: 28px 30px 12px;
+}
+
+.automation-dialog-title-input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--text-main);
+  outline: 0;
+  font-size: var(--app-ui-font-size-3xl);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.automation-dialog-title-input::placeholder {
+  color: var(--text-muted);
+}
+
+.automation-dialog-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.automation-dialog-ghost-button,
+.automation-dialog-info-button {
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.automation-dialog-ghost-button:hover,
+.automation-dialog-info-button:hover {
+  color: var(--text-main);
+}
+
+.automation-dialog-info-button {
+  width: 34px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.automation-dialog-info-button:hover {
+  background: var(--surface-hover);
+}
+
+.automation-dialog-composer-body {
+  flex: 1;
+  padding: 12px 30px;
+}
+
+.automation-dialog-prompt {
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+  border: 0;
+  resize: none;
+  outline: 0;
+  background: transparent;
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-xl);
+  line-height: 1.55;
+}
+
+.automation-dialog-prompt::placeholder {
+  color: var(--text-muted);
+}
+
+.automation-dialog-footer {
+  min-height: 74px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 0;
+  padding: 12px 30px 28px;
+}
+
+.automation-dialog-toolstrip {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.automation-dialog-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.automation-toolbar-button,
+.automation-toolbar-select,
+.automation-toolbar-time {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  background: var(--surface-panel-muted);
+  color: var(--text-soft);
+  padding: 0 12px;
+  font-size: var(--app-ui-font-size-base);
+  white-space: nowrap;
+}
+
+.automation-toolbar-select select,
+.automation-toolbar-time input {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-main);
+  outline: 0;
+  font: inherit;
+}
+
+.automation-toolbar-select select {
+  max-width: 150px;
+}
+
+.automation-toolbar-weekday select {
+  max-width: 86px;
+}
+
+.automation-toolbar-time input {
+  width: 84px;
+}
+
+.automation-dialog-toolstrip .composer-select-trigger {
+  height: 34px;
+  background: var(--surface-panel-muted);
+  color: var(--text-soft);
+}
+
+.automation-dialog-toolstrip .composer-select-trigger:hover,
+.automation-dialog-toolstrip .composer-select-trigger-active {
+  background: var(--surface-hover);
+}
+
+.automation-dialog-toolstrip .composer-select-trigger-text {
+  max-width: 130px;
+}
+
+.sidebar-nav-item-active,
+.sidebar-nav-item-active:hover {
+  background: var(--surface-active);
+  color: var(--text-main);
+}
+
+.sidebar-nav-item-active .sidebar-icon {
+  color: var(--text-main);
+}
+
+@media (max-width: 900px) {
+  .automation-screen {
+    padding: 44px 22px;
+  }
+
+  .automation-header {
+    flex-direction: column;
+    margin-bottom: 32px;
+  }
+
+  .automation-template-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .automation-existing-card,
+  .automation-existing-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .automation-schedule-row {
+    grid-template-columns: 1fr;
+  }
+
+  .automation-dialog {
+    width: calc(100vw - 28px);
+    height: min(82vh, 720px);
+    border-radius: 22px;
+  }
+
+  .automation-dialog-header,
+  .automation-dialog-footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .automation-dialog-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .automation-dialog-header-actions,
+  .automation-dialog-actions,
+  .automation-dialog-toolstrip {
+    width: 100%;
+  }
+
+  .automation-dialog-actions {
+    justify-content: flex-end;
+  }
+
+  .automation-dialog-composer-body {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .automation-dialog-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

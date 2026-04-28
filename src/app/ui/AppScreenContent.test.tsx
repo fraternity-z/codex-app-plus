@@ -11,6 +11,10 @@ vi.mock("../../features/auth/ui/AuthChoiceView", () => ({
   AuthChoiceView: () => <div data-testid="auth-choice-view">auth choice</div>,
 }));
 
+vi.mock("../../features/automation/ui/AutomationScreen", () => ({
+  AutomationScreen: () => <div data-testid="automation-screen">automation</div>,
+}));
+
 vi.mock("../../features/settings/ui/SettingsScreen", () => ({
   SettingsScreen: (props: { readonly sidebarCollapsed: boolean }) => (
     <div data-testid="settings-screen">settings collapsed:{String(props.sidebarCollapsed)}</div>
@@ -79,6 +83,7 @@ vi.mock("../../features/home/ui/HomeScreen", async () => {
   return {
     HomeScreen: (props: {
       readonly sidebarCollapsed: boolean;
+      readonly activeNavItem?: "skills" | "automation" | null;
       readonly mainContentOverride?: React.ReactNode;
     }) => {
       const [count, setCount] = React.useState(0);
@@ -90,6 +95,7 @@ vi.mock("../../features/home/ui/HomeScreen", async () => {
           <button type="button" onClick={() => setCount((value) => value + 1)}>
             increment
           </button>
+          {props.activeNavItem === "automation" ? <div data-testid="automation-screen">automation</div> : null}
           {props.mainContentOverride}
         </div>
       );
@@ -130,6 +136,17 @@ function createWorkspace(): WorkspaceRootController {
   };
 }
 
+function createAutomations() {
+  return {
+    automations: [],
+    createAutomation: vi.fn(),
+    updateAutomation: vi.fn(),
+    deleteAutomation: vi.fn(),
+    setAutomationEnabled: vi.fn(),
+    recordAutomationRunResult: vi.fn(),
+  };
+}
+
 function createProps(
   overrides: Partial<ComponentProps<typeof AppScreenContent>>,
 ): ComponentProps<typeof AppScreenContent> {
@@ -144,6 +161,7 @@ function createProps(
     settingsMenuOpen: false,
     shouldShowAuthChoice: false,
     workspace: createWorkspace(),
+    automations: createAutomations(),
     authBusy: false,
     authLoginPending: false,
     onGoBack: vi.fn(),
@@ -155,6 +173,8 @@ function createProps(
     onOpenSettingsSection: vi.fn(),
     onOpenSkills: vi.fn(),
     onOpenSkillsLearnMore: vi.fn().mockResolvedValue(undefined),
+    onOpenAutomation: vi.fn(),
+    onOpenAutomationLearnMore: vi.fn().mockResolvedValue(undefined),
     onToggleSettingsMenu: vi.fn(),
     ...overrides,
   };
@@ -205,6 +225,19 @@ describe("AppScreenContent", () => {
 
     expect(screen.getByTestId("home-screen")).toBeInTheDocument();
     expect(screen.getByTestId("skills-screen")).toBeInTheDocument();
+    expect(screen.getByTestId("home-sidebar-state")).toHaveTextContent("false");
+
+    fireEvent.click(screen.getByRole("button", { name: "折叠工作区侧边栏" }));
+
+    expect(screen.getByTestId("home-sidebar-state")).toHaveTextContent("true");
+    expect(screen.getByRole("button", { name: "展开工作区侧边栏" })).toBeInTheDocument();
+  });
+
+  it("keeps the home sidebar mounted while the automation screen is open", () => {
+    renderAppScreenContent("automation");
+
+    expect(screen.getByTestId("home-screen")).toBeInTheDocument();
+    expect(screen.getByTestId("automation-screen")).toBeInTheDocument();
     expect(screen.getByTestId("home-sidebar-state")).toHaveTextContent("false");
 
     fireEvent.click(screen.getByRole("button", { name: "折叠工作区侧边栏" }));

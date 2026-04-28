@@ -37,10 +37,12 @@ export interface HomeSidebarProps {
   readonly account: AccountSummary | null;
   readonly settingsMenuOpen: boolean;
   readonly collapsed: boolean;
+  readonly activeNavItem?: "skills" | "automation" | null;
   readonly onToggleSettingsMenu: () => void;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
   readonly onOpenSkills: () => void;
+  readonly onOpenAutomation: () => void;
   readonly onLogin: () => Promise<void>;
   readonly onLogout: () => Promise<void>;
   readonly onSelectRoot: (rootId: string) => void;
@@ -58,11 +60,19 @@ export interface HomeSidebarProps {
 }
 
 function SidebarNav(props: {
+  readonly activeItem: "skills" | "automation" | null;
   readonly onCreateThread: () => Promise<void>;
   readonly onOpenSearch: () => void;
   readonly onOpenSkills: () => void;
+  readonly onOpenAutomation: () => void;
 }): JSX.Element {
   const { t } = useI18n();
+  const skillsClassName = props.activeItem === "skills"
+    ? "sidebar-nav-item sidebar-nav-item-active"
+    : "sidebar-nav-item";
+  const automationClassName = props.activeItem === "automation"
+    ? "sidebar-nav-item sidebar-nav-item-active"
+    : "sidebar-nav-item";
 
   return (
     <nav className="sidebar-nav">
@@ -74,9 +84,16 @@ function SidebarNav(props: {
         <SidebarIcon kind="search" />
         <span>{t("home.sidebar.search")}</span>
       </button>
-      <button type="button" className="sidebar-nav-item" onClick={props.onOpenSkills}>
+      <button type="button" className={skillsClassName} aria-current={props.activeItem === "skills" ? "page" : undefined} onClick={props.onOpenSkills}>
         <SidebarIcon kind="skills" />
         <span>{t("home.sidebar.skills")}</span>
+      </button>
+      <button type="button" className={automationClassName} aria-current={props.activeItem === "automation" ? "page" : undefined} onClick={props.onOpenAutomation}>
+        <SidebarIcon kind="automation" />
+        <span className="sidebar-nav-label-with-badge">
+          <span>{t("home.sidebar.automation")}</span>
+          <span className="sidebar-nav-experimental-badge">{t("home.sidebar.experimental")}</span>
+        </span>
       </button>
     </nav>
   );
@@ -236,6 +253,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
     onCreateThread,
     onCreateThreadInRoot,
     onDismissSettingsMenu,
+    onOpenAutomation,
     onLogin,
     onLogout,
     onOpenSettings,
@@ -430,7 +448,13 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
   return (
     <aside className={sidebarClassName}>
       {settingsMenuOpen ? <button type="button" className="settings-backdrop" onClick={onDismissSettingsMenu} aria-label={t("home.sidebar.closeMenu")} /> : null}
-      <SidebarNav onCreateThread={onCreateThread} onOpenSearch={handleOpenSearch} onOpenSkills={onOpenSkills} />
+      <SidebarNav
+        activeItem={props.activeNavItem ?? null}
+        onCreateThread={onCreateThread}
+        onOpenSearch={handleOpenSearch}
+        onOpenSkills={onOpenSkills}
+        onOpenAutomation={onOpenAutomation}
+      />
       <SearchDialog
         open={searchOpen}
         loading={searchLoading}

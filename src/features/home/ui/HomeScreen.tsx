@@ -24,6 +24,9 @@ import { createHostBridgeAppServerClient } from "../../../protocol/appServerClie
 import { useAppDispatch } from "../../../state/store";
 import { HomeView } from "./HomeView";
 import { WorktreeCreateDialog } from "../../workspace/ui/WorktreeCreateDialog";
+import type { AutomationsController } from "../../automation/hooks/useAutomations";
+import { useAutomationRunner } from "../../automation/hooks/useAutomationRunner";
+import { AutomationScreen } from "../../automation/ui/AutomationScreen";
 
 interface HomeScreenProps {
   readonly hostBridge: HostBridge;
@@ -32,12 +35,16 @@ interface HomeScreenProps {
   readonly resolvedTheme: ResolvedTheme;
   readonly settingsMenuOpen: boolean;
   readonly sidebarCollapsed: boolean;
+  readonly activeNavItem?: "skills" | "automation" | null;
   readonly workspace: WorkspaceRootController;
+  readonly automations: AutomationsController;
   readonly mainContentOverride?: JSX.Element | null;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
   readonly onOpenSettingsSection: (section: import("../../settings/ui/SettingsView").SettingsSection) => void;
   readonly onOpenSkills: () => void;
+  readonly onOpenAutomation: () => void;
+  readonly onOpenAutomationLearnMore: () => Promise<void>;
   readonly onToggleSettingsMenu: () => void;
 }
 
@@ -117,6 +124,30 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
     openCreateWorktreeDialog: (root) => setCreateDialogRoot(root),
     closeCreateWorktreeDialog: () => setCreateDialogRoot(null),
   });
+  useAutomationRunner({
+    agentEnvironment: props.preferences.agentEnvironment,
+    appServerClient,
+    appServerReady,
+    automations: props.automations.automations,
+    defaultEffort: composerPicker.defaultEffort,
+    defaultModel: composerPicker.defaultModel,
+    defaultServiceTier: composerPicker.defaultServiceTier,
+    permissionSettings,
+    recordAutomationRunResult: props.automations.recordAutomationRunResult,
+  });
+  const mainContentOverride = props.activeNavItem === "automation"
+    ? (
+      <AutomationScreen
+        automations={props.automations}
+        workspace={props.workspace}
+        models={composerPicker.models}
+        defaultModel={composerPicker.defaultModel}
+        defaultEffort={composerPicker.defaultEffort}
+        defaultServiceTier={composerPicker.defaultServiceTier}
+        onOpenLearnMore={props.onOpenAutomationLearnMore}
+      />
+    )
+    : props.mainContentOverride;
 
   return (
     <>
@@ -171,11 +202,13 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       workspaceSwitch={state.workspaceSwitch}
       settingsMenuOpen={props.settingsMenuOpen}
       sidebarCollapsed={props.sidebarCollapsed}
-      mainContentOverride={props.mainContentOverride}
+      activeNavItem={props.activeNavItem ?? null}
+      mainContentOverride={mainContentOverride}
       onToggleSettingsMenu={props.onToggleSettingsMenu}
       onDismissSettingsMenu={props.onDismissSettingsMenu}
       onOpenSettings={props.onOpenSettings}
       onOpenSkills={props.onOpenSkills}
+      onOpenAutomation={props.onOpenAutomation}
       onSelectWorkspaceOpener={props.preferences.setWorkspaceOpener}
       onSelectComposerPermissionLevel={props.preferences.setComposerPermissionLevel}
       onSelectRoot={actions.selectRoot}

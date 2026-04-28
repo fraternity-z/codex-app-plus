@@ -4,6 +4,7 @@
 @import "./replica/replica-git-diff.css";
 @import "./replica/replica-git-diff-panel.css";
 @import "./replica/replica-git-diff-sidebar.css";
+@import "./replica/replica-automation.css";
 @import "./replica/replica-empty-state.css";
 @import "./replica/replica-toolbar.css";
 @import "./replica/replica-launch-scripts.css";

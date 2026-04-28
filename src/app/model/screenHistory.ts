@@ -17,7 +17,7 @@ export function createScreenHistoryState(current: AppScreen): ScreenHistoryState
 }
 
 function isSettingsScreen(screen: AppScreen): boolean {
-  return screen !== "home" && screen !== "skills";
+  return screen !== "home" && screen !== "skills" && screen !== "automation";
 }
 
 function capBackStack(backStack: ReadonlyArray<AppScreen>): ReadonlyArray<AppScreen> {

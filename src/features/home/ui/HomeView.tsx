@@ -110,11 +110,13 @@ export interface HomeViewProps {
   readonly workspaceSwitch: WorkspaceSwitchState;
   readonly settingsMenuOpen: boolean;
   readonly sidebarCollapsed?: boolean;
+  readonly activeNavItem?: "skills" | "automation" | null;
   readonly mainContentOverride?: JSX.Element | null;
   readonly onToggleSettingsMenu: () => void;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
   readonly onOpenSkills: () => void;
+  readonly onOpenAutomation: () => void;
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
   readonly onSelectRoot: (rootId: string) => void;
   readonly onSelectThread: (threadId: string | null) => void;

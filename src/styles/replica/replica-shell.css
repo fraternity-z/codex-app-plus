@@ -72,6 +72,22 @@
 .sidebar-settings:hover {
   background: var(--surface-hover);
 }
+.sidebar-nav-label-with-badge {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sidebar-nav-experimental-badge {
+  flex-shrink: 0;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  padding: 1px 5px;
+  color: var(--text-muted);
+  background: var(--surface-panel-muted);
+  font-size: var(--app-ui-font-size-xs);
+  line-height: 1.2;
+}
 .sidebar-icon {
   width: 14px;
   height: 14px;

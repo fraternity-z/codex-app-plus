@@ -14,6 +14,7 @@ import { useAppPreferences } from "../features/settings/hooks/useAppPreferences"
 import { useAppNotificationsController } from "../features/notifications/hooks/useAppNotificationsController";
 import type { SettingsSection } from "../features/settings/ui/SettingsView";
 import { useWorkspaceRoots } from "../features/workspace/hooks/useWorkspaceRoots";
+import { useAutomations } from "../features/automation/hooks/useAutomations";
 import { useAppStoreApi } from "../state/store";
 import {
   canGoBackScreen,
@@ -25,6 +26,7 @@ import {
 } from "./model/screenHistory";
 
 const SKILLS_LEARN_MORE_URL = "https://openai.com/index/introducing-the-codex-app/";
+const AUTOMATION_LEARN_MORE_URL = "https://openai.com/index/introducing-the-codex-app/";
 
 interface AppProps {
   readonly hostBridge: HostBridge;
@@ -37,6 +39,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const bootstrapState = useAppBootstrapState();
   const controller = useAppController(hostBridge, preferences.agentEnvironment);
   const workspace = useWorkspaceRoots(hostBridge.app);
+  const automations = useAutomations();
   const [screenHistory, setScreenHistory] = useState(() => createScreenHistoryState("home"));
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const screen = screenHistory.current;
@@ -70,6 +73,10 @@ export function App({ hostBridge }: AppProps): JSX.Element {
     setScreenHistory((current) => pushScreenHistory(current, "skills"));
     setSettingsMenuOpen(false);
   }, []);
+  const openAutomation = useCallback(() => {
+    setScreenHistory((current) => pushScreenHistory(current, "automation"));
+    setSettingsMenuOpen(false);
+  }, []);
   const goBack = useCallback(() => {
     setScreenHistory((current) => goBackScreen(current));
     setSettingsMenuOpen(false);
@@ -92,6 +99,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
         settingsMenuOpen={settingsMenuOpen}
         shouldShowAuthChoice={shouldShowAuthChoice}
         workspace={workspace}
+        automations={automations}
         authBusy={authBusy}
         authLoginPending={bootstrapState.authLoginPending}
         onGoBack={goBack}
@@ -103,6 +111,8 @@ export function App({ hostBridge }: AppProps): JSX.Element {
         onOpenSettingsSection={openSettingsSection}
         onOpenSkills={openSkills}
         onOpenSkillsLearnMore={() => hostBridge.app.openExternal(SKILLS_LEARN_MORE_URL)}
+        onOpenAutomation={openAutomation}
+        onOpenAutomationLearnMore={() => hostBridge.app.openExternal(AUTOMATION_LEARN_MORE_URL)}
         onToggleSettingsMenu={() => setSettingsMenuOpen((openValue) => !openValue)}
       />
     </I18nProvider>
