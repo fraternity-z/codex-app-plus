@@ -239,6 +239,84 @@ describe("WorkspaceDiffSidebar", () => {
     await waitFor(() => expect(screen.getByLabelText("当前分组新增 1 行，删除 1 行")).toBeInTheDocument());
   });
 
+  it("renders the overview sections with not-connected markers", () => {
+    renderSidebar(
+      createController({
+        status: createStatus({
+          staged: Array.from({ length: 29 }, (_, index) => ({
+            path: `src/file-${index}.ts`,
+            originalPath: null,
+            indexStatus: "M",
+            worktreeStatus: " ",
+          })),
+          isClean: false,
+        }),
+      }),
+      createHostBridge(vi.fn().mockResolvedValue([])),
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "概览" }));
+
+    expect(screen.getByRole("heading", { name: "进度" })).toBeInTheDocument();
+    expect(screen.getByText("较长回复会显示进度")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "分支详情" })).toBeInTheDocument();
+    expect(screen.getByText("GitHub CLI")).toBeInTheDocument();
+    expect(screen.getByText("未通过身份验证")).toBeInTheDocument();
+    expect(screen.getByText("已暂存 29")).toBeInTheDocument();
+    expect(screen.getAllByText("未接入").length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("opens a project file search dialog and opens the selected result", async () => {
+    const getWorkspaceDiffs = vi.fn().mockResolvedValue([]);
+    const request = vi.fn().mockResolvedValue({
+      requestId: "search-1",
+      result: {
+        files: [{
+          root: "E:/code/project",
+          path: "src/App.tsx",
+          match_type: "file",
+          file_name: "App.tsx",
+          score: 100,
+          indices: null,
+        }],
+      },
+    });
+    const openFileInEditor = vi.fn().mockResolvedValue(undefined);
+    const hostBridge = {
+      app: { openFileInEditor },
+      git: { getWorkspaceDiffs },
+      rpc: { request },
+    } as unknown as HostBridge;
+
+    renderSidebar(createController(), hostBridge);
+
+    fireEvent.click(screen.getByRole("button", { name: "打开侧边面板标签页" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /打开文件/ }));
+
+    expect(screen.getByRole("dialog", { name: "搜索文件" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "输入内容搜索文件" }), {
+      target: { value: "app" },
+    });
+
+    await waitFor(() => expect(request).toHaveBeenCalledWith({
+      method: "fuzzyFileSearch",
+      params: {
+        query: "app",
+        roots: ["E:/code/project"],
+        cancellationToken: null,
+      },
+    }));
+    const resultButton = (await screen.findByText("App.tsx")).closest("button");
+    expect(resultButton).not.toBeNull();
+    fireEvent.click(resultButton!);
+
+    await waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith({
+      path: "E:/code/project/src/App.tsx",
+    }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "搜索文件" })).not.toBeInTheDocument());
+  });
+
   it("renders empty diff state when the batch result is empty", async () => {
     renderSidebar(
       createController({ status: createStatus() }),

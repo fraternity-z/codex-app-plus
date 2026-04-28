@@ -1,6 +1,7 @@
 .replica-app {
   --replica-sidebar-width: 300px;
   --replica-diff-sidebar-width: 388px;
+  --replica-top-toolbar-height: 60px;
   position: relative;
   display: grid;
   grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr);
@@ -11,7 +12,7 @@
 }
 
 .replica-app-with-diff-sidebar {
-  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) var(--replica-diff-sidebar-width);
+  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr);
 }
 
 .replica-app:has(.sidebar-collapsed) {
@@ -19,7 +20,7 @@
 }
 
 .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
-  grid-template-columns: 0 minmax(0, 1fr) var(--replica-diff-sidebar-width);
+  grid-template-columns: 0 minmax(0, 1fr);
 }
 
 .replica-app:has(.workspace-diff-sidebar-resize-active) {
@@ -417,16 +418,17 @@
 }
 
 .main-toolbar {
-  min-height: 72px;
+  min-height: var(--replica-top-toolbar-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 22px 64px 0 20px;
+  padding: 10px 64px 0 20px;
   gap: 12px;
+  border-bottom: 1px solid var(--border-light);
 }
 .main-toolbar-conversation {
-  min-height: 56px;
-  padding-top: 12px;
+  min-height: var(--replica-top-toolbar-height);
+  padding-top: 8px;
 }
 .toolbar-heading {
   min-width: 0;
@@ -487,11 +489,11 @@
   }
 
   .replica-app-with-diff-sidebar {
-    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) var(--replica-diff-sidebar-width);
+    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr);
   }
 
   .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
-    grid-template-columns: 0 minmax(0, 1fr) var(--replica-diff-sidebar-width);
+    grid-template-columns: 0 minmax(0, 1fr);
   }
 }
 

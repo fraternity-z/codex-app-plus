@@ -1,9 +1,11 @@
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { GitWorkspaceDiffOutput, HostBridge } from "../../../bridge/types";
+import type { FuzzyFileSearchResponse } from "../../../protocol/generated/FuzzyFileSearchResponse";
+import type { FuzzyFileSearchResult } from "../../../protocol/generated/FuzzyFileSearchResult";
 import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
 import { BrowserSidebarPanel } from "../../browser/ui/BrowserSidebarPanel";
-import { OfficialCloseIcon, OfficialFolderIcon, OfficialPlusIcon } from "../../shared/ui/officialIcons";
+import { OfficialCloseIcon, OfficialFolderIcon, OfficialPlusIcon, OfficialSortIcon } from "../../shared/ui/officialIcons";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import { SidebarIcon } from "../../shared/ui/icons";
 import { useWorkspaceDiffViewer } from "../hooks/useWorkspaceDiffViewer";
@@ -21,12 +23,13 @@ import {
   GitDiffIcon,
   GitDiffSplitViewIcon,
   GitDiffUnifiedViewIcon,
+  GitHubMarkIcon,
   GitRefreshIcon,
 } from "./gitIcons";
 import { WorkspaceDiffScopeSelector } from "./WorkspaceDiffScopeSelector";
 import { WorkspaceDiffViewer } from "./WorkspaceDiffViewer";
 import { WorkspaceDiffFileList } from "./WorkspaceDiffFileList";
-import type { MouseEvent as ReactMouseEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
 
 type WorkspaceSidePanelTab = "summary" | "review" | "browser";
 
@@ -53,18 +56,60 @@ function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function resolveDialogPath(selection: string | string[] | null): string | null {
-  if (Array.isArray(selection)) {
-    return selection[0] ?? null;
-  }
-  return selection;
-}
-
 function countStatusChanges(status: WorkspaceGitController["status"]): number {
   if (status === null) {
     return 0;
   }
   return status.staged.length + status.unstaged.length + status.untracked.length + status.conflicted.length;
+}
+
+function isFuzzyFileSearchResponse(value: unknown): value is FuzzyFileSearchResponse {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  return Array.isArray((value as { readonly files?: unknown }).files);
+}
+
+function isAbsolutePath(path: string): boolean {
+  return /^[a-zA-Z]:[\\/]/.test(path) || path.startsWith("/") || path.startsWith("\\\\");
+}
+
+function resolveProjectFilePath(file: FuzzyFileSearchResult): string {
+  if (isAbsolutePath(file.path)) {
+    return file.path;
+  }
+  const separator = file.root.includes("\\") ? "\\" : "/";
+  const root = file.root.replace(/[\\/]+$/, "");
+  const relativePath = file.path.replace(/^[\\/]+/, "");
+  return `${root}${separator}${relativePath}`;
+}
+
+function SummaryTabIcon(props: { readonly className?: string }): JSX.Element {
+  return <OfficialSortIcon className={props.className} />;
+}
+
+function ReviewTabIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="4" y="4" width="12" height="12" rx="2.4" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M10 6.9v6.2M6.9 10h6.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PencilLineIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path
+        d="M4.25 13.95 3.75 16.25l2.3-.5 8.9-8.9a1.62 1.62 0 0 0-2.3-2.3l-8.4 8.4Z"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="m11.8 5.4 2.8 2.8" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 function useDiffScope(open: boolean, controller: WorkspaceGitController): [GitChangeScope, (scope: GitChangeScope) => void] {
@@ -136,6 +181,7 @@ function SidePanelHeader(props: SidePanelHeaderProps): JSX.Element {
       <div className="workspace-side-panel-tabs" role="tablist" aria-label="侧边面板标签页">
         {tabs.map((tab) => {
           const active = props.activeTab === tab.id;
+          const TabIcon = tab.id === "summary" ? SummaryTabIcon : tab.id === "review" ? ReviewTabIcon : null;
           const tabButton = (
             <button
               key={tab.id}
@@ -145,7 +191,7 @@ function SidePanelHeader(props: SidePanelHeaderProps): JSX.Element {
               aria-selected={active}
               onClick={() => props.onSelectTab(tab.id)}
             >
-              {tab.id === "browser" ? <SidebarIcon kind="browser" /> : null}
+              {tab.id === "browser" ? <SidebarIcon kind="browser" /> : TabIcon === null ? null : <TabIcon className="workspace-side-panel-tab-icon" />}
               <span>{tab.label}</span>
             </button>
           );
@@ -309,6 +355,180 @@ function DiffSidebarState(props: { readonly viewState: GitViewState }): JSX.Elem
   );
 }
 
+function ProjectFileSearchDialog(props: {
+  readonly open: boolean;
+  readonly hostBridge: HostBridge;
+  readonly rootPath: string;
+  readonly onClose: () => void;
+  readonly onOpenFile: (path: string) => Promise<void>;
+}): JSX.Element | null {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<ReadonlyArray<FuzzyFileSearchResult>>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useEffect(() => {
+    if (!props.open) {
+      setQuery("");
+      setResults([]);
+      setLoading(false);
+      setError(null);
+      setSelectedIndex(0);
+      return;
+    }
+    const timeoutId = window.setTimeout(() => inputRef.current?.focus(), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [props.open]);
+
+  useEffect(() => {
+    if (!props.open) {
+      return undefined;
+    }
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length === 0) {
+      setResults([]);
+      setLoading(false);
+      setError(null);
+      setSelectedIndex(0);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    const timeoutId = window.setTimeout(() => {
+      void props.hostBridge.rpc.request({
+        method: "fuzzyFileSearch",
+        params: {
+          query: trimmedQuery,
+          roots: [props.rootPath],
+          cancellationToken: null,
+        },
+      }).then((response) => {
+        if (cancelled) {
+          return;
+        }
+        if (!isFuzzyFileSearchResponse(response.result)) {
+          throw new Error("文件搜索返回数据格式不正确");
+        }
+        setResults(response.result.files.filter((file) => file.match_type === "file").slice(0, 24));
+        setSelectedIndex(0);
+        setLoading(false);
+      }).catch((searchError) => {
+        if (cancelled) {
+          return;
+        }
+        setResults([]);
+        setSelectedIndex(0);
+        setLoading(false);
+        setError(toErrorMessage(searchError));
+      });
+    }, 160);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [props.hostBridge.rpc, props.open, props.rootPath, query]);
+
+  if (!props.open || typeof document === "undefined") {
+    return null;
+  }
+
+  const trimmedQuery = query.trim();
+  const statusText = trimmedQuery.length === 0
+    ? null
+    : loading
+      ? "搜索中…"
+      : error !== null
+        ? error
+        : results.length === 0
+          ? "没有匹配文件"
+          : null;
+
+  const openResult = (file: FuzzyFileSearchResult) => {
+    void props.onOpenFile(resolveProjectFilePath(file));
+  };
+
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      props.onClose();
+      return;
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setSelectedIndex((current) => Math.min(current + 1, Math.max(results.length - 1, 0)));
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setSelectedIndex((current) => Math.max(current - 1, 0));
+      return;
+    }
+    if (event.key === "Enter" && results[selectedIndex] !== undefined) {
+      event.preventDefault();
+      openResult(results[selectedIndex]);
+    }
+  };
+
+  return createPortal(
+    <div className="workspace-file-search-backdrop" role="presentation" onMouseDown={props.onClose}>
+      <section
+        className="workspace-file-search-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="搜索文件"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <h2 className="workspace-file-search-title">搜索文件</h2>
+        <label className="workspace-file-search-field">
+          <span>文件</span>
+          <input
+            ref={inputRef}
+            type="search"
+            value={query}
+            placeholder="输入内容搜索文件"
+            aria-label="输入内容搜索文件"
+            onChange={(event) => setQuery(event.currentTarget.value)}
+            onKeyDown={handleKeyDown}
+          />
+        </label>
+        {statusText === null ? null : (
+          <div className="workspace-file-search-status" role={error !== null ? "alert" : undefined}>
+            {statusText}
+          </div>
+        )}
+        {results.length === 0 ? null : (
+          <ul className="workspace-file-search-results" role="list">
+            {results.map((file, index) => {
+              const className = index === selectedIndex
+                ? "workspace-file-search-result workspace-file-search-result-active"
+                : "workspace-file-search-result";
+              return (
+                <li key={`${file.root}:${file.path}`}>
+                  <button
+                    type="button"
+                    className={className}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    onClick={() => openResult(file)}
+                  >
+                    <span className="workspace-file-search-result-name">{file.file_name}</span>
+                    <span className="workspace-file-search-result-path">{file.path}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
 function SidePanelSummary(props: {
   readonly selectedRootName: string;
   readonly selectedRootPath: string;
@@ -318,54 +538,51 @@ function SidePanelSummary(props: {
 }): JSX.Element {
   const status = props.controller.status;
   const changedFiles = countStatusChanges(status);
-  const branchName = status?.branch?.head ?? "未检测到分支";
-  const repoRoot = status?.repoRoot ?? props.selectedRootPath;
-  const statusText = status === null
-    ? "尚未读取 Git 状态"
-    : status.isClean
-      ? "无暂存更改"
-      : `${changedFiles} 个文件有变更`;
+  const stagedCount = status?.staged.length ?? 0;
+  const changeDetail = status === null
+    ? "读取中"
+    : stagedCount > 0
+      ? `已暂存 ${stagedCount}`
+      : changedFiles > 0
+        ? `未暂存 ${changedFiles}`
+        : "无变更";
 
   return (
     <div className="workspace-diff-sidebar-content workspace-side-summary">
-      <section className="workspace-side-summary-card" aria-label="工作区概览">
-        <div className="workspace-side-summary-card-header">
-          <div>
-            <h2 className="workspace-side-summary-title">{props.selectedRootName}</h2>
-            <p className="workspace-side-summary-path">{repoRoot}</p>
-          </div>
-          <button
-            type="button"
-            className="workspace-diff-sidebar-close"
-            aria-label="刷新概览"
-            disabled={props.controller.loading}
-            onClick={() => void props.onRefresh()}
-          >
-            <GitRefreshIcon className="workspace-diff-sidebar-close-icon" />
-          </button>
+      <section className="workspace-side-summary-section" aria-label="进度">
+        <div className="workspace-side-summary-heading">
+          <h2>进度</h2>
+          <span>未接入</span>
         </div>
-        <dl className="workspace-side-summary-grid">
-          <div>
-            <dt>分支</dt>
-            <dd>{branchName}</dd>
-          </div>
-          <div>
-            <dt>状态</dt>
-            <dd>{statusText}</dd>
-          </div>
-          <div>
-            <dt>当前审查</dt>
-            <dd>{props.diffSummary.files} 个文件</dd>
-          </div>
-          <div>
-            <dt>行变更</dt>
-            <dd>
-              <span className="workspace-diff-sidebar-summary-add">+{props.diffSummary.additions}</span>
-              <span className="workspace-side-summary-separator"> / </span>
-              <span className="workspace-diff-sidebar-summary-delete">-{props.diffSummary.deletions}</span>
-            </dd>
-          </div>
-        </dl>
+        <p className="workspace-side-summary-muted">较长回复会显示进度</p>
+      </section>
+      <section className="workspace-side-summary-section" aria-label="分支详情">
+        <h2>分支详情</h2>
+        <div className="workspace-side-summary-row workspace-side-summary-row-unavailable">
+          <GitHubMarkIcon className="workspace-side-summary-row-icon" />
+          <span>GitHub CLI</span>
+          <span>未通过身份验证</span>
+          <span className="workspace-side-summary-badge">未接入</span>
+        </div>
+        <div className="workspace-side-summary-row">
+          <PencilLineIcon className="workspace-side-summary-row-icon" />
+          <span>更改</span>
+          <span>{changeDetail}</span>
+        </div>
+      </section>
+      <section className="workspace-side-summary-section" aria-label="生成结果">
+        <div className="workspace-side-summary-heading">
+          <h2>生成结果</h2>
+          <span>未接入</span>
+        </div>
+        <p className="workspace-side-summary-muted">查看并打开文件</p>
+      </section>
+      <section className="workspace-side-summary-section" aria-label="来源">
+        <div className="workspace-side-summary-heading">
+          <h2>来源</h2>
+          <span>未接入</span>
+        </div>
+        <p className="workspace-side-summary-muted">跟踪所用来源</p>
       </section>
     </div>
   );
@@ -405,6 +622,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
   const [activeTab, setActiveTab] = useState<WorkspaceSidePanelTab>("review");
   const [browserTabOpen, setBrowserTabOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [fileSearchOpen, setFileSearchOpen] = useState(false);
   const viewState = getGitViewState(props.selectedRootName, props.controller);
   const diffViewer = useWorkspaceDiffViewer({
     enabled: props.open,
@@ -448,24 +666,20 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
     [onSelectDiffPath],
   );
 
-  const handleOpenFile = useCallback(async () => {
+  const handleOpenFile = useCallback(() => {
+    setActionError(null);
+    setFileSearchOpen(true);
+  }, []);
+
+  const handleOpenProjectFile = useCallback(async (path: string) => {
     setActionError(null);
     try {
-      const selection = await openDialog({
-        title: "打开文件",
-        multiple: false,
-        directory: false,
-        defaultPath: props.selectedRootPath ?? undefined,
-      });
-      const path = resolveDialogPath(selection);
-      if (path === null) {
-        return;
-      }
       await props.hostBridge.app.openFileInEditor({ path });
+      setFileSearchOpen(false);
     } catch (error) {
       setActionError(`打开文件失败：${toErrorMessage(error)}`);
     }
-  }, [props.hostBridge.app, props.selectedRootPath]);
+  }, [props.hostBridge.app]);
 
   const handleOpenBrowserTab = useCallback(() => {
     setActionError(null);
@@ -498,7 +712,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
       const key = event.key.toLowerCase();
       if (key === "p") {
         event.preventDefault();
-        void handleOpenFile();
+        handleOpenFile();
       }
       if (key === "t") {
         event.preventDefault();
@@ -508,6 +722,12 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleOpenBrowserTab, handleOpenFile, props.open, props.selectedRootPath]);
+
+  useEffect(() => {
+    if (!props.open || props.selectedRootPath === null) {
+      setFileSearchOpen(false);
+    }
+  }, [props.open, props.selectedRootPath]);
 
   if (!props.open || props.selectedRootPath === null) {
     return null;
@@ -594,7 +814,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
         browserTabOpen={browserTabOpen}
         expanded={expanded}
         onSelectTab={handleSelectTab}
-        onOpenFile={() => void handleOpenFile()}
+        onOpenFile={handleOpenFile}
         onOpenBrowser={handleOpenBrowserTab}
         onCloseBrowserTab={handleCloseBrowserTab}
         onClose={props.onClose}
@@ -605,6 +825,13 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
           {actionError}
         </div>
       )}
+      <ProjectFileSearchDialog
+        open={fileSearchOpen}
+        hostBridge={props.hostBridge}
+        rootPath={props.selectedRootPath}
+        onClose={() => setFileSearchOpen(false)}
+        onOpenFile={handleOpenProjectFile}
+      />
       {activeContent}
     </aside>
   );
