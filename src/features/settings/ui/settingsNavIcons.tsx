@@ -7,6 +7,7 @@ export type SettingsNavIconKind =
   | "git"
   | "environment"
   | "worktree"
+  | "browserUse"
   | "about";
 
 export function SettingsNavIcon(props: {
@@ -102,6 +103,17 @@ export function SettingsNavIcon(props: {
         <circle cx="12.5" cy="4" r="1.2" fill="currentColor" />
         <circle cx="8" cy="12" r="1.2" fill="currentColor" />
         <path d="M4.5 4h7M8 9.2V10.8M4.2 4.9L7.3 7M11.8 4.9L8.7 7" {...common} />
+      </svg>
+    );
+  }
+
+  if (props.kind === "browserUse") {
+    return (
+      <svg className={props.className} viewBox="0 0 16 16" aria-hidden="true">
+        <rect x="2.5" y="3.2" width="11" height="9.6" rx="1.8" {...common} />
+        <path d="M2.5 5.8h11" {...common} />
+        <circle cx="5.3" cy="9.2" r="2.1" {...common} />
+        <path d="M3.4 9.2h3.8M5.3 7.1a4 4 0 0 1 0 4.2M5.3 7.1a4 4 0 0 0 0 4.2" {...common} />
       </svg>
     );
   }

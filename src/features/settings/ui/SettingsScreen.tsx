@@ -224,6 +224,16 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
       props.hostBridge.app.readProxySettings(input),
     writeProxySettings: (input) =>
       props.hostBridge.app.writeProxySettings(input),
+    readBrowserUseSettings: () =>
+      props.hostBridge.app.readBrowserUseSettings(),
+    writeBrowserUseApprovalMode: (input) =>
+      props.hostBridge.app.writeBrowserUseApprovalMode(input),
+    addBrowserUseOrigin: (input) =>
+      props.hostBridge.app.addBrowserUseOrigin(input),
+    removeBrowserUseOrigin: (input) =>
+      props.hostBridge.app.removeBrowserUseOrigin(input),
+    clearBrowserBrowsingData: () =>
+      props.hostBridge.app.clearBrowserBrowsingData(),
     refreshMcpData: props.controller.refreshMcpData,
     listArchivedThreads: props.controller.listArchivedThreads,
     unarchiveThread: props.controller.unarchiveThread,

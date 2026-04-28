@@ -6,6 +6,7 @@ import type {
   GitWorkspaceDiffOutput,
   HostBridge,
 } from "../../../bridge/types";
+import { I18nProvider } from "../../../i18n/provider";
 import type { WorkspaceGitController } from "../model/types";
 import { WorkspaceDiffSidebar } from "./WorkspaceDiffSidebar";
 
@@ -31,6 +32,20 @@ beforeAll(() => {
     scrollToIndex: () => undefined,
   }));
 });
+
+function rectFor(height: number): DOMRect {
+  return {
+    x: 40,
+    y: 120,
+    top: 120,
+    left: 40,
+    right: 840,
+    bottom: 120 + height,
+    width: 800,
+    height,
+    toJSON: () => ({}),
+  } as DOMRect;
+}
 
 function createStatus(overrides?: Partial<GitStatusOutput>): GitStatusOutput {
   return {
@@ -120,15 +135,17 @@ function renderSidebar(
   overrides?: Partial<ComponentProps<typeof WorkspaceDiffSidebar>>,
 ) {
   return render(
-    <WorkspaceDiffSidebar
-      hostBridge={hostBridge}
-      open
-      selectedRootName="codex-app-plus"
-      selectedRootPath="E:/code/project"
-      controller={controller}
-      onClose={vi.fn()}
-      {...overrides}
-    />,
+    <I18nProvider language="zh-CN" setLanguage={vi.fn()}>
+      <WorkspaceDiffSidebar
+        hostBridge={hostBridge}
+        open
+        selectedRootName="codex-app-plus"
+        selectedRootPath="E:/code/project"
+        controller={controller}
+        onClose={vi.fn()}
+        {...overrides}
+      />
+    </I18nProvider>,
   );
 }
 
@@ -229,5 +246,44 @@ describe("WorkspaceDiffSidebar", () => {
     );
 
     await waitFor(() => expect(screen.getByText("当前分组没有可展示的差异")).toBeInTheDocument());
+  });
+
+  it("lets the browser tab be closed without closing the whole side panel", () => {
+    const hideBrowserSidebar = vi.fn().mockResolvedValue(undefined);
+    const hostBridge = {
+      app: {
+        openBrowserSidebar: vi.fn().mockResolvedValue(undefined),
+        updateBrowserSidebarBounds: vi.fn().mockResolvedValue(undefined),
+        hideBrowserSidebar,
+        openFileInEditor: vi.fn().mockResolvedValue(undefined),
+      },
+      git: {
+        getWorkspaceDiffs: vi.fn().mockResolvedValue([]),
+      },
+    } as unknown as HostBridge;
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function getBoundingClientRect(this: HTMLElement) {
+      if (this instanceof HTMLElement && this.classList.contains("workspace-side-browser-surface")) {
+        return rectFor(520);
+      }
+      return rectFor(0);
+    });
+
+    renderSidebar(createController(), hostBridge);
+
+    fireEvent.click(screen.getByRole("button", { name: "打开侧边面板标签页" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /浏览器/ }));
+
+    expect(screen.getByRole("tab", { name: "浏览器" })).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "关闭浏览器标签页" }));
+
+    expect(screen.queryByRole("tab", { name: "浏览器" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "审查" })).toHaveAttribute("aria-selected", "true");
+    expect(hideBrowserSidebar).toHaveBeenCalled();
   });
 });

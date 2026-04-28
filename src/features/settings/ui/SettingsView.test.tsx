@@ -113,6 +113,27 @@ function createBaseProps(
         noProxy: "",
       },
     }),
+    readBrowserUseSettings: vi.fn().mockResolvedValue({
+      approvalMode: "alwaysAsk",
+      allowedOrigins: [],
+      deniedOrigins: [],
+    }),
+    writeBrowserUseApprovalMode: vi.fn().mockResolvedValue({
+      approvalMode: "alwaysAsk",
+      allowedOrigins: [],
+      deniedOrigins: [],
+    }),
+    addBrowserUseOrigin: vi.fn().mockResolvedValue({
+      approvalMode: "alwaysAsk",
+      allowedOrigins: [],
+      deniedOrigins: [],
+    }),
+    removeBrowserUseOrigin: vi.fn().mockResolvedValue({
+      approvalMode: "alwaysAsk",
+      allowedOrigins: [],
+      deniedOrigins: [],
+    }),
+    clearBrowserBrowsingData: vi.fn().mockResolvedValue(undefined),
     refreshMcpData: vi.fn(),
     listArchivedThreads: vi.fn().mockResolvedValue([]),
     unarchiveThread: vi.fn().mockResolvedValue(undefined),
@@ -209,6 +230,16 @@ describe("SettingsView", () => {
     });
 
     expect(container.querySelector(".settings-layout-sidebar-collapsed")).not.toBeNull();
+  });
+
+  it("renders browser use settings", async () => {
+    render(<SettingsView {...createBaseProps({ section: "browserUse" })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.getByRole("heading", { name: "浏览器使用" })).toBeInTheDocument();
+    expect(await screen.findByText("Browser Use")).toBeInTheDocument();
+    expect(screen.getByText("清除 Cookie")).toBeInTheDocument();
   });
 
   it("keeps the settings sidebar visible while adding an MCP server", async () => {

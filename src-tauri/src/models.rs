@@ -577,6 +577,65 @@ pub struct OpenFileInEditorInput {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct BrowserOpenInput {
+    pub url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserSidebarBoundsInput {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+    pub visible: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserSidebarOpenInput {
+    pub url: Option<String>,
+    #[serde(flatten)]
+    pub bounds: BrowserSidebarBoundsInput,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum BrowserUseApprovalMode {
+    AlwaysAsk,
+    NeverAsk,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum BrowserUseOriginKind {
+    Allowed,
+    Denied,
+}
+
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserUseSettingsOutput {
+    pub approval_mode: BrowserUseApprovalMode,
+    pub allowed_origins: Vec<String>,
+    pub denied_origins: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserUseApprovalModeInput {
+    pub approval_mode: BrowserUseApprovalMode,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserUseOriginInput {
+    pub kind: BrowserUseOriginKind,
+    pub origin: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RememberCommandApprovalRuleInput {
     pub agent_environment: AgentEnvironment,
     pub command: Vec<String>,

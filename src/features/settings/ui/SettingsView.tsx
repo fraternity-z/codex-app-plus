@@ -12,6 +12,9 @@ import type {
   UpdateProxySettingsInput,
   UpdateProxySettingsOutput,
   UpdateGlobalAgentInstructionsInput,
+  BrowserUseApprovalMode,
+  BrowserUseOriginKind,
+  BrowserUseSettingsOutput,
 } from "../../../bridge/types";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import type { GitWorktreeEntry } from "../../../bridge/types";
@@ -26,6 +29,7 @@ import { McpSettingsPanel } from "../../mcp/ui/McpSettingsPanel";
 import { AboutSettingsSection } from "./AboutSettingsSection";
 import { AgentsSettingsSection } from "./AgentsSettingsSection";
 import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
+import { BrowserUseSettingsSection } from "./BrowserUseSettingsSection";
 import { ConfigSettingsSection } from "./ConfigSettingsSection";
 import { GeneralSettingsSection } from "./GeneralSettingsSection";
 import { GitSettingsSection } from "./GitSettingsSection";
@@ -47,6 +51,7 @@ export type SettingsSection =
   | "git"
   | "environment"
   | "worktree"
+  | "browserUse"
   | "about";
 
 export interface SettingsViewProps {
@@ -96,6 +101,17 @@ export interface SettingsViewProps {
     input: UpdateGlobalAgentInstructionsInput
   ) => Promise<GlobalAgentInstructionsOutput>;
   writeProxySettings: (input: UpdateProxySettingsInput) => Promise<UpdateProxySettingsOutput>;
+  readBrowserUseSettings: () => Promise<BrowserUseSettingsOutput>;
+  writeBrowserUseApprovalMode: (
+    input: { readonly approvalMode: BrowserUseApprovalMode }
+  ) => Promise<BrowserUseSettingsOutput>;
+  addBrowserUseOrigin: (
+    input: { readonly kind: BrowserUseOriginKind; readonly origin: string }
+  ) => Promise<BrowserUseSettingsOutput>;
+  removeBrowserUseOrigin: (
+    input: { readonly kind: BrowserUseOriginKind; readonly origin: string }
+  ) => Promise<BrowserUseSettingsOutput>;
+  clearBrowserBrowsingData: () => Promise<void>;
   refreshMcpData: () => Promise<McpRefreshResult>;
   listArchivedThreads: () => Promise<ReadonlyArray<import("../../../domain/types").ThreadSummary>>;
   unarchiveThread: (threadId: string) => Promise<void>;
@@ -127,6 +143,7 @@ const NAV_ITEM_DEFINITIONS: ReadonlyArray<{
   { key: "git", labelKey: "settings.nav.git", icon: "git" },
   { key: "environment", labelKey: "settings.nav.environment", icon: "environment" },
   { key: "worktree", labelKey: "settings.nav.worktree", icon: "worktree" },
+  { key: "browserUse", labelKey: "settings.nav.browserUse", icon: "browserUse" },
   { key: "about", labelKey: "settings.nav.about", icon: "about" },
 ];
 function createNavItems(t: (key: MessageKey) => string): ReadonlyArray<NavItem> {
@@ -179,6 +196,7 @@ function SettingsSidebar(props: {
         {renderNavItem("git")}
         {renderNavItem("environment")}
         {renderNavItem("worktree")}
+        {renderNavItem("browserUse")}
         {renderNavItem("about")}
       </nav>
     </aside>
@@ -291,6 +309,17 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
   }
   if (section === "worktree") {
     return <WorktreeContent worktrees={props.worktrees ?? []} onCreateWorktree={props.onCreateWorktree} onDeleteWorktree={props.onDeleteWorktree} />;
+  }
+  if (section === "browserUse") {
+    return (
+      <BrowserUseSettingsSection
+        readBrowserUseSettings={props.readBrowserUseSettings}
+        writeBrowserUseApprovalMode={props.writeBrowserUseApprovalMode}
+        addBrowserUseOrigin={props.addBrowserUseOrigin}
+        removeBrowserUseOrigin={props.removeBrowserUseOrigin}
+        clearBrowserBrowsingData={props.clearBrowserBrowsingData}
+      />
+    );
   }
   return <PlaceholderContent sectionTitle={props.sectionTitle} />;
 }

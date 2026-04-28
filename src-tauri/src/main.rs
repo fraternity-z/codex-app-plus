@@ -6,6 +6,7 @@ mod app_approval_rules;
 mod app_server_io;
 mod app_server_stderr;
 mod app_support;
+mod browser;
 mod bundled_computer_use;
 mod codex_auth;
 mod codex_cli;
@@ -38,7 +39,10 @@ mod workspace_state;
 mod wsl_support;
 
 use commands::{
-    app_activate_codex_chatgpt, app_capture_codex_oauth_snapshot, app_clear_chatgpt_auth_state,
+    app_activate_codex_chatgpt, app_browser_clear_browsing_data, app_browser_open,
+    app_browser_sidebar_hide, app_browser_sidebar_open, app_browser_sidebar_update_bounds,
+    app_browser_use_approval_mode_write, app_browser_use_origin_add, app_browser_use_origin_remove,
+    app_browser_use_settings_read, app_capture_codex_oauth_snapshot, app_clear_chatgpt_auth_state,
     app_control_window, app_create_agent, app_delete_agent, app_delete_codex_session,
     app_delete_managed_prompt, app_get_agents_settings, app_get_codex_auth_mode_state,
     app_import_official_data, app_list_codex_sessions, app_list_custom_prompts,
@@ -62,12 +66,12 @@ use git::commands::{
 };
 use git::runtime::GitRuntimeState;
 use process_manager::ProcessManager;
-use tauri::{Manager, RunEvent, WindowEvent};
 #[cfg(desktop)]
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
+use tauri::{Manager, RunEvent, WindowEvent};
 use terminal_commands::{
     terminal_close_session, terminal_create_session, terminal_resize, terminal_write,
 };
@@ -109,6 +113,15 @@ fn main() {
             app_open_external,
             app_open_workspace,
             app_open_file_in_editor,
+            app_browser_open,
+            app_browser_sidebar_open,
+            app_browser_sidebar_update_bounds,
+            app_browser_sidebar_hide,
+            app_browser_clear_browsing_data,
+            app_browser_use_settings_read,
+            app_browser_use_approval_mode_write,
+            app_browser_use_origin_add,
+            app_browser_use_origin_remove,
             app_open_codex_config_toml,
             app_reveal_path_in_folder,
             app_read_workspace_state,

@@ -106,6 +106,31 @@ function createHostBridge(): HostBridge {
           noProxy: ""
         }
       }),
+      openBrowser: vi.fn().mockResolvedValue(undefined),
+      openBrowserSidebar: vi.fn().mockResolvedValue(undefined),
+      updateBrowserSidebarBounds: vi.fn().mockResolvedValue(undefined),
+      hideBrowserSidebar: vi.fn().mockResolvedValue(undefined),
+      clearBrowserBrowsingData: vi.fn().mockResolvedValue(undefined),
+      readBrowserUseSettings: vi.fn().mockResolvedValue({
+        approvalMode: "alwaysAsk",
+        allowedOrigins: [],
+        deniedOrigins: []
+      }),
+      writeBrowserUseApprovalMode: vi.fn().mockResolvedValue({
+        approvalMode: "alwaysAsk",
+        allowedOrigins: [],
+        deniedOrigins: []
+      }),
+      addBrowserUseOrigin: vi.fn().mockResolvedValue({
+        approvalMode: "alwaysAsk",
+        allowedOrigins: [],
+        deniedOrigins: []
+      }),
+      removeBrowserUseOrigin: vi.fn().mockResolvedValue({
+        approvalMode: "alwaysAsk",
+        allowedOrigins: [],
+        deniedOrigins: []
+      }),
       getCodexAuthModeState: vi.fn().mockResolvedValue({
         activeMode: "chatgpt",
         activeProviderId: null,

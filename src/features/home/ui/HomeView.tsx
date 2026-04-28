@@ -44,7 +44,7 @@ import { TerminalPanel } from "../../terminal/ui/TerminalPanel";
 import { WorkspaceDiffSidebarHost } from "../../workspace/ui/WorkspaceDiffSidebarHost";
 import type { UpdateWorkspaceLaunchScriptsInput } from "../../workspace/hooks/useWorkspaceRoots";
 import { extractConnectionRetryInfo } from "../model/homeConnectionRetry";
-import { HomeSidebar } from "./HomeSidebar";
+import { HomeSidebar, type HomeNavItem } from "./HomeSidebar";
 import { HomeViewMainContent } from "./HomeViewMainContent";
 import { useWorkspaceLaunchScripts } from "../hooks/useWorkspaceLaunchScripts";
 import {
@@ -110,7 +110,7 @@ export interface HomeViewProps {
   readonly workspaceSwitch: WorkspaceSwitchState;
   readonly settingsMenuOpen: boolean;
   readonly sidebarCollapsed?: boolean;
-  readonly activeNavItem?: "skills" | "automation" | null;
+  readonly activeNavItem?: HomeNavItem | null;
   readonly mainContentOverride?: JSX.Element | null;
   readonly onToggleSettingsMenu: () => void;
   readonly onDismissSettingsMenu: () => void;

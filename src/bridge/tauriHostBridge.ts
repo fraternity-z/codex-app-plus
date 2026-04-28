@@ -5,6 +5,12 @@ import type {
   AgentEnvironment,
   AgentsSettingsOutput,
   AppServerStartInput,
+  BrowserOpenInput,
+  BrowserSidebarBoundsInput,
+  BrowserSidebarOpenInput,
+  BrowserUseApprovalModeInput,
+  BrowserUseOriginInput,
+  BrowserUseSettingsOutput,
   BridgeEventName,
   BridgeEventPayloadMap,
   CaptureCodexOauthSnapshotInput,
@@ -141,6 +147,32 @@ export function createTauriHostBridge(): HostBridge {
         invokeWithInput("app_open_workspace", input),
       openFileInEditor: (input: OpenFileInEditorInput) =>
         invokeWithInput("app_open_file_in_editor", input),
+      openBrowser: (input: BrowserOpenInput) =>
+        invokeWithInput("app_browser_open", input),
+      openBrowserSidebar: (input: BrowserSidebarOpenInput) =>
+        invokeWithInput("app_browser_sidebar_open", input),
+      updateBrowserSidebarBounds: (input: BrowserSidebarBoundsInput) =>
+        invokeWithInput("app_browser_sidebar_update_bounds", input),
+      hideBrowserSidebar: () => invokeCommand("app_browser_sidebar_hide"),
+      clearBrowserBrowsingData: () =>
+        invokeCommand("app_browser_clear_browsing_data"),
+      readBrowserUseSettings: () =>
+        invokeCommand<BrowserUseSettingsOutput>("app_browser_use_settings_read"),
+      writeBrowserUseApprovalMode: (input: BrowserUseApprovalModeInput) =>
+        invokeWithInput<BrowserUseApprovalModeInput, BrowserUseSettingsOutput>(
+          "app_browser_use_approval_mode_write",
+          input
+        ),
+      addBrowserUseOrigin: (input: BrowserUseOriginInput) =>
+        invokeWithInput<BrowserUseOriginInput, BrowserUseSettingsOutput>(
+          "app_browser_use_origin_add",
+          input
+        ),
+      removeBrowserUseOrigin: (input: BrowserUseOriginInput) =>
+        invokeWithInput<BrowserUseOriginInput, BrowserUseSettingsOutput>(
+          "app_browser_use_origin_remove",
+          input
+        ),
       openCodexConfigToml: (input: OpenCodexConfigTomlInput) =>
         invokeWithInput("app_open_codex_config_toml", input),
       revealPathInFolder: (input: RevealPathInFolderInput) =>

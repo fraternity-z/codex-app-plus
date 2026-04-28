@@ -20,6 +20,8 @@ import {
   threadBelongsToWorkspace,
 } from "../../workspace/model/workspaceThread";
 
+export type HomeNavItem = "skills" | "automation";
+
 export interface HomeSidebarProps {
   readonly appServerClient: AppServerClient;
   readonly agentEnvironment: AgentEnvironment;
@@ -37,7 +39,7 @@ export interface HomeSidebarProps {
   readonly account: AccountSummary | null;
   readonly settingsMenuOpen: boolean;
   readonly collapsed: boolean;
-  readonly activeNavItem?: "skills" | "automation" | null;
+  readonly activeNavItem?: HomeNavItem | null;
   readonly onToggleSettingsMenu: () => void;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
@@ -60,7 +62,7 @@ export interface HomeSidebarProps {
 }
 
 function SidebarNav(props: {
-  readonly activeItem: "skills" | "automation" | null;
+  readonly activeItem: HomeNavItem | null;
   readonly onCreateThread: () => Promise<void>;
   readonly onOpenSearch: () => void;
   readonly onOpenSkills: () => void;

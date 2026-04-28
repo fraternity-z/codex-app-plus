@@ -310,6 +310,40 @@ export interface OpenFileInEditorInput {
   readonly column?: number | null;
 }
 
+export interface BrowserOpenInput {
+  readonly url?: string | null;
+}
+
+export interface BrowserSidebarBoundsInput {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly visible: boolean;
+}
+
+export interface BrowserSidebarOpenInput extends BrowserSidebarBoundsInput {
+  readonly url?: string | null;
+}
+
+export type BrowserUseApprovalMode = "alwaysAsk" | "neverAsk";
+export type BrowserUseOriginKind = "allowed" | "denied";
+
+export interface BrowserUseSettingsOutput {
+  readonly approvalMode: BrowserUseApprovalMode;
+  readonly allowedOrigins: ReadonlyArray<string>;
+  readonly deniedOrigins: ReadonlyArray<string>;
+}
+
+export interface BrowserUseApprovalModeInput {
+  readonly approvalMode: BrowserUseApprovalMode;
+}
+
+export interface BrowserUseOriginInput {
+  readonly kind: BrowserUseOriginKind;
+  readonly origin: string;
+}
+
 export interface WorkspaceLaunchScriptState {
   readonly id: string;
   readonly script: string;

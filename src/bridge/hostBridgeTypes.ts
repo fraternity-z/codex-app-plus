@@ -2,6 +2,12 @@ import type {
   ActivateCodexChatgptInput,
   AgentsSettingsOutput,
   AppServerStartInput,
+  BrowserOpenInput,
+  BrowserSidebarBoundsInput,
+  BrowserSidebarOpenInput,
+  BrowserUseApprovalModeInput,
+  BrowserUseOriginInput,
+  BrowserUseSettingsOutput,
   CaptureCodexOauthSnapshotInput,
   ChatgptAuthTokensOutput,
   CodexAuthModeStateOutput,
@@ -106,6 +112,17 @@ export interface HostBridge {
     openExternal(url: string): Promise<void>;
     openWorkspace(input: OpenWorkspaceInput): Promise<void>;
     openFileInEditor(input: OpenFileInEditorInput): Promise<void>;
+    openBrowser(input: BrowserOpenInput): Promise<void>;
+    openBrowserSidebar(input: BrowserSidebarOpenInput): Promise<void>;
+    updateBrowserSidebarBounds(input: BrowserSidebarBoundsInput): Promise<void>;
+    hideBrowserSidebar(): Promise<void>;
+    clearBrowserBrowsingData(): Promise<void>;
+    readBrowserUseSettings(): Promise<BrowserUseSettingsOutput>;
+    writeBrowserUseApprovalMode(
+      input: BrowserUseApprovalModeInput
+    ): Promise<BrowserUseSettingsOutput>;
+    addBrowserUseOrigin(input: BrowserUseOriginInput): Promise<BrowserUseSettingsOutput>;
+    removeBrowserUseOrigin(input: BrowserUseOriginInput): Promise<BrowserUseSettingsOutput>;
     openCodexConfigToml(input: OpenCodexConfigTomlInput): Promise<void>;
     revealPathInFolder(input: RevealPathInFolderInput): Promise<void>;
     readWorkspaceState(): Promise<WorkspacePersistenceState | null>;

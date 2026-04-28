@@ -27,6 +27,7 @@ import { WorktreeCreateDialog } from "../../workspace/ui/WorktreeCreateDialog";
 import type { AutomationsController } from "../../automation/hooks/useAutomations";
 import { useAutomationRunner } from "../../automation/hooks/useAutomationRunner";
 import { AutomationScreen } from "../../automation/ui/AutomationScreen";
+import type { HomeNavItem } from "./HomeSidebar";
 
 interface HomeScreenProps {
   readonly hostBridge: HostBridge;
@@ -35,7 +36,7 @@ interface HomeScreenProps {
   readonly resolvedTheme: ResolvedTheme;
   readonly settingsMenuOpen: boolean;
   readonly sidebarCollapsed: boolean;
-  readonly activeNavItem?: "skills" | "automation" | null;
+  readonly activeNavItem?: HomeNavItem | null;
   readonly workspace: WorkspaceRootController;
   readonly automations: AutomationsController;
   readonly mainContentOverride?: JSX.Element | null;
