@@ -52,6 +52,7 @@ import type {
 } from "./appControllerTypes";
 
 type Dispatch = (action: import("../../domain/types").AppAction) => void;
+const CONFIG_VERSION_CONFLICT_MESSAGE = "Configuration was modified since last read";
 
 interface UseAppControllerActionsArgs {
   readonly agentEnvironment: "windowsNative" | "wsl";
@@ -66,6 +67,26 @@ interface UseAppControllerActionsArgs {
 }
 
 type AppControllerActions = Omit<AppController, "retryConnection" | "setInput" | "checkForAppUpdate" | "installAppUpdate">;
+
+function isConfigVersionConflictError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes(CONFIG_VERSION_CONFLICT_MESSAGE);
+}
+
+async function writeMultiAgentConfigValue(
+  client: ProtocolClient,
+  snapshot: ConfigReadResponse | null,
+  enabled: boolean,
+): Promise<void> {
+  const writeTarget = readUserConfigWriteTarget(snapshot);
+  await client.request("config/value/write", {
+    keyPath: "features.multi_agent",
+    value: enabled,
+    mergeStrategy: "replace",
+    filePath: writeTarget.filePath,
+    expectedVersion: writeTarget.expectedVersion,
+  });
+}
 
 export function useAppControllerActions({
   agentEnvironment,
@@ -202,17 +223,17 @@ export function useAppControllerActions({
   ), [client]);
   const setMultiAgentEnabled = useCallback(async (enabled: boolean) => {
     await runBusy(async () => {
-      const writeTarget = readUserConfigWriteTarget(configSnapshot);
-      await client.request("config/value/write", {
-        keyPath: "features.multi_agent",
-        value: enabled,
-        mergeStrategy: "replace",
-        filePath: writeTarget.filePath,
-        expectedVersion: writeTarget.expectedVersion,
-      });
+      try {
+        await writeMultiAgentConfigValue(client, configSnapshot, enabled);
+      } catch (error) {
+        if (!isConfigVersionConflictError(error)) {
+          throw error;
+        }
+        await writeMultiAgentConfigValue(client, await readConfigSnapshot(client, dispatch), enabled);
+      }
       await bootstrap(true);
     });
-  }, [bootstrap, client, configSnapshot, runBusy]);
+  }, [bootstrap, client, configSnapshot, dispatch, runBusy]);
   const getAgentsSettings = useCallback(() => (
     hostBridge.app.getAgentsSettings({ agentEnvironment })
   ), [agentEnvironment, hostBridge.app]);

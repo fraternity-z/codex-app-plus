@@ -1,9 +1,12 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import type { HostBridge, GitWorktreeEntry } from "../../../bridge/types";
+import { lazy, Suspense, useCallback, useState } from "react";
+import type { HostBridge } from "../../../bridge/types";
 import { readUserConfigWriteTarget } from "../config/configWriteTarget";
 import type { AppPreferencesController } from "../hooks/useAppPreferences";
 import { requestWorkspaceFolder } from "../../../app/workspacePicker";
 import type { WorkspaceRootController } from "../../workspace/hooks/useWorkspaceRoots";
+import { useWorkspaceWorktrees } from "../../workspace/hooks/useWorkspaceWorktrees";
+import { createDefaultWorktreeProjectName } from "../../workspace/model/worktreeRecords";
+import { WorktreeCreateDialog } from "../../workspace/ui/WorktreeCreateDialog";
 import type { AppController } from "../../../app/controller/appControllerTypes";
 import { useSettingsScreenState } from "../../../app/controller/appControllerState";
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
@@ -38,41 +41,20 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
   const { t } = useI18n();
   const { reportError } = useUiBannerNotifications("settings-screen");
   const steerState = selectSteerFeatureState(state.experimentalFeatures, state.configSnapshot);
-  const [worktrees, setWorktrees] = useState<ReadonlyArray<GitWorktreeEntry>>([]);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [notificationTestFeedback, setNotificationTestFeedback] = useState<{
     readonly tone: "success" | "error";
     readonly message: string;
   } | null>(null);
+  const selectedRoot = props.workspace.selectedRoot;
   const selectedRootPath = props.workspace.selectedRoot?.path ?? null;
-  const managedWorktreeSet = useMemo(
-    () => new Set(props.workspace.managedWorktrees.map((item) => item.path.replace(/\\/g, "/").toLowerCase())),
-    [props.workspace.managedWorktrees],
-  );
-  const managedWorktreeMap = useMemo(
-    () => new Map(props.workspace.managedWorktrees.map((item) => [item.path.replace(/\\/g, "/").toLowerCase(), item])),
-    [props.workspace.managedWorktrees],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    if (props.section !== "worktree" || selectedRootPath === null) {
-      setWorktrees([]);
-      return;
-    }
-    void props.hostBridge.git.getWorktrees({ repoPath: selectedRootPath }).then((entries) => {
-      if (!cancelled) {
-        setWorktrees(entries.filter((entry) => managedWorktreeSet.has(entry.path.replace(/\\/g, "/").toLowerCase())));
-      }
-    }).catch((error) => {
-      if (!cancelled) {
-        setWorktrees([]);
-      }
-      reportError("读取工作树失败", error);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [props.hostBridge.git, props.section, reportError, selectedRootPath, managedWorktreeSet]);
+  const worktreeController = useWorkspaceWorktrees({
+    hostBridge: props.hostBridge,
+    workspace: props.workspace,
+    selectedRootPath,
+    enabled: props.section === "worktree",
+    reportError,
+  });
 
   const addRoot = useCallback(async () => {
     try {
@@ -117,51 +99,32 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
   }, [props.hostBridge.app, reportError]);
 
   const createWorktree = useCallback(async () => {
-    if (selectedRootPath === null) {
+    if (selectedRoot === null) {
       return;
     }
-    const branchName = window.prompt("请输入新的 worktree 分支名");
-    if (branchName === null || branchName.trim().length === 0) {
+    setCreateDialogOpen(true);
+  }, [selectedRoot]);
+
+  const confirmCreateWorktree = useCallback(async (projectName: string) => {
+    if (selectedRoot === null) {
       return;
     }
     try {
-      const created = await props.hostBridge.git.addWorktree({
-        repoPath: selectedRootPath,
-        branchName: branchName.trim(),
-      });
-      props.workspace.addRoot({ name: created.branch ?? created.path, path: created.path });
-      props.workspace.addManagedWorktree({ path: created.path, repoPath: selectedRootPath, branch: created.branch });
-      const entries = await props.hostBridge.git.getWorktrees({ repoPath: selectedRootPath });
-      setWorktrees(entries.filter((entry) => {
-        const normalizedPath = entry.path.replace(/\\/g, "/").toLowerCase();
-        return normalizedPath === created.path.replace(/\\/g, "/").toLowerCase() || managedWorktreeSet.has(normalizedPath);
-      }));
+      await worktreeController.createStableWorktree(selectedRoot, projectName);
+      setCreateDialogOpen(false);
     } catch (error) {
       reportError("创建工作树失败", error);
+      throw error;
     }
-  }, [props.hostBridge.git, props.workspace, reportError, selectedRootPath, managedWorktreeSet]);
+  }, [reportError, selectedRoot, worktreeController]);
 
   const deleteWorktree = useCallback(async (worktreePath: string) => {
-    if (selectedRootPath === null) {
-      return;
-    }
     try {
-      const record = managedWorktreeMap.get(worktreePath.replace(/\\/g, "/").toLowerCase());
-      await props.hostBridge.git.removeWorktree({
-        repoPath: record?.repoPath ?? selectedRootPath,
-        worktreePath,
-      });
-      const matchedRoot = props.workspace.roots.find((root) => root.path === worktreePath);
-      if (matchedRoot) {
-        props.workspace.removeRoot(matchedRoot.id);
-      }
-      props.workspace.removeManagedWorktree(worktreePath);
-      const remaining = await props.hostBridge.git.getWorktrees({ repoPath: record?.repoPath ?? selectedRootPath });
-      setWorktrees(remaining.filter((entry) => managedWorktreeSet.has(entry.path.replace(/\\/g, "/").toLowerCase()) && entry.path !== worktreePath));
+      await worktreeController.deleteManagedWorktree(worktreePath);
     } catch (error) {
       reportError("删除工作树失败", error);
     }
-  }, [props.hostBridge.git, props.workspace, reportError, selectedRootPath, managedWorktreeMap, managedWorktreeSet]);
+  }, [reportError, worktreeController]);
 
   const testNotificationSound = useCallback(() => {
     setNotificationTestFeedback(null);
@@ -200,7 +163,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     section: props.section,
     sidebarCollapsed: props.sidebarCollapsed,
     roots: props.workspace.roots,
-    worktrees,
+    worktrees: worktreeController.worktrees,
     onCreateWorktree: createWorktree,
     onDeleteWorktree: deleteWorktree,
     preferences: props.preferences,
@@ -272,8 +235,16 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
   };
 
   return (
-    <Suspense fallback={<SettingsLoadingFallback />}>
-      <LazySettingsView {...settingsProps} />
-    </Suspense>
+    <>
+      <Suspense fallback={<SettingsLoadingFallback />}>
+        <LazySettingsView {...settingsProps} />
+      </Suspense>
+      <WorktreeCreateDialog
+        open={createDialogOpen}
+        initialName={createDefaultWorktreeProjectName(selectedRoot, props.workspace.roots)}
+        onClose={() => setCreateDialogOpen(false)}
+        onConfirm={confirmCreateWorktree}
+      />
+    </>
   );
 }

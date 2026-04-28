@@ -123,7 +123,7 @@ export interface GitWorktreeEntry {
 }
 
 export interface GitWorktreeAddInput extends GitRepoInput {
-  readonly branchName: string;
+  readonly branchName?: string;
   readonly name?: string;
 }
 

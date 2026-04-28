@@ -200,7 +200,7 @@ pub struct GitWorkspaceDiffOutput {
 #[serde(rename_all = "camelCase")]
 pub struct GitWorktreeAddInput {
     pub repo_path: String,
-    pub branch_name: String,
+    pub branch_name: Option<String>,
     pub name: Option<String>,
 }
 

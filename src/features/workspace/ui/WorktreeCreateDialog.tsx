@@ -33,13 +33,13 @@ export function WorktreeCreateDialog(props: WorktreeCreateDialogProps): JSX.Elem
         </header>
         <div className="git-push-confirm-body worktree-create-dialog-body">
           <h2 className="git-push-confirm-title">创建工作树并保存为项目</h2>
-          <p className="git-push-confirm-text">从 HEAD 创建新的 Git 工作树，将其添加为项目，并保留该工作树直至将其移除。</p>
+          <p className="git-push-confirm-text">从 HEAD 创建新的 Git 工作树，将其添加为项目，并保留到你将其移除为止。</p>
           <input
             className="git-input worktree-create-dialog-input"
             type="text"
             value={name}
             onChange={(event) => setName(event.currentTarget.value)}
-            placeholder="请输入工作树名称"
+            placeholder="项目名称"
             disabled={submitting}
           />
           <div className="git-commit-dialog-actions">

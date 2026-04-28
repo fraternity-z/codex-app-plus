@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
-import type { HostBridge, GitWorktreeEntry } from "../../../bridge/types";
+import type { HostBridge } from "../../../bridge/types";
 import type { ResolvedTheme } from "../../../domain/theme";
 import { useI18n, type MessageKey } from "../../../i18n";
 import { useComposerPicker } from "../../composer/hooks/useComposerPicker";
@@ -15,6 +15,8 @@ import {
 import type { AppPreferencesController } from "../../settings/hooks/useAppPreferences";
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
 import type { WorkspaceRoot, WorkspaceRootController } from "../../workspace/hooks/useWorkspaceRoots";
+import { useWorkspaceWorktrees } from "../../workspace/hooks/useWorkspaceWorktrees";
+import { createDefaultWorktreeProjectName } from "../../workspace/model/worktreeRecords";
 import { requestWorkspaceFolder } from "../../../app/workspacePicker";
 import { useHomeScreenState } from "../../../app/controller/appControllerState";
 import type { AppController } from "../../../app/controller/appControllerTypes";
@@ -111,7 +113,6 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
     workspace: props.workspace,
     configSnapshot: state.configSnapshot,
     hostBridge: props.hostBridge,
-    openWorktreeSettings: () => props.onOpenSettingsSection("worktree"),
     openCreateWorktreeDialog: (root) => setCreateDialogRoot(root),
     closeCreateWorktreeDialog: () => setCreateDialogRoot(null),
   });
@@ -209,7 +210,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       />
       <WorktreeCreateDialog
         open={createDialogRoot !== null}
-        initialName={createDialogRoot?.name ? `${createDialogRoot.name}_2` : ""}
+        initialName={createDefaultWorktreeProjectName(createDialogRoot, props.workspace.roots)}
         onClose={() => setCreateDialogRoot(null)}
         onConfirm={(name) => createDialogRoot ? actions.confirmCreateWorktree(createDialogRoot, name) : Promise.resolve()}
       />
@@ -226,7 +227,6 @@ function useHomeScreenActions(args: {
   >;
   readonly workspace: WorkspaceRootController;
   readonly hostBridge: HostBridge;
-  readonly openWorktreeSettings: () => void;
   readonly openCreateWorktreeDialog: (root: WorkspaceRoot) => void;
   readonly closeCreateWorktreeDialog: () => void;
 }) {
@@ -262,43 +262,11 @@ function useHomeScreenActions(args: {
   }, [args.workspace, notifyAlertError, t]);
 
   const selectedRootPath = args.workspace.selectedRoot?.path ?? null;
-  const [worktrees, setWorktrees] = useState<ReadonlyArray<GitWorktreeEntry>>([]);
-  const managedWorktreeSet = useMemo(
-    () => new Set(args.workspace.managedWorktrees.map((item) => item.path.replace(/\\/g, "/").toLowerCase())),
-    [args.workspace.managedWorktrees],
-  );
-  const managedWorktreeMap = useMemo(
-    () => new Map(args.workspace.managedWorktrees.map((item) => [item.path.replace(/\\/g, "/").toLowerCase(), item])),
-    [args.workspace.managedWorktrees],
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    if (selectedRootPath === null) {
-      setWorktrees([]);
-      return;
-    }
-    void args.hostBridge.git.getWorktrees({ repoPath: selectedRootPath }).then((entries) => {
-      if (!cancelled) {
-        setWorktrees(entries.filter((entry) => managedWorktreeSet.has(entry.path.replace(/\\/g, "/").toLowerCase())));
-      }
-    }).catch(() => {
-      if (!cancelled) {
-        setWorktrees([]);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [args.hostBridge.git, selectedRootPath, managedWorktreeSet]);
-
-  const refreshWorktrees = useCallback(async (repoPath: string) => {
-    const entries = await args.hostBridge.git.getWorktrees({ repoPath });
-    const managed = new Set(args.workspace.managedWorktrees.map((item) => item.path.replace(/\\/g, "/").toLowerCase()));
-    const filtered = entries.filter((entry) => managed.has(entry.path.replace(/\\/g, "/").toLowerCase()));
-    setWorktrees(filtered);
-    return filtered;
-  }, [args.hostBridge.git, args.workspace.managedWorktrees]);
+  const worktreeController = useWorkspaceWorktrees({
+    hostBridge: args.hostBridge,
+    workspace: args.workspace,
+    selectedRootPath,
+  });
 
   const selectRoot = useCallback((rootId: string) => {
     args.workspace.selectRoot(rootId);
@@ -316,19 +284,9 @@ function useHomeScreenActions(args: {
     args.openCreateWorktreeDialog(root);
   }, [args]);
 
-  const confirmCreateWorktree = useCallback(async (root: WorkspaceRoot, branchName: string) => {
+  const confirmCreateWorktree = useCallback(async (root: WorkspaceRoot, projectName: string) => {
     try {
-      const created = await args.hostBridge.git.addWorktree({
-        repoPath: root.path,
-        branchName: branchName.trim(),
-      });
-      args.workspace.addRoot({
-        name: created.branch ?? created.path,
-        path: created.path,
-      });
-      args.workspace.addManagedWorktree({ path: created.path, repoPath: root.path, branch: created.branch });
-      await refreshWorktrees(root.path);
-      args.openWorktreeSettings();
+      await worktreeController.createStableWorktree(root, projectName);
       args.closeCreateWorktreeDialog();
     } catch (error) {
       notifyAlertError("app.alerts.selectWorkspaceFailed", error, {
@@ -336,28 +294,21 @@ function useHomeScreenActions(args: {
         rethrow: true,
       });
     }
-  }, [args.hostBridge.git, args.openWorktreeSettings, args.workspace, notifyAlertError, refreshWorktrees, args.closeCreateWorktreeDialog]);
+  }, [args.closeCreateWorktreeDialog, notifyAlertError, worktreeController]);
 
   const deleteWorktree = useCallback(async (root: WorkspaceRoot) => {
     if (!window.confirm(`确认删除工作树 ${root.name} 吗？这会删除对应工作目录。`)) {
       return;
     }
     try {
-      const record = managedWorktreeMap.get(root.path.replace(/\\/g, "/").toLowerCase());
-      await args.hostBridge.git.removeWorktree({
-        repoPath: record?.repoPath ?? root.path,
-        worktreePath: root.path,
-      });
-      args.workspace.removeManagedWorktree(root.path);
-      args.workspace.removeRoot(root.id);
-      await refreshWorktrees(record?.repoPath ?? root.path);
+      await worktreeController.deleteManagedWorktree(root.path);
     } catch (error) {
       notifyAlertError("app.alerts.selectWorkspaceFailed", error, {
         logMessage: "删除工作树失败",
         rethrow: true,
       });
     }
-  }, [args.hostBridge.git, args.workspace, managedWorktreeMap, notifyAlertError, refreshWorktrees]);
+  }, [notifyAlertError, worktreeController]);
 
   const createWorkspaceThreadInRoot = useCallback(async (rootId: string) => {
     const root = args.workspace.roots.find((item) => item.id === rootId);
@@ -441,7 +392,7 @@ function useHomeScreenActions(args: {
     selectWorkspaceThread,
     sendWorkspaceTurn,
     setMultiAgentEnabled,
-    worktrees,
+    worktrees: worktreeController.worktrees,
   }), [
     addRoot,
     createWorkspaceThread,
@@ -456,7 +407,7 @@ function useHomeScreenActions(args: {
     selectWorkspaceThread,
     sendWorkspaceTurn,
     setMultiAgentEnabled,
-    worktrees,
+    worktreeController.worktrees,
   ]);
 }
 

@@ -9,3 +9,4 @@ pub mod runtime;
 pub mod service;
 mod sync;
 mod workspace_diffs;
+mod worktree;

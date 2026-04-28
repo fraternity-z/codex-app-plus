@@ -90,6 +90,7 @@ import {
   openChatgptLogin,
   useAppController,
 } from "./useAppController";
+import { readConfigSnapshot } from "../../features/settings/config/configOperations";
 
 function createHostBridge(overrides?: Partial<HostBridge["app"]>): HostBridge {
   return {
@@ -194,6 +195,21 @@ function createRequestStub() {
   });
 }
 
+function createConfigSnapshot(version: string) {
+  return {
+    config: {},
+    origins: {},
+    layers: [
+      {
+        name: { type: "user", file: "C:/Users/Administrator/.codex/config.toml" },
+        version,
+        config: {},
+        disabledReason: null,
+      },
+    ],
+  };
+}
+
 function wrapper(props: PropsWithChildren): JSX.Element {
   return <AppStoreProvider>{props.children}</AppStoreProvider>;
 }
@@ -226,8 +242,9 @@ function useControllerHarness(
   const initialized = useAppSelector((state) => state.initialized);
   const pendingRequestsById = useAppSelector((state) => state.pendingRequestsById);
   const tokenRefresh = useAppSelector((state) => state.tokenRefresh);
+  const configSnapshot = useAppSelector((state) => state.configSnapshot);
   const dispatch = useAppDispatch();
-  return { banners, controller, dispatch, initialized, pendingRequestsById, tokenRefresh };
+  return { banners, configSnapshot, controller, dispatch, initialized, pendingRequestsById, tokenRefresh };
 }
 
 describe("useAppController auth helpers", () => {
@@ -238,6 +255,8 @@ describe("useAppController auth helpers", () => {
     protocolState.restartAppServer.mockClear();
     protocolState.initializeConnection.mockClear();
     protocolState.resolveServerRequest.mockClear();
+    vi.mocked(readConfigSnapshot).mockReset();
+    vi.mocked(readConfigSnapshot).mockResolvedValue(createConfigSnapshot("u1") as never);
     vi.mocked(startWindowsSandboxSetupRequest).mockReset();
     vi.mocked(startWindowsSandboxSetupRequest).mockResolvedValue({ started: true });
   });
@@ -356,6 +375,53 @@ describe("useAppController auth helpers", () => {
     await waitFor(() => {
       expect(protocolState.startAppServer).toHaveBeenCalledWith({ agentEnvironment: "wsl" });
     });
+  });
+
+  it("retries multi-agent config writes after a stale config version error", async () => {
+    const initialSnapshot = createConfigSnapshot("u1");
+    const latestSnapshot = createConfigSnapshot("u2");
+    const baseRequest = createRequestStub();
+    protocolState.request = vi.fn(async (method: string, params: unknown) => {
+      if (method === "config/read") {
+        return initialSnapshot;
+      }
+      if (method === "config/value/write") {
+        const input = params as { readonly keyPath?: string; readonly expectedVersion?: string | null };
+        if (input.keyPath === "features.multi_agent" && input.expectedVersion === "u1") {
+          throw new Error("协议错误: [-32600] Configuration was modified since last read. Fetch latest version and retry.");
+        }
+        return {
+          status: "ok",
+          version: "u3",
+          filePath: "C:/Users/Administrator/.codex/config.toml",
+          overriddenMetadata: null,
+        };
+      }
+      return baseRequest(method);
+    });
+    vi.mocked(readConfigSnapshot).mockResolvedValueOnce(latestSnapshot as never);
+    const hostBridge = createHostBridge();
+    const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.configSnapshot).toBe(initialSnapshot);
+    });
+    protocolState.request.mockClear();
+    protocolState.restartAppServer.mockClear();
+
+    await act(async () => {
+      await result.current.controller.setMultiAgentEnabled(true);
+    });
+
+    const writes = protocolState.request.mock.calls.filter(([method, params]) => (
+      method === "config/value/write"
+      && (params as { readonly keyPath?: string }).keyPath === "features.multi_agent"
+    ));
+    expect(writes).toHaveLength(2);
+    expect(writes[0]?.[1]).toMatchObject({ expectedVersion: "u1", value: true });
+    expect(writes[1]?.[1]).toMatchObject({ expectedVersion: "u2", value: true });
+    expect(readConfigSnapshot).toHaveBeenCalledTimes(1);
+    expect(protocolState.restartAppServer).toHaveBeenCalledTimes(1);
   });
 
   it("reloads the conversation catalog after the session index refresh event", async () => {
