@@ -8,6 +8,7 @@ use crate::proxy_settings::load_proxy_settings;
 use crate::windows_child_process::configure_background_std_command;
 
 const GIT_PROGRAM: &str = "git";
+const GIT_QUOTEPATH_CONFIG: [&str; 2] = ["-c", "core.quotepath=false"];
 
 pub(super) fn has_head(repo_root: &Path) -> AppResult<bool> {
     git_command()?
@@ -58,6 +59,7 @@ pub(super) fn run_git_with_exit_codes(
 
 fn git_command() -> AppResult<Command> {
     let mut command = Command::new(GIT_PROGRAM);
+    command.args(GIT_QUOTEPATH_CONFIG);
     configure_background_std_command(&mut command);
     let settings = load_proxy_settings(crate::models::AgentEnvironment::WindowsNative)?;
     apply_std_proxy_environment(&mut command, &settings);

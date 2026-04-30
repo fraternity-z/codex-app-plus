@@ -8,6 +8,16 @@ import {
   serializeComposerFileReferenceDraft,
   toComposerFileReferencePath,
 } from "../model/composerFileReferences";
+import {
+  buildCodexCloudExecCommand,
+  buildCodexCloudPrompt,
+  CODEX_CLOUD_EXEC_TIMEOUT_MS,
+  CODEX_WEB_URL,
+  formatCodexCloudExecOutput,
+  readStoredCodexCloudEnvironmentId,
+  resolveCodexCloudBranch,
+  writeStoredCodexCloudEnvironmentId,
+} from "../model/composerCloudHandoff";
 import type { SendTurnOptions } from "../../conversation/hooks/useWorkspaceConversation";
 import { useComposerSelection } from "../hooks/useComposerSelection";
 import type { CollaborationPreset, ComposerEnterBehavior, FollowUpMode, QueuedFollowUp } from "../../../domain/timeline";
@@ -36,6 +46,8 @@ import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismis
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
 import { useI18n } from "../../../i18n/useI18n";
 import { ComposerSkillBadgeOverlay, detectSkillBadge } from "./ComposerSkillBadge";
+import type { CommandExecParams } from "../../../protocol/generated/v2/CommandExecParams";
+import type { CommandExecResponse } from "../../../protocol/generated/v2/CommandExecResponse";
 
 const MIN_TRIMMED_MESSAGE_LENGTH = 1;
 const MAX_COMPOSER_INPUT_EXTRA_ROWS = 3;
@@ -70,6 +82,7 @@ export interface HomeComposerProps {
   readonly onPersistComposerSelection: (selection: ComposerSelection) => Promise<void>;
   readonly onSetMultiAgentEnabled?: (enabled: boolean) => Promise<void>;
   readonly onSelectPermissionLevel: (level: ComposerPermissionLevel) => void;
+  readonly onOpenCodexWeb?: () => Promise<void> | void;
   readonly onToggleDiff: () => void;
   readonly onUpdateThreadBranch: (branch: string) => Promise<void>;
   readonly onInterruptTurn: () => Promise<void>;
@@ -90,6 +103,8 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [multiAgentPending, setMultiAgentPending] = useState(false);
+  const [codexCloudPending, setCodexCloudPending] = useState(false);
+  const [codexCloudEnvironmentId, setCodexCloudEnvironmentId] = useState(readStoredCodexCloudEnvironmentId);
   const {
     composerBodyText,
     fileReferencePaths,
@@ -132,7 +147,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     onLogout: logout,
   });
   const appServerReady = props.appServerReady !== false;
-  const interactionDisabled = props.busy || multiAgentPending;
+  const interactionDisabled = props.busy || multiAgentPending || codexCloudPending;
   const hasDraftToSend = hasDraftContent(composerBodyText, attachments.length > 0 || fileReferencePaths.length > 0);
   const canSend = appServerReady
     && !interactionDisabled
@@ -191,6 +206,116 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     sendFailedMessage: t("home.composer.sendFailed"),
     stopDictation: dictation.stop,
   });
+
+  const promptCodexCloudEnvironmentId = useCallback((showSavedBanner: boolean): string | null => {
+    if (typeof globalThis.prompt !== "function") {
+      return codexCloudEnvironmentId;
+    }
+    const promptedEnvironmentId = globalThis.prompt(
+      t("home.composer.codexCloudEnvironmentPrompt"),
+      codexCloudEnvironmentId ?? "",
+    );
+    if (promptedEnvironmentId === null) {
+      return null;
+    }
+    const nextEnvironmentId = writeStoredCodexCloudEnvironmentId(promptedEnvironmentId);
+    setCodexCloudEnvironmentId(nextEnvironmentId);
+    if (showSavedBanner && nextEnvironmentId !== null) {
+      pushBanner({
+        level: "info",
+        title: t("home.composer.codexCloudLinked"),
+        detail: t("home.composer.codexCloudLinkedDetail", { environmentId: nextEnvironmentId }),
+      });
+    }
+    return nextEnvironmentId;
+  }, [codexCloudEnvironmentId, pushBanner, t]);
+
+  const handleLinkCodexWeb = useCallback(() => {
+    void (async () => {
+      try {
+        await openCodexWeb(props.onOpenCodexWeb);
+      } catch (error) {
+        reportError(t("home.composer.codexCloudLinkFailed"), error);
+      }
+      promptCodexCloudEnvironmentId(true);
+    })();
+  }, [promptCodexCloudEnvironmentId, props.onOpenCodexWeb, reportError, t]);
+
+  const canSendToCloud = appServerReady
+    && !interactionDisabled
+    && props.selectedRootPath !== null
+    && hasDraftToSend;
+
+  const handleSendToCloud = useCallback(() => {
+    void (async () => {
+      if (codexCloudPending) {
+        return;
+      }
+      if (props.selectedRootPath === null) {
+        pushBanner({ level: "error", title: t("home.composer.codexCloudWorkspaceRequired") });
+        return;
+      }
+      if (attachments.length > 0) {
+        pushBanner({ level: "error", title: t("home.composer.codexCloudAttachmentsUnsupported") });
+        return;
+      }
+      const prompt = buildCodexCloudPrompt({ bodyText: composerBodyText, fileReferencePaths });
+      if (prompt.trim().length === 0) {
+        pushBanner({ level: "error", title: t("home.composer.codexCloudPromptRequired") });
+        return;
+      }
+      const environmentId = codexCloudEnvironmentId ?? promptCodexCloudEnvironmentId(false);
+      if (environmentId === null) {
+        return;
+      }
+      setCodexCloudPending(true);
+      try {
+        dictation.stop();
+        await commandPalette.dismiss();
+        const commandParams: CommandExecParams = {
+          command: buildCodexCloudExecCommand({
+            environmentId,
+            prompt,
+            branch: resolveCodexCloudBranch(props.gitController, props.selectedThreadBranch),
+          }),
+          cwd: props.selectedRootPath,
+          timeoutMs: CODEX_CLOUD_EXEC_TIMEOUT_MS,
+          sandboxPolicy: { type: "dangerFullAccess" },
+        };
+        const response = toCommandExecResponse(await props.composerCommandBridge.request("command/exec", commandParams));
+        if (response.exitCode !== 0) {
+          throw new Error(response.stderr.trim() || response.stdout.trim() || `codex cloud exec exited with code ${response.exitCode}`);
+        }
+        props.onInputChange("");
+        pushBanner({
+          level: "info",
+          title: t("home.composer.codexCloudSent"),
+          detail: formatCodexCloudExecOutput(response),
+        });
+      } catch (error) {
+        reportError(t("home.composer.codexCloudSendFailed"), error);
+      } finally {
+        setCodexCloudPending(false);
+      }
+    })();
+  }, [
+    attachments,
+    codexCloudEnvironmentId,
+    codexCloudPending,
+    commandPalette,
+    composerBodyText,
+    dictation,
+    fileReferencePaths,
+    promptCodexCloudEnvironmentId,
+    props.composerCommandBridge,
+    props.gitController,
+    props.onInputChange,
+    props.selectedRootPath,
+    props.selectedThreadBranch,
+    pushBanner,
+    reportError,
+    t,
+  ]);
 
   const handleToggleMultiAgent = useCallback(async () => {
     setMenuOpen(false);
@@ -268,7 +393,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
           </div>
         </div>
       </div>
-      <ComposerFooter permissionLevel={props.permissionLevel} gitController={props.gitController} selectedThreadId={props.selectedThreadId} selectedThreadBranch={props.selectedThreadBranch} onSelectPermission={props.onSelectPermissionLevel} onUpdateThreadBranch={props.onUpdateThreadBranch} />
+      <ComposerFooter permissionLevel={props.permissionLevel} canSendToCloud={canSendToCloud} sendToCloudPending={codexCloudPending} gitController={props.gitController} selectedThreadId={props.selectedThreadId} selectedThreadBranch={props.selectedThreadBranch} onSelectPermission={props.onSelectPermissionLevel} onLinkCodexWeb={handleLinkCodexWeb} onSendToCloud={handleSendToCloud} onUpdateThreadBranch={props.onUpdateThreadBranch} />
     </footer>
   );
 }
@@ -375,6 +500,27 @@ function ComposerReloadOverlay(): JSX.Element {
 
 function getComposerPlaceholder(selectedRootPath: string | null): string {
   return selectedRootPath === null ? "Ask Codex anything" : "Describe the task, ask a question, or queue a follow-up";
+}
+
+async function openCodexWeb(onOpenCodexWeb: (() => Promise<void> | void) | undefined): Promise<void> {
+  if (onOpenCodexWeb !== undefined) {
+    await onOpenCodexWeb();
+    return;
+  }
+  globalThis.open?.(CODEX_WEB_URL, "_blank", "noopener,noreferrer");
+}
+
+function toCommandExecResponse(value: unknown): CommandExecResponse {
+  if (
+    typeof value === "object"
+    && value !== null
+    && typeof (value as Partial<CommandExecResponse>).exitCode === "number"
+    && typeof (value as Partial<CommandExecResponse>).stdout === "string"
+    && typeof (value as Partial<CommandExecResponse>).stderr === "string"
+  ) {
+    return value as CommandExecResponse;
+  }
+  throw new Error("Invalid command/exec response from app server");
 }
 
 function ComposerDictationWaveform(props: { readonly audioLevel: number }): JSX.Element {

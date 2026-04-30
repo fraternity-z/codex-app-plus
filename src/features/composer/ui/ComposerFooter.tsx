@@ -28,12 +28,28 @@ function PopoverBackdrop(props: { readonly onClick: () => void }): JSX.Element {
   return <button type="button" className="composer-popover-backdrop composer-footer-popover-backdrop" onClick={props.onClick} aria-label={t("home.composer.closeMenu")} />;
 }
 
-function WorkspaceFooterButton(props: { readonly active: boolean; readonly onToggle: () => void; readonly onClose: () => void }): JSX.Element {
+function WorkspaceFooterButton(props: {
+  readonly active: boolean;
+  readonly canSendToCloud: boolean;
+  readonly sendToCloudPending: boolean;
+  readonly onToggle: () => void;
+  readonly onClose: () => void;
+  readonly onLinkCodexWeb: () => void;
+  readonly onSendToCloud: () => void;
+}): JSX.Element {
   const { t } = useI18n();
 
   return (
     <div className="composer-footer-anchor">
-      {props.active ? <WorkspacePopover onClose={props.onClose} /> : null}
+      {props.active ? (
+        <WorkspacePopover
+          canSendToCloud={props.canSendToCloud}
+          sendToCloudPending={props.sendToCloudPending}
+          onClose={props.onClose}
+          onLinkCodexWeb={props.onLinkCodexWeb}
+          onSendToCloud={props.onSendToCloud}
+        />
+      ) : null}
       <button type="button" className={props.active ? "composer-footer-item composer-footer-item-active" : "composer-footer-item"} onClick={props.onToggle} aria-haspopup="menu" aria-expanded={props.active}>
         <span className="footer-icon" aria-hidden="true">{"\u2302"}</span>
         {t("home.composer.local")} <OfficialChevronRightIcon className="footer-caret" />
@@ -90,11 +106,15 @@ function BranchFooterButton(props: {
 }
 
 export function ComposerFooter(props: {
+  readonly canSendToCloud: boolean;
   readonly permissionLevel: PermissionLevel;
+  readonly sendToCloudPending: boolean;
   readonly gitController: WorkspaceGitController;
   readonly selectedThreadId: string | null;
   readonly selectedThreadBranch: string | null;
   readonly onSelectPermission: (level: PermissionLevel) => void;
+  readonly onLinkCodexWeb: () => void;
+  readonly onSendToCloud: () => void;
   readonly onUpdateThreadBranch: (branch: string) => Promise<void>;
 }): JSX.Element {
   const [openPopover, setOpenPopover] = useState<FooterPopover>(null);
@@ -110,7 +130,7 @@ export function ComposerFooter(props: {
     <div className={footerClassName}>
       {openPopover ? <PopoverBackdrop onClick={closePopover} /> : null}
       <div className="composer-footer-left">
-        <WorkspaceFooterButton active={openPopover === "workspace"} onToggle={() => togglePopover("workspace")} onClose={closePopover} />
+        <WorkspaceFooterButton active={openPopover === "workspace"} canSendToCloud={props.canSendToCloud} sendToCloudPending={props.sendToCloudPending} onToggle={() => togglePopover("workspace")} onClose={closePopover} onLinkCodexWeb={props.onLinkCodexWeb} onSendToCloud={props.onSendToCloud} />
         <PermissionsFooterButton active={openPopover === "permissions"} selected={props.permissionLevel} onToggle={() => togglePopover("permissions")} onSelect={handleSelectPermission} />
       </div>
       <div className="composer-footer-right">

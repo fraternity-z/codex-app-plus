@@ -20,8 +20,15 @@ export function permissionLabel(
   return level === "full" ? "Full access" : "Default permission";
 }
 
-export function WorkspacePopover(props: { readonly onClose: () => void }): JSX.Element {
+export function WorkspacePopover(props: {
+  readonly canSendToCloud: boolean;
+  readonly sendToCloudPending: boolean;
+  readonly onClose: () => void;
+  readonly onLinkCodexWeb: () => void;
+  readonly onSendToCloud: () => void;
+}): JSX.Element {
   const { t } = useI18n();
+  const sendToCloudDisabled = !props.canSendToCloud || props.sendToCloudPending;
 
   return (
     <div className="composer-footer-popover" role="menu" aria-label={t("home.composer.usageLocation")}>
@@ -46,7 +53,10 @@ export function WorkspacePopover(props: { readonly onClose: () => void }): JSX.E
         type="button"
         className="composer-footer-popover-item"
         role="menuitem"
-        onClick={props.onClose}
+        onClick={() => {
+          props.onLinkCodexWeb();
+          props.onClose();
+        }}
       >
         <span className="popover-item-left">
           <span className="popover-item-icon" aria-hidden="true">
@@ -58,15 +68,19 @@ export function WorkspacePopover(props: { readonly onClose: () => void }): JSX.E
       </button>
       <button
         type="button"
-        className="composer-footer-popover-item composer-footer-popover-item-disabled"
+        className={sendToCloudDisabled ? "composer-footer-popover-item composer-footer-popover-item-disabled" : "composer-footer-popover-item"}
         role="menuitem"
-        disabled
+        disabled={sendToCloudDisabled}
+        onClick={() => {
+          props.onSendToCloud();
+          props.onClose();
+        }}
       >
         <span className="popover-item-left">
           <span className="popover-item-icon" aria-hidden="true">
             {"\u25cb"}
           </span>
-          {t("home.composer.sendToCloud")}
+          {props.sendToCloudPending ? t("home.composer.codexCloudSubmitting") : t("home.composer.sendToCloud")}
         </span>
       </button>
     </div>

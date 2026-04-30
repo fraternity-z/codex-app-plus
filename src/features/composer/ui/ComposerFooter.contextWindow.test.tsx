@@ -177,11 +177,15 @@ function FooterHarness(props: { readonly usage: ThreadTokenUsage | null }): JSX.
 
   return (
     <ComposerFooter
+      canSendToCloud={false}
       permissionLevel="default"
+      sendToCloudPending={false}
       gitController={createController()}
       selectedThreadId="thread-1"
       selectedThreadBranch="main"
       onSelectPermission={vi.fn()}
+      onLinkCodexWeb={vi.fn()}
+      onSendToCloud={vi.fn()}
       onUpdateThreadBranch={vi.fn().mockResolvedValue(undefined)}
     />
   );

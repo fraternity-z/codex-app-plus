@@ -285,12 +285,103 @@ fn extract_remote_name(upstream: &str) -> Option<&str> {
 
 #[cfg(test)]
 mod tests {
-    use super::extract_remote_name;
+    use super::{
+        extract_remote_name, get_status_snapshot_for_repo_root, get_workspace_diffs, stage_paths,
+    };
+    use crate::git::models::{GitPathsInput, GitWorkspaceDiffScope, GitWorkspaceDiffsInput};
+    use crate::git::runtime::RepositoryContextCache;
+    use crate::test_support::unique_temp_dir;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::process::Command;
+
+    const GIT_PROGRAM: &str = "git";
+
+    struct TestRepo {
+        path: PathBuf,
+    }
+
+    impl TestRepo {
+        fn create(name: &str) -> Self {
+            let path = unique_temp_dir("codex-app-plus", name);
+            fs::create_dir_all(&path).expect("create temp repo");
+            run_git_cmd(&path, &["init"]);
+            run_git_cmd(&path, &["config", "user.email", "test@example.com"]);
+            run_git_cmd(&path, &["config", "user.name", "Test User"]);
+            Self { path }
+        }
+    }
+
+    impl Drop for TestRepo {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+
+    fn run_git_cmd(repo: &Path, args: &[&str]) {
+        let output = Command::new(GIT_PROGRAM)
+            .arg("-C")
+            .arg(repo)
+            .args(args)
+            .output()
+            .expect("run git command");
+        assert!(
+            output.status.success(),
+            "git command failed: {:?} {}",
+            args,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 
     #[test]
     fn extracts_remote_name_from_upstream() {
         assert_eq!(extract_remote_name("origin/main"), Some("origin"));
         assert_eq!(extract_remote_name("fork/feature/test"), Some("fork"));
         assert_eq!(extract_remote_name("main"), None);
+    }
+
+    #[test]
+    fn keeps_unicode_paths_usable_for_diff_and_stage_operations() {
+        let repo = TestRepo::create("git-service-unicode-中文");
+        let tracked_path = "中文文件.txt";
+        let untracked_path = "子目录/新文件.txt";
+        let repo_path = repo.path.to_string_lossy().to_string();
+        let cache = RepositoryContextCache::default();
+
+        fs::write(repo.path.join(tracked_path), "hello\n").expect("write tracked file");
+        run_git_cmd(&repo.path, &["add", "--", tracked_path]);
+        run_git_cmd(&repo.path, &["commit", "-m", "init"]);
+        fs::write(repo.path.join(tracked_path), "hello\nworld\n").expect("modify tracked file");
+        fs::create_dir_all(repo.path.join("子目录")).expect("create nested dir");
+        fs::write(repo.path.join(untracked_path), "new\n").expect("write untracked file");
+
+        let snapshot =
+            get_status_snapshot_for_repo_root(&repo.path).expect("load unicode status snapshot");
+
+        assert_eq!(snapshot.unstaged[0].path, tracked_path);
+        assert_eq!(snapshot.untracked[0].path, untracked_path);
+
+        let diffs = get_workspace_diffs(
+            GitWorkspaceDiffsInput {
+                repo_path: repo_path.clone(),
+                scope: GitWorkspaceDiffScope::Unstaged,
+                ignore_whitespace_changes: None,
+            },
+            &cache,
+        )
+        .expect("load unicode workspace diffs");
+
+        assert!(diffs.iter().any(|item| item.path == tracked_path));
+        assert!(diffs.iter().any(|item| item.path == untracked_path));
+
+        let paths = snapshot
+            .unstaged
+            .iter()
+            .chain(snapshot.untracked.iter())
+            .map(|entry| entry.path.clone())
+            .collect::<Vec<_>>();
+
+        stage_paths(GitPathsInput { repo_path, paths }, &cache)
+            .expect("stage unicode paths from status snapshot");
     }
 }

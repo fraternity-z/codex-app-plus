@@ -34,6 +34,7 @@ import { HomeUserInputPrompt } from "../../conversation/ui/HomeUserInputPrompt";
 import { HomeComposer } from "../../composer/ui/HomeComposer";
 import { HomePlanRequestComposer } from "../../composer/ui/HomePlanRequestComposer";
 import { createComposerCommandBridge } from "../../composer/service/composerCommandBridge";
+import { CODEX_WEB_URL } from "../../composer/model/composerCloudHandoff";
 import { GitCommitDialog } from "../../git/ui/GitCommitDialog";
 import type { WorkspaceGitController } from "../../git/model/types";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
@@ -306,6 +307,7 @@ interface HomeComposerSectionProps {
   readonly onInputChange: (text: string) => void;
   readonly onInterruptTurn: () => Promise<void>;
   readonly onLogout: () => Promise<void>;
+  readonly onOpenCodexWeb: () => Promise<void>;
   readonly onPersistComposerSelection: (selection: ComposerSelection) => Promise<void>;
   readonly onPromoteQueuedFollowUp: (followUpId: string) => Promise<void>;
   readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
@@ -359,6 +361,7 @@ const HomeComposerSection = memo(function HomeComposerSection(
       multiAgentEnabled={props.multiAgentEnabled ?? false}
       onSetMultiAgentEnabled={props.onSetMultiAgentEnabled}
       onSelectPermissionLevel={props.onSelectComposerPermissionLevel}
+      onOpenCodexWeb={props.onOpenCodexWeb}
       onToggleDiff={props.onToggleDiff}
       onUpdateThreadBranch={props.onUpdateThreadBranch}
       onInterruptTurn={props.onInterruptTurn}
@@ -390,6 +393,10 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
 
   const openExternalLink = useCallback(
     (url: string) => void props.hostBridge.app.openExternal(url),
+    [props.hostBridge],
+  );
+  const openCodexWeb = useCallback(
+    () => props.hostBridge.app.openExternal(CODEX_WEB_URL),
     [props.hostBridge],
   );
 
@@ -575,6 +582,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           onInputChange={props.onInputChange}
           onInterruptTurn={props.onInterruptTurn}
           onLogout={props.onLogout}
+          onOpenCodexWeb={openCodexWeb}
           onPersistComposerSelection={props.onPersistComposerSelection}
           onPromoteQueuedFollowUp={props.onPromoteQueuedFollowUp}
           onRemoveQueuedFollowUp={props.onRemoveQueuedFollowUp}
