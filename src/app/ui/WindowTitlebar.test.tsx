@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../bridge/types";
+import { INITIAL_APP_UPDATE_STATE } from "../../domain/appUpdate";
 import { WindowTitlebar } from "./WindowTitlebar";
 
 function createHostBridge(
@@ -113,6 +114,78 @@ describe("WindowTitlebar", () => {
 
     expect(onGoBack).toHaveBeenCalledTimes(1);
     expect(onGoForward).not.toHaveBeenCalled();
+  });
+
+  it("renders the about shortcut after navigation controls", () => {
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: "Win32",
+    });
+    const controlWindow = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <WindowTitlebar
+        hostBridge={createHostBridge(controlWindow)}
+        navigationControl={{
+          canGoBack: true,
+          canGoForward: true,
+          onGoBack: vi.fn(),
+          onGoForward: vi.fn(),
+        }}
+        aboutControl={{
+          appUpdate: {
+            ...INITIAL_APP_UPDATE_STATE,
+            currentVersion: "0.1.0",
+          },
+          onCheckForUpdate: vi.fn().mockResolvedValue(undefined),
+          onInstallUpdate: vi.fn().mockResolvedValue(undefined),
+        }}
+      />,
+    );
+
+    const forwardButton = screen.getByRole("button", { name: "前进到下一页" });
+    const aboutButton = screen.getByRole("button", { name: "打开关于" });
+
+    expect(
+      forwardButton.compareDocumentPosition(aboutButton)
+        & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(aboutButton).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(aboutButton);
+
+    expect(aboutButton).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("dialog", { name: "关于" })).toBeInTheDocument();
+    expect(screen.getByText("当前版本")).toBeInTheDocument();
+    expect(screen.getByText("0.1.0")).toBeInTheDocument();
+  });
+
+  it("renders the install update action beside about when visible", () => {
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: "Win32",
+    });
+    const controlWindow = vi.fn().mockResolvedValue(undefined);
+    const onInstallUpdate = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <WindowTitlebar
+        hostBridge={createHostBridge(controlWindow)}
+        aboutControl={{
+          appUpdate: {
+            ...INITIAL_APP_UPDATE_STATE,
+            status: "downloaded",
+            nextVersion: "0.2.0",
+          },
+          onCheckForUpdate: vi.fn().mockResolvedValue(undefined),
+          onInstallUpdate,
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "升级安装" }));
+
+    expect(onInstallUpdate).toHaveBeenCalledTimes(1);
   });
 
   it("starts dragging when pressing the titlebar content", () => {

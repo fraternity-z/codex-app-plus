@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import type { HostBridge } from "../../bridge/types";
+import type { AppUpdateState } from "../../domain/types";
 import type { ResolvedTheme } from "../../domain/theme";
 import type { AutomationsController } from "../../features/automation";
 import { AppNotificationViewport } from "../../features/notifications";
@@ -22,6 +23,7 @@ export interface AppScreenContentProps {
   readonly settingsMenuOpen: boolean;
   readonly shouldShowAuthChoice: boolean;
   readonly workspace: WorkspaceRootController;
+  readonly appUpdate: AppUpdateState;
   readonly authBusy: boolean;
   readonly authLoginPending: boolean;
   readonly automations: AutomationsController;
@@ -86,6 +88,15 @@ export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
           onGoForward: props.onGoForward,
         }}
         sidebarControl={titlebarSidebarControl}
+        aboutControl={
+          props.shouldShowAuthChoice
+            ? null
+            : {
+                appUpdate: props.appUpdate,
+                onCheckForUpdate: props.controller.checkForAppUpdate,
+                onInstallUpdate: props.controller.installAppUpdate,
+              }
+        }
       />
       <div className="app-shell-body">
         {renderScreen({
@@ -95,6 +106,93 @@ export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
         })}
       </div>
       <AppNotificationViewport hostBridge={props.hostBridge} />
+      <AppUpdateReadyPrompt
+        appUpdate={props.appUpdate}
+        onInstallUpdate={props.controller.installAppUpdate}
+      />
+    </div>
+  );
+}
+
+interface AppUpdateReadyPromptProps {
+  readonly appUpdate: AppUpdateState;
+  readonly onInstallUpdate: () => Promise<void>;
+}
+
+function AppUpdateReadyPrompt(props: AppUpdateReadyPromptProps): JSX.Element | null {
+  const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
+  const nextVersion = props.appUpdate.nextVersion;
+  const isVisible =
+    props.appUpdate.status === "downloaded" &&
+    nextVersion !== null &&
+    dismissedVersion !== nextVersion;
+
+  const dismiss = useCallback(() => {
+    if (nextVersion !== null) {
+      setDismissedVersion(nextVersion);
+    }
+  }, [nextVersion]);
+
+  const installUpdate = useCallback(() => {
+    void props.onInstallUpdate();
+  }, [props.onInstallUpdate]);
+
+  if (!isVisible) {
+    return null;
+  }
+
+  return (
+    <div
+      className="app-update-ready-backdrop"
+      role="presentation"
+      onClick={dismiss}
+    >
+      <section
+        className="app-update-ready-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="app-update-ready-title"
+        aria-describedby="app-update-ready-description"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="app-update-ready-header">
+          <div>
+            <strong id="app-update-ready-title">发现新版本</strong>
+            <p id="app-update-ready-description">
+              新版本 {nextVersion} 已下载完成，可以立即升级安装。
+            </p>
+          </div>
+          <button
+            type="button"
+            className="app-update-ready-close"
+            aria-label="稍后提醒"
+            onClick={dismiss}
+          >
+            ×
+          </button>
+        </header>
+        {props.appUpdate.currentVersion !== null ? (
+          <p className="app-update-ready-version">
+            当前版本：{props.appUpdate.currentVersion}
+          </p>
+        ) : null}
+        <div className="app-update-ready-actions">
+          <button
+            type="button"
+            className="app-update-ready-secondary"
+            onClick={dismiss}
+          >
+            稍后
+          </button>
+          <button
+            type="button"
+            className="app-update-ready-primary"
+            onClick={installUpdate}
+          >
+            升级安装
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

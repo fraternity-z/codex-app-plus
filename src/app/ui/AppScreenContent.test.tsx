@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../bridge/types";
+import { INITIAL_APP_UPDATE_STATE } from "../../domain/appUpdate";
+import type { AppUpdateState } from "../../domain/types";
 import type { AppPreferencesController } from "../../features/settings";
 import type { WorkspaceRootController } from "../../features/workspace";
 import type { AppController } from "../controller/appControllerTypes";
@@ -31,6 +33,11 @@ vi.mock("../../features/skills", () => ({
 
 vi.mock("./WindowTitlebar", () => ({
   WindowTitlebar: (props: {
+    readonly aboutControl?: {
+      readonly appUpdate: AppUpdateState;
+      readonly onCheckForUpdate: () => Promise<void>;
+      readonly onInstallUpdate: () => Promise<void>;
+    } | null;
     readonly navigationControl?: {
       readonly canGoBack: boolean;
       readonly canGoForward: boolean;
@@ -63,6 +70,24 @@ vi.mock("./WindowTitlebar", () => ({
           >
             go forward
           </button>
+        </>
+      ) : null}
+      {props.aboutControl ? (
+        <>
+          <button
+            type="button"
+            aria-label="打开关于"
+          >
+            关于
+          </button>
+          {props.aboutControl.appUpdate.status === "downloaded" ? (
+            <button
+              type="button"
+              onClick={() => void props.aboutControl?.onInstallUpdate()}
+            >
+              升级安装
+            </button>
+          ) : null}
         </>
       ) : null}
       {props.sidebarControl ? (
@@ -162,6 +187,7 @@ function createProps(
     shouldShowAuthChoice: false,
     workspace: createWorkspace(),
     automations: createAutomations(),
+    appUpdate: INITIAL_APP_UPDATE_STATE,
     authBusy: false,
     authLoginPending: false,
     onGoBack: vi.fn(),
@@ -280,5 +306,97 @@ describe("AppScreenContent", () => {
 
     expect(onGoBack).toHaveBeenCalledTimes(1);
     expect(onGoForward).not.toHaveBeenCalled();
+  });
+
+  it("keeps the about titlebar shortcut out of settings navigation", () => {
+    const onOpenSettingsSection = vi.fn();
+
+    render(
+      <AppScreenContent
+        {...createProps({
+          screen: "general",
+          onOpenSettingsSection,
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "打开关于" }));
+
+    expect(onOpenSettingsSection).not.toHaveBeenCalled();
+  });
+
+  it("shows a titlebar install action when an update is ready", () => {
+    const installAppUpdate = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <AppScreenContent
+        {...createProps({
+          appUpdate: {
+            ...INITIAL_APP_UPDATE_STATE,
+            status: "downloaded",
+            nextVersion: "0.2.0",
+          },
+          controller: {
+            ...createController(),
+            installAppUpdate,
+          } as AppController,
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: "升级安装" })[0]);
+
+    expect(installAppUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it("prompts for install when a startup update is downloaded", () => {
+    const installAppUpdate = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <AppScreenContent
+        {...createProps({
+          appUpdate: {
+            ...INITIAL_APP_UPDATE_STATE,
+            status: "downloaded",
+            currentVersion: "0.1.0",
+            nextVersion: "0.2.0",
+          },
+          controller: {
+            ...createController(),
+            installAppUpdate,
+          } as AppController,
+        })}
+      />,
+    );
+
+    expect(screen.getByRole("dialog", { name: "发现新版本" })).toBeInTheDocument();
+    expect(screen.getByText("新版本 0.2.0 已下载完成，可以立即升级安装。")).toBeInTheDocument();
+    expect(screen.getByText("当前版本：0.1.0")).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "升级安装" }).at(-1)!);
+
+    expect(installAppUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets the user dismiss the startup update prompt", () => {
+    render(
+      <AppScreenContent
+        {...createProps({
+          appUpdate: {
+            ...INITIAL_APP_UPDATE_STATE,
+            status: "downloaded",
+            nextVersion: "0.2.0",
+          },
+          controller: {
+            ...createController(),
+            installAppUpdate: vi.fn().mockResolvedValue(undefined),
+          } as AppController,
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "稍后" }));
+
+    expect(screen.queryByRole("dialog", { name: "发现新版本" })).not.toBeInTheDocument();
   });
 });

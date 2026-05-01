@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import rawLicenses from "../../../assets/third-party-licenses.json";
+import "../../../styles/replica/replica-settings-extra.css";
 
 type LicensePackage = {
   name: string;

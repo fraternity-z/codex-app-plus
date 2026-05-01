@@ -197,7 +197,6 @@ function SettingsSidebar(props: {
         {renderNavItem("environment")}
         {renderNavItem("worktree")}
         {renderNavItem("browserUse")}
-        {renderNavItem("about")}
       </nav>
     </aside>
   );

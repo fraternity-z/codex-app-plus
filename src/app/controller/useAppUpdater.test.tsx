@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppStoreProvider, useAppSelector } from "../../state/store";
 import { useAppUpdater } from "./useAppUpdater";
 
@@ -40,6 +40,15 @@ function useHarness() {
 }
 
 describe("useAppUpdater", () => {
+  beforeEach(() => {
+    updaterState.check.mockReset();
+    updaterState.download.mockReset();
+    updaterState.install.mockReset();
+    updaterState.close.mockReset();
+    updaterState.relaunch.mockReset();
+    updaterState.getVersion.mockReset();
+  });
+
   it("checks and downloads the latest release on startup", async () => {
     updaterState.getVersion.mockResolvedValue("0.1.0");
     updaterState.download.mockImplementation(async (handler: (event: unknown) => void) => {
@@ -57,16 +66,13 @@ describe("useAppUpdater", () => {
 
     const { result } = renderHook(() => useHarness(), { wrapper });
 
-    await act(async () => {
-      await result.current.updater.checkForAppUpdate();
-    });
-
     await waitFor(() => {
       expect(result.current.appUpdate.status).toBe("downloaded");
     });
 
     expect(result.current.appUpdate.currentVersion).toBe("0.1.0");
     expect(result.current.appUpdate.nextVersion).toBe("0.2.0");
+    expect(updaterState.check).toHaveBeenCalledTimes(1);
     expect(updaterState.download).toHaveBeenCalledTimes(1);
   });
 
@@ -86,15 +92,13 @@ describe("useAppUpdater", () => {
 
     const { result } = renderHook(() => useHarness(), { wrapper });
 
-    await act(async () => {
-      await result.current.updater.checkForAppUpdate();
-    });
-
     await waitFor(() => {
       expect(result.current.appUpdate.status).toBe("downloaded");
     });
 
-    await result.current.updater.installAppUpdate();
+    await act(async () => {
+      await result.current.updater.installAppUpdate();
+    });
 
     expect(updaterState.install).toHaveBeenCalledTimes(1);
     expect(updaterState.relaunch).toHaveBeenCalledTimes(1);

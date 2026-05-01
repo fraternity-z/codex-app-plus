@@ -201,6 +201,15 @@ describe("SettingsView", () => {
     expect(screen.queryByText("应用更新")).toBeNull();
   });
 
+  it("keeps about out of the settings sidebar", () => {
+    render(<SettingsView {...createBaseProps({ section: "about" })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.getByRole("heading", { name: "关于" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "关于" })).toBeNull();
+  });
+
   it("renders managed worktree list without main worktree", () => {
     render(<SettingsView {...createBaseProps({
       section: "worktree",

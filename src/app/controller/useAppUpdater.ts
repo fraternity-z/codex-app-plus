@@ -105,7 +105,7 @@ export function useAppUpdater(): AppUpdaterActions {
   }, [dispatch, reportUpdateError]);
 
   useEffect(() => {
-    if (autoCheckStartedRef.current || !supportsAppUpdate() || import.meta.env.DEV) {
+    if (autoCheckStartedRef.current || !supportsAppUpdate()) {
       return;
     }
     autoCheckStartedRef.current = true;

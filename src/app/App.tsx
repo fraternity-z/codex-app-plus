@@ -14,7 +14,7 @@ import { useAppPreferences, type SettingsSection } from "../features/settings";
 import { useAppNotificationsController } from "../features/notifications";
 import { useWorkspaceRoots } from "../features/workspace";
 import { useAutomations } from "../features/automation";
-import { useAppStoreApi } from "../state/store";
+import { useAppSelector, useAppStoreApi } from "../state/store";
 import {
   canGoBackScreen,
   canGoForwardScreen,
@@ -39,6 +39,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const controller = useAppController(hostBridge, preferences.agentEnvironment);
   const workspace = useWorkspaceRoots(hostBridge.app);
   const automations = useAutomations();
+  const appUpdate = useAppSelector((state) => state.appUpdate);
   const [screenHistory, setScreenHistory] = useState(() => createScreenHistoryState("home"));
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const screen = screenHistory.current;
@@ -99,6 +100,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
         shouldShowAuthChoice={shouldShowAuthChoice}
         workspace={workspace}
         automations={automations}
+        appUpdate={appUpdate}
         authBusy={authBusy}
         authLoginPending={bootstrapState.authLoginPending}
         onGoBack={goBack}
