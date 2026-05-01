@@ -10,11 +10,10 @@ import { useResolvedTheme } from "./useResolvedTheme";
 import { useWindowTheme } from "./useWindowTheme";
 import { useAppFontVariables } from "./useAppFontVariables";
 import { I18nProvider } from "../i18n";
-import { useAppPreferences } from "../features/settings/hooks/useAppPreferences";
-import { useAppNotificationsController } from "../features/notifications/hooks/useAppNotificationsController";
-import type { SettingsSection } from "../features/settings/ui/SettingsView";
-import { useWorkspaceRoots } from "../features/workspace/hooks/useWorkspaceRoots";
-import { useAutomations } from "../features/automation/hooks/useAutomations";
+import { useAppPreferences, type SettingsSection } from "../features/settings";
+import { useAppNotificationsController } from "../features/notifications";
+import { useWorkspaceRoots } from "../features/workspace";
+import { useAutomations } from "../features/automation";
 import { useAppStoreApi } from "../state/store";
 import {
   canGoBackScreen,

@@ -11,7 +11,7 @@ import {
   isRememberCommandDecision,
   matchesCommandApprovalAllowlist,
   type CommandApprovalAllowlist,
-} from "../../features/shared/utils/commandApprovalRules";
+} from "../../features/shared";
 import { reportServerRequestError } from "./appControllerServerRequests";
 
 type Dispatch = (action: AppAction) => void;

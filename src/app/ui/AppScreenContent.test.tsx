@@ -2,30 +2,30 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../bridge/types";
-import type { AppPreferencesController } from "../../features/settings/hooks/useAppPreferences";
-import type { WorkspaceRootController } from "../../features/workspace/hooks/useWorkspaceRoots";
+import type { AppPreferencesController } from "../../features/settings";
+import type { WorkspaceRootController } from "../../features/workspace";
 import type { AppController } from "../controller/appControllerTypes";
 import { AppScreenContent, type AppScreen } from "./AppScreenContent";
 
-vi.mock("../../features/auth/ui/AuthChoiceView", () => ({
+vi.mock("../../features/auth", () => ({
   AuthChoiceView: () => <div data-testid="auth-choice-view">auth choice</div>,
 }));
 
-vi.mock("../../features/automation/ui/AutomationScreen", () => ({
+vi.mock("../../features/automation", () => ({
   AutomationScreen: () => <div data-testid="automation-screen">automation</div>,
 }));
 
-vi.mock("../../features/settings/ui/SettingsScreen", () => ({
+vi.mock("../../features/settings", () => ({
   SettingsScreen: (props: { readonly sidebarCollapsed: boolean }) => (
     <div data-testid="settings-screen">settings collapsed:{String(props.sidebarCollapsed)}</div>
   ),
 }));
 
-vi.mock("../../features/notifications/ui/AppNotificationViewport", () => ({
+vi.mock("../../features/notifications", () => ({
   AppNotificationViewport: () => <div data-testid="app-notification-viewport" />,
 }));
 
-vi.mock("../../features/skills/ui/SkillsScreen", () => ({
+vi.mock("../../features/skills", () => ({
   SkillsScreen: () => <div data-testid="skills-screen">skills</div>,
 }));
 
@@ -78,7 +78,7 @@ vi.mock("./WindowTitlebar", () => ({
   ),
 }));
 
-vi.mock("../../features/home/ui/HomeScreen", async () => {
+vi.mock("../../features/home", async () => {
   const React = await import("react");
   return {
     HomeScreen: (props: {

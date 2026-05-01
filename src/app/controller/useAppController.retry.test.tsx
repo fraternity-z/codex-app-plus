@@ -50,18 +50,22 @@ vi.mock("../../protocol/client", () => ({
   },
 }));
 
-vi.mock("../../features/settings/config/configOperations", () => ({
+vi.mock("../../features/settings", () => ({
+  checkForAvailableAppUpdate: vi.fn(),
+  downloadPendingAppUpdate: vi.fn(),
+  installPendingAppUpdate: vi.fn(),
   listAllExperimentalFeatures: vi.fn().mockResolvedValue([]),
   listAllMcpServerStatuses: vi.fn().mockResolvedValue([]),
-}));
-
-vi.mock("../../features/workspace/model/threadCatalog", () => ({
-  loadThreadCatalog: vi.fn().mockResolvedValue([]),
-}));
-
-vi.mock("../../features/settings/sandbox/windowsSandboxSetup", () => ({
-  refreshConfigAfterWindowsSandboxSetup: vi.fn().mockResolvedValue(undefined),
+  readCurrentAppVersion: vi.fn().mockResolvedValue("0.1.0"),
+  readWindowsSandboxConfigView: vi.fn().mockReturnValue({ enabled: false, mode: null, source: null }),
+  releasePendingAppUpdate: vi.fn().mockResolvedValue(undefined),
   startWindowsSandboxSetupRequest: vi.fn().mockResolvedValue({ started: true }),
+  supportsAppUpdate: vi.fn().mockReturnValue(false),
+}));
+
+vi.mock("../../features/workspace", () => ({
+  listAllThreads: vi.fn().mockResolvedValue([]),
+  loadThreadCatalog: vi.fn().mockResolvedValue([]),
 }));
 
 import { useAppController } from "./useAppController";

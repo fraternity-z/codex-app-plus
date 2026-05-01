@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import type { ResolvedTheme } from "../domain/theme";
-import type { AppPreferences } from "../features/settings/hooks/useAppPreferences";
-import { getAppearanceThemeColors } from "../features/settings/model/appearanceColorScheme";
-import { applyAppAppearanceVariables } from "../features/settings/model/appearanceCssVars";
+import {
+  applyAppAppearanceVariables,
+  getAppearanceThemeColors,
+  type AppPreferences,
+} from "../features/settings";
 
 type AppAppearancePreferences = Pick<
   AppPreferences,

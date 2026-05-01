@@ -37,7 +37,11 @@ import type {
   UpdateAgentInput,
   WriteAgentConfigOutput,
 } from "../../bridge/types";
-import { type ConfigMutationResult, type ConfigSnapshotMutationResult, type McpRefreshResult } from "../../features/settings/config/configOperations";
+import {
+  type ConfigMutationResult,
+  type ConfigSnapshotMutationResult,
+  type McpRefreshResult,
+} from "../../features/settings";
 import { ProtocolClient } from "../../protocol/client";
 
 export type { ConfigBatchWriteParams } from "../../protocol/generated/v2/ConfigBatchWriteParams";

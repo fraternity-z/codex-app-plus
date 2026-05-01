@@ -2,8 +2,10 @@ import { useEffect, useRef } from "react";
 import type { AgentEnvironment } from "../../bridge/types";
 import type { ProtocolClient } from "../../protocol/client";
 import type { AppStoreApi } from "../../state/store";
-import { readWindowsSandboxConfigView } from "../../features/settings/sandbox/windowsSandboxConfig";
-import { startWindowsSandboxSetupRequest } from "../../features/settings/sandbox/windowsSandboxSetup";
+import {
+  readWindowsSandboxConfigView,
+  startWindowsSandboxSetupRequest,
+} from "../../features/settings";
 import { WINDOWS_SANDBOX_STATE_IDLE_RESET_MS } from "./appControllerTypes";
 
 function readWindowsSandboxAutoSetupTarget(

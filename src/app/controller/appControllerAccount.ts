@@ -1,5 +1,5 @@
 import type { AgentEnvironment } from "../../bridge/types";
-import { readUserConfigWriteTarget } from "../../features/settings/config/configWriteTarget";
+import { readUserConfigWriteTarget } from "../../features/settings";
 import type { AppAction, AuthStatus } from "../../domain/types";
 import type { GetAuthStatusResponse } from "../../protocol/generated/GetAuthStatusResponse";
 import type { ConfigReadResponse } from "../../protocol/generated/v2/ConfigReadResponse";

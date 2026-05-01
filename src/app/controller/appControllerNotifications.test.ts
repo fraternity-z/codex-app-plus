@@ -3,9 +3,11 @@ import type { AppAction } from "../../domain/types";
 import { INITIAL_STATE } from "../../domain/types";
 import { appReducer } from "../../state/appReducer";
 import { applyAppServerNotification } from "./appControllerNotifications";
-import { createConversationFromThread } from "../../features/conversation/model/conversationState";
-import { FrameTextDeltaQueue } from "../../features/conversation/model/frameTextDeltaQueue";
-import { OutputDeltaQueue } from "../../features/conversation/model/outputDeltaQueue";
+import {
+  createConversationFromThread,
+  FrameTextDeltaQueue,
+  OutputDeltaQueue,
+} from "../../features/conversation";
 
 function createThread(overrides: Record<string, unknown> = {}) {
   return {

@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import type { ResolvedTheme } from "../domain/theme";
-import type { AppPreferences } from "../features/settings/hooks/useAppPreferences";
-import { applyCodeStyleVariables } from "../features/settings/model/codeStyleCssVars";
+import { applyCodeStyleVariables, type AppPreferences } from "../features/settings";
 
 type AppCodeStylePreference = Pick<AppPreferences, "codeStyle">;
 

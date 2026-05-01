@@ -1,8 +1,7 @@
 import { lazy, Suspense } from "react";
-import type { WorkspaceRootController } from "../../workspace/hooks/useWorkspaceRoots";
-import type { AppController } from "../../../app/controller/appControllerTypes";
-import { useSkillsScreenState } from "../../../app/controller/appControllerState";
-import { SettingsLoadingFallback } from "../../../app/ui/SettingsLoadingFallback";
+import type { WorkspaceRootController } from "../../workspace";
+import { useSkillsScreenState } from "../hooks/useSkillsScreenState";
+import { SettingsLoadingFallback } from "../../shared";
 import type { SkillsViewProps } from "./SkillsView";
 
 const LazySkillsView = lazy(async () => {
@@ -11,7 +10,20 @@ const LazySkillsView = lazy(async () => {
 });
 
 interface SkillsScreenProps {
-  readonly controller: AppController;
+  readonly controller: Pick<
+    SkillsViewProps,
+    | "installMarketplacePlugin"
+    | "listMarketplacePlugins"
+    | "listMcpServerStatuses"
+    | "listSkills"
+    | "readMarketplacePlugin"
+    | "removePath"
+    | "setAppEnabled"
+    | "setMarketplacePluginEnabled"
+    | "uninstallMarketplacePlugin"
+    | "writeConfigValue"
+    | "writeSkillConfig"
+  >;
   readonly onBackHome: () => void;
   readonly onOpenMcpSettings?: () => void;
   readonly onOpenLearnMore: () => Promise<void>;

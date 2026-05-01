@@ -1,6 +1,5 @@
 import { useEffect } from "react";
-import type { AppPreferences } from "../features/settings/hooks/useAppPreferences";
-import { applyAppFontVariables } from "../features/settings/model/fontCssVars";
+import { applyAppFontVariables, type AppPreferences } from "../features/settings";
 
 type AppFontPreferences = Pick<
   AppPreferences,

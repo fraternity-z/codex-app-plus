@@ -1,21 +1,17 @@
 import { useCallback, useMemo, useState } from "react";
 import type { HostBridge } from "../../bridge/types";
 import type { ResolvedTheme } from "../../domain/theme";
-import type { AutomationsController } from "../../features/automation/hooks/useAutomations";
-import { AuthChoiceView } from "../../features/auth/ui/AuthChoiceView";
-import { HomeScreen } from "../../features/home/ui/HomeScreen";
-import { AppNotificationViewport } from "../../features/notifications/ui/AppNotificationViewport";
-import { type AppPreferencesController } from "../../features/settings/hooks/useAppPreferences";
-import { SettingsScreen } from "../../features/settings/ui/SettingsScreen";
-import type { SettingsSection } from "../../features/settings/ui/SettingsView";
-import { SkillsScreen } from "../../features/skills/ui/SkillsScreen";
-import type { WorkspaceRootController } from "../../features/workspace/hooks/useWorkspaceRoots";
+import type { AutomationsController } from "../../features/automation";
+import { AppNotificationViewport } from "../../features/notifications";
+import { type AppPreferencesController, type SettingsSection } from "../../features/settings";
+import type { WorkspaceRootController } from "../../features/workspace";
 import type { AppController } from "../controller/appControllerTypes";
 import { WindowTitlebar } from "./WindowTitlebar";
+import { renderScreen } from "./screenRenderer";
 
 export type AppScreen = "home" | "skills" | "automation" | SettingsSection;
 
-interface AppScreenContentProps {
+export interface AppScreenContentProps {
   readonly controller: AppController;
   readonly hostBridge: HostBridge;
   readonly preferences: AppPreferencesController;
@@ -101,103 +97,4 @@ export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
       <AppNotificationViewport hostBridge={props.hostBridge} />
     </div>
   );
-}
-
-function renderScreen(props: AppScreenContentProps & {
-  readonly homeSidebarCollapsed: boolean;
-  readonly settingsSidebarCollapsed: boolean;
-}): JSX.Element {
-  if (props.shouldShowAuthChoice) {
-    return (
-      <AuthChoiceView
-        busy={props.authBusy}
-        loginPending={props.authLoginPending}
-        onLogin={props.controller.login}
-        onUseApiKey={props.onOpenApiKeySettings}
-      />
-    );
-  }
-  const overlayScreen = renderOverlayScreen(props);
-  return (
-    <>
-      <div style={{ display: overlayScreen === null ? "contents" : "none" }}>
-        {renderHomeScreen(props)}
-      </div>
-      {overlayScreen}
-    </>
-  );
-}
-
-function renderOverlayScreen(props: AppScreenContentProps & {
-  readonly homeSidebarCollapsed: boolean;
-  readonly settingsSidebarCollapsed: boolean;
-}): JSX.Element | null {
-  if (props.screen === "skills") {
-    return null;
-  }
-  if (props.screen === "automation") {
-    return null;
-  }
-  if (props.screen === "home") {
-    return null;
-  }
-  return (
-    <SettingsScreen
-      controller={props.controller}
-      hostBridge={props.hostBridge}
-      preferences={props.preferences}
-      resolvedTheme={props.resolvedTheme}
-      section={props.screen}
-      sidebarCollapsed={props.settingsSidebarCollapsed}
-      workspace={props.workspace}
-      onBackHome={props.onBackHome}
-      onSelectSection={props.onOpenSettingsSection}
-    />
-  );
-}
-
-function renderHomeScreen(props: AppScreenContentProps & {
-  readonly homeSidebarCollapsed: boolean;
-  readonly settingsSidebarCollapsed: boolean;
-}): JSX.Element {
-  return (
-    <HomeScreen
-      controller={props.controller}
-      hostBridge={props.hostBridge}
-      preferences={props.preferences}
-      resolvedTheme={props.resolvedTheme}
-      settingsMenuOpen={props.settingsMenuOpen}
-      activeNavItem={props.screen === "skills" || props.screen === "automation" ? props.screen : null}
-      sidebarCollapsed={props.homeSidebarCollapsed}
-      workspace={props.workspace}
-      automations={props.automations}
-      onDismissSettingsMenu={props.onDismissSettingsMenu}
-      onOpenSettings={props.onOpenSettings}
-      onOpenSettingsSection={props.onOpenSettingsSection}
-      onOpenSkills={props.onOpenSkills}
-      onOpenAutomation={props.onOpenAutomation}
-      onOpenAutomationLearnMore={props.onOpenAutomationLearnMore}
-      onToggleSettingsMenu={props.onToggleSettingsMenu}
-      mainContentOverride={renderMainContentOverride(props)}
-    />
-  );
-}
-
-function renderMainContentOverride(props: AppScreenContentProps & {
-  readonly homeSidebarCollapsed: boolean;
-  readonly settingsSidebarCollapsed: boolean;
-}): JSX.Element | null {
-  if (props.screen === "skills") {
-    return (
-      <SkillsScreen
-        controller={props.controller}
-        workspace={props.workspace}
-        onBackHome={props.onBackHome}
-        onOpenLearnMore={props.onOpenSkillsLearnMore}
-        onOpenMcpSettings={() => props.onOpenSettingsSection("mcp")}
-      />
-    );
-  }
-
-  return null;
 }

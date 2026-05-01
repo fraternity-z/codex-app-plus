@@ -3,7 +3,7 @@ import type { HostBridge } from "../../bridge/types";
 import {
   OfficialCloseIcon,
   OfficialSidebarToggleIcon,
-} from "../../features/shared/ui/officialIcons";
+} from "../../features/shared";
 
 const WINDOW_CONTROL_SELECTOR = "[data-window-control='true']";
 

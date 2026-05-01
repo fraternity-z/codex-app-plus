@@ -1,14 +1,14 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { inferWorkspaceNameFromPath } from "../features/workspace/model/workspacePath";
+import { inferWorkspaceNameFromPath } from "./workspacePath";
 
-interface WorkspaceFolderSelection {
+export interface WorkspaceFolderSelection {
   readonly name: string;
   readonly path: string;
 }
 
 export async function requestWorkspaceFolder(
   title: string,
-  singleSelectionError: string
+  singleSelectionError: string,
 ): Promise<WorkspaceFolderSelection | null> {
   const selection = await open({ title, directory: true, multiple: false });
   if (selection === null) {

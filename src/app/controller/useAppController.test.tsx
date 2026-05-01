@@ -5,8 +5,8 @@ import type { HostBridge } from "../../bridge/types";
 import type { ConversationState } from "../../domain/conversation";
 import type { RequestId } from "../../protocol/generated/RequestId";
 import { AppStoreProvider, useAppDispatch, useAppSelector } from "../../state/store";
-import { loadThreadCatalog } from "../../features/workspace/model/threadCatalog";
-import { startWindowsSandboxSetupRequest } from "../../features/settings/sandbox/windowsSandboxSetup";
+import { loadThreadCatalog } from "../../features/workspace";
+import { readConfigSnapshot, startWindowsSandboxSetupRequest } from "../../features/settings";
 
 const DEFAULT_AGENT_ENVIRONMENT = "windowsNative" as const;
 
@@ -63,23 +63,46 @@ vi.mock("../../protocol/client", () => ({
   },
 }));
 
-vi.mock("../../features/settings/config/configOperations", () => ({
+vi.mock("../../features/settings", () => ({
   batchWriteConfigAndReadSnapshot: vi.fn(),
   batchWriteConfigAndRefresh: vi.fn(),
+  checkForAvailableAppUpdate: vi.fn(),
+  downloadPendingAppUpdate: vi.fn(),
+  installPendingAppUpdate: vi.fn(),
   listAllExperimentalFeatures: vi.fn().mockResolvedValue([]),
   listAllMcpServerStatuses: vi.fn().mockResolvedValue([]),
+  readCurrentAppVersion: vi.fn().mockResolvedValue("0.1.0"),
   readConfigSnapshot: vi.fn(),
+  readUserConfigWriteTarget: vi.fn((snapshot: unknown) => {
+    const userLayer = (snapshot as {
+      readonly layers?: ReadonlyArray<{
+        readonly name?: { readonly type?: string; readonly file?: string };
+        readonly version?: string | null;
+      }>;
+    } | null)?.layers?.find((layer) => layer.name?.type === "user");
+    return {
+      filePath: userLayer?.name?.file ?? null,
+      expectedVersion: userLayer?.version ?? null,
+    };
+  }),
+  readWindowsSandboxConfigView: vi.fn((snapshot: unknown) => {
+    const mode = (snapshot as {
+      readonly config?: { readonly windows?: { readonly sandbox?: string } };
+    } | null)?.config?.windows?.sandbox;
+    return mode === "elevated" || mode === "unelevated"
+      ? { enabled: true, mode, source: "windows.sandbox", isLegacy: false, canRunSetup: true }
+      : { enabled: false, mode: null, source: null, isLegacy: false, canRunSetup: true };
+  }),
+  releasePendingAppUpdate: vi.fn().mockResolvedValue(undefined),
   refreshMcpData: vi.fn(),
+  startWindowsSandboxSetupRequest: vi.fn(),
+  supportsAppUpdate: vi.fn().mockReturnValue(false),
   writeConfigValueAndRefresh: vi.fn(),
 }));
 
-vi.mock("../../features/workspace/model/threadCatalog", () => ({
+vi.mock("../../features/workspace", () => ({
+  listAllThreads: vi.fn().mockResolvedValue([]),
   loadThreadCatalog: vi.fn().mockResolvedValue([]),
-}));
-
-vi.mock("../../features/settings/sandbox/windowsSandboxSetup", () => ({
-  refreshConfigAfterWindowsSandboxSetup: vi.fn().mockResolvedValue(undefined),
-  startWindowsSandboxSetupRequest: vi.fn(),
 }));
 
 import {
@@ -90,7 +113,6 @@ import {
   openChatgptLogin,
   useAppController,
 } from "./useAppController";
-import { readConfigSnapshot } from "../../features/settings/config/configOperations";
 
 function createHostBridge(overrides?: Partial<HostBridge["app"]>): HostBridge {
   return {

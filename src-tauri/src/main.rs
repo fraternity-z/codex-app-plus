@@ -7,6 +7,7 @@ mod app_server_io;
 mod app_server_stderr;
 mod app_support;
 mod browser;
+mod browser_commands;
 mod bundled_computer_use;
 mod codex_auth;
 mod codex_cli;
@@ -38,11 +39,14 @@ mod workspace_launcher;
 mod workspace_state;
 mod wsl_support;
 
-use commands::{
-    app_activate_codex_chatgpt, app_browser_clear_browsing_data, app_browser_open,
-    app_browser_sidebar_hide, app_browser_sidebar_open, app_browser_sidebar_update_bounds,
+use browser_commands::{
+    app_browser_clear_browsing_data, app_browser_open, app_browser_sidebar_hide,
+    app_browser_sidebar_open, app_browser_sidebar_update_bounds,
     app_browser_use_approval_mode_write, app_browser_use_origin_add, app_browser_use_origin_remove,
-    app_browser_use_settings_read, app_capture_codex_oauth_snapshot, app_clear_chatgpt_auth_state,
+    app_browser_use_settings_read,
+};
+use commands::{
+    app_activate_codex_chatgpt, app_capture_codex_oauth_snapshot, app_clear_chatgpt_auth_state,
     app_control_window, app_create_agent, app_delete_agent, app_delete_codex_session,
     app_delete_managed_prompt, app_get_agents_settings, app_get_codex_auth_mode_state,
     app_import_official_data, app_list_codex_sessions, app_list_custom_prompts,

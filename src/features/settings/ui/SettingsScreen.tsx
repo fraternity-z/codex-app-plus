@@ -2,22 +2,22 @@ import { lazy, Suspense, useCallback, useState } from "react";
 import type { HostBridge } from "../../../bridge/types";
 import { readUserConfigWriteTarget } from "../config/configWriteTarget";
 import type { AppPreferencesController } from "../hooks/useAppPreferences";
-import { requestWorkspaceFolder } from "../../../app/workspacePicker";
-import type { WorkspaceRootController } from "../../workspace/hooks/useWorkspaceRoots";
-import { useWorkspaceWorktrees } from "../../workspace/hooks/useWorkspaceWorktrees";
-import { createDefaultWorktreeProjectName } from "../../workspace/model/worktreeRecords";
-import { WorktreeCreateDialog } from "../../workspace/ui/WorktreeCreateDialog";
-import type { AppController } from "../../../app/controller/appControllerTypes";
-import { useSettingsScreenState } from "../../../app/controller/appControllerState";
+import {
+  createDefaultWorktreeProjectName,
+  requestWorkspaceFolder,
+  useWorkspaceWorktrees,
+  WorktreeCreateDialog,
+  type WorkspaceRootController,
+} from "../../workspace";
+import { useSettingsScreenState } from "../hooks/useSettingsScreenState";
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
-import { SettingsLoadingFallback } from "../../../app/ui/SettingsLoadingFallback";
+import { SettingsLoadingFallback } from "../../shared";
 import type { ResolvedTheme } from "../../../domain/theme";
 import { useI18n } from "../../../i18n";
 import { selectSteerFeatureState } from "../config/experimentalFeatures";
 import type { SettingsSection, SettingsViewProps } from "./SettingsView";
 import successSoundUrl from "../../../assets/success-notification.mp3";
-import { playNotificationSound } from "../../notifications/model/notificationSounds";
-import { deliverNotification } from "../../notifications/model/systemNotifications";
+import { deliverNotification, playNotificationSound } from "../../notifications";
 
 const LazySettingsView = lazy(async () => {
   const module = await import("./SettingsView");
@@ -25,7 +25,26 @@ const LazySettingsView = lazy(async () => {
 });
 
 interface SettingsScreenProps {
-  readonly controller: AppController;
+  readonly controller: Pick<
+    SettingsViewProps,
+    | "batchWriteConfig"
+    | "batchWriteConfigSnapshot"
+    | "checkForAppUpdate"
+    | "createAgent"
+    | "deleteAgent"
+    | "getAgentsSettings"
+    | "installAppUpdate"
+    | "listArchivedThreads"
+    | "readAgentConfig"
+    | "refreshConfigSnapshot"
+    | "refreshMcpData"
+    | "resetMemories"
+    | "setThreadMemoryMode"
+    | "unarchiveThread"
+    | "updateAgent"
+    | "writeAgentConfig"
+    | "writeConfigValue"
+  >;
   readonly hostBridge: HostBridge;
   readonly preferences: AppPreferencesController;
   readonly resolvedTheme: ResolvedTheme;

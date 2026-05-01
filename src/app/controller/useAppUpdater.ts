@@ -7,7 +7,7 @@ import {
   readCurrentAppVersion,
   releasePendingAppUpdate,
   supportsAppUpdate,
-} from "../../features/settings/update/appUpdater";
+} from "../../features/settings";
 import { useAppDispatch } from "../../state/store";
 import { toErrorMessage } from "./appControllerTypes";
 

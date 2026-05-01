@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { AgentEnvironment, HostBridge } from "../../bridge/types";
 import { applyAppServerNotification } from "./appControllerNotifications";
-import { FrameTextDeltaQueue } from "../../features/conversation/model/frameTextDeltaQueue";
-import { OutputDeltaQueue } from "../../features/conversation/model/outputDeltaQueue";
+import { FrameTextDeltaQueue, OutputDeltaQueue } from "../../features/conversation";
 import { normalizeServerRequest } from "./serverRequests";
 import { ProtocolClient } from "../../protocol/client";
 import { useAppDispatch } from "../../state/store";
 import { useAppControllerRuntimeState } from "./appControllerState";
 import { useAppUpdater } from "./useAppUpdater";
-import type { CommandApprovalAllowlist } from "../../features/shared/utils/commandApprovalRules";
+import type { CommandApprovalAllowlist } from "../../features/shared";
 import {
   createAppServerStartInput,
   loadConversationCatalog,

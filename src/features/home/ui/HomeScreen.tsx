@@ -1,37 +1,57 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import type { HostBridge } from "../../../bridge/types";
+import type { ServerRequestResolution } from "../../../domain/types";
 import type { ResolvedTheme } from "../../../domain/theme";
 import { useI18n, type MessageKey } from "../../../i18n";
 import { useComposerPicker } from "../../composer/hooks/useComposerPicker";
 import type { ComposerSelection } from "../../composer/model/composerPreferences";
 import { useWorkspaceConversation } from "../../conversation/hooks/useWorkspaceConversation";
 import type { RegenerateEditedUserMessageOptions, SendTurnOptions } from "../../conversation/hooks/workspaceConversationTypes";
-import { readUserConfigWriteTarget } from "../../settings/config/configWriteTarget";
 import {
+  readUserConfigWriteTarget,
   selectMultiAgentFeatureState,
   selectSteerFeatureState,
-} from "../../settings/config/experimentalFeatures";
-import type { AppPreferencesController } from "../../settings/hooks/useAppPreferences";
+  type ConfigSnapshotMutationResult,
+} from "../../settings";
+import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
+import {
+  type AppPreferencesController,
+} from "../../settings";
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
-import type { WorkspaceRoot, WorkspaceRootController } from "../../workspace/hooks/useWorkspaceRoots";
-import { useWorkspaceWorktrees } from "../../workspace/hooks/useWorkspaceWorktrees";
-import { createDefaultWorktreeProjectName } from "../../workspace/model/worktreeRecords";
-import { requestWorkspaceFolder } from "../../../app/workspacePicker";
-import { useHomeScreenState } from "../../../app/controller/appControllerState";
-import type { AppController } from "../../../app/controller/appControllerTypes";
+import {
+  createDefaultWorktreeProjectName,
+  requestWorkspaceFolder,
+  useWorkspaceWorktrees,
+  type WorkspaceRoot,
+  type WorkspaceRootController,
+} from "../../workspace";
+import { useHomeScreenState } from "../hooks/useHomeScreenState";
 import { createHostBridgeAppServerClient } from "../../../protocol/appServerClient";
 import { useAppDispatch } from "../../../state/store";
-import { HomeView } from "./HomeView";
-import { WorktreeCreateDialog } from "../../workspace/ui/WorktreeCreateDialog";
-import type { AutomationsController } from "../../automation/hooks/useAutomations";
-import { useAutomationRunner } from "../../automation/hooks/useAutomationRunner";
-import { AutomationScreen } from "../../automation/ui/AutomationScreen";
+import { HomeView, type HomeViewProps } from "./HomeView";
+import { WorktreeCreateDialog } from "../../workspace";
+import {
+  AutomationScreen,
+  useAutomationRunner,
+  type AutomationsController,
+} from "../../automation";
 import type { HomeNavItem } from "./HomeSidebar";
+
+interface HomeScreenController {
+  readonly archiveThread: NonNullable<HomeViewProps["onArchiveThread"]>;
+  readonly batchWriteConfigSnapshot: (params: ConfigBatchWriteParams) => Promise<ConfigSnapshotMutationResult>;
+  readonly login: HomeViewProps["onLogin"];
+  readonly logout: HomeViewProps["onLogout"];
+  readonly resolveServerRequest: (resolution: ServerRequestResolution) => Promise<void>;
+  readonly retryConnection: HomeViewProps["onRetryConnection"];
+  readonly setInput: HomeViewProps["onInputChange"];
+  readonly setMultiAgentEnabled: (enabled: boolean) => Promise<void>;
+}
 
 interface HomeScreenProps {
   readonly hostBridge: HostBridge;
-  readonly controller: AppController;
+  readonly controller: HomeScreenController;
   readonly preferences: AppPreferencesController;
   readonly resolvedTheme: ResolvedTheme;
   readonly settingsMenuOpen: boolean;
@@ -255,7 +275,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
 
 function useHomeScreenActions(args: {
   readonly configSnapshot: unknown;
-  readonly controller: AppController;
+  readonly controller: HomeScreenController;
   readonly conversation: Pick<
     ReturnType<typeof useWorkspaceConversation>,
     "createThread" | "regenerateFromEditedUserMessage" | "sendTurn" | "selectThread"

@@ -1,10 +1,12 @@
 import type { Dispatch } from "react";
 import type { AgentEnvironment } from "../../bridge/types";
 import type { AppAction } from "../../domain/types";
-import { isPrewarmedThread } from "../../features/conversation/service/prewarmedThreadManager";
-import type { FrameTextDeltaQueue } from "../../features/conversation/model/frameTextDeltaQueue";
-import type { OutputDeltaQueue } from "../../features/conversation/model/outputDeltaQueue";
-import { parseConnectionRetryText } from "../../features/home/model/homeConnectionRetry";
+import {
+  isPrewarmedThread,
+  type FrameTextDeltaQueue,
+  type OutputDeltaQueue,
+} from "../../features/conversation";
+import { parseConnectionRetryText } from "../../features/home";
 import type { FuzzyFileSearchSessionCompletedNotification } from "../../protocol/generated/FuzzyFileSearchSessionCompletedNotification";
 import type { FuzzyFileSearchSessionUpdatedNotification } from "../../protocol/generated/FuzzyFileSearchSessionUpdatedNotification";
 import type { AccountLoginCompletedNotification } from "../../protocol/generated/v2/AccountLoginCompletedNotification";
@@ -44,7 +46,7 @@ import type { TurnPlanUpdatedNotification } from "../../protocol/generated/v2/Tu
 import type { TurnStartedNotification } from "../../protocol/generated/v2/TurnStartedNotification";
 import type { WindowsSandboxSetupCompletedNotification } from "../../protocol/generated/v2/WindowsSandboxSetupCompletedNotification";
 import type { WindowsWorldWritableWarningNotification } from "../../protocol/generated/v2/WindowsWorldWritableWarningNotification";
-import { createConversationFromThread } from "../../features/conversation/model/conversationState";
+import { createConversationFromThread } from "../../features/conversation";
 
 interface NotificationContext {
   readonly dispatch: Dispatch<AppAction>;
