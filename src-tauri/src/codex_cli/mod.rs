@@ -6,7 +6,7 @@ use crate::agent_environment::resolve_agent_environment;
 use crate::command_utils::command_failure_detail;
 use crate::error::{AppError, AppResult};
 use crate::models::{AgentEnvironment, AppServerStartInput};
-use crate::windows_child_process::configure_background_tokio_command;
+use crate::windows_child_process::configure_child_tree_root_tokio_command;
 
 mod windows;
 mod wsl;
@@ -101,7 +101,7 @@ impl CodexCli {
                 }
             }
         }
-        configure_background_tokio_command(&mut command);
+        configure_child_tree_root_tokio_command(&mut command);
         command
     }
 

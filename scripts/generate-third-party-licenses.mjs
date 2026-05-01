@@ -22,6 +22,7 @@ function readPnpmLicensesJson() {
   const options = {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "inherit"],
+    windowsHide: true,
   };
 
   if (process.platform === "win32") {

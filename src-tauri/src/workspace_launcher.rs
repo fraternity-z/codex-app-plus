@@ -8,6 +8,7 @@ use crate::command_utils::{
 };
 use crate::error::{AppError, AppResult};
 use crate::models::{AgentEnvironment, OpenFileInEditorInput, OpenWorkspaceInput, WorkspaceOpener};
+use crate::windows_child_process::configure_visible_console_std_command;
 
 const CMD_EXECUTABLE: &str = "cmd.exe";
 const CMD_RUN_ARG: &str = "/C";
@@ -58,7 +59,7 @@ pub fn open_workspace(input: OpenWorkspaceInput) -> AppResult<()> {
         WorkspaceOpener::Vscode => open_vscode_workspace(&path),
         WorkspaceOpener::Explorer => open_detached_target(path),
         WorkspaceOpener::Terminal => {
-            spawn_program("cmd.exe", ["/K", "cd", "/d", input.path.as_str()])
+            spawn_visible_console_program("cmd.exe", ["/K", "cd", "/d", input.path.as_str()])
         }
         WorkspaceOpener::VisualStudio => spawn_program("devenv.exe", [input.path.as_str()]),
         WorkspaceOpener::GithubDesktop => {
@@ -375,6 +376,17 @@ where
 {
     let mut command = Command::new(program);
     command.args(arguments);
+    spawn_background_command(&mut command)
+}
+
+fn spawn_visible_console_program<I, S>(program: &str, arguments: I) -> AppResult<()>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let mut command = Command::new(program);
+    command.args(arguments);
+    configure_visible_console_std_command(&mut command);
     spawn_background_command(&mut command)
 }
 

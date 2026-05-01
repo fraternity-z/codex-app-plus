@@ -78,6 +78,9 @@ use terminal_commands::{
 use terminal_manager::TerminalManager;
 
 fn main() {
+    #[cfg(target_os = "windows")]
+    windows_child_process::ensure_hidden_parent_console();
+
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())

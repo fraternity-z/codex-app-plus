@@ -6,6 +6,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use base64::{engine::general_purpose, Engine as _};
 use serde::{Deserialize, Serialize};
 
+#[cfg(target_os = "windows")]
+use crate::windows_child_process::configure_background_std_command;
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DictationTranscriptionInput {
@@ -72,7 +75,9 @@ fn run_system_speech_transcription(
 
     #[cfg(target_os = "windows")]
     {
-        let output = Command::new("powershell.exe")
+        let mut command = Command::new("powershell.exe");
+        configure_background_std_command(&mut command);
+        let output = command
             .args([
                 "-NoProfile",
                 "-NonInteractive",
