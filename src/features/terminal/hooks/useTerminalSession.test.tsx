@@ -3,8 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../../bridge/types";
 import { useTerminalSession } from "./useTerminalSession";
 
-const { capturedTerminalOptions } = vi.hoisted(() => ({
+type CapturedTerminal = {
+  readonly openNodes: Array<HTMLElement>;
+  readonly writes: Array<string>;
+  disposeCount: number;
+};
+
+const { capturedTerminalOptions, capturedTerminals } = vi.hoisted(() => ({
   capturedTerminalOptions: [] as Array<Record<string, unknown>>,
+  capturedTerminals: [] as Array<CapturedTerminal>,
 }));
 
 vi.mock("@xterm/addon-fit", () => ({
@@ -15,8 +22,16 @@ vi.mock("@xterm/addon-fit", () => ({
 
 vi.mock("@xterm/xterm", () => ({
   Terminal: class Terminal {
+    private readonly captured: CapturedTerminal;
+
     constructor(options: Record<string, unknown>) {
       capturedTerminalOptions.push(options);
+      this.captured = {
+        disposeCount: 0,
+        openNodes: [],
+        writes: [],
+      };
+      capturedTerminals.push(this.captured);
     }
     cols = 120;
     rows = 32;
@@ -24,12 +39,18 @@ vi.mock("@xterm/xterm", () => ({
     onData() {
       return { dispose(): void {} };
     }
-    open(): void {}
+    open(node: HTMLElement): void {
+      this.captured.openNodes.push(node);
+    }
     focus(): void {}
     reset(): void {}
-    write(): void {}
+    write(data: string): void {
+      this.captured.writes.push(data);
+    }
     refresh(): void {}
-    dispose(): void {}
+    dispose(): void {
+      this.captured.disposeCount += 1;
+    }
   }
 }));
 
@@ -65,6 +86,7 @@ function createHostBridge(overrides: Partial<HostBridge> = {}): HostBridge {
 describe("useTerminalSession", () => {
   beforeEach(() => {
     capturedTerminalOptions.length = 0;
+    capturedTerminals.length = 0;
     document.documentElement.style.removeProperty("--app-code-font-family");
     document.documentElement.style.removeProperty("--app-code-font-size");
   });
@@ -307,5 +329,93 @@ describe("useTerminalSession", () => {
     await waitFor(() => {
       expect(result.current.readyKey).toBe("root-1:launch");
     });
+  });
+
+  it("recreates the xterm view and replays buffered output when returning to a workspace", async () => {
+    type WorkspaceTerminalProps = {
+      readonly activeRootKey: string;
+      readonly activeRootPath: string | null;
+      readonly activeTerminalId: string | null;
+    };
+    let outputHandler: ((payload: { readonly sessionId: string; readonly data: string }) => void) | null = null;
+    const hostBridge = createHostBridge({
+      subscribe: vi.fn((eventName, handler) => {
+        if (eventName === "terminal-output") {
+          outputHandler = handler as typeof outputHandler;
+        }
+        return Promise.resolve(() => undefined);
+      }),
+    });
+    const initialProps: WorkspaceTerminalProps = {
+      activeRootKey: "root-1",
+      activeRootPath: "E:/code/project-a",
+      activeTerminalId: "terminal-1",
+    };
+    const { result, rerender } = renderHook(
+      (props: WorkspaceTerminalProps) =>
+        useTerminalSession({
+          activeRootKey: props.activeRootKey,
+          activeRootPath: props.activeRootPath,
+          activeTerminalId: props.activeTerminalId,
+          focusRequestVersion: 0,
+          hostBridge,
+          isVisible: true,
+          shell: "powerShell",
+          enforceUtf8: true,
+          resolvedTheme: "dark",
+        }),
+      {
+        initialProps,
+      },
+    );
+
+    const firstContainer = document.createElement("div");
+    await act(async () => {
+      result.current.containerRef(firstContainer);
+    });
+    await waitFor(() => {
+      expect(result.current.readyKey).toBe("root-1:terminal-1");
+    });
+
+    await act(async () => {
+      outputHandler?.({
+        data: "dev server ready\r\n",
+        sessionId: "root-1:terminal-1",
+      });
+    });
+
+    rerender({
+      activeRootKey: "root-2",
+      activeRootPath: "E:/code/project-b",
+      activeTerminalId: null,
+    });
+    await act(async () => {
+      result.current.containerRef(null);
+    });
+    await waitFor(() => {
+      expect(capturedTerminals[0]?.disposeCount).toBe(1);
+    });
+
+    const secondContainer = document.createElement("div");
+    rerender({
+      activeRootKey: "root-1",
+      activeRootPath: "E:/code/project-a",
+      activeTerminalId: "terminal-1",
+    });
+    await act(async () => {
+      result.current.containerRef(secondContainer);
+    });
+
+    await waitFor(() => {
+      expect(capturedTerminals).toHaveLength(2);
+    });
+    await waitFor(() => {
+      expect(result.current.readyKey).toBe("root-1:terminal-1");
+    });
+
+    expect(hostBridge.terminal.createSession).toHaveBeenCalledTimes(1);
+    expect(hostBridge.terminal.closeSession).not.toHaveBeenCalled();
+    expect(capturedTerminals[1]?.openNodes).toEqual([secondContainer]);
+    expect(capturedTerminals[1]?.writes).toContain("dev server ready\r\n");
   });
 });

@@ -156,17 +156,26 @@ export function useTerminalInstance(options: UseTerminalInstanceOptions): void {
   } = options;
 
   useEffect(() => {
-    if (!isVisible) {
+    const disposeTerminalView = () => {
       inputDisposableRef.current?.dispose();
       inputDisposableRef.current = null;
       terminalRef.current?.dispose();
       terminalRef.current = null;
       fitAddonRef.current = null;
       renderedTabKeyRef.current = null;
+    };
+
+    if (!isVisible) {
+      disposeTerminalView();
       return;
     }
 
-    if (terminalRef.current !== null || containerElementRef.current === null) {
+    if (containerElementRef.current === null) {
+      disposeTerminalView();
+      return;
+    }
+
+    if (terminalRef.current !== null) {
       return;
     }
 
