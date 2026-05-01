@@ -9,6 +9,8 @@ import type { ConfigBatchWriteParams } from "../../protocol/generated/v2/ConfigB
 import type { ConfigReadResponse } from "../../protocol/generated/v2/ConfigReadResponse";
 import type { ConfigValueWriteParams } from "../../protocol/generated/v2/ConfigValueWriteParams";
 import type { ConfigWriteResponse } from "../../protocol/generated/v2/ConfigWriteResponse";
+import type { FsRemoveParams } from "../../protocol/generated/v2/FsRemoveParams";
+import type { FsRemoveResponse } from "../../protocol/generated/v2/FsRemoveResponse";
 import type { MarketplaceAddParams } from "../../protocol/generated/v2/MarketplaceAddParams";
 import type { MarketplaceAddResponse } from "../../protocol/generated/v2/MarketplaceAddResponse";
 import type { MarketplaceRemoveParams } from "../../protocol/generated/v2/MarketplaceRemoveParams";
@@ -42,6 +44,8 @@ export type { ConfigBatchWriteParams } from "../../protocol/generated/v2/ConfigB
 export type { ConfigReadResponse } from "../../protocol/generated/v2/ConfigReadResponse";
 export type { ConfigValueWriteParams } from "../../protocol/generated/v2/ConfigValueWriteParams";
 export type { ConfigWriteResponse } from "../../protocol/generated/v2/ConfigWriteResponse";
+export type { FsRemoveParams } from "../../protocol/generated/v2/FsRemoveParams";
+export type { FsRemoveResponse } from "../../protocol/generated/v2/FsRemoveResponse";
 export type { MarketplaceAddParams } from "../../protocol/generated/v2/MarketplaceAddParams";
 export type { MarketplaceAddResponse } from "../../protocol/generated/v2/MarketplaceAddResponse";
 export type { MarketplaceRemoveParams } from "../../protocol/generated/v2/MarketplaceRemoveParams";
@@ -87,6 +91,7 @@ export interface AppController {
   removeMarketplace: (params: MarketplaceRemoveParams) => Promise<MarketplaceRemoveResponse>;
   readMarketplacePlugin: (params: PluginReadParams) => Promise<PluginReadResponse>;
   writeSkillConfig: (params: SkillsConfigWriteParams) => Promise<SkillsConfigWriteResponse>;
+  removePath: (params: FsRemoveParams) => Promise<FsRemoveResponse>;
   installMarketplacePlugin: (params: PluginInstallParams) => Promise<PluginInstallResponse>;
   uninstallMarketplacePlugin: (params: PluginUninstallParams) => Promise<PluginUninstallResponse>;
   setAppEnabled: (appId: string, enabled: boolean) => Promise<ConfigWriteResponse>;

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ReceivedNotification } from "../../../domain/types";
 import type { PluginInstallResponse } from "../../../protocol/generated/v2/PluginInstallResponse";
 import type { PluginListResponse } from "../../../protocol/generated/v2/PluginListResponse";
@@ -140,6 +140,10 @@ function createPluginReadResponse(): PluginReadResponse {
   };
 }
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 function renderSkillsView(overrides?: {
   readonly notifications?: ReadonlyArray<ReceivedNotification>;
   readonly listSkills?: ReturnType<typeof vi.fn>;
@@ -147,6 +151,7 @@ function renderSkillsView(overrides?: {
   readonly listMcpServerStatuses?: ReturnType<typeof vi.fn>;
   readonly readMarketplacePlugin?: ReturnType<typeof vi.fn>;
   readonly writeSkillConfig?: ReturnType<typeof vi.fn>;
+  readonly removePath?: ReturnType<typeof vi.fn>;
   readonly writeConfigValue?: ReturnType<typeof vi.fn>;
   readonly installMarketplacePlugin?: ReturnType<typeof vi.fn>;
   readonly uninstallMarketplacePlugin?: ReturnType<typeof vi.fn>;
@@ -158,6 +163,7 @@ function renderSkillsView(overrides?: {
   const listMcpServerStatuses = overrides?.listMcpServerStatuses ?? vi.fn().mockResolvedValue([]);
   const readMarketplacePlugin = overrides?.readMarketplacePlugin ?? vi.fn().mockResolvedValue(createPluginReadResponse());
   const writeSkillConfig = overrides?.writeSkillConfig ?? vi.fn().mockResolvedValue({ effectiveEnabled: false });
+  const removePath = overrides?.removePath ?? vi.fn().mockResolvedValue({});
   const writeConfigValue = overrides?.writeConfigValue ?? vi.fn().mockResolvedValue({
     config: { config: {}, origins: {}, layers: [] },
     statuses: [],
@@ -181,6 +187,7 @@ function renderSkillsView(overrides?: {
       readMarketplacePlugin={readMarketplacePlugin}
       setAppEnabled={setAppEnabled}
       writeSkillConfig={writeSkillConfig}
+      removePath={removePath}
       writeConfigValue={writeConfigValue}
       installMarketplacePlugin={installMarketplacePlugin}
       uninstallMarketplacePlugin={uninstallMarketplacePlugin}
@@ -196,6 +203,7 @@ function renderSkillsView(overrides?: {
     listMcpServerStatuses,
     listSkills,
     readMarketplacePlugin,
+    removePath,
     setAppEnabled,
     setMarketplacePluginEnabled,
     uninstallMarketplacePlugin,
@@ -303,6 +311,38 @@ describe("SkillsView", () => {
     await waitFor(() => expect(writeSkillConfig).toHaveBeenCalledWith({
       path: "C:/Users/Administrator/.codex/skills/doc",
       enabled: false,
+    }));
+  });
+
+  it("deletes installed skills through fs/remove from the skills tab", async () => {
+    const removePath = vi.fn().mockResolvedValue({});
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderSkillsView({ removePath });
+
+    fireEvent.click(screen.getByRole("tab", { name: "技能" }));
+    fireEvent.click(await screen.findByRole("button", { name: "删除 Word Docs" }));
+
+    await waitFor(() => expect(removePath).toHaveBeenCalledWith({
+      path: "C:/Users/Administrator/.codex/skills/doc",
+      recursive: true,
+      force: true,
+    }));
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("Word Docs"));
+  });
+
+  it("deletes installed skills through fs/remove from the management screen", async () => {
+    const removePath = vi.fn().mockResolvedValue({});
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderSkillsView({ removePath });
+
+    fireEvent.click(await screen.findByRole("button", { name: "管理" }));
+    fireEvent.click(await screen.findByRole("tab", { name: /技能/ }));
+    fireEvent.click(await screen.findByRole("button", { name: "删除 Word Docs" }));
+
+    await waitFor(() => expect(removePath).toHaveBeenCalledWith({
+      path: "C:/Users/Administrator/.codex/skills/doc",
+      recursive: true,
+      force: true,
     }));
   });
 

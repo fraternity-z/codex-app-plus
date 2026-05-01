@@ -4,6 +4,8 @@ import type { AppSummary } from "../../../protocol/generated/v2/AppSummary";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
 import type { ConfigWriteResponse } from "../../../protocol/generated/v2/ConfigWriteResponse";
+import type { FsRemoveParams } from "../../../protocol/generated/v2/FsRemoveParams";
+import type { FsRemoveResponse } from "../../../protocol/generated/v2/FsRemoveResponse";
 import type { McpAuthStatus } from "../../../protocol/generated/v2/McpAuthStatus";
 import type { McpServerStatus } from "../../../protocol/generated/v2/McpServerStatus";
 import type { PluginInstallParams } from "../../../protocol/generated/v2/PluginInstallParams";
@@ -21,8 +23,10 @@ import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsLi
 import {
   createInstalledSkillsCatalog,
   createMarketplacePluginCards,
+  canDeleteInstalledSkill,
   filterInstalledSkillCards,
   filterMarketplacePluginCards,
+  removeInstalledSkill,
   replaceInstalledSkillEnabled,
   type InstalledSkillCard,
   type InstalledSkillsCatalog,
@@ -55,6 +59,7 @@ interface SkillsViewModelOptions {
   readonly listMarketplacePlugins: (params: PluginListParams) => Promise<PluginListResponse>;
   readonly readMarketplacePlugin: (params: PluginReadParams) => Promise<PluginReadResponse>;
   readonly writeSkillConfig: (params: SkillsConfigWriteParams) => Promise<SkillsConfigWriteResponse>;
+  readonly removePath: (params: FsRemoveParams) => Promise<FsRemoveResponse>;
   readonly writeConfigValue: (params: ConfigValueWriteParams) => Promise<ConfigMutationResult>;
   readonly installMarketplacePlugin: (params: PluginInstallParams) => Promise<PluginInstallResponse>;
   readonly uninstallMarketplacePlugin: (params: PluginUninstallParams) => Promise<PluginUninstallResponse>;
@@ -122,6 +127,7 @@ export interface SkillsViewModel {
   readonly setPluginStatusFilter: (value: "all" | "installed" | "available") => void;
   readonly refresh: () => Promise<void>;
   readonly toggleSkillEnabled: (skill: InstalledSkillCard) => Promise<void>;
+  readonly deleteSkill: (skill: InstalledSkillCard) => Promise<void>;
   readonly installMarketplacePluginCard: (skill: MarketplacePluginCard) => Promise<void>;
   readonly uninstallMarketplacePluginCard: (skill: MarketplacePluginCard) => Promise<void>;
   readonly toggleMarketplacePluginEnabled: (skill: MarketplacePluginCard) => Promise<void>;
@@ -145,6 +151,7 @@ export function useSkillsViewModel(options: SkillsViewModelOptions): SkillsViewM
     listMarketplacePlugins,
     readMarketplacePlugin,
     writeSkillConfig,
+    removePath,
     writeConfigValue,
     installMarketplacePlugin,
     uninstallMarketplacePlugin,
@@ -271,6 +278,27 @@ export function useSkillsViewModel(options: SkillsViewModelOptions): SkillsViewM
       setPendingPaths((current) => omitRecordKey(current, skill.path));
     }
   }, [writeSkillConfig]);
+
+  const deleteSkill = useCallback(async (skill: InstalledSkillCard) => {
+    setActionError(null);
+    if (!canDeleteInstalledSkill(skill)) {
+      setActionError("系统或管理技能不能在此删除。");
+      return;
+    }
+    setPendingPaths((current) => ({ ...current, [skill.path]: true }));
+    try {
+      await removePath({ path: skill.path, recursive: true, force: true });
+      setInstalledState((current) => ({
+        ...current,
+        data: removeInstalledSkill(current.data, skill.path),
+      }));
+      await refreshInstalled(true);
+    } catch (error) {
+      setActionError(`删除技能失败：${toErrorMessage(error)}`);
+    } finally {
+      setPendingPaths((current) => omitRecordKey(current, skill.path));
+    }
+  }, [refreshInstalled, removePath]);
 
   const installMarketplacePluginCard = useCallback(async (skill: MarketplacePluginCard) => {
     setActionError(null);
@@ -476,6 +504,7 @@ export function useSkillsViewModel(options: SkillsViewModelOptions): SkillsViewM
     setPluginStatusFilter,
     refresh,
     toggleSkillEnabled,
+    deleteSkill,
     installMarketplacePluginCard,
     uninstallMarketplacePluginCard,
     toggleMarketplacePluginEnabled,

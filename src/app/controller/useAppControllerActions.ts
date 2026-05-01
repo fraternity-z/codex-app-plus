@@ -33,6 +33,8 @@ import type {
   ConfigBatchWriteParams,
   ConfigValueWriteParams,
   ConfigWriteResponse,
+  FsRemoveParams,
+  FsRemoveResponse,
   MarketplaceAddParams,
   MarketplaceAddResponse,
   MarketplaceRemoveParams,
@@ -197,6 +199,9 @@ export function useAppControllerActions({
   const writeSkillConfig = useCallback((params: SkillsConfigWriteParams) => (
     client.request("skills/config/write", params) as Promise<SkillsConfigWriteResponse>
   ), [client]);
+  const removePath = useCallback((params: FsRemoveParams) => (
+    client.request("fs/remove", params) as Promise<FsRemoveResponse>
+  ), [client]);
   const installMarketplacePlugin = useCallback((params: PluginInstallParams) => (
     client.request("plugin/install", params) as Promise<PluginInstallResponse>
   ), [client]);
@@ -303,6 +308,7 @@ export function useAppControllerActions({
     refreshMcpData,
     readMarketplacePlugin,
     removeMarketplace,
+    removePath,
     resolveServerRequest,
     resetMemories,
     setAppEnabled,

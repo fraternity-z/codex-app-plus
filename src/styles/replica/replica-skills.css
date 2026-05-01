@@ -364,6 +364,13 @@
   justify-content: flex-end;
 }
 
+.skills-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
 .skills-manager-row .settings-toggle {
   flex: 0 0 auto;
   width: 40px;
@@ -403,6 +410,20 @@
 .skills-manager-icon-button:hover {
   background: #f4f4f3;
   color: #4b5563;
+}
+
+.skills-danger-icon-button:not(:disabled):hover {
+  color: #dc2626;
+}
+
+.skills-manager-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.skills-manager-icon-button:disabled:hover {
+  background: transparent;
+  color: #8a8f98;
 }
 
 .skills-manager-icon-button .skills-toolbar-icon {
@@ -731,6 +752,15 @@ html[data-theme="dark"] .skills-manager-icon-button:hover {
   color: var(--text-main);
 }
 
+html[data-theme="dark"] .skills-danger-icon-button:not(:disabled):hover {
+  color: #fca5a5;
+}
+
+html[data-theme="dark"] .skills-manager-icon-button:disabled:hover {
+  background: transparent;
+  color: #9a9ca3;
+}
+
 html[data-theme="dark"] .skills-page .settings-toggle {
   background: var(--surface-panel-soft);
   border-color: var(--surface-panel-soft);
@@ -876,7 +906,7 @@ html[data-theme="dark"] .skills-error-state {
   .plugin-row > .plugin-icon-button,
   .plugin-row-actions,
   .skills-manager-row-actions,
-  .skills-card .settings-toggle {
+  .skills-card-actions {
     grid-column: 2;
     justify-self: start;
   }

@@ -36,6 +36,7 @@ export function SkillsScreen(props: SkillsScreenProps): JSX.Element {
     readMarketplacePlugin: props.controller.readMarketplacePlugin,
     setAppEnabled: props.controller.setAppEnabled,
     writeSkillConfig: props.controller.writeSkillConfig,
+    removePath: props.controller.removePath,
     writeConfigValue: props.controller.writeConfigValue,
     installMarketplacePlugin: props.controller.installMarketplacePlugin,
     uninstallMarketplacePlugin: props.controller.uninstallMarketplacePlugin,

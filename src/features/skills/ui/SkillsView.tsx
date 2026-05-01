@@ -2,6 +2,8 @@ import type { ReceivedNotification } from "../../../domain/types";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
 import type { ConfigWriteResponse } from "../../../protocol/generated/v2/ConfigWriteResponse";
+import type { FsRemoveParams } from "../../../protocol/generated/v2/FsRemoveParams";
+import type { FsRemoveResponse } from "../../../protocol/generated/v2/FsRemoveResponse";
 import type { McpServerStatus } from "../../../protocol/generated/v2/McpServerStatus";
 import type { PluginInstallParams } from "../../../protocol/generated/v2/PluginInstallParams";
 import type { PluginInstallResponse } from "../../../protocol/generated/v2/PluginInstallResponse";
@@ -25,6 +27,7 @@ import {
   type ManagedMcpServerCard,
   type SkillsManagementTab,
 } from "../hooks/useSkillsViewModel";
+import { canDeleteInstalledSkill } from "../model/skillCatalog";
 import type { InstalledSkillCard, MarketplaceFilterOption, MarketplacePluginCard } from "../model/skillCatalog";
 import { SkillAvatar } from "./SkillAvatar";
 
@@ -44,6 +47,7 @@ export interface SkillsViewProps {
   readonly readMarketplacePlugin: (params: PluginReadParams) => Promise<PluginReadResponse>;
   readonly setAppEnabled: (appId: string, enabled: boolean) => Promise<ConfigWriteResponse>;
   readonly writeSkillConfig: (params: SkillsConfigWriteParams) => Promise<SkillsConfigWriteResponse>;
+  readonly removePath: (params: FsRemoveParams) => Promise<FsRemoveResponse>;
   readonly writeConfigValue: (params: ConfigValueWriteParams) => Promise<ConfigMutationResult>;
   readonly installMarketplacePlugin: (params: PluginInstallParams) => Promise<PluginInstallResponse>;
   readonly uninstallMarketplacePlugin: (params: PluginUninstallParams) => Promise<PluginUninstallResponse>;
@@ -63,6 +67,7 @@ export function SkillsView(props: SkillsViewProps): JSX.Element {
     readMarketplacePlugin: props.readMarketplacePlugin,
     setAppEnabled: props.setAppEnabled,
     writeSkillConfig: props.writeSkillConfig,
+    removePath: props.removePath,
     writeConfigValue: props.writeConfigValue,
     installMarketplacePlugin: props.installMarketplacePlugin,
     uninstallMarketplacePlugin: props.uninstallMarketplacePlugin,
@@ -103,6 +108,7 @@ export function SkillsView(props: SkillsViewProps): JSX.Element {
             onToggleMcpServer={model.toggleMcpServerEnabled}
             onTogglePlugin={model.toggleMarketplacePluginEnabled}
             onToggleSkill={model.toggleSkillEnabled}
+            onDeleteSkill={model.deleteSkill}
           />
         ) : (
           <>
@@ -142,6 +148,7 @@ export function SkillsView(props: SkillsViewProps): JSX.Element {
                   scanErrors={model.scanErrors}
                   skills={model.installedSkills}
                   onToggleSkillEnabled={model.toggleSkillEnabled}
+                  onDeleteSkill={model.deleteSkill}
                 />
               )}
             </main>
@@ -303,6 +310,7 @@ function SkillsManager(props: {
   readonly onToggleMcpServer: (server: ManagedMcpServerCard) => Promise<void>;
   readonly onTogglePlugin: (plugin: MarketplacePluginCard) => Promise<void>;
   readonly onToggleSkill: (skill: InstalledSkillCard) => Promise<void>;
+  readonly onDeleteSkill: (skill: InstalledSkillCard) => Promise<void>;
 }): JSX.Element {
   const { t } = useI18n();
   const tabs = createManagementTabs(t, props.counts);
@@ -438,14 +446,22 @@ function renderManagementTab(
             name={skill.name}
             title={skill.path}
             action={(
-              <ManagementSwitch
-                checked={skill.enabled}
-                disabled={!props.ready || props.pendingPaths[skill.path] === true}
-                label={skill.enabled
-                  ? t("home.skills.manage.disable", { name: skill.name })
-                  : t("home.skills.manage.enable", { name: skill.name })}
-                onClick={() => void props.onToggleSkill(skill)}
-              />
+              <>
+                <SkillDeleteButton
+                  disabled={!props.ready || props.pendingPaths[skill.path] === true}
+                  skill={skill}
+                  t={t}
+                  onDeleteSkill={props.onDeleteSkill}
+                />
+                <ManagementSwitch
+                  checked={skill.enabled}
+                  disabled={!props.ready || props.pendingPaths[skill.path] === true}
+                  label={skill.enabled
+                    ? t("home.skills.manage.disable", { name: skill.name })
+                    : t("home.skills.manage.enable", { name: skill.name })}
+                  onClick={() => void props.onToggleSkill(skill)}
+                />
+              </>
             )}
           />
         )}
@@ -576,6 +592,47 @@ function ManagementSwitch(props: {
       <span className="settings-toggle-knob" />
     </button>
   );
+}
+
+function SkillDeleteButton(props: {
+  readonly disabled: boolean;
+  readonly skill: InstalledSkillCard;
+  readonly t: ReturnType<typeof useI18n>["t"];
+  readonly onDeleteSkill: (skill: InstalledSkillCard) => Promise<void>;
+}): JSX.Element {
+  const canDelete = canDeleteInstalledSkill(props.skill);
+  const disabled = props.disabled || !canDelete;
+  const label = canDelete
+    ? props.t("home.skills.card.deleteSkill", { name: props.skill.name })
+    : props.t("home.skills.card.deleteSkillUnavailable", { name: props.skill.name });
+  const title = canDelete ? props.t("home.skills.card.delete") : props.t("home.skills.card.deleteUnavailable");
+  return (
+    <button
+      type="button"
+      className="skills-manager-icon-button skills-danger-icon-button"
+      disabled={disabled}
+      aria-label={label}
+      title={title}
+      onClick={() => {
+        if (!canDelete || !confirmSkillDelete(props.skill, props.t)) {
+          return;
+        }
+        void props.onDeleteSkill(props.skill);
+      }}
+    >
+      <TrashIcon />
+    </button>
+  );
+}
+
+function confirmSkillDelete(
+  skill: InstalledSkillCard,
+  t: ReturnType<typeof useI18n>["t"],
+): boolean {
+  if (typeof window === "undefined" || typeof window.confirm !== "function") {
+    return true;
+  }
+  return window.confirm(t("home.skills.card.deleteConfirm", { name: skill.name, path: skill.path }));
 }
 
 function createManagementTabs(
@@ -750,6 +807,7 @@ function InstalledSkillsSection(props: {
   readonly actionError: string | null;
   readonly loading: boolean;
   readonly onToggleSkillEnabled: (skill: InstalledSkillCard) => Promise<void>;
+  readonly onDeleteSkill: (skill: InstalledSkillCard) => Promise<void>;
 }): JSX.Element {
   const { t } = useI18n();
   return (
@@ -770,6 +828,7 @@ function InstalledSkillsSection(props: {
             skill={skill}
             t={t}
             onToggleSkillEnabled={props.onToggleSkillEnabled}
+            onDeleteSkill={props.onDeleteSkill}
           />
         )}
       />
@@ -802,6 +861,7 @@ function InstalledSkillCardView(props: {
   readonly pending: boolean;
   readonly t: ReturnType<typeof useI18n>["t"];
   readonly onToggleSkillEnabled: (skill: InstalledSkillCard) => Promise<void>;
+  readonly onDeleteSkill: (skill: InstalledSkillCard) => Promise<void>;
 }): JSX.Element {
   return (
     <article className="skills-card" title={props.skill.path}>
@@ -813,17 +873,25 @@ function InstalledSkillCardView(props: {
         </div>
         <p>{props.skill.description}</p>
       </div>
-      <button
-        type="button"
-        className={props.skill.enabled ? "settings-toggle settings-toggle-on" : "settings-toggle"}
-        role="switch"
-        aria-checked={props.skill.enabled}
-        aria-label={`${props.skill.name}${props.skill.enabled ? props.t("home.skills.card.enabled") : props.t("home.skills.card.disabled")}`}
-        disabled={props.pending}
-        onClick={() => void props.onToggleSkillEnabled(props.skill)}
-      >
-        <span className="settings-toggle-knob" />
-      </button>
+      <div className="skills-card-actions">
+        <SkillDeleteButton
+          disabled={props.pending}
+          skill={props.skill}
+          t={props.t}
+          onDeleteSkill={props.onDeleteSkill}
+        />
+        <button
+          type="button"
+          className={props.skill.enabled ? "settings-toggle settings-toggle-on" : "settings-toggle"}
+          role="switch"
+          aria-checked={props.skill.enabled}
+          aria-label={`${props.skill.name}${props.skill.enabled ? props.t("home.skills.card.enabled") : props.t("home.skills.card.disabled")}`}
+          disabled={props.pending}
+          onClick={() => void props.onToggleSkillEnabled(props.skill)}
+        >
+          <span className="settings-toggle-knob" />
+        </button>
+      </div>
     </article>
   );
 }

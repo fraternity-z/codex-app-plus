@@ -162,6 +162,20 @@ export function replaceInstalledSkillEnabled(
   };
 }
 
+export function removeInstalledSkill(
+  catalog: InstalledSkillsCatalog,
+  path: string,
+): InstalledSkillsCatalog {
+  return {
+    ...catalog,
+    skills: catalog.skills.filter((skill) => skill.path !== path),
+  };
+}
+
+export function canDeleteInstalledSkill(skill: InstalledSkillCard): boolean {
+  return skill.scope === "user" || skill.scope === "repo";
+}
+
 function createInstalledSkillCard(skill: SkillMetadata): InstalledSkillCard {
   return {
     path: skill.path,
