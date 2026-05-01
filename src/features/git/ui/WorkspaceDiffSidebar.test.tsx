@@ -364,4 +364,41 @@ describe("WorkspaceDiffSidebar", () => {
     expect(screen.getByRole("tab", { name: "审查" })).toHaveAttribute("aria-selected", "true");
     expect(hideBrowserSidebar).toHaveBeenCalled();
   });
+
+  it("opens the browser tab when the app requests the in-app browser sidebar", async () => {
+    const openBrowserSidebar = vi.fn().mockResolvedValue(undefined);
+    const hostBridge = {
+      app: {
+        openBrowserSidebar,
+        updateBrowserSidebarBounds: vi.fn().mockResolvedValue(undefined),
+        hideBrowserSidebar: vi.fn().mockResolvedValue(undefined),
+        openFileInEditor: vi.fn().mockResolvedValue(undefined),
+      },
+      git: {
+        getWorkspaceDiffs: vi.fn().mockResolvedValue([]),
+      },
+    } as unknown as HostBridge;
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function getBoundingClientRect(this: HTMLElement) {
+      if (this instanceof HTMLElement && this.classList.contains("workspace-side-browser-surface")) {
+        return rectFor(520);
+      }
+      return rectFor(0);
+    });
+
+    renderSidebar(
+      createController(),
+      hostBridge,
+      { browserOpenRequest: { id: 1, url: "about:blank" } },
+    );
+
+    await waitFor(() => expect(screen.getByRole("tab", { name: "浏览器" })).toHaveAttribute("aria-selected", "true"));
+    await waitFor(() => expect(openBrowserSidebar).toHaveBeenCalledWith(expect.objectContaining({
+      url: "about:blank",
+    })));
+  });
 });

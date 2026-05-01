@@ -22,6 +22,7 @@ interface WorkspaceDiffSidebarHostProps {
   readonly selectedDiffPath?: string | null;
   readonly onSelectDiffPath?: (path: string | null) => void;
   readonly onDiffItemsChange?: (items: ReadonlyArray<GitWorkspaceDiffOutput>) => void;
+  readonly browserOpenRequest?: { readonly id: number; readonly url: string | null } | null;
   readonly onResizeStart?: (event: ReactMouseEvent) => void;
   readonly canResize?: boolean;
   readonly isResizing?: boolean;
@@ -48,6 +49,7 @@ export function WorkspaceDiffSidebarHost(props: WorkspaceDiffSidebarHostProps): 
         selectedDiffPath={props.selectedDiffPath}
         onSelectDiffPath={props.onSelectDiffPath}
         onDiffItemsChange={props.onDiffItemsChange}
+        browserOpenRequest={props.browserOpenRequest}
         onResizeStart={props.onResizeStart}
         canResize={props.canResize}
         isResizing={props.isResizing}

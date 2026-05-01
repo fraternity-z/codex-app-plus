@@ -17,8 +17,8 @@ const APP_DIRECTORY: &str = "CodexAppPlus";
 const BROWSER_DIRECTORY: &str = "browser";
 const BROWSER_CONFIG_FILE: &str = "config.toml";
 const BROWSER_DATA_DIRECTORY: &str = "data";
-const BROWSER_SIDEBAR_LABEL: &str = "codex-browser-sidebar";
-const BROWSER_WINDOW_LABEL: &str = "codex-browser";
+pub const BROWSER_SIDEBAR_LABEL: &str = "codex-browser-sidebar";
+pub const BROWSER_WINDOW_LABEL: &str = "codex-browser";
 const BROWSER_WINDOW_TITLE: &str = "Codex Browser";
 const DEFAULT_BROWSER_URL: &str = "https://www.google.com";
 const MAIN_WINDOW_LABEL: &str = "main";
@@ -315,6 +315,8 @@ fn normalize_browser_url(value: Option<&str>) -> AppResult<Url> {
     let trimmed = value.unwrap_or_default().trim();
     let raw = if trimmed.is_empty() {
         DEFAULT_BROWSER_URL.to_string()
+    } else if trimmed.eq_ignore_ascii_case("about:blank") {
+        "about:blank".to_string()
     } else if has_url_scheme(trimmed) {
         trimmed.to_string()
     } else {
@@ -463,6 +465,13 @@ mod tests {
         let url = normalize_browser_url(Some("example.com/path")).expect("browser url");
 
         assert_eq!(url.as_str(), "https://example.com/path");
+    }
+
+    #[test]
+    fn accepts_about_blank_browser_url() {
+        let url = normalize_browser_url(Some("about:blank")).expect("browser url");
+
+        assert_eq!(url.as_str(), "about:blank");
     }
 
     #[test]

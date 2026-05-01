@@ -634,6 +634,12 @@ pub struct BrowserUseOriginInput {
     pub origin: String,
 }
 
+#[derive(Debug, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserSidebarOpenRequestedPayload {
+    pub url: Option<String>,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RememberCommandApprovalRuleInput {

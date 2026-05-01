@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { ComposerPermissionLevel } from "../../composer/model/composerPermission";
 import type {
   ComposerModelOption,
@@ -157,6 +157,10 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
   const uiState = useHomeViewUiState(props.selectedRootPath, props.sidebarCollapsed ?? false);
   const diffLayout = useDiffSidebarLayout();
   const [diffItems, setDiffItems] = useState<ReadonlyArray<GitWorkspaceDiffOutput>>([]);
+  const [browserOpenRequest, setBrowserOpenRequest] = useState<{
+    readonly id: number;
+    readonly url: string | null;
+  } | null>(null);
   const selectedRoot = useMemo(
     () => props.roots.find((root) => root.id === props.selectedRootId) ?? null,
     [props.roots, props.selectedRootId],
@@ -199,6 +203,32 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
     terminalController,
     updateWorkspaceLaunchScripts: props.onUpdateWorkspaceLaunchScripts,
   });
+
+  useEffect(() => {
+    let active = true;
+    let unsubscribe: (() => void) | null = null;
+    void props.hostBridge.subscribe("browser-sidebar-open-requested", (payload) => {
+      const hasMainContentOverride = props.mainContentOverride !== undefined && props.mainContentOverride !== null;
+      if (props.selectedRootPath === null || hasMainContentOverride) {
+        return;
+      }
+      uiState.openDiffSidebar();
+      setBrowserOpenRequest((current) => ({
+        id: (current?.id ?? 0) + 1,
+        url: payload.url,
+      }));
+    }).then((nextUnsubscribe) => {
+      if (active) {
+        unsubscribe = nextUnsubscribe;
+      } else {
+        nextUnsubscribe();
+      }
+    });
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
+  }, [props.hostBridge, props.mainContentOverride, props.selectedRootPath, uiState.openDiffSidebar]);
 
   const toggleTerminal = useCallback(() => {
     if (uiState.openTerminal) {
@@ -261,6 +291,7 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
           selectedDiffPath={diffLayout.selectedDiffPath}
           onSelectDiffPath={diffLayout.setSelectedDiffPath}
           onDiffItemsChange={setDiffItems}
+          browserOpenRequest={browserOpenRequest}
           onResizeStart={diffLayout.startResize}
           canResize={!diffLayout.expanded}
           isResizing={diffLayout.isResizing}

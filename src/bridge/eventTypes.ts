@@ -5,6 +5,7 @@ import type { TerminalExitEventPayload, TerminalOutputEventPayload } from "./ter
 export type BridgeEventName =
   | "connection-changed"
   | "codex-session-index-updated"
+  | "browser-sidebar-open-requested"
   | "app-notification-requested"
   | "notification-received"
   | "server-request-received"
@@ -37,9 +38,14 @@ export interface CodexSessionIndexUpdatedPayload {
   readonly sessionCount: number;
 }
 
+export interface BrowserSidebarOpenRequestedPayload {
+  readonly url: string | null;
+}
+
 export type BridgeEventPayloadMap = {
   "connection-changed": ConnectionChangedPayload;
   "codex-session-index-updated": CodexSessionIndexUpdatedPayload;
+  "browser-sidebar-open-requested": BrowserSidebarOpenRequestedPayload;
   "app-notification-requested": ShowNotificationInput;
   "notification-received": NotificationEventPayload;
   "server-request-received": ServerRequestEventPayload;

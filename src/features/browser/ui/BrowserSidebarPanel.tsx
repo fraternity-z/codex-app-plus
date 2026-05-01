@@ -9,6 +9,7 @@ const BROWSER_SURFACE_BOTTOM_INSET = 12;
 interface BrowserSidebarPanelProps {
   readonly active: boolean;
   readonly hostBridge: HostBridge;
+  readonly openRequest?: { readonly id: number; readonly url: string | null } | null;
 }
 
 function toErrorMessage(error: unknown): string {
@@ -37,6 +38,10 @@ function resolveAvailableSurfaceHeight(element: HTMLElement, surfaceRect: DOMRec
   return Math.max(surfaceRect.height, availableHeight);
 }
 
+function normalizeRequestedUrl(value: string | null | undefined): string {
+  return value?.trim() || DEFAULT_BROWSER_URL;
+}
+
 function readBounds(element: HTMLElement): BrowserSidebarBoundsInput | null {
   const rect = element.getBoundingClientRect();
   const height = resolveAvailableSurfaceHeight(element, rect);
@@ -55,12 +60,15 @@ function readBounds(element: HTMLElement): BrowserSidebarBoundsInput | null {
 export function BrowserSidebarPanel(props: BrowserSidebarPanelProps): JSX.Element {
   const { t } = useI18n();
   const surfaceRef = useRef<HTMLDivElement | null>(null);
-  const currentUrlRef = useRef(DEFAULT_BROWSER_URL);
+  const initialUrl = normalizeRequestedUrl(props.openRequest?.url);
+  const currentUrlRef = useRef(initialUrl);
   const browserCreatedRef = useRef(false);
   const openingRef = useRef<Promise<void> | null>(null);
-  const [address, setAddress] = useState(DEFAULT_BROWSER_URL);
+  const [address, setAddress] = useState(initialUrl);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestedOpenId = props.openRequest?.id ?? null;
+  const requestedOpenUrl = props.openRequest?.url ?? null;
 
   const openAtCurrentBounds = useCallback(async (url: string) => {
     if (openingRef.current !== null) {
@@ -149,6 +157,18 @@ export function BrowserSidebarPanel(props: BrowserSidebarPanelProps): JSX.Elemen
     }
     updateBounds();
   }, [props.active, updateBounds]);
+
+  useEffect(() => {
+    if (!props.active || requestedOpenId === null) {
+      return;
+    }
+    const nextUrl = normalizeRequestedUrl(requestedOpenUrl);
+    currentUrlRef.current = nextUrl;
+    setAddress(nextUrl);
+    void openAtCurrentBounds(nextUrl).catch((error: unknown) => {
+      setError(t("home.sidePanel.browserOpenFailed", { error: toErrorMessage(error) }));
+    });
+  }, [openAtCurrentBounds, props.active, requestedOpenId, requestedOpenUrl, t]);
 
   const submitAddress = useCallback(async () => {
     const nextUrl = address.trim() || DEFAULT_BROWSER_URL;

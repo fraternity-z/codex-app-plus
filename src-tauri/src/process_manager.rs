@@ -12,6 +12,7 @@ use crate::app_server_io::{
     spawn_reader_task, spawn_stderr_task, spawn_writer_task, PendingMap, PendingOutcome,
 };
 use crate::app_server_stderr::{emit_app_server_fatal, AppServerStderrLog};
+use crate::bundled_browser_use;
 use crate::bundled_computer_use;
 use crate::codex_cli::CodexCli;
 use crate::error::{AppError, AppResult};
@@ -219,6 +220,7 @@ async fn spawn_runtime(
 ) -> AppResult<Arc<AppServerRuntime>> {
     let agent_environment = resolve_agent_environment(input.agent_environment);
     bundled_computer_use::ensure_registered(&app, agent_environment)?;
+    bundled_browser_use::ensure_registered(&app, agent_environment)?;
 
     let cli = CodexCli::resolve(&input)?;
     let _version = cli.detect_version().await?;

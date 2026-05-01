@@ -8,6 +8,8 @@ mod app_server_stderr;
 mod app_support;
 mod browser;
 mod browser_commands;
+mod browser_use_backend;
+mod bundled_browser_use;
 mod bundled_computer_use;
 mod codex_auth;
 mod codex_cli;
@@ -101,6 +103,7 @@ fn main() {
                 let _ = main_window.set_decorations(false);
                 media_permissions::allow_microphone_capture(&main_window);
             }
+            browser_use_backend::start(app.handle().clone());
             Ok(())
         })
         .manage(ProcessManager::new())

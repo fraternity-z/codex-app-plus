@@ -2,8 +2,8 @@ use tauri::{AppHandle, Emitter};
 
 use crate::error::AppResult;
 use crate::models::{
-    CodexSessionIndexUpdatedPayload, ConnectionChangedPayload, FatalErrorPayload,
-    NotificationPayload, RequestId, ServerRequestPayload, TerminalExitPayload,
+    BrowserSidebarOpenRequestedPayload, CodexSessionIndexUpdatedPayload, ConnectionChangedPayload,
+    FatalErrorPayload, NotificationPayload, RequestId, ServerRequestPayload, TerminalExitPayload,
     TerminalOutputPayload,
 };
 
@@ -16,6 +16,7 @@ pub const EVENT_TERMINAL_OUTPUT: &str = "terminal-output";
 pub const EVENT_TERMINAL_EXIT: &str = "terminal-exit";
 pub const EVENT_CONTEXT_MENU_REQUESTED: &str = "app-context-menu-requested";
 pub const EVENT_NOTIFICATION_REQUESTED: &str = "app-notification-requested";
+pub const EVENT_BROWSER_SIDEBAR_OPEN_REQUESTED: &str = "browser-sidebar-open-requested";
 
 pub fn emit_connection_changed(app: &AppHandle, status: &str) -> AppResult<()> {
     let payload = ConnectionChangedPayload {
@@ -85,5 +86,11 @@ pub fn emit_terminal_exit(
         exit_code,
     };
     app.emit(EVENT_TERMINAL_EXIT, payload)
+        .map_err(|e| crate::error::AppError::Protocol(e.to_string()))
+}
+
+pub fn emit_browser_sidebar_open_requested(app: &AppHandle, url: Option<String>) -> AppResult<()> {
+    let payload = BrowserSidebarOpenRequestedPayload { url };
+    app.emit(EVENT_BROWSER_SIDEBAR_OPEN_REQUESTED, payload)
         .map_err(|e| crate::error::AppError::Protocol(e.to_string()))
 }

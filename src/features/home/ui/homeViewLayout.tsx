@@ -17,6 +17,7 @@ export interface HomeViewUiState {
   readonly canShowDiffSidebar: boolean;
   readonly closeDiffSidebar: () => void;
   readonly hideTerminalPanel: () => void;
+  readonly openDiffSidebar: () => void;
   readonly openTerminal: boolean;
   readonly showTerminalPanel: () => void;
   readonly sidebarCollapsed: boolean;
@@ -37,6 +38,7 @@ export function useHomeViewUiState(selectedRootPath: string | null, sidebarColla
     canShowDiffSidebar: diffSidebarOpen && selectedRootPath !== null,
     closeDiffSidebar: useCallback(() => setDiffSidebarOpen(false), []),
     hideTerminalPanel: useCallback(() => setTerminalOpen(false), []),
+    openDiffSidebar: useCallback(() => setDiffSidebarOpen(true), []),
     openTerminal: terminalOpen,
     showTerminalPanel: useCallback(() => setTerminalOpen(true), []),
     sidebarCollapsed,

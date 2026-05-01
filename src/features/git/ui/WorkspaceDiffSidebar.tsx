@@ -32,6 +32,7 @@ import { WorkspaceDiffFileList } from "./WorkspaceDiffFileList";
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
 
 type WorkspaceSidePanelTab = "summary" | "review" | "browser";
+type BrowserOpenRequest = { readonly id: number; readonly url: string | null };
 
 interface WorkspaceDiffSidebarProps {
   readonly hostBridge: HostBridge;
@@ -47,6 +48,7 @@ interface WorkspaceDiffSidebarProps {
   readonly selectedDiffPath?: string | null;
   readonly onSelectDiffPath?: (path: string | null) => void;
   readonly onDiffItemsChange?: (items: ReadonlyArray<GitWorkspaceDiffOutput>) => void;
+  readonly browserOpenRequest?: BrowserOpenRequest | null;
   readonly onResizeStart?: (event: ReactMouseEvent) => void;
   readonly canResize?: boolean;
   readonly isResizing?: boolean;
@@ -702,6 +704,15 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
   }, []);
 
   useEffect(() => {
+    if (!props.open || props.browserOpenRequest === undefined || props.browserOpenRequest === null) {
+      return;
+    }
+    setActionError(null);
+    setBrowserTabOpen(true);
+    setActiveTab("browser");
+  }, [props.browserOpenRequest?.id, props.open]);
+
+  useEffect(() => {
     if (!props.open || props.selectedRootPath === null) {
       return undefined;
     }
@@ -803,7 +814,11 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
       onRefresh={refreshReview}
     />
   ) : activeTab === "browser" ? (
-    <BrowserSidebarPanel active={props.open && activeTab === "browser"} hostBridge={props.hostBridge} />
+    <BrowserSidebarPanel
+      active={props.open && activeTab === "browser"}
+      hostBridge={props.hostBridge}
+      openRequest={props.browserOpenRequest ?? null}
+    />
   ) : reviewContent;
 
   return (

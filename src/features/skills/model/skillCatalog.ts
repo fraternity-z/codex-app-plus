@@ -73,9 +73,14 @@ export function createMarketplacePluginCards(
   response: PluginListResponse,
 ): MarketplacePluginsCatalog {
   const featuredPluginIds = new Set(response.featuredPluginIds);
-  const visibleMarketplaces = response.marketplaces.filter((marketplace) => (
-    !HIDDEN_MARKETPLACE_NAMES.has(marketplace.name)
-  ));
+  const visibleMarketplaces = response.marketplaces
+    .map((marketplace) => ({
+      ...marketplace,
+      plugins: marketplace.plugins.filter((plugin) => (
+        isMarketplacePluginVisible(marketplace.name, plugin)
+      )),
+    }))
+    .filter((marketplace) => marketplace.plugins.length > 0);
   const marketplaceOptions = visibleMarketplaces
     .map((marketplace) => ({
       id: marketplace.name,
@@ -229,6 +234,16 @@ function resolveMarketplaceDisplayName(name: string, displayName: string | null)
 function resolvePluginCategory(category: string | null): string {
   const normalized = category?.trim() ?? "";
   return normalized.length > 0 ? normalized : DEFAULT_PLUGIN_CATEGORY;
+}
+
+function isMarketplacePluginVisible(
+  marketplaceName: string,
+  plugin: PluginListResponse["marketplaces"][number]["plugins"][number],
+): boolean {
+  if (!HIDDEN_MARKETPLACE_NAMES.has(marketplaceName)) {
+    return true;
+  }
+  return plugin.installed || plugin.enabled;
 }
 
 function matchesSkillQuery(name: string, description: string, query: string): boolean {
