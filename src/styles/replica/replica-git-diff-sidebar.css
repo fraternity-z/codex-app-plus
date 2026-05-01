@@ -1,9 +1,9 @@
 /* Resize handle on the diff sidebar's left edge */
 .workspace-diff-sidebar {
-  position: absolute;
-  top: var(--replica-top-toolbar-height, 60px);
-  right: 0;
-  bottom: 0;
+  position: relative;
+  grid-column: 3;
+  grid-row: 1 / -1;
+  align-self: stretch;
   z-index: 30;
   width: var(--replica-diff-sidebar-width);
   height: auto;

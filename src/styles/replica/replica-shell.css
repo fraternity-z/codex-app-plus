@@ -12,7 +12,7 @@
 }
 
 .replica-app-with-diff-sidebar {
-  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr);
+  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) var(--replica-diff-sidebar-width);
 }
 
 .replica-app:has(.sidebar-collapsed) {
@@ -20,7 +20,7 @@
 }
 
 .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
-  grid-template-columns: 0 minmax(0, 1fr);
+  grid-template-columns: 0 minmax(0, 1fr) var(--replica-diff-sidebar-width);
 }
 
 .replica-app:has(.workspace-diff-sidebar-resize-active) {
@@ -489,11 +489,11 @@
   }
 
   .replica-app-with-diff-sidebar {
-    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr);
+    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) var(--replica-diff-sidebar-width);
   }
 
   .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
-    grid-template-columns: 0 minmax(0, 1fr);
+    grid-template-columns: 0 minmax(0, 1fr) var(--replica-diff-sidebar-width);
   }
 }
 

@@ -10,6 +10,10 @@
   overflow: hidden;
 }
 
+.replica-app-with-diff-sidebar .replica-terminal {
+  grid-column: 2;
+}
+
 .replica-terminal-hidden {
   height: 0;
   border-top: 0;
