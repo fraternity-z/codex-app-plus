@@ -8,6 +8,16 @@ function toUpdatedAtTimestamp(updatedAt: string): number {
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
+function hasText(value: string | null | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+export function isSubagentThread(
+  thread: Pick<ThreadSummary, "isSubagent" | "agentNickname" | "agentRole">,
+): boolean {
+  return thread.isSubagent === true || hasText(thread.agentNickname) || hasText(thread.agentRole);
+}
+
 function pathDepth(value: string | null): number {
   if (value === null) {
     return 0;
@@ -50,7 +60,7 @@ export function listThreadsForWorkspace(
   }
 
   return [...threads]
-    .filter((thread) => threadBelongsToWorkspace(thread.cwd, normalizedWorkspacePath))
+    .filter((thread) => !isSubagentThread(thread) && threadBelongsToWorkspace(thread.cwd, normalizedWorkspacePath))
     .sort((left, right) => {
       const updatedAtDelta = toUpdatedAtTimestamp(right.updatedAt) - toUpdatedAtTimestamp(left.updatedAt);
       if (updatedAtDelta !== 0) {

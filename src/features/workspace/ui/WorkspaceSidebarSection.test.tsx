@@ -205,6 +205,23 @@ describe("WorkspaceSidebarSection", () => {
     expect(screen.getByTestId("selected-thread")).toHaveTextContent("thread-root-1-1");
   });
 
+  it("does not render pinned subagent threads", () => {
+    const thread = {
+      ...createThread(ROOTS[0]!, 1),
+      isSubagent: true,
+      agentNickname: "Atlas",
+      agentRole: "worker",
+    };
+    window.localStorage.setItem(PINNED_THREAD_IDS_STORAGE_KEY, JSON.stringify([thread.id]));
+
+    renderSection([thread]);
+
+    expect(document.querySelector(".workspace-pinned-section")).toBeNull();
+    fireEvent.click(screen.getByText("FPGA"));
+    expect(screen.getByText("暂无会话")).toBeInTheDocument();
+    expect(screen.queryByText("FPGA Thread 1")).not.toBeInTheDocument();
+  });
+
   it("shows awaiting reply when the thread is waiting on user input", () => {
     renderSection([createThread(ROOTS[0]!, 1, { status: "active", activeFlags: ["waitingOnUserInput"] })]);
     fireEvent.click(screen.getByText("FPGA"));

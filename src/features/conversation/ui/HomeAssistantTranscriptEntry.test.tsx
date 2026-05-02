@@ -7,6 +7,7 @@ import type {
   ConversationMessage,
   DynamicToolCallEntry,
   ImageGenerationEntry,
+  ImageViewEntry,
   McpToolCallEntry,
   PlanEntry,
   TurnPlanSnapshotEntry,
@@ -126,6 +127,19 @@ function createImageGenerationNode(): Extract<AssistantNode, { kind: "traceItem"
     revisedPrompt: "A small pink pig in a meadow",
     result: "abc123",
     savedPath: "C:/Users/Administrator/.codex/generated_images/ig_123.png",
+  };
+
+  return createTraceNode(item);
+}
+
+function createImageViewNode(): Extract<AssistantNode, { kind: "traceItem" }> {
+  const item: ImageViewEntry = {
+    id: "image-view-1",
+    kind: "imageView",
+    threadId: "thread-1",
+    turnId: "turn-1",
+    itemId: "image-view-tool-1",
+    path: "C:/Users/Administrator/.codex/generated_images/viewed.png",
   };
 
   return createTraceNode(item);
@@ -271,6 +285,18 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(screen.queryByText(/generated_images/)).toBeNull();
   });
 
+  it("renders viewed images inline without dumping the local path", () => {
+    const { container } = render(<HomeAssistantTranscriptEntry node={createImageViewNode()} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    const image = screen.getByRole("img", { name: "查看的图片" });
+    expect(container.querySelector(".home-assistant-transcript-image-view")).not.toBeNull();
+    expect(image).toHaveAttribute("src", "asset://C:/Users/Administrator/.codex/generated_images/viewed.png");
+    expect(screen.queryByText(/查看图片/)).toBeNull();
+    expect(screen.queryByText(/generated_images/)).toBeNull();
+  });
+
   it("opens generated images in a preview dialog", () => {
     render(<HomeAssistantTranscriptEntry node={createImageGenerationNode()} />, {
       wrapper: createI18nWrapper("zh-CN"),
@@ -281,6 +307,18 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(screen.getByRole("dialog", { name: "生成图片预览" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "关闭图片预览" }));
     expect(screen.queryByRole("dialog", { name: "生成图片预览" })).toBeNull();
+  });
+
+  it("opens viewed images in a preview dialog", () => {
+    render(<HomeAssistantTranscriptEntry node={createImageViewNode()} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "放大查看图片" }));
+
+    expect(screen.getByRole("dialog", { name: "图片预览" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "关闭图片预览" }));
+    expect(screen.queryByRole("dialog", { name: "图片预览" })).toBeNull();
   });
 
   it("shows image context menu actions with localized labels", async () => {

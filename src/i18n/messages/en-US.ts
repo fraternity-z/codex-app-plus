@@ -995,6 +995,13 @@ export const enUS = {
         copyImage: "Copy image",
         copyingImage: "Copying...",
       },
+      viewedImage: {
+        alt: "Viewed image",
+        openPreview: "Enlarge image",
+        previewDialog: "Image preview",
+        closePreview: "Close image preview",
+        contextMenuAria: "Image actions",
+      },
       userImage: {
         attachmentsLabel: "Message attachment previews",
         alt: "User image",

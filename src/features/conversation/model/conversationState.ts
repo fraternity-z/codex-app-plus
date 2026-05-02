@@ -23,6 +23,36 @@ function toIsoFromUnixSeconds(value: number): string {
   return new Date(value * 1000).toISOString();
 }
 
+function hasText(value: string | null | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isThreadSourceSubagent(source: Thread["source"]): boolean {
+  return typeof source === "object" && source !== null && "subAgent" in source;
+}
+
+function createThreadSubagentFields(
+  thread: Pick<Thread, "source" | "agentNickname" | "agentRole">,
+): Pick<ConversationState, "isSubagent" | "agentNickname" | "agentRole"> {
+  const isSubagent = isThreadSourceSubagent(thread.source) || hasText(thread.agentNickname) || hasText(thread.agentRole);
+  return {
+    ...(isSubagent ? { isSubagent: true } : {}),
+    ...(hasText(thread.agentNickname) ? { agentNickname: thread.agentNickname } : {}),
+    ...(hasText(thread.agentRole) ? { agentRole: thread.agentRole } : {}),
+  };
+}
+
+function createSummarySubagentFields(
+  thread: Pick<ThreadSummary, "isSubagent" | "agentNickname" | "agentRole">,
+): Pick<ConversationState, "isSubagent" | "agentNickname" | "agentRole"> {
+  const isSubagent = thread.isSubagent === true || hasText(thread.agentNickname) || hasText(thread.agentRole);
+  return {
+    ...(isSubagent ? { isSubagent: true } : {}),
+    ...(hasText(thread.agentNickname) ? { agentNickname: thread.agentNickname } : {}),
+    ...(hasText(thread.agentRole) ? { agentRole: thread.agentRole } : {}),
+  };
+}
+
 function createLocalTurnId(): string {
   return `turn-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -203,7 +233,7 @@ export function createConversationFromThread(
   }
 ): ConversationState {
   const activeFlags = thread.status.type === "active" ? thread.status.activeFlags : [];
-  return { id: thread.id, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, agentEnvironment: options?.agentEnvironment ?? "windowsNative", status: thread.status.type, activeFlags, resumeState: options?.resumeState ?? "needs_resume", turns: thread.turns.map((turn) => createTurnState(turn, null)), queuedFollowUps: [], interruptRequestedTurnId: null, hidden: options?.hidden ?? false };
+  return { id: thread.id, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, ...createThreadSubagentFields(thread), agentEnvironment: options?.agentEnvironment ?? "windowsNative", status: thread.status.type, activeFlags, resumeState: options?.resumeState ?? "needs_resume", turns: thread.turns.map((turn) => createTurnState(turn, null)), queuedFollowUps: [], interruptRequestedTurnId: null, hidden: options?.hidden ?? false };
 }
 
 export function createConversationFromThreadSummary(thread: ThreadSummary): ConversationState {
@@ -214,6 +244,7 @@ export function createConversationFromThreadSummary(thread: ThreadSummary): Conv
     cwd: thread.cwd,
     updatedAt: thread.updatedAt,
     source: thread.source ?? "rpc",
+    ...createSummarySubagentFields(thread),
     agentEnvironment: thread.agentEnvironment,
     status: thread.status,
     activeFlags: [...thread.activeFlags],
@@ -227,7 +258,8 @@ export function createConversationFromThreadSummary(thread: ThreadSummary): Conv
 
 export function hydrateConversationFromThread(conversation: ConversationState, thread: Thread): ConversationState {
   const activeFlags = thread.status.type === "active" ? thread.status.activeFlags : [];
-  return { ...conversation, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, status: thread.status.type, activeFlags, resumeState: "resumed", turns: thread.turns.map((turn) => createTurnState(turn, conversation.turns.find((item) => item.turnId === turn.id)?.params ?? null)) };
+  const { isSubagent: _isSubagent, agentNickname: _agentNickname, agentRole: _agentRole, ...baseConversation } = conversation;
+  return { ...baseConversation, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, ...createThreadSubagentFields(thread), status: thread.status.type, activeFlags, resumeState: "resumed", turns: thread.turns.map((turn) => createTurnState(turn, conversation.turns.find((item) => item.turnId === turn.id)?.params ?? null)) };
 }
 
 export function setConversationHidden(conversation: ConversationState, hidden: boolean): ConversationState {

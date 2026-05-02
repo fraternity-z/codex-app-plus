@@ -30,6 +30,9 @@ struct SessionHeader {
     session_id: String,
     cwd: String,
     title: Option<String>,
+    is_subagent: bool,
+    agent_nickname: Option<String>,
+    agent_role: Option<String>,
 }
 
 pub fn list_codex_sessions(
@@ -199,6 +202,9 @@ fn read_session_summary(
             .unwrap_or_else(|| infer_name_from_path(&header.cwd)),
         cwd: header.cwd,
         updated_at: updated_at.unwrap_or_default(),
+        is_subagent: header.is_subagent,
+        agent_nickname: header.agent_nickname,
+        agent_role: header.agent_role,
         agent_environment,
     }))
 }
@@ -207,12 +213,18 @@ fn read_session_header(path: &Path) -> AppResult<Option<SessionHeader>> {
     let mut session_id = None;
     let mut cwd = None;
     let mut title = None;
+    let mut is_subagent = false;
+    let mut agent_nickname = None;
+    let mut agent_role = None;
 
     for line in BufReader::new(File::open(path)?).lines() {
         let value = parse_line(&line?)?;
         if session_id.is_none() {
             session_id = read_session_id(&value);
             cwd = read_session_cwd(&value);
+            is_subagent = read_session_is_subagent(&value);
+            agent_nickname = read_session_agent_nickname(&value);
+            agent_role = read_session_agent_role(&value);
         }
         if title.is_none() {
             title = read_message_role(&value)
@@ -236,6 +248,9 @@ fn read_session_header(path: &Path) -> AppResult<Option<SessionHeader>> {
         session_id,
         cwd,
         title,
+        is_subagent,
+        agent_nickname,
+        agent_role,
     }))
 }
 
@@ -344,27 +359,80 @@ fn read_timestamp(value: &Value) -> Option<String> {
 }
 
 fn read_session_id(value: &Value) -> Option<String> {
-    value
-        .get("type")
-        .and_then(Value::as_str)
-        .filter(|kind| *kind == "session_meta")?;
-    value
-        .get("payload")?
+    session_meta_payload(value)?
         .get("id")?
         .as_str()
         .map(ToOwned::to_owned)
 }
 
 fn read_session_cwd(value: &Value) -> Option<String> {
+    session_meta_payload(value)?
+        .get("cwd")?
+        .as_str()
+        .map(ToOwned::to_owned)
+}
+
+fn read_session_agent_nickname(value: &Value) -> Option<String> {
+    let payload = session_meta_payload(value)?;
+    read_optional_string(payload, "agent_nickname")
+        .or_else(|| read_optional_string(payload, "agentNickname"))
+        .or_else(|| read_subagent_source_string(payload, "agent_nickname"))
+        .or_else(|| read_subagent_source_string(payload, "agentNickname"))
+}
+
+fn read_session_agent_role(value: &Value) -> Option<String> {
+    let payload = session_meta_payload(value)?;
+    read_optional_string(payload, "agent_role")
+        .or_else(|| read_optional_string(payload, "agentRole"))
+        .or_else(|| read_optional_string(payload, "agent_type"))
+        .or_else(|| read_subagent_source_string(payload, "agent_role"))
+        .or_else(|| read_subagent_source_string(payload, "agentRole"))
+        .or_else(|| read_subagent_source_string(payload, "agent_type"))
+}
+
+fn read_session_is_subagent(value: &Value) -> bool {
+    let Some(payload) = session_meta_payload(value) else {
+        return false;
+    };
+    read_session_agent_nickname(value).is_some()
+        || read_session_agent_role(value).is_some()
+        || payload.get("source").is_some_and(source_value_is_subagent)
+}
+
+fn session_meta_payload(value: &Value) -> Option<&Value> {
     value
         .get("type")
         .and_then(Value::as_str)
         .filter(|kind| *kind == "session_meta")?;
+    value.get("payload")
+}
+
+fn read_optional_string(value: &Value, key: &str) -> Option<String> {
     value
-        .get("payload")?
-        .get("cwd")?
-        .as_str()
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|text| !text.is_empty())
         .map(ToOwned::to_owned)
+}
+
+fn read_subagent_source_string(payload: &Value, key: &str) -> Option<String> {
+    let source = payload.get("source")?;
+    let subagent = source.get("subagent").or_else(|| source.get("subAgent"))?;
+    let thread_spawn = subagent
+        .get("thread_spawn")
+        .or_else(|| subagent.get("threadSpawn"))?;
+    read_optional_string(thread_spawn, key)
+}
+
+fn source_value_is_subagent(source: &Value) -> bool {
+    if source
+        .as_str()
+        .is_some_and(|value| value.to_ascii_lowercase().starts_with("subagent"))
+    {
+        return true;
+    }
+    source.get("subagent").is_some() || source.get("subAgent").is_some()
 }
 
 fn read_message_role(value: &Value) -> Option<&str> {

@@ -58,6 +58,33 @@ describe("workspaceThread", () => {
     ]);
   });
 
+  it("filters subagent threads from workspace session lists", () => {
+    expect(
+      listThreadsForWorkspace(
+        [
+          ...THREADS,
+          {
+            id: "thread-subagent",
+            title: "worker",
+            branch: null,
+            cwd: "E:/code/codex-app-plus",
+            archived: false,
+            updatedAt: "2026-03-06T12:00:00.000Z",
+            source: "rpc",
+            isSubagent: true,
+            agentNickname: "Atlas",
+            agentRole: "worker",
+            agentEnvironment: "windowsNative",
+            status: "idle",
+            activeFlags: [],
+            queuedCount: 0,
+          },
+        ],
+        "E:/code/codex-app-plus"
+      ).map((thread) => thread.id)
+    ).toEqual(["thread-2", "thread-1"]);
+  });
+
   it("returns null when the workspace has no thread", () => {
     expect(findLatestThreadForWorkspace(THREADS, "E:/code/missing")).toBeNull();
   });
@@ -193,6 +220,12 @@ describe("workspaceThread", () => {
             status: "notLoaded",
             activeFlags: [],
             queuedCount: 0,
+          },
+          {
+            ...THREADS[0]!,
+            id: "thread-old-subagent",
+            updatedAt: "2026-03-01T08:00:00.000Z",
+            isSubagent: true,
           },
         ],
         "E:/code/codex-app-plus",

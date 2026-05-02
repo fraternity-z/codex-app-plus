@@ -5,7 +5,23 @@ function mapConversationSource(source: ConversationState["source"]): ThreadSumma
   return source === "codexData" ? "codexData" : "rpc";
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function hasText(value: string | null | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isConversationSourceSubagent(source: ConversationState["source"]): boolean {
+  return isRecord(source) && ("subAgent" in source || "subagent" in source);
+}
+
 export function mapConversationToThreadSummary(conversation: ConversationState): ThreadSummary {
+  const isSubagent = conversation.isSubagent === true
+    || isConversationSourceSubagent(conversation.source)
+    || hasText(conversation.agentNickname)
+    || hasText(conversation.agentRole);
   return {
     id: conversation.id,
     title: conversation.title ?? conversation.id,
@@ -14,6 +30,9 @@ export function mapConversationToThreadSummary(conversation: ConversationState):
     archived: conversation.hidden,
     updatedAt: conversation.updatedAt,
     source: mapConversationSource(conversation.source),
+    ...(isSubagent ? { isSubagent: true } : {}),
+    ...(hasText(conversation.agentNickname) ? { agentNickname: conversation.agentNickname } : {}),
+    ...(hasText(conversation.agentRole) ? { agentRole: conversation.agentRole } : {}),
     agentEnvironment: conversation.agentEnvironment,
     status: conversation.status,
     activeFlags: [...conversation.activeFlags],

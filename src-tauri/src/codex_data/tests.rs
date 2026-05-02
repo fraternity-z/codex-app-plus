@@ -137,6 +137,47 @@ fn ignores_developer_messages_when_picking_session_title() {
 }
 
 #[test]
+fn reads_subagent_metadata_from_session_header() {
+    let contents = [
+        "{\"timestamp\":\"2026-03-01T10:00:00Z\",\"type\":\"session_meta\",\"payload\":{\"id\":\"thread-subagent\",\"cwd\":\"E:/code/project\",\"source\":{\"subagent\":{\"thread_spawn\":{\"parent_thread_id\":\"parent\",\"depth\":1,\"agent_nickname\":\"Atlas\",\"agent_role\":\"worker\"}}},\"agent_nickname\":\"Atlas\",\"agent_role\":\"worker\"}}\n",
+        "{\"timestamp\":\"2026-03-01T10:00:01Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"Handle a worker task\"}]}}\n",
+    ]
+    .join("");
+    let path = create_temp_session_file(&contents);
+
+    let summary = read_session_summary(&path, AgentEnvironment::WindowsNative)
+        .expect("read summary")
+        .expect("session summary present");
+
+    assert_eq!(summary.id, "thread-subagent");
+    assert!(summary.is_subagent);
+    assert_eq!(summary.agent_nickname.as_deref(), Some("Atlas"));
+    assert_eq!(summary.agent_role.as_deref(), Some("worker"));
+
+    fs::remove_file(path).expect("remove temp session file");
+}
+
+#[test]
+fn treats_subagent_source_without_role_as_subagent() {
+    let contents = [
+        "{\"timestamp\":\"2026-03-01T10:00:00Z\",\"type\":\"session_meta\",\"payload\":{\"id\":\"thread-subagent\",\"cwd\":\"E:/code/project\",\"source\":{\"subagent\":\"review\"}}}\n",
+        "{\"timestamp\":\"2026-03-01T10:00:01Z\",\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\",\"content\":[{\"type\":\"input_text\",\"text\":\"Review this\"}]}}\n",
+    ]
+    .join("");
+    let path = create_temp_session_file(&contents);
+
+    let summary = read_session_summary(&path, AgentEnvironment::WindowsNative)
+        .expect("read summary")
+        .expect("session summary present");
+
+    assert!(summary.is_subagent);
+    assert_eq!(summary.agent_nickname, None);
+    assert_eq!(summary.agent_role, None);
+
+    fs::remove_file(path).expect("remove temp session file");
+}
+
+#[test]
 fn list_session_summaries_refreshes_changed_file() {
     let _guard = lock_session_index_tests();
     let root = create_temp_session_root();

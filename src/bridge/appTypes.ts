@@ -248,6 +248,9 @@ export interface CodexSessionSummaryOutput {
   readonly title: string;
   readonly cwd: string;
   readonly updatedAt: string;
+  readonly isSubagent?: boolean;
+  readonly agentNickname?: string | null;
+  readonly agentRole?: string | null;
   readonly agentEnvironment: AgentEnvironment;
 }
 

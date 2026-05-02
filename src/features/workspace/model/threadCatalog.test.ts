@@ -1,8 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
+import type { Thread } from "../../../protocol/generated/v2/Thread";
 import { mapThreadToSummary } from "../../../protocol/mappers";
 import { listAllThreads, mapCodexSessionsToThreads, mergeThreadCatalogs } from "./threadCatalog";
 
-function createRpcThread(overrides?: Partial<{ readonly id: string; readonly updatedAt: number; readonly name: string | null; readonly cwd: string | null }>) {
+function createRpcThread(overrides?: Partial<{
+  readonly id: string;
+  readonly updatedAt: number;
+  readonly name: string | null;
+  readonly cwd: string | null;
+  readonly source: Thread["source"];
+  readonly agentNickname: string | null;
+  readonly agentRole: string | null;
+}>): Thread {
   return {
     id: overrides?.id ?? "thread-1",
     forkedFromId: null,
@@ -15,9 +24,9 @@ function createRpcThread(overrides?: Partial<{ readonly id: string; readonly upd
     path: null,
     cwd: overrides?.cwd ?? "E:/code/project-a",
     cliVersion: "0.0.1",
-    source: "appServer" as const,
-    agentNickname: null,
-    agentRole: null,
+    source: overrides?.source ?? "appServer",
+    agentNickname: overrides?.agentNickname ?? null,
+    agentRole: overrides?.agentRole ?? null,
     gitInfo: { branch: "feature/rpc-branch", sha: null, originUrl: null },
     name: overrides?.name ?? "First thread",
     turns: []
@@ -106,6 +115,31 @@ describe("listAllThreads", () => {
     expect(mapThreadToSummary(thread, { archived: true, agentEnvironment: "windowsNative" }).archived).toBe(true);
   });
 
+  it("marks rpc subagent threads", () => {
+    const thread = createRpcThread({
+      source: {
+        subAgent: {
+          thread_spawn: {
+            parent_thread_id: "parent",
+            depth: 1,
+            agent_path: null,
+            agent_nickname: "Atlas",
+            agent_role: "worker",
+          },
+        },
+      },
+      agentNickname: "Atlas",
+      agentRole: "worker",
+    });
+
+    expect(mapThreadToSummary(thread, { archived: false, agentEnvironment: "windowsNative" })).toMatchObject({
+      id: "thread-1",
+      isSubagent: true,
+      agentNickname: "Atlas",
+      agentRole: "worker",
+    });
+  });
+
   it("maps codex session summaries to local thread summaries", () => {
     expect(
       mapCodexSessionsToThreads([
@@ -132,6 +166,28 @@ describe("listAllThreads", () => {
         queuedCount: 0
       }
     ]);
+  });
+
+  it("marks local subagent session summaries", () => {
+    expect(
+      mapCodexSessionsToThreads([
+        {
+          id: "local-subagent",
+          title: "worker",
+          cwd: "E:/code/project-a",
+          updatedAt: "2026-03-06T10:00:00.000Z",
+          isSubagent: true,
+          agentNickname: "Atlas",
+          agentRole: "worker",
+          agentEnvironment: "windowsNative"
+        }
+      ])[0]
+    ).toMatchObject({
+      id: "local-subagent",
+      isSubagent: true,
+      agentNickname: "Atlas",
+      agentRole: "worker",
+    });
   });
 
   it("deduplicates thread catalogs by id", () => {

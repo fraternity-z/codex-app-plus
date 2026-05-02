@@ -994,6 +994,13 @@ export const zhCN = {
         copyImage: "复制图片",
         copyingImage: "正在复制...",
       },
+      viewedImage: {
+        alt: "查看的图片",
+        openPreview: "放大查看图片",
+        previewDialog: "图片预览",
+        closePreview: "关闭图片预览",
+        contextMenuAria: "图片操作",
+      },
       userImage: {
         attachmentsLabel: "消息附件预览",
         alt: "用户发送的图片",

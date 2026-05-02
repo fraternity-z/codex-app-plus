@@ -12,7 +12,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { memo, useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { useI18n } from "../../../i18n/useI18n";
 import { threadSummaryRequiresUserAttention } from "../../conversation/model/threadAttention";
-import { listThreadsForWorkspace, threadBelongsToWorkspace } from "../model/workspaceThread";
+import { isSubagentThread, listThreadsForWorkspace, threadBelongsToWorkspace } from "../model/workspaceThread";
 import { readStoredJson, writeStoredJson } from "../../shared/utils/storageJson";
 import type { WorkspaceRoot } from "../hooks/useWorkspaceRoots";
 import type { ThreadSummary } from "../../../domain/types";
@@ -188,6 +188,9 @@ function createPinnedThreadEntries(
   return pinnedThreadIds.flatMap((threadId) => {
     const thread = threadsById.get(threadId);
     if (!thread) {
+      return [];
+    }
+    if (isSubagentThread(thread)) {
       return [];
     }
     const rootId = findRootIdForThread(roots, thread);

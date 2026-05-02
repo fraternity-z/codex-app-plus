@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::{AppError, AppResult};
 use crate::models::{AgentEnvironment, CodexSessionSummary};
 
-const SESSION_INDEX_VERSION: u32 = 1;
+const SESSION_INDEX_VERSION: u32 = 2;
 const SESSION_INDEX_DIR: &str = "session-index";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,6 +27,9 @@ struct CachedSessionEntry {
     title: String,
     cwd: String,
     updated_at: String,
+    is_subagent: bool,
+    agent_nickname: Option<String>,
+    agent_role: Option<String>,
 }
 
 impl CachedSessionEntry {
@@ -43,6 +46,9 @@ impl CachedSessionEntry {
             title: summary.title,
             cwd: summary.cwd,
             updated_at: summary.updated_at,
+            is_subagent: summary.is_subagent,
+            agent_nickname: summary.agent_nickname,
+            agent_role: summary.agent_role,
         }
     }
 
@@ -56,6 +62,9 @@ impl CachedSessionEntry {
             title: self.title.clone(),
             cwd: self.cwd.clone(),
             updated_at: self.updated_at.clone(),
+            is_subagent: self.is_subagent,
+            agent_nickname: self.agent_nickname.clone(),
+            agent_role: self.agent_role.clone(),
             agent_environment,
         }
     }

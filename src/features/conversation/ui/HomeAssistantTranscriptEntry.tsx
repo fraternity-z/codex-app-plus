@@ -13,7 +13,7 @@ import { MarkdownRenderer } from "./MarkdownRenderer";
 import { HomePlanDraftCard } from "../../composer/ui/HomePlanDraftCard";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
-import type { CommandExecutionEntry, ImageGenerationEntry } from "../../../domain/timeline";
+import type { CommandExecutionEntry, ImageGenerationEntry, ImageViewEntry } from "../../../domain/timeline";
 import { useI18n } from "../../../i18n/useI18n";
 import { parseUnifiedDiffCached } from "../../git/model/diffPreviewModel";
 import type { FileUpdateChange } from "../../../protocol/generated/v2/FileUpdateChange";
@@ -26,6 +26,14 @@ interface HomeAssistantTranscriptEntryProps {
 }
 
 type ImageMenuAction = "openFolder" | "copyImage";
+
+interface ImageTranscriptLabels {
+  readonly alt: string;
+  readonly openPreview: string;
+  readonly previewDialog: string;
+  readonly closePreview: string;
+  readonly contextMenuAria: string;
+}
 
 export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntryProps): JSX.Element {
   const { t } = useI18n();
@@ -72,6 +80,10 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
   const handleDetailsToggle = useCallback((event: SyntheticEvent<HTMLDetailsElement>) => {
     setDetailsOpen(event.currentTarget.open);
   }, []);
+
+  if (props.node.kind === "traceItem" && props.node.item.kind === "imageView") {
+    return <ImageViewTranscriptEntry entry={props.node.item} />;
+  }
 
   if (props.node.kind === "traceItem" && props.node.item.kind === "imageGeneration" && model.kind === "details") {
     return <ImageGenerationTranscriptEntry entry={props.node.item} />;
@@ -141,9 +153,66 @@ function TranscriptMarkdown(props: { readonly className: string; readonly text: 
   return <MarkdownRenderer className={props.className} markdown={props.text} variant={props.variant} />;
 }
 
+function ImageViewTranscriptEntry(props: { readonly entry: ImageViewEntry }): JSX.Element {
+  const { t } = useI18n();
+  const previewSrc = useMemo(() => convertFileSrc(props.entry.path), [props.entry.path]);
+
+  return (
+    <ImageTranscriptEntry
+      className="home-assistant-transcript-image-view"
+      previewSrc={previewSrc}
+      copySrc={previewSrc}
+      savedPath={props.entry.path}
+      status="completed"
+      labels={{
+        alt: t("home.conversation.viewedImage.alt"),
+        openPreview: t("home.conversation.viewedImage.openPreview"),
+        previewDialog: t("home.conversation.viewedImage.previewDialog"),
+        closePreview: t("home.conversation.viewedImage.closePreview"),
+        contextMenuAria: t("home.conversation.viewedImage.contextMenuAria"),
+      }}
+    />
+  );
+}
+
 function ImageGenerationTranscriptEntry(props: { readonly entry: ImageGenerationEntry }): JSX.Element {
   const { t } = useI18n();
   const previewSrc = useMemo(() => createImageGenerationPreviewSource(props.entry), [props.entry]);
+  const copySrc = useMemo(
+    () => previewSrc === null ? null : createImageGenerationClipboardSource(props.entry, previewSrc),
+    [previewSrc, props.entry],
+  );
+
+  if (previewSrc === null || copySrc === null) {
+    return <></>;
+  }
+
+  return (
+    <ImageTranscriptEntry
+      className="home-assistant-transcript-image-generation"
+      previewSrc={previewSrc}
+      copySrc={copySrc}
+      savedPath={props.entry.savedPath}
+      status={props.entry.status}
+      labels={{
+        alt: t("home.conversation.generatedImage.alt"),
+        openPreview: t("home.conversation.generatedImage.openPreview"),
+        previewDialog: t("home.conversation.generatedImage.previewDialog"),
+        closePreview: t("home.conversation.generatedImage.closePreview"),
+        contextMenuAria: t("home.conversation.generatedImage.contextMenuAria"),
+      }}
+    />
+  );
+}
+
+function ImageTranscriptEntry(props: {
+  readonly className: string;
+  readonly previewSrc: string;
+  readonly copySrc: string;
+  readonly savedPath: string | null;
+  readonly status: string;
+  readonly labels: ImageTranscriptLabels;
+}): JSX.Element {
   const menuRef = useRef<HTMLDivElement>(null);
   const imageButtonRef = useRef<HTMLButtonElement>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -164,17 +233,17 @@ function ImageGenerationTranscriptEntry(props: { readonly entry: ImageGeneration
   }, []);
 
   const runMenuAction = useCallback(async (action: ImageMenuAction) => {
-    if (pendingAction !== null || previewSrc === null) {
+    if (pendingAction !== null) {
       return;
     }
     setPendingAction(action);
     try {
       if (action === "openFolder") {
-        if (props.entry.savedPath !== null) {
-          await invoke("app_reveal_path_in_folder", { input: { path: props.entry.savedPath } });
+        if (props.savedPath !== null) {
+          await invoke("app_reveal_path_in_folder", { input: { path: props.savedPath } });
         }
       } else {
-        await copyImageToClipboard(createImageGenerationClipboardSource(props.entry, previewSrc));
+        await copyImageToClipboard(props.copySrc);
       }
       setMenu(null);
     } catch (error) {
@@ -182,29 +251,26 @@ function ImageGenerationTranscriptEntry(props: { readonly entry: ImageGeneration
     } finally {
       setPendingAction(null);
     }
-  }, [pendingAction, previewSrc, props.entry.savedPath]);
-
-  if (previewSrc === null) {
-    return <></>;
-  }
+  }, [pendingAction, props.copySrc, props.savedPath]);
 
   return (
-    <section className="home-assistant-transcript-entry home-assistant-transcript-image-generation" data-status={props.entry.status}>
+    <section className={`home-assistant-transcript-entry home-assistant-transcript-image-entry ${props.className}`} data-status={props.status}>
       <button
         ref={imageButtonRef}
         type="button"
         className="home-assistant-transcript-image-button"
-        aria-label={t("home.conversation.generatedImage.openPreview")}
+        aria-label={props.labels.openPreview}
         onClick={() => setPreviewOpen(true)}
         onContextMenu={handleContextMenu}
       >
-        <img className="home-assistant-transcript-image-preview" src={previewSrc} alt={t("home.conversation.generatedImage.alt")} />
+        <img className="home-assistant-transcript-image-preview" src={props.previewSrc} alt={props.labels.alt} />
       </button>
       {menu === null ? null : createPortal(
-        <ImageGenerationContextMenu
+        <ImageContextMenu
           x={menu.x}
           y={menu.y}
-          canOpenFolder={props.entry.savedPath !== null}
+          canOpenFolder={props.savedPath !== null}
+          ariaLabel={props.labels.contextMenuAria}
           pendingAction={pendingAction}
           menuRef={menuRef}
           onOpenFolder={() => void runMenuAction("openFolder")}
@@ -214,10 +280,10 @@ function ImageGenerationTranscriptEntry(props: { readonly entry: ImageGeneration
       )}
       {previewOpen ? (
         <HomeImagePreviewDialog
-          src={previewSrc}
-          alt={t("home.conversation.generatedImage.alt")}
-          dialogLabel={t("home.conversation.generatedImage.previewDialog")}
-          closeLabel={t("home.conversation.generatedImage.closePreview")}
+          src={props.previewSrc}
+          alt={props.labels.alt}
+          dialogLabel={props.labels.previewDialog}
+          closeLabel={props.labels.closePreview}
           onContextMenu={handleContextMenu}
           onClose={() => setPreviewOpen(false)}
         />
@@ -243,10 +309,11 @@ function createImageGenerationClipboardSource(entry: ImageGenerationEntry, previ
   return previewSrc;
 }
 
-function ImageGenerationContextMenu(props: {
+function ImageContextMenu(props: {
   readonly x: number;
   readonly y: number;
   readonly canOpenFolder: boolean;
+  readonly ariaLabel: string;
   readonly pendingAction: ImageMenuAction | null;
   readonly menuRef: RefObject<HTMLDivElement>;
   readonly onOpenFolder: () => void;
@@ -259,7 +326,7 @@ function ImageGenerationContextMenu(props: {
       className="thread-context-menu home-assistant-transcript-image-menu"
       style={{ left: props.x, top: props.y }}
       role="menu"
-      aria-label={t("home.conversation.generatedImage.contextMenuAria")}
+      aria-label={props.ariaLabel}
     >
       {props.canOpenFolder ? (
         <button type="button" className="thread-context-menu-item" role="menuitem" onClick={props.onOpenFolder} disabled={props.pendingAction !== null}>

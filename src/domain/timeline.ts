@@ -46,6 +46,9 @@ export interface ThreadSummary {
   readonly archived: boolean;
   readonly updatedAt: string;
   readonly source?: "rpc" | "codexData";
+  readonly isSubagent?: boolean;
+  readonly agentNickname?: string | null;
+  readonly agentRole?: string | null;
   readonly agentEnvironment: AgentEnvironment;
   readonly status: ThreadRuntimeStatus;
   readonly activeFlags: Array<ThreadActiveFlag>;

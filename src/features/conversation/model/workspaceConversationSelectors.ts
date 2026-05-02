@@ -36,6 +36,9 @@ interface ThreadSummaryCacheEntry {
   readonly updatedAt: ConversationState["updatedAt"];
   readonly hidden: ConversationState["hidden"];
   readonly source: ConversationState["source"];
+  readonly isSubagent: ConversationState["isSubagent"];
+  readonly agentNickname: ConversationState["agentNickname"];
+  readonly agentRole: ConversationState["agentRole"];
   readonly agentEnvironment: ConversationState["agentEnvironment"];
   readonly status: ConversationState["status"];
   readonly activeFlags: ConversationState["activeFlags"];
@@ -103,6 +106,9 @@ export function createThreadSummaryMemo(): (
       && cached.updatedAt === conversation.updatedAt
       && cached.hidden === conversation.hidden
       && cached.source === conversation.source
+      && cached.isSubagent === conversation.isSubagent
+      && cached.agentNickname === conversation.agentNickname
+      && cached.agentRole === conversation.agentRole
       && cached.agentEnvironment === conversation.agentEnvironment
       && cached.status === conversation.status
       && cached.queuedCount === conversation.queuedFollowUps.length
@@ -123,6 +129,9 @@ export function createThreadSummaryMemo(): (
       updatedAt: conversation.updatedAt,
       hidden: conversation.hidden,
       source: conversation.source,
+      isSubagent: conversation.isSubagent,
+      agentNickname: conversation.agentNickname,
+      agentRole: conversation.agentRole,
       agentEnvironment: conversation.agentEnvironment,
       status: conversation.status,
       activeFlags: conversation.activeFlags,

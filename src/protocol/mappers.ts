@@ -13,6 +13,14 @@ function toIsoFromUnixSeconds(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toISOString();
 }
 
+function hasText(value: string | null | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isThreadSourceSubagent(source: Thread["source"]): boolean {
+  return typeof source === "object" && source !== null && "subAgent" in source;
+}
+
 export function mapThreadListResponse(
   response: ThreadListResponse,
   options: ThreadSummaryMappingOptions
@@ -22,7 +30,8 @@ export function mapThreadListResponse(
 
 export function mapThreadToSummary(thread: Thread, options: ThreadSummaryMappingOptions): ThreadSummary {
   const activeFlags = thread.status.type === "active" ? thread.status.activeFlags : [];
-  return {
+  const isSubagent = isThreadSourceSubagent(thread.source) || hasText(thread.agentNickname) || hasText(thread.agentRole);
+  const summary: ThreadSummary = {
     id: thread.id,
     title: thread.name ?? thread.preview,
     branch: thread.gitInfo?.branch ?? null,
@@ -34,6 +43,12 @@ export function mapThreadToSummary(thread: Thread, options: ThreadSummaryMapping
     status: thread.status.type,
     activeFlags,
     queuedCount: 0
+  };
+  return {
+    ...summary,
+    ...(isSubagent ? { isSubagent: true } : {}),
+    ...(hasText(thread.agentNickname) ? { agentNickname: thread.agentNickname } : {}),
+    ...(hasText(thread.agentRole) ? { agentRole: thread.agentRole } : {}),
   };
 }
 

@@ -11,12 +11,29 @@ function hasThreadText(value: string | null | undefined): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function createSubagentFields(
+  input: Pick<CodexSessionSummaryOutput, "isSubagent" | "agentNickname" | "agentRole">,
+): Pick<ThreadSummary, "isSubagent" | "agentNickname" | "agentRole"> {
+  const isSubagent = input.isSubagent === true || hasThreadText(input.agentNickname) || hasThreadText(input.agentRole);
+  return {
+    ...(isSubagent ? { isSubagent: true } : {}),
+    ...(hasThreadText(input.agentNickname) ? { agentNickname: input.agentNickname } : {}),
+    ...(hasThreadText(input.agentRole) ? { agentRole: input.agentRole } : {}),
+  };
+}
+
 function toUpdatedAtTimestamp(updatedAt: string): number {
   const timestamp = Date.parse(updatedAt);
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 function mergeThreadSummary(primary: ThreadSummary, secondary: ThreadSummary): ThreadSummary {
+  const agentNickname = hasThreadText(primary.agentNickname) ? primary.agentNickname : secondary.agentNickname;
+  const agentRole = hasThreadText(primary.agentRole) ? primary.agentRole : secondary.agentRole;
+  const isSubagent = primary.isSubagent === true
+    || secondary.isSubagent === true
+    || hasThreadText(agentNickname)
+    || hasThreadText(agentRole);
   return {
     ...primary,
     title: hasThreadText(primary.title) ? primary.title : secondary.title,
@@ -25,7 +42,10 @@ function mergeThreadSummary(primary: ThreadSummary, secondary: ThreadSummary): T
     updatedAt:
       toUpdatedAtTimestamp(primary.updatedAt) >= toUpdatedAtTimestamp(secondary.updatedAt)
         ? primary.updatedAt
-        : secondary.updatedAt
+        : secondary.updatedAt,
+    ...(isSubagent ? { isSubagent: true } : {}),
+    ...(hasThreadText(agentNickname) ? { agentNickname } : {}),
+    ...(hasThreadText(agentRole) ? { agentRole } : {}),
   };
 }
 
@@ -81,6 +101,7 @@ export function mapCodexSessionsToThreads(sessions: ReadonlyArray<CodexSessionSu
     archived: false,
     updatedAt: session.updatedAt,
     source: "codexData",
+    ...createSubagentFields(session),
     agentEnvironment: session.agentEnvironment,
     status: "notLoaded",
     activeFlags: [],

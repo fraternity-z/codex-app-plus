@@ -482,6 +482,9 @@ pub struct CodexSessionSummary {
     pub title: String,
     pub cwd: String,
     pub updated_at: String,
+    pub is_subagent: bool,
+    pub agent_nickname: Option<String>,
+    pub agent_role: Option<String>,
     pub agent_environment: AgentEnvironment,
 }
 

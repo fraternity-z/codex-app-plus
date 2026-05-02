@@ -79,6 +79,9 @@ export interface ConversationState {
   cwd: string | null;
   updatedAt: string;
   source: unknown;
+  isSubagent?: boolean;
+  agentNickname?: string | null;
+  agentRole?: string | null;
   agentEnvironment: AgentEnvironment;
   status: ThreadRuntimeStatus;
   activeFlags: Array<ThreadActiveFlag>;
