@@ -1230,7 +1230,6 @@ describe("useWorkspaceConversation", () => {
         approvalPolicy: "on-failure",
         sandboxPolicy: {
           type: "readOnly",
-          access: { type: "restricted", includePlatformDefaults: true, readableRoots: [] },
           networkAccess: false,
         },
       }),

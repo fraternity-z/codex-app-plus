@@ -1,14 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "definitions": {
-    "SortDirection": {
-      "enum": [
-        "asc",
-        "desc"
-      ],
-      "type": "string"
-    }
-  },
+  "title": "ThreadTurnsListParams",
+  "type": "object",
+  "required": [
+    "threadId"
+  ],
   "properties": {
     "cursor": {
       "description": "Opaque cursor to pass to the next call to continue after the last turn.",
@@ -19,14 +15,15 @@
     },
     "limit": {
       "description": "Optional turn page size.",
-      "format": "uint32",
-      "minimum": 0.0,
       "type": [
         "integer",
         "null"
-      ]
+      ],
+      "format": "uint32",
+      "minimum": 0.0
     },
     "sortDirection": {
+      "description": "Optional turn pagination direction; defaults to descending.",
       "anyOf": [
         {
           "$ref": "#/definitions/SortDirection"
@@ -34,16 +31,19 @@
         {
           "type": "null"
         }
-      ],
-      "description": "Optional turn pagination direction; defaults to descending."
+      ]
     },
     "threadId": {
       "type": "string"
     }
   },
-  "required": [
-    "threadId"
-  ],
-  "title": "ThreadTurnsListParams",
-  "type": "object"
+  "definitions": {
+    "SortDirection": {
+      "type": "string",
+      "enum": [
+        "asc",
+        "desc"
+      ]
+    }
+  }
 }

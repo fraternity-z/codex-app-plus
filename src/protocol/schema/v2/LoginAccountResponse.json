@@ -1,23 +1,30 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LoginAccountResponse",
   "oneOf": [
     {
-      "properties": {
-        "type": {
-          "enum": [
-            "apiKey"
-          ],
-          "title": "ApiKeyv2::LoginAccountResponseType",
-          "type": "string"
-        }
-      },
+      "type": "object",
       "required": [
         "type"
       ],
-      "title": "ApiKeyv2::LoginAccountResponse",
-      "type": "object"
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "apiKey"
+          ],
+          "title": "ApiKeyv2::LoginAccountResponseType"
+        }
+      },
+      "title": "ApiKeyv2::LoginAccountResponse"
     },
     {
+      "type": "object",
+      "required": [
+        "authUrl",
+        "loginId",
+        "type"
+      ],
       "properties": {
         "authUrl": {
           "description": "URL the client should open in a browser to initiate the OAuth flow.",
@@ -27,32 +34,33 @@
           "type": "string"
         },
         "type": {
+          "type": "string",
           "enum": [
             "chatgpt"
           ],
-          "title": "Chatgptv2::LoginAccountResponseType",
-          "type": "string"
+          "title": "Chatgptv2::LoginAccountResponseType"
         }
       },
-      "required": [
-        "authUrl",
-        "loginId",
-        "type"
-      ],
-      "title": "Chatgptv2::LoginAccountResponse",
-      "type": "object"
+      "title": "Chatgptv2::LoginAccountResponse"
     },
     {
+      "type": "object",
+      "required": [
+        "loginId",
+        "type",
+        "userCode",
+        "verificationUrl"
+      ],
       "properties": {
         "loginId": {
           "type": "string"
         },
         "type": {
+          "type": "string",
           "enum": [
             "chatgptDeviceCode"
           ],
-          "title": "ChatgptDeviceCodev2::LoginAccountResponseType",
-          "type": "string"
+          "title": "ChatgptDeviceCodev2::LoginAccountResponseType"
         },
         "userCode": {
           "description": "One-time code the user must enter after signing in.",
@@ -63,31 +71,23 @@
           "type": "string"
         }
       },
-      "required": [
-        "loginId",
-        "type",
-        "userCode",
-        "verificationUrl"
-      ],
-      "title": "ChatgptDeviceCodev2::LoginAccountResponse",
-      "type": "object"
+      "title": "ChatgptDeviceCodev2::LoginAccountResponse"
     },
     {
-      "properties": {
-        "type": {
-          "enum": [
-            "chatgptAuthTokens"
-          ],
-          "title": "ChatgptAuthTokensv2::LoginAccountResponseType",
-          "type": "string"
-        }
-      },
+      "type": "object",
       "required": [
         "type"
       ],
-      "title": "ChatgptAuthTokensv2::LoginAccountResponse",
-      "type": "object"
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "chatgptAuthTokens"
+          ],
+          "title": "ChatgptAuthTokensv2::LoginAccountResponseType"
+        }
+      },
+      "title": "ChatgptAuthTokensv2::LoginAccountResponse"
     }
-  ],
-  "title": "LoginAccountResponse"
+  ]
 }

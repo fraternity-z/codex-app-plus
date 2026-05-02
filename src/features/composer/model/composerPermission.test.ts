@@ -47,7 +47,6 @@ describe("composerPermission", () => {
       sandboxPolicy: {
         type: "workspaceWrite",
         writableRoots: [],
-        readOnlyAccess: { type: "restricted", includePlatformDefaults: true, readableRoots: [] },
         networkAccess: false,
         excludeTmpdirEnvVar: false,
         excludeSlashTmp: false
@@ -81,7 +80,6 @@ describe("composerPermission", () => {
       approvalPolicy: "on-failure",
       sandboxPolicy: {
         type: "readOnly",
-        access: { type: "restricted", includePlatformDefaults: true, readableRoots: [] },
         networkAccess: false
       }
     });

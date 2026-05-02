@@ -1,0 +1,165 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DeviceKeySignParams",
+  "description": "Sign an accepted structured payload with a controller-local device key.",
+  "type": "object",
+  "required": [
+    "keyId",
+    "payload"
+  ],
+  "properties": {
+    "keyId": {
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/definitions/DeviceKeySignPayload"
+    }
+  },
+  "definitions": {
+    "DeviceKeySignPayload": {
+      "description": "Structured payloads accepted by `device/key/sign`.",
+      "oneOf": [
+        {
+          "description": "Payload bound to one remote-control controller websocket `/client` connection challenge.",
+          "type": "object",
+          "required": [
+            "accountUserId",
+            "audience",
+            "clientId",
+            "nonce",
+            "scopes",
+            "sessionId",
+            "targetOrigin",
+            "targetPath",
+            "tokenExpiresAt",
+            "tokenSha256Base64url",
+            "type"
+          ],
+          "properties": {
+            "accountUserId": {
+              "type": "string"
+            },
+            "audience": {
+              "$ref": "#/definitions/RemoteControlClientConnectionAudience"
+            },
+            "clientId": {
+              "type": "string"
+            },
+            "nonce": {
+              "type": "string"
+            },
+            "scopes": {
+              "description": "Must contain exactly `remote_control_controller_websocket`.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "sessionId": {
+              "description": "Backend-issued websocket session id that this proof authorizes.",
+              "type": "string"
+            },
+            "targetOrigin": {
+              "description": "Origin of the backend endpoint that issued the challenge and will verify this proof.",
+              "type": "string"
+            },
+            "targetPath": {
+              "description": "Websocket route path that this proof authorizes.",
+              "type": "string"
+            },
+            "tokenExpiresAt": {
+              "description": "Remote-control token expiration as Unix seconds.",
+              "type": "integer",
+              "format": "int64"
+            },
+            "tokenSha256Base64url": {
+              "description": "SHA-256 of the controller-scoped remote-control token, encoded as unpadded base64url.",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "remoteControlClientConnection"
+              ],
+              "title": "RemoteControlClientConnectionDeviceKeySignPayloadType"
+            }
+          },
+          "title": "RemoteControlClientConnectionDeviceKeySignPayload"
+        },
+        {
+          "description": "Payload bound to a remote-control client `/client/enroll` ownership challenge.",
+          "type": "object",
+          "required": [
+            "accountUserId",
+            "audience",
+            "challengeExpiresAt",
+            "challengeId",
+            "clientId",
+            "deviceIdentitySha256Base64url",
+            "nonce",
+            "targetOrigin",
+            "targetPath",
+            "type"
+          ],
+          "properties": {
+            "accountUserId": {
+              "type": "string"
+            },
+            "audience": {
+              "$ref": "#/definitions/RemoteControlClientEnrollmentAudience"
+            },
+            "challengeExpiresAt": {
+              "description": "Enrollment challenge expiration as Unix seconds.",
+              "type": "integer",
+              "format": "int64"
+            },
+            "challengeId": {
+              "description": "Backend-issued enrollment challenge id that this proof authorizes.",
+              "type": "string"
+            },
+            "clientId": {
+              "type": "string"
+            },
+            "deviceIdentitySha256Base64url": {
+              "description": "SHA-256 of the requested device identity operation, encoded as unpadded base64url.",
+              "type": "string"
+            },
+            "nonce": {
+              "type": "string"
+            },
+            "targetOrigin": {
+              "description": "Origin of the backend endpoint that issued the challenge and will verify this proof.",
+              "type": "string"
+            },
+            "targetPath": {
+              "description": "HTTP route path that this proof authorizes.",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "remoteControlClientEnrollment"
+              ],
+              "title": "RemoteControlClientEnrollmentDeviceKeySignPayloadType"
+            }
+          },
+          "title": "RemoteControlClientEnrollmentDeviceKeySignPayload"
+        }
+      ]
+    },
+    "RemoteControlClientConnectionAudience": {
+      "description": "Audience for a remote-control client connection device-key proof.",
+      "type": "string",
+      "enum": [
+        "remote_control_client_websocket"
+      ]
+    },
+    "RemoteControlClientEnrollmentAudience": {
+      "description": "Audience for a remote-control client enrollment device-key proof.",
+      "type": "string",
+      "enum": [
+        "remote_control_client_enrollment"
+      ]
+    }
+  }
+}

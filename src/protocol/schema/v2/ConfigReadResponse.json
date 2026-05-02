@@ -1,12 +1,38 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ConfigReadResponse",
+  "type": "object",
+  "required": [
+    "config",
+    "origins"
+  ],
+  "properties": {
+    "config": {
+      "$ref": "#/definitions/Config"
+    },
+    "layers": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/definitions/ConfigLayer"
+      }
+    },
+    "origins": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/ConfigLayerMetadata"
+      }
+    }
+  },
   "definitions": {
     "AbsolutePathBuf": {
       "description": "A path that is guaranteed to be absolute and normalized (though it is not guaranteed to be canonicalized or exist on the filesystem).\n\nIMPORTANT: When deserializing an `AbsolutePathBuf`, a base path must be set using [AbsolutePathBufGuard::new]. If no base path is set, the deserialization will fail unless the path being deserialized is already absolute.",
       "type": "string"
     },
     "AnalyticsConfig": {
-      "additionalProperties": true,
+      "type": "object",
       "properties": {
         "enabled": {
           "type": [
@@ -15,9 +41,10 @@
           ]
         }
       },
-      "type": "object"
+      "additionalProperties": true
     },
     "AppConfig": {
+      "type": "object",
       "properties": {
         "default_tools_approval_mode": {
           "anyOf": [
@@ -61,18 +88,18 @@
             }
           ]
         }
-      },
-      "type": "object"
+      }
     },
     "AppToolApproval": {
+      "type": "string",
       "enum": [
         "auto",
         "prompt",
         "approve"
-      ],
-      "type": "string"
+      ]
     },
     "AppToolConfig": {
+      "type": "object",
       "properties": {
         "approval_mode": {
           "anyOf": [
@@ -90,23 +117,25 @@
             "null"
           ]
         }
-      },
-      "type": "object"
+      }
     },
     "AppToolsConfig": {
       "type": "object"
     },
     "ApprovalsReviewer": {
-      "description": "Configures who approval requests are routed to for review. Examples include sandbox escapes, blocked network access, MCP approval prompts, and ARC escalations. Defaults to `user`. `guardian_subagent` uses a carefully prompted subagent to gather relevant context and apply a risk-based decision framework before approving or denying the request.",
+      "description": "Configures who approval requests are routed to for review. Examples include sandbox escapes, blocked network access, MCP approval prompts, and ARC escalations. Defaults to `user`. `auto_review` uses a carefully prompted subagent to gather relevant context and apply a risk-based decision framework before approving or denying the request. The legacy value `guardian_subagent` is accepted for compatibility.",
+      "type": "string",
       "enum": [
         "user",
+        "auto_review",
         "guardian_subagent"
-      ],
-      "type": "string"
+      ]
     },
     "AppsConfig": {
+      "type": "object",
       "properties": {
         "_default": {
+          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/AppsDefaultConfig"
@@ -114,13 +143,12 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         }
-      },
-      "type": "object"
+      }
     },
     "AppsDefaultConfig": {
+      "type": "object",
       "properties": {
         "destructive_enabled": {
           "default": true,
@@ -134,24 +162,32 @@
           "default": true,
           "type": "boolean"
         }
-      },
-      "type": "object"
+      }
     },
     "AskForApproval": {
       "oneOf": [
         {
+          "type": "string",
           "enum": [
             "untrusted",
             "on-failure",
             "on-request",
             "never"
-          ],
-          "type": "string"
+          ]
         },
         {
-          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "granular"
+          ],
           "properties": {
             "granular": {
+              "type": "object",
+              "required": [
+                "mcp_elicitations",
+                "rules",
+                "sandbox_approval"
+              ],
               "properties": {
                 "mcp_elicitations": {
                   "type": "boolean"
@@ -170,25 +206,16 @@
                   "default": false,
                   "type": "boolean"
                 }
-              },
-              "required": [
-                "mcp_elicitations",
-                "rules",
-                "sandbox_approval"
-              ],
-              "type": "object"
+              }
             }
           },
-          "required": [
-            "granular"
-          ],
-          "title": "GranularAskForApproval",
-          "type": "object"
+          "additionalProperties": false,
+          "title": "GranularAskForApproval"
         }
       ]
     },
     "Config": {
-      "additionalProperties": true,
+      "type": "object",
       "properties": {
         "analytics": {
           "anyOf": [
@@ -211,6 +238,7 @@
           ]
         },
         "approvals_reviewer": {
+          "description": "[UNSTABLE] Optional default for where approval requests are routed for review.",
           "anyOf": [
             {
               "$ref": "#/definitions/ApprovalsReviewer"
@@ -218,10 +246,10 @@
             {
               "type": "null"
             }
-          ],
-          "description": "[UNSTABLE] Optional default for where approval requests are routed for review."
+          ]
         },
         "apps": {
+          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/AppsConfig"
@@ -229,8 +257,7 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "compact_prompt": {
           "type": [
@@ -273,18 +300,18 @@
           ]
         },
         "model_auto_compact_token_limit": {
-          "format": "int64",
           "type": [
             "integer",
             "null"
-          ]
+          ],
+          "format": "int64"
         },
         "model_context_window": {
-          "format": "int64",
           "type": [
             "integer",
             "null"
-          ]
+          ],
+          "format": "int64"
         },
         "model_provider": {
           "type": [
@@ -329,11 +356,11 @@
           ]
         },
         "profiles": {
+          "default": {},
+          "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/ProfileV2"
-          },
-          "default": {},
-          "type": "object"
+          }
         },
         "review_model": {
           "type": [
@@ -392,9 +419,15 @@
           ]
         }
       },
-      "type": "object"
+      "additionalProperties": true
     },
     "ConfigLayer": {
+      "type": "object",
+      "required": [
+        "config",
+        "name",
+        "version"
+      ],
       "properties": {
         "config": true,
         "disabledReason": {
@@ -409,15 +442,14 @@
         "version": {
           "type": "string"
         }
-      },
+      }
+    },
+    "ConfigLayerMetadata": {
+      "type": "object",
       "required": [
-        "config",
         "name",
         "version"
       ],
-      "type": "object"
-    },
-    "ConfigLayerMetadata": {
       "properties": {
         "name": {
           "$ref": "#/definitions/ConfigLayerSource"
@@ -425,17 +457,18 @@
         "version": {
           "type": "string"
         }
-      },
-      "required": [
-        "name",
-        "version"
-      ],
-      "type": "object"
+      }
     },
     "ConfigLayerSource": {
       "oneOf": [
         {
           "description": "Managed preferences layer delivered by MDM (macOS only).",
+          "type": "object",
+          "required": [
+            "domain",
+            "key",
+            "type"
+          ],
           "properties": {
             "domain": {
               "type": "string"
@@ -444,159 +477,153 @@
               "type": "string"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "mdm"
               ],
-              "title": "MdmConfigLayerSourceType",
-              "type": "string"
+              "title": "MdmConfigLayerSourceType"
             }
           },
-          "required": [
-            "domain",
-            "key",
-            "type"
-          ],
-          "title": "MdmConfigLayerSource",
-          "type": "object"
+          "title": "MdmConfigLayerSource"
         },
         {
           "description": "Managed config layer from a file (usually `managed_config.toml`).",
+          "type": "object",
+          "required": [
+            "file",
+            "type"
+          ],
           "properties": {
             "file": {
+              "description": "This is the path to the system config.toml file, though it is not guaranteed to exist.",
               "allOf": [
                 {
                   "$ref": "#/definitions/AbsolutePathBuf"
                 }
-              ],
-              "description": "This is the path to the system config.toml file, though it is not guaranteed to exist."
+              ]
             },
             "type": {
+              "type": "string",
               "enum": [
                 "system"
               ],
-              "title": "SystemConfigLayerSourceType",
-              "type": "string"
+              "title": "SystemConfigLayerSourceType"
             }
           },
+          "title": "SystemConfigLayerSource"
+        },
+        {
+          "description": "User config layer from $CODEX_HOME/config.toml. This layer is special in that it is expected to be: - writable by the user - generally outside the workspace directory",
+          "type": "object",
           "required": [
             "file",
             "type"
           ],
-          "title": "SystemConfigLayerSource",
-          "type": "object"
-        },
-        {
-          "description": "User config layer from $CODEX_HOME/config.toml. This layer is special in that it is expected to be: - writable by the user - generally outside the workspace directory",
           "properties": {
             "file": {
+              "description": "This is the path to the user's config.toml file, though it is not guaranteed to exist.",
               "allOf": [
                 {
                   "$ref": "#/definitions/AbsolutePathBuf"
                 }
-              ],
-              "description": "This is the path to the user's config.toml file, though it is not guaranteed to exist."
+              ]
             },
             "type": {
+              "type": "string",
               "enum": [
                 "user"
               ],
-              "title": "UserConfigLayerSourceType",
-              "type": "string"
+              "title": "UserConfigLayerSourceType"
             }
           },
-          "required": [
-            "file",
-            "type"
-          ],
-          "title": "UserConfigLayerSource",
-          "type": "object"
+          "title": "UserConfigLayerSource"
         },
         {
           "description": "Path to a .codex/ folder within a project. There could be multiple of these between `cwd` and the project/repo root.",
+          "type": "object",
+          "required": [
+            "dotCodexFolder",
+            "type"
+          ],
           "properties": {
             "dotCodexFolder": {
               "$ref": "#/definitions/AbsolutePathBuf"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "project"
               ],
-              "title": "ProjectConfigLayerSourceType",
-              "type": "string"
+              "title": "ProjectConfigLayerSourceType"
             }
           },
-          "required": [
-            "dotCodexFolder",
-            "type"
-          ],
-          "title": "ProjectConfigLayerSource",
-          "type": "object"
+          "title": "ProjectConfigLayerSource"
         },
         {
           "description": "Session-layer overrides supplied via `-c`/`--config`.",
-          "properties": {
-            "type": {
-              "enum": [
-                "sessionFlags"
-              ],
-              "title": "SessionFlagsConfigLayerSourceType",
-              "type": "string"
-            }
-          },
+          "type": "object",
           "required": [
             "type"
           ],
-          "title": "SessionFlagsConfigLayerSource",
-          "type": "object"
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "sessionFlags"
+              ],
+              "title": "SessionFlagsConfigLayerSourceType"
+            }
+          },
+          "title": "SessionFlagsConfigLayerSource"
         },
         {
           "description": "`managed_config.toml` was designed to be a config that was loaded as the last layer on top of everything else. This scheme did not quite work out as intended, but we keep this variant as a \"best effort\" while we phase out `managed_config.toml` in favor of `requirements.toml`.",
+          "type": "object",
+          "required": [
+            "file",
+            "type"
+          ],
           "properties": {
             "file": {
               "$ref": "#/definitions/AbsolutePathBuf"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "legacyManagedConfigTomlFromFile"
               ],
-              "title": "LegacyManagedConfigTomlFromFileConfigLayerSourceType",
-              "type": "string"
+              "title": "LegacyManagedConfigTomlFromFileConfigLayerSourceType"
             }
           },
-          "required": [
-            "file",
-            "type"
-          ],
-          "title": "LegacyManagedConfigTomlFromFileConfigLayerSource",
-          "type": "object"
+          "title": "LegacyManagedConfigTomlFromFileConfigLayerSource"
         },
         {
+          "type": "object",
+          "required": [
+            "type"
+          ],
           "properties": {
             "type": {
+              "type": "string",
               "enum": [
                 "legacyManagedConfigTomlFromMdm"
               ],
-              "title": "LegacyManagedConfigTomlFromMdmConfigLayerSourceType",
-              "type": "string"
+              "title": "LegacyManagedConfigTomlFromMdmConfigLayerSourceType"
             }
           },
-          "required": [
-            "type"
-          ],
-          "title": "LegacyManagedConfigTomlFromMdmConfigLayerSource",
-          "type": "object"
+          "title": "LegacyManagedConfigTomlFromMdmConfigLayerSource"
         }
       ]
     },
     "ForcedLoginMethod": {
+      "type": "string",
       "enum": [
         "chatgpt",
         "api"
-      ],
-      "type": "string"
+      ]
     },
     "ProfileV2": {
-      "additionalProperties": true,
+      "type": "object",
       "properties": {
         "approval_policy": {
           "anyOf": [
@@ -609,6 +636,7 @@
           ]
         },
         "approvals_reviewer": {
+          "description": "[UNSTABLE] Optional profile-level override for where approval requests are routed for review. If omitted, the enclosing config default is used.",
           "anyOf": [
             {
               "$ref": "#/definitions/ApprovalsReviewer"
@@ -616,8 +644,7 @@
             {
               "type": "null"
             }
-          ],
-          "description": "[UNSTABLE] Optional profile-level override for where approval requests are routed for review. If omitted, the enclosing config default is used."
+          ]
         },
         "chatgpt_base_url": {
           "type": [
@@ -698,10 +725,11 @@
           ]
         }
       },
-      "type": "object"
+      "additionalProperties": true
     },
     "ReasoningEffort": {
       "description": "See https://platform.openai.com/docs/guides/reasoning?api-mode=responses#get-started-with-reasoning",
+      "type": "string",
       "enum": [
         "none",
         "minimal",
@@ -709,38 +737,38 @@
         "medium",
         "high",
         "xhigh"
-      ],
-      "type": "string"
+      ]
     },
     "ReasoningSummary": {
       "description": "A summary of the reasoning performed by the model. This can be useful for debugging and understanding the model's reasoning process. See https://platform.openai.com/docs/guides/reasoning?api-mode=responses#reasoning-summaries",
       "oneOf": [
         {
+          "type": "string",
           "enum": [
             "auto",
             "concise",
             "detailed"
-          ],
-          "type": "string"
+          ]
         },
         {
           "description": "Option to disable reasoning summaries.",
+          "type": "string",
           "enum": [
             "none"
-          ],
-          "type": "string"
+          ]
         }
       ]
     },
     "SandboxMode": {
+      "type": "string",
       "enum": [
         "read-only",
         "workspace-write",
         "danger-full-access"
-      ],
-      "type": "string"
+      ]
     },
     "SandboxWorkspaceWrite": {
+      "type": "object",
       "properties": {
         "exclude_slash_tmp": {
           "default": false,
@@ -756,22 +784,22 @@
         },
         "writable_roots": {
           "default": [],
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         }
-      },
-      "type": "object"
+      }
     },
     "ServiceTier": {
+      "type": "string",
       "enum": [
         "fast",
         "flex"
-      ],
-      "type": "string"
+      ]
     },
     "ToolsV2": {
+      "type": "object",
       "properties": {
         "view_image": {
           "type": [
@@ -789,28 +817,27 @@
             }
           ]
         }
-      },
-      "type": "object"
+      }
     },
     "Verbosity": {
       "description": "Controls output length/detail on GPT-5 models via the Responses API. Serialized with lowercase values to match the OpenAI API.",
+      "type": "string",
       "enum": [
         "low",
         "medium",
         "high"
-      ],
-      "type": "string"
+      ]
     },
     "WebSearchContextSize": {
+      "type": "string",
       "enum": [
         "low",
         "medium",
         "high"
-      ],
-      "type": "string"
+      ]
     },
     "WebSearchLocation": {
-      "additionalProperties": false,
+      "type": "object",
       "properties": {
         "city": {
           "type": [
@@ -837,27 +864,27 @@
           ]
         }
       },
-      "type": "object"
+      "additionalProperties": false
     },
     "WebSearchMode": {
+      "type": "string",
       "enum": [
         "disabled",
         "cached",
         "live"
-      ],
-      "type": "string"
+      ]
     },
     "WebSearchToolConfig": {
-      "additionalProperties": false,
+      "type": "object",
       "properties": {
         "allowed_domains": {
-          "items": {
-            "type": "string"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "context_size": {
           "anyOf": [
@@ -880,33 +907,7 @@
           ]
         }
       },
-      "type": "object"
+      "additionalProperties": false
     }
-  },
-  "properties": {
-    "config": {
-      "$ref": "#/definitions/Config"
-    },
-    "layers": {
-      "items": {
-        "$ref": "#/definitions/ConfigLayer"
-      },
-      "type": [
-        "array",
-        "null"
-      ]
-    },
-    "origins": {
-      "additionalProperties": {
-        "$ref": "#/definitions/ConfigLayerMetadata"
-      },
-      "type": "object"
-    }
-  },
-  "required": [
-    "config",
-    "origins"
-  ],
-  "title": "ConfigReadResponse",
-  "type": "object"
+  }
 }

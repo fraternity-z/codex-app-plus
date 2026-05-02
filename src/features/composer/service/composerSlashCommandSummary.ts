@@ -25,7 +25,13 @@ export function formatSkillSummary(entries: ReadonlyArray<SkillsListEntry>): str
 }
 
 export function formatStatusDetail(connectionStatus: ConnectionStatus, account: GetAccountResponse, rateLimits: RateLimitSnapshot, config: ConfigReadResponse): string {
-  const accountText = account.account === null ? "未登录" : account.account.type === "apiKey" ? "API Key" : `ChatGPT · ${account.account.planType}`;
+  const accountText = account.account === null
+    ? "未登录"
+    : account.account.type === "apiKey"
+      ? "API Key"
+      : account.account.type === "chatgpt"
+        ? `ChatGPT · ${account.account.planType}`
+        : "Amazon Bedrock";
   return [
     `连接：${connectionStatus}`,
     `账号：${accountText}`,

@@ -1,20 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "properties": {
-    "roots": {
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
-    },
-    "sessionId": {
-      "type": "string"
-    }
-  },
+  "title": "FuzzyFileSearchSessionStartParams",
+  "type": "object",
   "required": [
     "roots",
     "sessionId"
   ],
-  "title": "FuzzyFileSearchSessionStartParams",
-  "type": "object"
+  "properties": {
+    "roots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sessionId": {
+      "type": "string"
+    }
+  }
 }

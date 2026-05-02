@@ -1,6 +1,6 @@
 import type { AgentEnvironment } from "../../bridge/types";
 import { readUserConfigWriteTarget } from "../../features/settings";
-import type { AppAction, AuthStatus } from "../../domain/types";
+import type { AccountSummary, AppAction, AuthStatus } from "../../domain/types";
 import type { GetAuthStatusResponse } from "../../protocol/generated/GetAuthStatusResponse";
 import type { ConfigReadResponse } from "../../protocol/generated/v2/ConfigReadResponse";
 import type { GetAccountRateLimitsResponse } from "../../protocol/generated/v2/GetAccountRateLimitsResponse";
@@ -71,21 +71,26 @@ async function loadAuthStatus(client: AccountRequestClient, dispatch: Dispatch):
 async function loadAccountSnapshot(client: AccountRequestClient, dispatch: Dispatch): Promise<void> {
   try {
     const response = (await client.request("account/read", { refreshToken: false })) as GetAccountResponse;
-    if (response.account === null) {
+    const account = mapAccountSummary(response);
+    if (account === null) {
       dispatch({ type: "account/updated", account: null });
       return;
     }
-    dispatch({
-      type: "account/updated",
-      account: {
-        authMode: response.account.type === "apiKey" ? "apikey" : "chatgpt",
-        planType: response.account.type === "chatgpt" ? response.account.planType : null,
-        email: response.account.type === "chatgpt" ? response.account.email : null,
-      },
-    });
+    dispatch({ type: "account/updated", account });
   } catch {
     dispatch({ type: "account/updated", account: null });
   }
+}
+
+function mapAccountSummary(response: GetAccountResponse): AccountSummary | null {
+  if (response.account === null) return null;
+  if (response.account.type === "apiKey") {
+    return { authMode: "apikey", planType: null, email: null };
+  }
+  if (response.account.type === "chatgpt") {
+    return { authMode: "chatgpt", planType: response.account.planType, email: response.account.email };
+  }
+  return { authMode: null, planType: null, email: null };
 }
 
 async function loadRateLimits(client: AccountRequestClient, dispatch: Dispatch): Promise<void> {

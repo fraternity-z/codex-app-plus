@@ -1,29 +1,54 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ConfigRequirementsReadResponse",
+  "type": "object",
+  "properties": {
+    "requirements": {
+      "description": "Null if no requirements are configured (e.g. no requirements.toml/MDM entries).",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ConfigRequirements"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
   "definitions": {
     "ApprovalsReviewer": {
-      "description": "Configures who approval requests are routed to for review. Examples include sandbox escapes, blocked network access, MCP approval prompts, and ARC escalations. Defaults to `user`. `guardian_subagent` uses a carefully prompted subagent to gather relevant context and apply a risk-based decision framework before approving or denying the request.",
+      "description": "Configures who approval requests are routed to for review. Examples include sandbox escapes, blocked network access, MCP approval prompts, and ARC escalations. Defaults to `user`. `auto_review` uses a carefully prompted subagent to gather relevant context and apply a risk-based decision framework before approving or denying the request. The legacy value `guardian_subagent` is accepted for compatibility.",
+      "type": "string",
       "enum": [
         "user",
+        "auto_review",
         "guardian_subagent"
-      ],
-      "type": "string"
+      ]
     },
     "AskForApproval": {
       "oneOf": [
         {
+          "type": "string",
           "enum": [
             "untrusted",
             "on-failure",
             "on-request",
             "never"
-          ],
-          "type": "string"
+          ]
         },
         {
-          "additionalProperties": false,
+          "type": "object",
+          "required": [
+            "granular"
+          ],
           "properties": {
             "granular": {
+              "type": "object",
+              "required": [
+                "mcp_elicitations",
+                "rules",
+                "sandbox_approval"
+              ],
               "properties": {
                 "mcp_elicitations": {
                   "type": "boolean"
@@ -42,60 +67,52 @@
                   "default": false,
                   "type": "boolean"
                 }
-              },
-              "required": [
-                "mcp_elicitations",
-                "rules",
-                "sandbox_approval"
-              ],
-              "type": "object"
+              }
             }
           },
-          "required": [
-            "granular"
-          ],
-          "title": "GranularAskForApproval",
-          "type": "object"
+          "additionalProperties": false,
+          "title": "GranularAskForApproval"
         }
       ]
     },
     "ConfigRequirements": {
+      "type": "object",
       "properties": {
         "allowedApprovalPolicies": {
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/definitions/AskForApproval"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
+          }
         },
         "allowedApprovalsReviewers": {
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/definitions/ApprovalsReviewer"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
+          }
         },
         "allowedSandboxModes": {
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/definitions/SandboxMode"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
+          }
         },
         "allowedWebSearchModes": {
-          "items": {
-            "$ref": "#/definitions/WebSearchMode"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "$ref": "#/definitions/WebSearchMode"
+          }
         },
         "enforceResidency": {
           "anyOf": [
@@ -108,12 +125,22 @@
           ]
         },
         "featureRequirements": {
-          "additionalProperties": {
-            "type": "boolean"
-          },
           "type": [
             "object",
             "null"
+          ],
+          "additionalProperties": {
+            "type": "boolean"
+          }
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ManagedHooksRequirements"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "network": {
@@ -126,17 +153,172 @@
             }
           ]
         }
-      },
-      "type": "object"
+      }
+    },
+    "ConfiguredHookHandler": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "async",
+            "command",
+            "type"
+          ],
+          "properties": {
+            "async": {
+              "type": "boolean"
+            },
+            "command": {
+              "type": "string"
+            },
+            "statusMessage": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "timeoutSec": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "command"
+              ],
+              "title": "CommandConfiguredHookHandlerType"
+            }
+          },
+          "title": "CommandConfiguredHookHandler"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "prompt"
+              ],
+              "title": "PromptConfiguredHookHandlerType"
+            }
+          },
+          "title": "PromptConfiguredHookHandler"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "agent"
+              ],
+              "title": "AgentConfiguredHookHandlerType"
+            }
+          },
+          "title": "AgentConfiguredHookHandler"
+        }
+      ]
+    },
+    "ConfiguredHookMatcherGroup": {
+      "type": "object",
+      "required": [
+        "hooks"
+      ],
+      "properties": {
+        "hooks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfiguredHookHandler"
+          }
+        },
+        "matcher": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ManagedHooksRequirements": {
+      "type": "object",
+      "required": [
+        "PermissionRequest",
+        "PostToolUse",
+        "PreToolUse",
+        "SessionStart",
+        "Stop",
+        "UserPromptSubmit"
+      ],
+      "properties": {
+        "PermissionRequest": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfiguredHookMatcherGroup"
+          }
+        },
+        "PostToolUse": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfiguredHookMatcherGroup"
+          }
+        },
+        "PreToolUse": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfiguredHookMatcherGroup"
+          }
+        },
+        "SessionStart": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfiguredHookMatcherGroup"
+          }
+        },
+        "Stop": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfiguredHookMatcherGroup"
+          }
+        },
+        "UserPromptSubmit": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ConfiguredHookMatcherGroup"
+          }
+        },
+        "managedDir": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "windowsManagedDir": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
     },
     "NetworkDomainPermission": {
+      "type": "string",
       "enum": [
         "allow",
         "deny"
-      ],
-      "type": "string"
+      ]
     },
     "NetworkRequirements": {
+      "type": "object",
       "properties": {
         "allowLocalBinding": {
           "type": [
@@ -146,13 +328,13 @@
         },
         "allowUnixSockets": {
           "description": "Legacy compatibility view derived from `unix_sockets`.",
-          "items": {
-            "type": "string"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "allowUpstreamProxy": {
           "type": [
@@ -162,13 +344,13 @@
         },
         "allowedDomains": {
           "description": "Legacy compatibility view derived from `domains`.",
-          "items": {
-            "type": "string"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "dangerouslyAllowAllUnixSockets": {
           "type": [
@@ -184,23 +366,23 @@
         },
         "deniedDomains": {
           "description": "Legacy compatibility view derived from `domains`.",
-          "items": {
-            "type": "string"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "domains": {
-          "additionalProperties": {
-            "$ref": "#/definitions/NetworkDomainPermission"
-          },
           "description": "Canonical network permission map for `experimental_network`.",
           "type": [
             "object",
             "null"
-          ]
+          ],
+          "additionalProperties": {
+            "$ref": "#/definitions/NetworkDomainPermission"
+          }
         },
         "enabled": {
           "type": [
@@ -209,12 +391,12 @@
           ]
         },
         "httpPort": {
-          "format": "uint16",
-          "minimum": 0.0,
           "type": [
             "integer",
             "null"
-          ]
+          ],
+          "format": "uint16",
+          "minimum": 0.0
         },
         "managedAllowedDomainsOnly": {
           "description": "When true, only managed allowlist entries are respected while managed network enforcement is active.",
@@ -224,69 +406,53 @@
           ]
         },
         "socksPort": {
-          "format": "uint16",
-          "minimum": 0.0,
           "type": [
             "integer",
             "null"
-          ]
+          ],
+          "format": "uint16",
+          "minimum": 0.0
         },
         "unixSockets": {
-          "additionalProperties": {
-            "$ref": "#/definitions/NetworkUnixSocketPermission"
-          },
           "description": "Canonical unix socket permission map for `experimental_network`.",
           "type": [
             "object",
             "null"
-          ]
+          ],
+          "additionalProperties": {
+            "$ref": "#/definitions/NetworkUnixSocketPermission"
+          }
         }
-      },
-      "type": "object"
+      }
     },
     "NetworkUnixSocketPermission": {
+      "type": "string",
       "enum": [
         "allow",
         "none"
-      ],
-      "type": "string"
+      ]
     },
     "ResidencyRequirement": {
+      "type": "string",
       "enum": [
         "us"
-      ],
-      "type": "string"
+      ]
     },
     "SandboxMode": {
+      "type": "string",
       "enum": [
         "read-only",
         "workspace-write",
         "danger-full-access"
-      ],
-      "type": "string"
+      ]
     },
     "WebSearchMode": {
+      "type": "string",
       "enum": [
         "disabled",
         "cached",
         "live"
-      ],
-      "type": "string"
+      ]
     }
-  },
-  "properties": {
-    "requirements": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/ConfigRequirements"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "description": "Null if no requirements are configured (e.g. no requirements.toml/MDM entries)."
-    }
-  },
-  "title": "ConfigRequirementsReadResponse",
-  "type": "object"
+  }
 }

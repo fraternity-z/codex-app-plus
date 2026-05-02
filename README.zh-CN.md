@@ -36,7 +36,7 @@ Codex App Plus 是一个增强版的 Windows 桌面 Codex 客户端，基于 `Re
 - Windows 操作系统
 - Node.js LTS + pnpm
 - Rust 工具链
-- 官方 `codex` CLI（对齐 v0.114.0）
+- 官方 `codex` CLI（对齐 v0.128.0）
 
 ## 快速开始
 

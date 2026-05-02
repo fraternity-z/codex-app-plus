@@ -1,7 +1,22 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AccountRateLimitsUpdatedNotification",
+  "type": "object",
+  "required": [
+    "rateLimits"
+  ],
+  "properties": {
+    "rateLimits": {
+      "$ref": "#/definitions/RateLimitSnapshot"
+    }
+  },
   "definitions": {
     "CreditsSnapshot": {
+      "type": "object",
+      "required": [
+        "hasCredits",
+        "unlimited"
+      ],
       "properties": {
         "balance": {
           "type": [
@@ -15,14 +30,10 @@
         "unlimited": {
           "type": "boolean"
         }
-      },
-      "required": [
-        "hasCredits",
-        "unlimited"
-      ],
-      "type": "object"
+      }
     },
     "PlanType": {
+      "type": "string",
       "enum": [
         "free",
         "go",
@@ -36,20 +47,20 @@
         "enterprise",
         "edu",
         "unknown"
-      ],
-      "type": "string"
+      ]
     },
     "RateLimitReachedType": {
+      "type": "string",
       "enum": [
         "rate_limit_reached",
         "workspace_owner_credits_depleted",
         "workspace_member_credits_depleted",
         "workspace_owner_usage_limit_reached",
         "workspace_member_usage_limit_reached"
-      ],
-      "type": "string"
+      ]
     },
     "RateLimitSnapshot": {
+      "type": "object",
       "properties": {
         "credits": {
           "anyOf": [
@@ -113,44 +124,33 @@
             }
           ]
         }
-      },
-      "type": "object"
+      }
     },
     "RateLimitWindow": {
-      "properties": {
-        "resetsAt": {
-          "format": "int64",
-          "type": [
-            "integer",
-            "null"
-          ]
-        },
-        "usedPercent": {
-          "format": "int32",
-          "type": "integer"
-        },
-        "windowDurationMins": {
-          "format": "int64",
-          "type": [
-            "integer",
-            "null"
-          ]
-        }
-      },
+      "type": "object",
       "required": [
         "usedPercent"
       ],
-      "type": "object"
+      "properties": {
+        "resetsAt": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        },
+        "usedPercent": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "windowDurationMins": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int64"
+        }
+      }
     }
-  },
-  "properties": {
-    "rateLimits": {
-      "$ref": "#/definitions/RateLimitSnapshot"
-    }
-  },
-  "required": [
-    "rateLimits"
-  ],
-  "title": "AccountRateLimitsUpdatedNotification",
-  "type": "object"
+  }
 }

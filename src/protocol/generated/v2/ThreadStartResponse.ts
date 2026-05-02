@@ -4,8 +4,10 @@
 import type { AbsolutePathBuf } from "../AbsolutePathBuf";
 import type { ReasoningEffort } from "../ReasoningEffort";
 import type { ServiceTier } from "../ServiceTier";
+import type { ActivePermissionProfile } from "./ActivePermissionProfile";
 import type { ApprovalsReviewer } from "./ApprovalsReviewer";
 import type { AskForApproval } from "./AskForApproval";
+import type { PermissionProfile } from "./PermissionProfile";
 import type { SandboxPolicy } from "./SandboxPolicy";
 import type { Thread } from "./Thread";
 
@@ -17,4 +19,20 @@ instructionSources: Array<AbsolutePathBuf>, approvalPolicy: AskForApproval,
 /**
  * Reviewer currently used for approval requests on this thread.
  */
-approvalsReviewer: ApprovalsReviewer, sandbox: SandboxPolicy, reasoningEffort: ReasoningEffort | null, };
+approvalsReviewer: ApprovalsReviewer,
+/**
+ * Legacy sandbox policy retained for compatibility. Experimental clients
+ * should prefer `permissionProfile` when they need exact runtime
+ * permissions.
+ */
+sandbox: SandboxPolicy,
+/**
+ * Full active permissions for this thread. `activePermissionProfile`
+ * carries display/provenance metadata for this runtime profile.
+ */
+permissionProfile: PermissionProfile | null,
+/**
+ * Named or implicit built-in profile that produced the active
+ * permissions, when known.
+ */
+activePermissionProfile: ActivePermissionProfile | null, reasoningEffort: ReasoningEffort | null, };

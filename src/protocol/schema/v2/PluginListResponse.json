@@ -1,11 +1,39 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PluginListResponse",
+  "type": "object",
+  "required": [
+    "marketplaces"
+  ],
+  "properties": {
+    "featuredPluginIds": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "marketplaceLoadErrors": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/MarketplaceLoadErrorInfo"
+      }
+    },
+    "marketplaces": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/PluginMarketplaceEntry"
+      }
+    }
+  },
   "definitions": {
     "AbsolutePathBuf": {
       "description": "A path that is guaranteed to be absolute and normalized (though it is not guaranteed to be canonicalized or exist on the filesystem).\n\nIMPORTANT: When deserializing an `AbsolutePathBuf`, a base path must be set using [AbsolutePathBufGuard::new]. If no base path is set, the deserialization will fail unless the path being deserialized is already absolute.",
       "type": "string"
     },
     "MarketplaceInterface": {
+      "type": "object",
       "properties": {
         "displayName": {
           "type": [
@@ -13,10 +41,14 @@
             "null"
           ]
         }
-      },
-      "type": "object"
+      }
     },
     "MarketplaceLoadErrorInfo": {
+      "type": "object",
+      "required": [
+        "marketplacePath",
+        "message"
+      ],
       "properties": {
         "marketplacePath": {
           "$ref": "#/definitions/AbsolutePathBuf"
@@ -24,29 +56,30 @@
         "message": {
           "type": "string"
         }
-      },
-      "required": [
-        "marketplacePath",
-        "message"
-      ],
-      "type": "object"
+      }
     },
     "PluginAuthPolicy": {
+      "type": "string",
       "enum": [
         "ON_INSTALL",
         "ON_USE"
-      ],
-      "type": "string"
+      ]
     },
     "PluginInstallPolicy": {
+      "type": "string",
       "enum": [
         "NOT_AVAILABLE",
         "AVAILABLE",
         "INSTALLED_BY_DEFAULT"
-      ],
-      "type": "string"
+      ]
     },
     "PluginInterface": {
+      "type": "object",
+      "required": [
+        "capabilities",
+        "screenshotUrls",
+        "screenshots"
+      ],
       "properties": {
         "brandColor": {
           "type": [
@@ -55,10 +88,10 @@
           ]
         },
         "capabilities": {
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         },
         "category": {
           "type": [
@@ -67,6 +100,7 @@
           ]
         },
         "composerIcon": {
+          "description": "Local composer icon path, resolved from the installed plugin package.",
           "anyOf": [
             {
               "$ref": "#/definitions/AbsolutePathBuf"
@@ -74,8 +108,7 @@
             {
               "type": "null"
             }
-          ],
-          "description": "Local composer icon path, resolved from the installed plugin package."
+          ]
         },
         "composerIconUrl": {
           "description": "Remote composer icon URL from the plugin catalog.",
@@ -86,13 +119,13 @@
         },
         "defaultPrompt": {
           "description": "Starter prompts for the plugin. Capped at 3 entries with a maximum of 128 characters per entry.",
-          "items": {
-            "type": "string"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "developerName": {
           "type": [
@@ -107,6 +140,7 @@
           ]
         },
         "logo": {
+          "description": "Local logo path, resolved from the installed plugin package.",
           "anyOf": [
             {
               "$ref": "#/definitions/AbsolutePathBuf"
@@ -114,8 +148,7 @@
             {
               "type": "null"
             }
-          ],
-          "description": "Local logo path, resolved from the installed plugin package."
+          ]
         },
         "logoUrl": {
           "description": "Remote logo URL from the plugin catalog.",
@@ -138,17 +171,17 @@
         },
         "screenshotUrls": {
           "description": "Remote screenshot URLs from the plugin catalog.",
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         },
         "screenshots": {
           "description": "Local screenshot paths, resolved from the installed plugin package.",
+          "type": "array",
           "items": {
             "$ref": "#/definitions/AbsolutePathBuf"
-          },
-          "type": "array"
+          }
         },
         "shortDescription": {
           "type": [
@@ -168,15 +201,14 @@
             "null"
           ]
         }
-      },
-      "required": [
-        "capabilities",
-        "screenshotUrls",
-        "screenshots"
-      ],
-      "type": "object"
+      }
     },
     "PluginMarketplaceEntry": {
+      "type": "object",
+      "required": [
+        "name",
+        "plugins"
+      ],
       "properties": {
         "interface": {
           "anyOf": [
@@ -192,6 +224,7 @@
           "type": "string"
         },
         "path": {
+          "description": "Local marketplace file path when the marketplace is backed by a local file. Remote-only catalog marketplaces do not have a local path.",
           "anyOf": [
             {
               "$ref": "#/definitions/AbsolutePathBuf"
@@ -199,45 +232,44 @@
             {
               "type": "null"
             }
-          ],
-          "description": "Local marketplace file path when the marketplace is backed by a local file. Remote-only catalog marketplaces do not have a local path."
+          ]
         },
         "plugins": {
+          "type": "array",
           "items": {
             "$ref": "#/definitions/PluginSummary"
-          },
-          "type": "array"
+          }
         }
-      },
-      "required": [
-        "name",
-        "plugins"
-      ],
-      "type": "object"
+      }
     },
     "PluginSource": {
       "oneOf": [
         {
+          "type": "object",
+          "required": [
+            "path",
+            "type"
+          ],
           "properties": {
             "path": {
               "$ref": "#/definitions/AbsolutePathBuf"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "local"
               ],
-              "title": "LocalPluginSourceType",
-              "type": "string"
+              "title": "LocalPluginSourceType"
             }
           },
-          "required": [
-            "path",
-            "type"
-          ],
-          "title": "LocalPluginSource",
-          "type": "object"
+          "title": "LocalPluginSource"
         },
         {
+          "type": "object",
+          "required": [
+            "type",
+            "url"
+          ],
           "properties": {
             "path": {
               "type": [
@@ -258,43 +290,48 @@
               ]
             },
             "type": {
+              "type": "string",
               "enum": [
                 "git"
               ],
-              "title": "GitPluginSourceType",
-              "type": "string"
+              "title": "GitPluginSourceType"
             },
             "url": {
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "url"
-          ],
-          "title": "GitPluginSource",
-          "type": "object"
+          "title": "GitPluginSource"
         },
         {
           "description": "The plugin is available in the remote catalog. Download metadata is kept server-side and is not exposed through the app-server API.",
-          "properties": {
-            "type": {
-              "enum": [
-                "remote"
-              ],
-              "title": "RemotePluginSourceType",
-              "type": "string"
-            }
-          },
+          "type": "object",
           "required": [
             "type"
           ],
-          "title": "RemotePluginSource",
-          "type": "object"
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "remote"
+              ],
+              "title": "RemotePluginSourceType"
+            }
+          },
+          "title": "RemotePluginSource"
         }
       ]
     },
     "PluginSummary": {
+      "type": "object",
+      "required": [
+        "authPolicy",
+        "enabled",
+        "id",
+        "installPolicy",
+        "installed",
+        "name",
+        "source"
+      ],
       "properties": {
         "authPolicy": {
           "$ref": "#/definitions/PluginAuthPolicy"
@@ -327,44 +364,7 @@
         "source": {
           "$ref": "#/definitions/PluginSource"
         }
-      },
-      "required": [
-        "authPolicy",
-        "enabled",
-        "id",
-        "installPolicy",
-        "installed",
-        "name",
-        "source"
-      ],
-      "type": "object"
+      }
     }
-  },
-  "properties": {
-    "featuredPluginIds": {
-      "default": [],
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
-    },
-    "marketplaceLoadErrors": {
-      "default": [],
-      "items": {
-        "$ref": "#/definitions/MarketplaceLoadErrorInfo"
-      },
-      "type": "array"
-    },
-    "marketplaces": {
-      "items": {
-        "$ref": "#/definitions/PluginMarketplaceEntry"
-      },
-      "type": "array"
-    }
-  },
-  "required": [
-    "marketplaces"
-  ],
-  "title": "PluginListResponse",
-  "type": "object"
+  }
 }

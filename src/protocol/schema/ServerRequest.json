@@ -1,34 +1,282 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ServerRequest",
+  "description": "Request initiated from the server and sent to the client.",
+  "oneOf": [
+    {
+      "description": "NEW APIs Sent when approval is requested for a specific command execution. This request is used for Turns started via turn/start.",
+      "type": "object",
+      "required": [
+        "id",
+        "method",
+        "params"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/RequestId"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "item/commandExecution/requestApproval"
+          ],
+          "title": "Item/commandExecution/requestApprovalRequestMethod"
+        },
+        "params": {
+          "$ref": "#/definitions/CommandExecutionRequestApprovalParams"
+        }
+      },
+      "title": "Item/commandExecution/requestApprovalRequest"
+    },
+    {
+      "description": "Sent when approval is requested for a specific file change. This request is used for Turns started via turn/start.",
+      "type": "object",
+      "required": [
+        "id",
+        "method",
+        "params"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/RequestId"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "item/fileChange/requestApproval"
+          ],
+          "title": "Item/fileChange/requestApprovalRequestMethod"
+        },
+        "params": {
+          "$ref": "#/definitions/FileChangeRequestApprovalParams"
+        }
+      },
+      "title": "Item/fileChange/requestApprovalRequest"
+    },
+    {
+      "description": "EXPERIMENTAL - Request input from the user for a tool call.",
+      "type": "object",
+      "required": [
+        "id",
+        "method",
+        "params"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/RequestId"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "item/tool/requestUserInput"
+          ],
+          "title": "Item/tool/requestUserInputRequestMethod"
+        },
+        "params": {
+          "$ref": "#/definitions/ToolRequestUserInputParams"
+        }
+      },
+      "title": "Item/tool/requestUserInputRequest"
+    },
+    {
+      "description": "Request input for an MCP server elicitation.",
+      "type": "object",
+      "required": [
+        "id",
+        "method",
+        "params"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/RequestId"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "mcpServer/elicitation/request"
+          ],
+          "title": "McpServer/elicitation/requestRequestMethod"
+        },
+        "params": {
+          "$ref": "#/definitions/McpServerElicitationRequestParams"
+        }
+      },
+      "title": "McpServer/elicitation/requestRequest"
+    },
+    {
+      "description": "Request approval for additional permissions from the user.",
+      "type": "object",
+      "required": [
+        "id",
+        "method",
+        "params"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/RequestId"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "item/permissions/requestApproval"
+          ],
+          "title": "Item/permissions/requestApprovalRequestMethod"
+        },
+        "params": {
+          "$ref": "#/definitions/PermissionsRequestApprovalParams"
+        }
+      },
+      "title": "Item/permissions/requestApprovalRequest"
+    },
+    {
+      "description": "Execute a dynamic tool call on the client.",
+      "type": "object",
+      "required": [
+        "id",
+        "method",
+        "params"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/RequestId"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "item/tool/call"
+          ],
+          "title": "Item/tool/callRequestMethod"
+        },
+        "params": {
+          "$ref": "#/definitions/DynamicToolCallParams"
+        }
+      },
+      "title": "Item/tool/callRequest"
+    },
+    {
+      "type": "object",
+      "required": [
+        "id",
+        "method",
+        "params"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/RequestId"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "account/chatgptAuthTokens/refresh"
+          ],
+          "title": "Account/chatgptAuthTokens/refreshRequestMethod"
+        },
+        "params": {
+          "$ref": "#/definitions/ChatgptAuthTokensRefreshParams"
+        }
+      },
+      "title": "Account/chatgptAuthTokens/refreshRequest"
+    },
+    {
+      "description": "DEPRECATED APIs below Request to approve a patch. This request is used for Turns started via the legacy APIs (i.e. SendUserTurn, SendUserMessage).",
+      "type": "object",
+      "required": [
+        "id",
+        "method",
+        "params"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/RequestId"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "applyPatchApproval"
+          ],
+          "title": "ApplyPatchApprovalRequestMethod"
+        },
+        "params": {
+          "$ref": "#/definitions/ApplyPatchApprovalParams"
+        }
+      },
+      "title": "ApplyPatchApprovalRequest"
+    },
+    {
+      "description": "Request to exec a command. This request is used for Turns started via the legacy APIs (i.e. SendUserTurn, SendUserMessage).",
+      "type": "object",
+      "required": [
+        "id",
+        "method",
+        "params"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/RequestId"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "execCommandApproval"
+          ],
+          "title": "ExecCommandApprovalRequestMethod"
+        },
+        "params": {
+          "$ref": "#/definitions/ExecCommandApprovalParams"
+        }
+      },
+      "title": "ExecCommandApprovalRequest"
+    }
+  ],
   "definitions": {
     "AbsolutePathBuf": {
       "description": "A path that is guaranteed to be absolute and normalized (though it is not guaranteed to be canonicalized or exist on the filesystem).\n\nIMPORTANT: When deserializing an `AbsolutePathBuf`, a base path must be set using [AbsolutePathBufGuard::new]. If no base path is set, the deserialization will fail unless the path being deserialized is already absolute.",
       "type": "string"
     },
     "AdditionalFileSystemPermissions": {
+      "type": "object",
       "properties": {
-        "read": {
-          "items": {
-            "$ref": "#/definitions/AbsolutePathBuf"
-          },
+        "entries": {
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "$ref": "#/definitions/FileSystemSandboxEntry"
+          }
+        },
+        "globScanMaxDepth": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint",
+          "minimum": 1.0
+        },
+        "read": {
+          "description": "This will be removed in favor of `entries`.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/AbsolutePathBuf"
+          }
         },
         "write": {
-          "items": {
-            "$ref": "#/definitions/AbsolutePathBuf"
-          },
+          "description": "This will be removed in favor of `entries`.",
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "$ref": "#/definitions/AbsolutePathBuf"
+          }
         }
-      },
-      "type": "object"
+      }
     },
     "AdditionalNetworkPermissions": {
+      "type": "object",
       "properties": {
         "enabled": {
           "type": [
@@ -36,10 +284,10 @@
             "null"
           ]
         }
-      },
-      "type": "object"
+      }
     },
     "AdditionalPermissionProfile": {
+      "type": "object",
       "properties": {
         "fileSystem": {
           "anyOf": [
@@ -52,6 +300,7 @@
           ]
         },
         "network": {
+          "description": "Partial overlay used for per-command permission requests.",
           "anyOf": [
             {
               "$ref": "#/definitions/AdditionalNetworkPermissions"
@@ -61,10 +310,15 @@
             }
           ]
         }
-      },
-      "type": "object"
+      }
     },
     "ApplyPatchApprovalParams": {
+      "type": "object",
+      "required": [
+        "callId",
+        "conversationId",
+        "fileChanges"
+      ],
       "properties": {
         "callId": {
           "description": "Use to correlate this with [codex_protocol::protocol::PatchApplyBeginEvent] and [codex_protocol::protocol::PatchApplyEndEvent].",
@@ -74,10 +328,10 @@
           "$ref": "#/definitions/ThreadId"
         },
         "fileChanges": {
+          "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/FileChange"
-          },
-          "type": "object"
+          }
         },
         "grantRoot": {
           "description": "When set, the agent is asking the user to allow writes under this root for the remainder of the session (unclear if this is honored today).",
@@ -93,15 +347,13 @@
             "null"
           ]
         }
-      },
-      "required": [
-        "callId",
-        "conversationId",
-        "fileChanges"
-      ],
-      "type": "object"
+      }
     },
     "ChatgptAuthTokensRefreshParams": {
+      "type": "object",
+      "required": [
+        "reason"
+      ],
       "properties": {
         "previousAccountId": {
           "description": "Workspace/account identifier that Codex was previously using.\n\nClients that manage multiple accounts/workspaces can use this as a hint to refresh the token for the correct workspace.\n\nThis may be `null` when the prior auth state did not include a workspace identifier (`chatgpt_account_id`).",
@@ -113,26 +365,29 @@
         "reason": {
           "$ref": "#/definitions/ChatgptAuthTokensRefreshReason"
         }
-      },
-      "required": [
-        "reason"
-      ],
-      "type": "object"
+      }
     },
     "ChatgptAuthTokensRefreshReason": {
       "oneOf": [
         {
           "description": "Codex attempted a backend request and received `401 Unauthorized`.",
+          "type": "string",
           "enum": [
             "unauthorized"
-          ],
-          "type": "string"
+          ]
         }
       ]
     },
     "CommandAction": {
       "oneOf": [
         {
+          "type": "object",
+          "required": [
+            "command",
+            "name",
+            "path",
+            "type"
+          ],
           "properties": {
             "command": {
               "type": "string"
@@ -144,23 +399,21 @@
               "$ref": "#/definitions/AbsolutePathBuf"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "read"
               ],
-              "title": "ReadCommandActionType",
-              "type": "string"
+              "title": "ReadCommandActionType"
             }
           },
-          "required": [
-            "command",
-            "name",
-            "path",
-            "type"
-          ],
-          "title": "ReadCommandAction",
-          "type": "object"
+          "title": "ReadCommandAction"
         },
         {
+          "type": "object",
+          "required": [
+            "command",
+            "type"
+          ],
           "properties": {
             "command": {
               "type": "string"
@@ -172,21 +425,21 @@
               ]
             },
             "type": {
+              "type": "string",
               "enum": [
                 "listFiles"
               ],
-              "title": "ListFilesCommandActionType",
-              "type": "string"
+              "title": "ListFilesCommandActionType"
             }
           },
+          "title": "ListFilesCommandAction"
+        },
+        {
+          "type": "object",
           "required": [
             "command",
             "type"
           ],
-          "title": "ListFilesCommandAction",
-          "type": "object"
-        },
-        {
           "properties": {
             "command": {
               "type": "string"
@@ -204,39 +457,34 @@
               ]
             },
             "type": {
+              "type": "string",
               "enum": [
                 "search"
               ],
-              "title": "SearchCommandActionType",
-              "type": "string"
+              "title": "SearchCommandActionType"
             }
           },
+          "title": "SearchCommandAction"
+        },
+        {
+          "type": "object",
           "required": [
             "command",
             "type"
           ],
-          "title": "SearchCommandAction",
-          "type": "object"
-        },
-        {
           "properties": {
             "command": {
               "type": "string"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "unknown"
               ],
-              "title": "UnknownCommandActionType",
-              "type": "string"
+              "title": "UnknownCommandActionType"
             }
           },
-          "required": [
-            "command",
-            "type"
-          ],
-          "title": "UnknownCommandAction",
-          "type": "object"
+          "title": "UnknownCommandAction"
         }
       ]
     },
@@ -244,84 +492,91 @@
       "oneOf": [
         {
           "description": "User approved the command.",
+          "type": "string",
           "enum": [
             "accept"
-          ],
-          "type": "string"
+          ]
         },
         {
           "description": "User approved the command and future prompts in the same session-scoped approval cache should run without prompting.",
+          "type": "string",
           "enum": [
             "acceptForSession"
-          ],
-          "type": "string"
+          ]
         },
         {
-          "additionalProperties": false,
           "description": "User approved the command, and wants to apply the proposed execpolicy amendment so future matching commands can run without prompting.",
-          "properties": {
-            "acceptWithExecpolicyAmendment": {
-              "properties": {
-                "execpolicy_amendment": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                }
-              },
-              "required": [
-                "execpolicy_amendment"
-              ],
-              "type": "object"
-            }
-          },
+          "type": "object",
           "required": [
             "acceptWithExecpolicyAmendment"
           ],
-          "title": "AcceptWithExecpolicyAmendmentCommandExecutionApprovalDecision",
-          "type": "object"
+          "properties": {
+            "acceptWithExecpolicyAmendment": {
+              "type": "object",
+              "required": [
+                "execpolicy_amendment"
+              ],
+              "properties": {
+                "execpolicy_amendment": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "title": "AcceptWithExecpolicyAmendmentCommandExecutionApprovalDecision"
         },
         {
-          "additionalProperties": false,
           "description": "User chose a persistent network policy rule (allow/deny) for this host.",
+          "type": "object",
+          "required": [
+            "applyNetworkPolicyAmendment"
+          ],
           "properties": {
             "applyNetworkPolicyAmendment": {
+              "type": "object",
+              "required": [
+                "network_policy_amendment"
+              ],
               "properties": {
                 "network_policy_amendment": {
                   "$ref": "#/definitions/NetworkPolicyAmendment"
                 }
-              },
-              "required": [
-                "network_policy_amendment"
-              ],
-              "type": "object"
+              }
             }
           },
-          "required": [
-            "applyNetworkPolicyAmendment"
-          ],
-          "title": "ApplyNetworkPolicyAmendmentCommandExecutionApprovalDecision",
-          "type": "object"
+          "additionalProperties": false,
+          "title": "ApplyNetworkPolicyAmendmentCommandExecutionApprovalDecision"
         },
         {
           "description": "User denied the command. The agent will continue the turn.",
+          "type": "string",
           "enum": [
             "decline"
-          ],
-          "type": "string"
+          ]
         },
         {
           "description": "User denied the command. The turn will also be immediately interrupted.",
+          "type": "string",
           "enum": [
             "cancel"
-          ],
-          "type": "string"
+          ]
         }
       ]
     },
     "CommandExecutionRequestApprovalParams": {
+      "type": "object",
+      "required": [
+        "itemId",
+        "threadId",
+        "turnId"
+      ],
       "properties": {
         "additionalPermissions": {
+          "description": "Optional additional permissions requested for this command.",
           "anyOf": [
             {
               "$ref": "#/definitions/AdditionalPermissionProfile"
@@ -329,8 +584,7 @@
             {
               "type": "null"
             }
-          ],
-          "description": "Optional additional permissions requested for this command."
+          ]
         },
         "approvalId": {
           "description": "Unique identifier for this specific approval callback.\n\nFor regular shell/unified_exec approvals, this is null.\n\nFor zsh-exec-bridge subcommand approvals, multiple callbacks can belong to one parent `itemId`, so `approvalId` is a distinct opaque callback id (a UUID) used to disambiguate routing.",
@@ -341,13 +595,13 @@
         },
         "availableDecisions": {
           "description": "Ordered list of decisions the client may present for this prompt.",
-          "items": {
-            "$ref": "#/definitions/CommandExecutionApprovalDecision"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "$ref": "#/definitions/CommandExecutionApprovalDecision"
+          }
         },
         "command": {
           "description": "The command to be executed.",
@@ -358,15 +612,16 @@
         },
         "commandActions": {
           "description": "Best-effort parsed command actions for friendly display.",
-          "items": {
-            "$ref": "#/definitions/CommandAction"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "$ref": "#/definitions/CommandAction"
+          }
         },
         "cwd": {
+          "description": "The command's working directory.",
           "anyOf": [
             {
               "$ref": "#/definitions/AbsolutePathBuf"
@@ -374,13 +629,13 @@
             {
               "type": "null"
             }
-          ],
-          "description": "The command's working directory."
+          ]
         },
         "itemId": {
           "type": "string"
         },
         "networkApprovalContext": {
+          "description": "Optional context for a managed-network approval prompt.",
           "anyOf": [
             {
               "$ref": "#/definitions/NetworkApprovalContext"
@@ -388,28 +643,27 @@
             {
               "type": "null"
             }
-          ],
-          "description": "Optional context for a managed-network approval prompt."
+          ]
         },
         "proposedExecpolicyAmendment": {
           "description": "Optional proposed execpolicy amendment to allow similar commands without prompting.",
-          "items": {
-            "type": "string"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "proposedNetworkPolicyAmendments": {
           "description": "Optional proposed network policy amendments (allow/deny host) for future requests.",
-          "items": {
-            "$ref": "#/definitions/NetworkPolicyAmendment"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "$ref": "#/definitions/NetworkPolicyAmendment"
+          }
         },
         "reason": {
           "description": "Optional explanatory reason (e.g. request for network access).",
@@ -424,19 +678,27 @@
         "turnId": {
           "type": "string"
         }
-      },
-      "required": [
-        "itemId",
-        "threadId",
-        "turnId"
-      ],
-      "type": "object"
+      }
     },
     "DynamicToolCallParams": {
+      "type": "object",
+      "required": [
+        "arguments",
+        "callId",
+        "threadId",
+        "tool",
+        "turnId"
+      ],
       "properties": {
         "arguments": true,
         "callId": {
           "type": "string"
+        },
+        "namespace": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "threadId": {
           "type": "string"
@@ -447,17 +709,17 @@
         "turnId": {
           "type": "string"
         }
-      },
-      "required": [
-        "arguments",
-        "callId",
-        "threadId",
-        "tool",
-        "turnId"
-      ],
-      "type": "object"
+      }
     },
     "ExecCommandApprovalParams": {
+      "type": "object",
+      "required": [
+        "callId",
+        "command",
+        "conversationId",
+        "cwd",
+        "parsedCmd"
+      ],
       "properties": {
         "approvalId": {
           "description": "Identifier for this specific approval callback.",
@@ -471,10 +733,10 @@
           "type": "string"
         },
         "command": {
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         },
         "conversationId": {
           "$ref": "#/definitions/ThreadId"
@@ -483,10 +745,10 @@
           "type": "string"
         },
         "parsedCmd": {
+          "type": "array",
           "items": {
             "$ref": "#/definitions/ParsedCommand"
-          },
-          "type": "array"
+          }
         },
         "reason": {
           "type": [
@@ -494,59 +756,56 @@
             "null"
           ]
         }
-      },
-      "required": [
-        "callId",
-        "command",
-        "conversationId",
-        "cwd",
-        "parsedCmd"
-      ],
-      "type": "object"
+      }
     },
     "FileChange": {
       "oneOf": [
         {
+          "type": "object",
+          "required": [
+            "content",
+            "type"
+          ],
           "properties": {
             "content": {
               "type": "string"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "add"
               ],
-              "title": "AddFileChangeType",
-              "type": "string"
+              "title": "AddFileChangeType"
             }
           },
+          "title": "AddFileChange"
+        },
+        {
+          "type": "object",
           "required": [
             "content",
             "type"
           ],
-          "title": "AddFileChange",
-          "type": "object"
-        },
-        {
           "properties": {
             "content": {
               "type": "string"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "delete"
               ],
-              "title": "DeleteFileChangeType",
-              "type": "string"
+              "title": "DeleteFileChangeType"
             }
           },
-          "required": [
-            "content",
-            "type"
-          ],
-          "title": "DeleteFileChange",
-          "type": "object"
+          "title": "DeleteFileChange"
         },
         {
+          "type": "object",
+          "required": [
+            "type",
+            "unified_diff"
+          ],
           "properties": {
             "move_path": {
               "type": [
@@ -555,26 +814,27 @@
               ]
             },
             "type": {
+              "type": "string",
               "enum": [
                 "update"
               ],
-              "title": "UpdateFileChangeType",
-              "type": "string"
+              "title": "UpdateFileChangeType"
             },
             "unified_diff": {
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "unified_diff"
-          ],
-          "title": "UpdateFileChange",
-          "type": "object"
+          "title": "UpdateFileChange"
         }
       ]
     },
     "FileChangeRequestApprovalParams": {
+      "type": "object",
+      "required": [
+        "itemId",
+        "threadId",
+        "turnId"
+      ],
       "properties": {
         "grantRoot": {
           "description": "[UNSTABLE] When set, the agent is asking the user to allow writes under this root for the remainder of the session (unclear if this is honored today).",
@@ -599,22 +859,215 @@
         "turnId": {
           "type": "string"
         }
-      },
+      }
+    },
+    "FileSystemAccessMode": {
+      "type": "string",
+      "enum": [
+        "read",
+        "write",
+        "none"
+      ]
+    },
+    "FileSystemPath": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "path",
+            "type"
+          ],
+          "properties": {
+            "path": {
+              "$ref": "#/definitions/AbsolutePathBuf"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "path"
+              ],
+              "title": "PathFileSystemPathType"
+            }
+          },
+          "title": "PathFileSystemPath"
+        },
+        {
+          "type": "object",
+          "required": [
+            "pattern",
+            "type"
+          ],
+          "properties": {
+            "pattern": {
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "glob_pattern"
+              ],
+              "title": "GlobPatternFileSystemPathType"
+            }
+          },
+          "title": "GlobPatternFileSystemPath"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "value"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "special"
+              ],
+              "title": "SpecialFileSystemPathType"
+            },
+            "value": {
+              "$ref": "#/definitions/FileSystemSpecialPath"
+            }
+          },
+          "title": "SpecialFileSystemPath"
+        }
+      ]
+    },
+    "FileSystemSandboxEntry": {
+      "type": "object",
       "required": [
-        "itemId",
-        "threadId",
-        "turnId"
+        "access",
+        "path"
       ],
-      "type": "object"
+      "properties": {
+        "access": {
+          "$ref": "#/definitions/FileSystemAccessMode"
+        },
+        "path": {
+          "$ref": "#/definitions/FileSystemPath"
+        }
+      }
+    },
+    "FileSystemSpecialPath": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "root"
+              ]
+            }
+          },
+          "title": "RootFileSystemSpecialPath"
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "minimal"
+              ]
+            }
+          },
+          "title": "MinimalFileSystemSpecialPath"
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "project_roots"
+              ]
+            },
+            "subpath": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "title": "KindFileSystemSpecialPath"
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "tmpdir"
+              ]
+            }
+          },
+          "title": "TmpdirFileSystemSpecialPath"
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "slash_tmp"
+              ]
+            }
+          },
+          "title": "SlashTmpFileSystemSpecialPath"
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "path"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "unknown"
+              ]
+            },
+            "path": {
+              "type": "string"
+            },
+            "subpath": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      ]
     },
     "McpElicitationArrayType": {
+      "type": "string",
       "enum": [
         "array"
-      ],
-      "type": "string"
+      ]
     },
     "McpElicitationBooleanSchema": {
-      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "type"
+      ],
       "properties": {
         "default": {
           "type": [
@@ -638,19 +1091,20 @@
           "$ref": "#/definitions/McpElicitationBooleanType"
         }
       },
-      "required": [
-        "type"
-      ],
-      "type": "object"
+      "additionalProperties": false
     },
     "McpElicitationBooleanType": {
+      "type": "string",
       "enum": [
         "boolean"
-      ],
-      "type": "string"
+      ]
     },
     "McpElicitationConstOption": {
-      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "const",
+        "title"
+      ],
       "properties": {
         "const": {
           "type": "string"
@@ -659,11 +1113,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "const",
-        "title"
-      ],
-      "type": "object"
+      "additionalProperties": false
     },
     "McpElicitationEnumSchema": {
       "anyOf": [
@@ -679,7 +1129,11 @@
       ]
     },
     "McpElicitationLegacyTitledEnumSchema": {
-      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "enum",
+        "type"
+      ],
       "properties": {
         "default": {
           "type": [
@@ -694,19 +1148,19 @@
           ]
         },
         "enum": {
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         },
         "enumNames": {
-          "items": {
-            "type": "string"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "title": {
           "type": [
@@ -718,11 +1172,7 @@
           "$ref": "#/definitions/McpElicitationStringType"
         }
       },
-      "required": [
-        "enum",
-        "type"
-      ],
-      "type": "object"
+      "additionalProperties": false
     },
     "McpElicitationMultiSelectEnumSchema": {
       "anyOf": [
@@ -735,14 +1185,17 @@
       ]
     },
     "McpElicitationNumberSchema": {
-      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "type"
+      ],
       "properties": {
         "default": {
-          "format": "double",
           "type": [
             "number",
             "null"
-          ]
+          ],
+          "format": "double"
         },
         "description": {
           "type": [
@@ -751,18 +1204,18 @@
           ]
         },
         "maximum": {
-          "format": "double",
           "type": [
             "number",
             "null"
-          ]
+          ],
+          "format": "double"
         },
         "minimum": {
-          "format": "double",
           "type": [
             "number",
             "null"
-          ]
+          ],
+          "format": "double"
         },
         "title": {
           "type": [
@@ -774,23 +1227,20 @@
           "$ref": "#/definitions/McpElicitationNumberType"
         }
       },
-      "required": [
-        "type"
-      ],
-      "type": "object"
+      "additionalProperties": false
     },
     "McpElicitationNumberType": {
+      "type": "string",
       "enum": [
         "number",
         "integer"
-      ],
-      "type": "string"
+      ]
     },
     "McpElicitationObjectType": {
+      "type": "string",
       "enum": [
         "object"
-      ],
-      "type": "string"
+      ]
     },
     "McpElicitationPrimitiveSchema": {
       "anyOf": [
@@ -809,8 +1259,12 @@
       ]
     },
     "McpElicitationSchema": {
-      "additionalProperties": false,
       "description": "Typed form schema for MCP `elicitation/create` requests.\n\nThis matches the `requestedSchema` shape from the MCP 2025-11-25 `ElicitRequestFormParams` schema.",
+      "type": "object",
+      "required": [
+        "properties",
+        "type"
+      ],
       "properties": {
         "$schema": {
           "type": [
@@ -819,29 +1273,25 @@
           ]
         },
         "properties": {
+          "type": "object",
           "additionalProperties": {
             "$ref": "#/definitions/McpElicitationPrimitiveSchema"
-          },
-          "type": "object"
+          }
         },
         "required": {
-          "items": {
-            "type": "string"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "type": {
           "$ref": "#/definitions/McpElicitationObjectType"
         }
       },
-      "required": [
-        "properties",
-        "type"
-      ],
-      "type": "object"
+      "additionalProperties": false
     },
     "McpElicitationSingleSelectEnumSchema": {
       "anyOf": [
@@ -854,16 +1304,19 @@
       ]
     },
     "McpElicitationStringFormat": {
+      "type": "string",
       "enum": [
         "email",
         "uri",
         "date",
         "date-time"
-      ],
-      "type": "string"
+      ]
     },
     "McpElicitationStringSchema": {
-      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "type"
+      ],
       "properties": {
         "default": {
           "type": [
@@ -888,20 +1341,20 @@
           ]
         },
         "maxLength": {
-          "format": "uint32",
-          "minimum": 0.0,
           "type": [
             "integer",
             "null"
-          ]
+          ],
+          "format": "uint32",
+          "minimum": 0.0
         },
         "minLength": {
-          "format": "uint32",
-          "minimum": 0.0,
           "type": [
             "integer",
             "null"
-          ]
+          ],
+          "format": "uint32",
+          "minimum": 0.0
         },
         "title": {
           "type": [
@@ -913,43 +1366,44 @@
           "$ref": "#/definitions/McpElicitationStringType"
         }
       },
-      "required": [
-        "type"
-      ],
-      "type": "object"
+      "additionalProperties": false
     },
     "McpElicitationStringType": {
+      "type": "string",
       "enum": [
         "string"
-      ],
-      "type": "string"
+      ]
     },
     "McpElicitationTitledEnumItems": {
-      "additionalProperties": false,
-      "properties": {
-        "anyOf": {
-          "items": {
-            "$ref": "#/definitions/McpElicitationConstOption"
-          },
-          "type": "array"
-        }
-      },
+      "type": "object",
       "required": [
         "anyOf"
       ],
-      "type": "object"
+      "properties": {
+        "anyOf": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/McpElicitationConstOption"
+          }
+        }
+      },
+      "additionalProperties": false
     },
     "McpElicitationTitledMultiSelectEnumSchema": {
-      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "items",
+        "type"
+      ],
       "properties": {
         "default": {
-          "items": {
-            "type": "string"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "description": {
           "type": [
@@ -961,20 +1415,20 @@
           "$ref": "#/definitions/McpElicitationTitledEnumItems"
         },
         "maxItems": {
-          "format": "uint64",
-          "minimum": 0.0,
           "type": [
             "integer",
             "null"
-          ]
+          ],
+          "format": "uint64",
+          "minimum": 0.0
         },
         "minItems": {
-          "format": "uint64",
-          "minimum": 0.0,
           "type": [
             "integer",
             "null"
-          ]
+          ],
+          "format": "uint64",
+          "minimum": 0.0
         },
         "title": {
           "type": [
@@ -986,14 +1440,14 @@
           "$ref": "#/definitions/McpElicitationArrayType"
         }
       },
-      "required": [
-        "items",
-        "type"
-      ],
-      "type": "object"
+      "additionalProperties": false
     },
     "McpElicitationTitledSingleSelectEnumSchema": {
-      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "oneOf",
+        "type"
+      ],
       "properties": {
         "default": {
           "type": [
@@ -1008,10 +1462,10 @@
           ]
         },
         "oneOf": {
+          "type": "array",
           "items": {
             "$ref": "#/definitions/McpElicitationConstOption"
-          },
-          "type": "array"
+          }
         },
         "title": {
           "type": [
@@ -1023,42 +1477,42 @@
           "$ref": "#/definitions/McpElicitationStringType"
         }
       },
-      "required": [
-        "oneOf",
-        "type"
-      ],
-      "type": "object"
+      "additionalProperties": false
     },
     "McpElicitationUntitledEnumItems": {
-      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "enum",
+        "type"
+      ],
       "properties": {
         "enum": {
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         },
         "type": {
           "$ref": "#/definitions/McpElicitationStringType"
         }
       },
-      "required": [
-        "enum",
-        "type"
-      ],
-      "type": "object"
+      "additionalProperties": false
     },
     "McpElicitationUntitledMultiSelectEnumSchema": {
-      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "items",
+        "type"
+      ],
       "properties": {
         "default": {
-          "items": {
-            "type": "string"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "type": "string"
+          }
         },
         "description": {
           "type": [
@@ -1070,20 +1524,20 @@
           "$ref": "#/definitions/McpElicitationUntitledEnumItems"
         },
         "maxItems": {
-          "format": "uint64",
-          "minimum": 0.0,
           "type": [
             "integer",
             "null"
-          ]
+          ],
+          "format": "uint64",
+          "minimum": 0.0
         },
         "minItems": {
-          "format": "uint64",
-          "minimum": 0.0,
           "type": [
             "integer",
             "null"
-          ]
+          ],
+          "format": "uint64",
+          "minimum": 0.0
         },
         "title": {
           "type": [
@@ -1095,14 +1549,14 @@
           "$ref": "#/definitions/McpElicitationArrayType"
         }
       },
-      "required": [
-        "items",
-        "type"
-      ],
-      "type": "object"
+      "additionalProperties": false
     },
     "McpElicitationUntitledSingleSelectEnumSchema": {
-      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "enum",
+        "type"
+      ],
       "properties": {
         "default": {
           "type": [
@@ -1117,10 +1571,10 @@
           ]
         },
         "enum": {
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         },
         "title": {
           "type": [
@@ -1132,38 +1586,42 @@
           "$ref": "#/definitions/McpElicitationStringType"
         }
       },
-      "required": [
-        "enum",
-        "type"
-      ],
-      "type": "object"
+      "additionalProperties": false
     },
     "McpServerElicitationRequestParams": {
+      "type": "object",
       "oneOf": [
         {
+          "type": "object",
+          "required": [
+            "message",
+            "mode",
+            "requestedSchema"
+          ],
           "properties": {
             "_meta": true,
             "message": {
               "type": "string"
             },
             "mode": {
+              "type": "string",
               "enum": [
                 "form"
-              ],
-              "type": "string"
+              ]
             },
             "requestedSchema": {
               "$ref": "#/definitions/McpElicitationSchema"
             }
-          },
-          "required": [
-            "message",
-            "mode",
-            "requestedSchema"
-          ],
-          "type": "object"
+          }
         },
         {
+          "type": "object",
+          "required": [
+            "elicitationId",
+            "message",
+            "mode",
+            "url"
+          ],
           "properties": {
             "_meta": true,
             "elicitationId": {
@@ -1173,23 +1631,20 @@
               "type": "string"
             },
             "mode": {
+              "type": "string",
               "enum": [
                 "url"
-              ],
-              "type": "string"
+              ]
             },
             "url": {
               "type": "string"
             }
-          },
-          "required": [
-            "elicitationId",
-            "message",
-            "mode",
-            "url"
-          ],
-          "type": "object"
+          }
         }
+      ],
+      "required": [
+        "serverName",
+        "threadId"
       ],
       "properties": {
         "serverName": {
@@ -1205,14 +1660,14 @@
             "null"
           ]
         }
-      },
-      "required": [
-        "serverName",
-        "threadId"
-      ],
-      "type": "object"
+      }
     },
     "NetworkApprovalContext": {
+      "type": "object",
+      "required": [
+        "host",
+        "protocol"
+      ],
       "properties": {
         "host": {
           "type": "string"
@@ -1220,23 +1675,23 @@
         "protocol": {
           "$ref": "#/definitions/NetworkApprovalProtocol"
         }
-      },
-      "required": [
-        "host",
-        "protocol"
-      ],
-      "type": "object"
+      }
     },
     "NetworkApprovalProtocol": {
+      "type": "string",
       "enum": [
         "http",
         "https",
         "socks5Tcp",
         "socks5Udp"
-      ],
-      "type": "string"
+      ]
     },
     "NetworkPolicyAmendment": {
+      "type": "object",
+      "required": [
+        "action",
+        "host"
+      ],
       "properties": {
         "action": {
           "$ref": "#/definitions/NetworkPolicyRuleAction"
@@ -1244,23 +1699,25 @@
         "host": {
           "type": "string"
         }
-      },
-      "required": [
-        "action",
-        "host"
-      ],
-      "type": "object"
+      }
     },
     "NetworkPolicyRuleAction": {
+      "type": "string",
       "enum": [
         "allow",
         "deny"
-      ],
-      "type": "string"
+      ]
     },
     "ParsedCommand": {
       "oneOf": [
         {
+          "type": "object",
+          "required": [
+            "cmd",
+            "name",
+            "path",
+            "type"
+          ],
           "properties": {
             "cmd": {
               "type": "string"
@@ -1273,23 +1730,21 @@
               "type": "string"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "read"
               ],
-              "title": "ReadParsedCommandType",
-              "type": "string"
+              "title": "ReadParsedCommandType"
             }
           },
-          "required": [
-            "cmd",
-            "name",
-            "path",
-            "type"
-          ],
-          "title": "ReadParsedCommand",
-          "type": "object"
+          "title": "ReadParsedCommand"
         },
         {
+          "type": "object",
+          "required": [
+            "cmd",
+            "type"
+          ],
           "properties": {
             "cmd": {
               "type": "string"
@@ -1301,21 +1756,21 @@
               ]
             },
             "type": {
+              "type": "string",
               "enum": [
                 "list_files"
               ],
-              "title": "ListFilesParsedCommandType",
-              "type": "string"
+              "title": "ListFilesParsedCommandType"
             }
           },
+          "title": "ListFilesParsedCommand"
+        },
+        {
+          "type": "object",
           "required": [
             "cmd",
             "type"
           ],
-          "title": "ListFilesParsedCommand",
-          "type": "object"
-        },
-        {
           "properties": {
             "cmd": {
               "type": "string"
@@ -1333,44 +1788,50 @@
               ]
             },
             "type": {
+              "type": "string",
               "enum": [
                 "search"
               ],
-              "title": "SearchParsedCommandType",
-              "type": "string"
+              "title": "SearchParsedCommandType"
             }
           },
+          "title": "SearchParsedCommand"
+        },
+        {
+          "type": "object",
           "required": [
             "cmd",
             "type"
           ],
-          "title": "SearchParsedCommand",
-          "type": "object"
-        },
-        {
           "properties": {
             "cmd": {
               "type": "string"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "unknown"
               ],
-              "title": "UnknownParsedCommandType",
-              "type": "string"
+              "title": "UnknownParsedCommandType"
             }
           },
-          "required": [
-            "cmd",
-            "type"
-          ],
-          "title": "UnknownParsedCommand",
-          "type": "object"
+          "title": "UnknownParsedCommand"
         }
       ]
     },
     "PermissionsRequestApprovalParams": {
+      "type": "object",
+      "required": [
+        "cwd",
+        "itemId",
+        "permissions",
+        "threadId",
+        "turnId"
+      ],
       "properties": {
+        "cwd": {
+          "$ref": "#/definitions/AbsolutePathBuf"
+        },
         "itemId": {
           "type": "string"
         },
@@ -1389,14 +1850,7 @@
         "turnId": {
           "type": "string"
         }
-      },
-      "required": [
-        "itemId",
-        "permissions",
-        "threadId",
-        "turnId"
-      ],
-      "type": "object"
+      }
     },
     "RequestId": {
       "anyOf": [
@@ -1404,13 +1858,13 @@
           "type": "string"
         },
         {
-          "format": "int64",
-          "type": "integer"
+          "type": "integer",
+          "format": "int64"
         }
       ]
     },
     "RequestPermissionProfile": {
-      "additionalProperties": false,
+      "type": "object",
       "properties": {
         "fileSystem": {
           "anyOf": [
@@ -1433,13 +1887,18 @@
           ]
         }
       },
-      "type": "object"
+      "additionalProperties": false
     },
     "ThreadId": {
       "type": "string"
     },
     "ToolRequestUserInputOption": {
       "description": "EXPERIMENTAL. Defines a single selectable option for request_user_input.",
+      "type": "object",
+      "required": [
+        "description",
+        "label"
+      ],
       "properties": {
         "description": {
           "type": "string"
@@ -1447,24 +1906,26 @@
         "label": {
           "type": "string"
         }
-      },
-      "required": [
-        "description",
-        "label"
-      ],
-      "type": "object"
+      }
     },
     "ToolRequestUserInputParams": {
       "description": "EXPERIMENTAL. Params sent with a request_user_input event.",
+      "type": "object",
+      "required": [
+        "itemId",
+        "questions",
+        "threadId",
+        "turnId"
+      ],
       "properties": {
         "itemId": {
           "type": "string"
         },
         "questions": {
+          "type": "array",
           "items": {
             "$ref": "#/definitions/ToolRequestUserInputQuestion"
-          },
-          "type": "array"
+          }
         },
         "threadId": {
           "type": "string"
@@ -1472,17 +1933,16 @@
         "turnId": {
           "type": "string"
         }
-      },
-      "required": [
-        "itemId",
-        "questions",
-        "threadId",
-        "turnId"
-      ],
-      "type": "object"
+      }
     },
     "ToolRequestUserInputQuestion": {
       "description": "EXPERIMENTAL. Represents one request_user_input question and its required options.",
+      "type": "object",
+      "required": [
+        "header",
+        "id",
+        "question"
+      ],
       "properties": {
         "header": {
           "type": "string"
@@ -1499,252 +1959,18 @@
           "type": "boolean"
         },
         "options": {
-          "items": {
-            "$ref": "#/definitions/ToolRequestUserInputOption"
-          },
           "type": [
             "array",
             "null"
-          ]
+          ],
+          "items": {
+            "$ref": "#/definitions/ToolRequestUserInputOption"
+          }
         },
         "question": {
           "type": "string"
         }
-      },
-      "required": [
-        "header",
-        "id",
-        "question"
-      ],
-      "type": "object"
+      }
     }
-  },
-  "description": "Request initiated from the server and sent to the client.",
-  "oneOf": [
-    {
-      "description": "NEW APIs Sent when approval is requested for a specific command execution. This request is used for Turns started via turn/start.",
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/RequestId"
-        },
-        "method": {
-          "enum": [
-            "item/commandExecution/requestApproval"
-          ],
-          "title": "Item/commandExecution/requestApprovalRequestMethod",
-          "type": "string"
-        },
-        "params": {
-          "$ref": "#/definitions/CommandExecutionRequestApprovalParams"
-        }
-      },
-      "required": [
-        "id",
-        "method",
-        "params"
-      ],
-      "title": "Item/commandExecution/requestApprovalRequest",
-      "type": "object"
-    },
-    {
-      "description": "Sent when approval is requested for a specific file change. This request is used for Turns started via turn/start.",
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/RequestId"
-        },
-        "method": {
-          "enum": [
-            "item/fileChange/requestApproval"
-          ],
-          "title": "Item/fileChange/requestApprovalRequestMethod",
-          "type": "string"
-        },
-        "params": {
-          "$ref": "#/definitions/FileChangeRequestApprovalParams"
-        }
-      },
-      "required": [
-        "id",
-        "method",
-        "params"
-      ],
-      "title": "Item/fileChange/requestApprovalRequest",
-      "type": "object"
-    },
-    {
-      "description": "EXPERIMENTAL - Request input from the user for a tool call.",
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/RequestId"
-        },
-        "method": {
-          "enum": [
-            "item/tool/requestUserInput"
-          ],
-          "title": "Item/tool/requestUserInputRequestMethod",
-          "type": "string"
-        },
-        "params": {
-          "$ref": "#/definitions/ToolRequestUserInputParams"
-        }
-      },
-      "required": [
-        "id",
-        "method",
-        "params"
-      ],
-      "title": "Item/tool/requestUserInputRequest",
-      "type": "object"
-    },
-    {
-      "description": "Request input for an MCP server elicitation.",
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/RequestId"
-        },
-        "method": {
-          "enum": [
-            "mcpServer/elicitation/request"
-          ],
-          "title": "McpServer/elicitation/requestRequestMethod",
-          "type": "string"
-        },
-        "params": {
-          "$ref": "#/definitions/McpServerElicitationRequestParams"
-        }
-      },
-      "required": [
-        "id",
-        "method",
-        "params"
-      ],
-      "title": "McpServer/elicitation/requestRequest",
-      "type": "object"
-    },
-    {
-      "description": "Request approval for additional permissions from the user.",
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/RequestId"
-        },
-        "method": {
-          "enum": [
-            "item/permissions/requestApproval"
-          ],
-          "title": "Item/permissions/requestApprovalRequestMethod",
-          "type": "string"
-        },
-        "params": {
-          "$ref": "#/definitions/PermissionsRequestApprovalParams"
-        }
-      },
-      "required": [
-        "id",
-        "method",
-        "params"
-      ],
-      "title": "Item/permissions/requestApprovalRequest",
-      "type": "object"
-    },
-    {
-      "description": "Execute a dynamic tool call on the client.",
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/RequestId"
-        },
-        "method": {
-          "enum": [
-            "item/tool/call"
-          ],
-          "title": "Item/tool/callRequestMethod",
-          "type": "string"
-        },
-        "params": {
-          "$ref": "#/definitions/DynamicToolCallParams"
-        }
-      },
-      "required": [
-        "id",
-        "method",
-        "params"
-      ],
-      "title": "Item/tool/callRequest",
-      "type": "object"
-    },
-    {
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/RequestId"
-        },
-        "method": {
-          "enum": [
-            "account/chatgptAuthTokens/refresh"
-          ],
-          "title": "Account/chatgptAuthTokens/refreshRequestMethod",
-          "type": "string"
-        },
-        "params": {
-          "$ref": "#/definitions/ChatgptAuthTokensRefreshParams"
-        }
-      },
-      "required": [
-        "id",
-        "method",
-        "params"
-      ],
-      "title": "Account/chatgptAuthTokens/refreshRequest",
-      "type": "object"
-    },
-    {
-      "description": "DEPRECATED APIs below Request to approve a patch. This request is used for Turns started via the legacy APIs (i.e. SendUserTurn, SendUserMessage).",
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/RequestId"
-        },
-        "method": {
-          "enum": [
-            "applyPatchApproval"
-          ],
-          "title": "ApplyPatchApprovalRequestMethod",
-          "type": "string"
-        },
-        "params": {
-          "$ref": "#/definitions/ApplyPatchApprovalParams"
-        }
-      },
-      "required": [
-        "id",
-        "method",
-        "params"
-      ],
-      "title": "ApplyPatchApprovalRequest",
-      "type": "object"
-    },
-    {
-      "description": "Request to exec a command. This request is used for Turns started via the legacy APIs (i.e. SendUserTurn, SendUserMessage).",
-      "properties": {
-        "id": {
-          "$ref": "#/definitions/RequestId"
-        },
-        "method": {
-          "enum": [
-            "execCommandApproval"
-          ],
-          "title": "ExecCommandApprovalRequestMethod",
-          "type": "string"
-        },
-        "params": {
-          "$ref": "#/definitions/ExecCommandApprovalParams"
-        }
-      },
-      "required": [
-        "id",
-        "method",
-        "params"
-      ],
-      "title": "ExecCommandApprovalRequest",
-      "type": "object"
-    }
-  ],
-  "title": "ServerRequest"
+  }
 }

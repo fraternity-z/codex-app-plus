@@ -12,7 +12,7 @@ Codex App Plus is a Windows desktop shell for Codex, built with React + TypeScri
 
 - `AGENTS.md` contains a Trellis-managed instruction block. At the start of a fresh AI workflow, use `/trellis:start` and check `@/.trellis/` if that workflow is present in the repo.
 - There is no dedicated lint script in `package.json`; do not claim linting exists unless you add/configure it.
-- Runtime and generated protocol artifacts are documented as aligned with `codex-cli 0.114.0`. If protocol behavior looks inconsistent, check the local `codex --version` first.
+- Runtime and generated protocol artifacts are documented as aligned with `codex-cli 0.128.0`. If protocol behavior looks inconsistent, check the local `codex --version` first.
 
 ## Common commands
 

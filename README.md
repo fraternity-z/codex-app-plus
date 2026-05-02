@@ -36,7 +36,7 @@ Codex App Plus is an enhanced Windows desktop client for Codex, built with `Reac
 - Windows OS
 - Node.js LTS + pnpm
 - Rust toolchain
-- Official `codex` CLI (aligned to v0.114.0)
+- Official `codex` CLI (aligned to v0.128.0)
 
 ## Quick Start
 

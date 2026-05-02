@@ -1,5 +1,18 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JSONRPCResponse",
+  "description": "A successful (non-error) response to a request.",
+  "type": "object",
+  "required": [
+    "id",
+    "result"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "#/definitions/RequestId"
+    },
+    "result": true
+  },
   "definitions": {
     "RequestId": {
       "anyOf": [
@@ -7,23 +20,10 @@
           "type": "string"
         },
         {
-          "format": "int64",
-          "type": "integer"
+          "type": "integer",
+          "format": "int64"
         }
       ]
     }
-  },
-  "description": "A successful (non-error) response to a request.",
-  "properties": {
-    "id": {
-      "$ref": "#/definitions/RequestId"
-    },
-    "result": true
-  },
-  "required": [
-    "id",
-    "result"
-  ],
-  "title": "JSONRPCResponse",
-  "type": "object"
+  }
 }

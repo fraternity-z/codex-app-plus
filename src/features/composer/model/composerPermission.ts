@@ -1,5 +1,4 @@
 import type { AskForApproval } from "../../../protocol/generated/v2/AskForApproval";
-import type { ReadOnlyAccess } from "../../../protocol/generated/v2/ReadOnlyAccess";
 import type { SandboxMode } from "../../../protocol/generated/v2/SandboxMode";
 import type { SandboxPolicy } from "../../../protocol/generated/v2/SandboxPolicy";
 import type { ThreadStartParams } from "../../../protocol/generated/v2/ThreadStartParams";
@@ -27,12 +26,6 @@ export const DEFAULT_COMPOSER_PERMISSION_SETTINGS = Object.freeze<ComposerPermis
   fullSandboxMode: DEFAULT_COMPOSER_FULL_SANDBOX_MODE
 });
 
-const RESTRICTED_READ_ONLY_ACCESS: ReadOnlyAccess = {
-  type: "restricted",
-  includePlatformDefaults: true,
-  readableRoots: []
-};
-
 type ThreadPermissionOverrides = Pick<ThreadStartParams, "approvalPolicy" | "sandbox">;
 type TurnPermissionOverrides = Pick<TurnStartParams, "approvalPolicy" | "sandboxPolicy">;
 
@@ -47,7 +40,6 @@ export function isComposerApprovalPolicy(value: unknown): value is ComposerAppro
 function createReadOnlySandboxPolicy(): SandboxPolicy {
   return {
     type: "readOnly",
-    access: RESTRICTED_READ_ONLY_ACCESS,
     networkAccess: false
   };
 }
@@ -56,7 +48,6 @@ function createWorkspaceWriteSandboxPolicy(): SandboxPolicy {
   return {
     type: "workspaceWrite",
     writableRoots: [],
-    readOnlyAccess: RESTRICTED_READ_ONLY_ACCESS,
     networkAccess: false,
     excludeTmpdirEnvVar: false,
     excludeSlashTmp: false
