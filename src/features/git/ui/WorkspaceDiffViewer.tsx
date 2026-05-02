@@ -14,6 +14,7 @@ interface WorkspaceDiffViewerProps {
   readonly error: string | null;
   readonly items: ReadonlyArray<GitWorkspaceDiffOutput>;
   readonly loading: boolean;
+  readonly onLoadDiff: (item: GitWorkspaceDiffOutput) => Promise<void>;
   readonly onDiscardPaths: (paths: ReadonlyArray<string>, deleteUntracked: boolean) => Promise<void>;
   readonly onStagePaths: (paths: ReadonlyArray<string>) => Promise<void>;
   readonly onUnstagePaths: (paths: ReadonlyArray<string>) => Promise<void>;
@@ -177,6 +178,7 @@ export function WorkspaceDiffViewer(props: WorkspaceDiffViewerProps): JSX.Elemen
                     expanded={!collapsedKeys.has(itemKey)}
                     item={item}
                     onDiscardPaths={props.onDiscardPaths}
+                    onLoadDiff={props.onLoadDiff}
                     onStagePaths={props.onStagePaths}
                     onToggleExpanded={toggleCollapsed}
                     onUnstagePaths={props.onUnstagePaths}

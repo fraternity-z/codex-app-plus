@@ -125,8 +125,15 @@ function createController(overrides?: Partial<WorkspaceGitController>): Workspac
   };
 }
 
-function createHostBridge(getWorkspaceDiffs: ReturnType<typeof vi.fn>): HostBridge {
-  return { git: { getWorkspaceDiffs } } as unknown as HostBridge;
+function createHostBridge(
+  getWorkspaceDiffs: ReturnType<typeof vi.fn>,
+  getDiff: ReturnType<typeof vi.fn> = vi.fn().mockImplementation(async ({ path, staged }: { readonly path: string; readonly staged: boolean }) => ({
+    path,
+    staged,
+    diff: "@@ -1 +1 @@\n-console.log('old')\n+console.log('new')",
+  })),
+): HostBridge {
+  return { git: { getWorkspaceDiffs, getDiff } } as unknown as HostBridge;
 }
 
 function renderSidebar(
@@ -201,15 +208,31 @@ describe("WorkspaceDiffSidebar", () => {
   });
 
   it("loads batch diffs and renders the continuous viewer", async () => {
-    const getWorkspaceDiffs = vi.fn().mockResolvedValue([createViewerDiff()]);
+    const getWorkspaceDiffs = vi.fn().mockResolvedValue([createViewerDiff({
+      diff: "",
+      diffLoaded: false,
+      additions: 0,
+      deletions: 0,
+    })]);
+    const getDiff = vi.fn().mockResolvedValue({
+      path: "src/App.tsx",
+      staged: false,
+      diff: "@@ -1 +1 @@\n-console.log('old')\n+console.log('new')",
+    });
     renderSidebar(
       createController({ status: createStatus({ unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }] }) }),
-      createHostBridge(getWorkspaceDiffs),
+      createHostBridge(getWorkspaceDiffs, getDiff),
     );
 
     await waitFor(() => expect(getWorkspaceDiffs).toHaveBeenCalledWith({
       repoPath: "E:/code/project",
       scope: "unstaged",
+      ignoreWhitespaceChanges: false,
+    }));
+    await waitFor(() => expect(getDiff).toHaveBeenCalledWith({
+      repoPath: "E:/code/project",
+      path: "src/App.tsx",
+      staged: false,
       ignoreWhitespaceChanges: false,
     }));
     const collapseButton = await screen.findByRole("button", { name: "折叠 src/App.tsx" });

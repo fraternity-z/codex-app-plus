@@ -4,6 +4,7 @@ import type {
   GitWorkspaceDiffOutput,
   HostBridge,
 } from "../../../bridge/types";
+import { createGitDiffKey } from "../model/gitDiffKey";
 import type { GitChangeScope } from "../ui/GitChangeBrowser";
 
 export interface WorkspaceDiffViewerSummary {
@@ -52,12 +53,51 @@ function calculateSummary(items: ReadonlyArray<GitWorkspaceDiffOutput>): Workspa
   );
 }
 
+function countDiffStats(diff: string): Pick<WorkspaceDiffViewerSummary, "additions" | "deletions"> {
+  let additions = 0;
+  let deletions = 0;
+  for (const line of diff.split("\n")) {
+    if (
+      line.length === 0 ||
+      line.startsWith("+++") ||
+      line.startsWith("---") ||
+      line.startsWith("diff --git") ||
+      line.startsWith("@@") ||
+      line.startsWith("index ") ||
+      line.startsWith("\\ No newline")
+    ) {
+      continue;
+    }
+    if (line.startsWith("+")) {
+      additions += 1;
+      continue;
+    }
+    if (line.startsWith("-")) {
+      deletions += 1;
+    }
+  }
+  return { additions, deletions };
+}
+
+function isSameDiffItem(left: GitWorkspaceDiffOutput, right: GitWorkspaceDiffOutput): boolean {
+  return left.path === right.path && left.staged === right.staged;
+}
+
+function isDiffLoaded(item: GitWorkspaceDiffOutput): boolean {
+  return item.diffLoaded === true || item.diff.length > 0;
+}
+
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export function useWorkspaceDiffViewer(options: UseWorkspaceDiffViewerOptions) {
   const { enabled, hostBridge, ignoreWhitespaceChanges = false, repoPath, scope, status } = options;
   const [items, setItems] = useState<ReadonlyArray<GitWorkspaceDiffOutput>>([]);
   const [loading, setLoading] = useState(() => shouldStartLoading(enabled, repoPath, status));
   const [error, setError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+  const loadingDiffKeysRef = useRef(new Set<string>());
   const statusSignature = useMemo(() => createStatusSignature(status), [status]);
 
   const refresh = useCallback(async () => {
@@ -69,6 +109,7 @@ export function useWorkspaceDiffViewer(options: UseWorkspaceDiffViewerOptions) {
     }
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
+    loadingDiffKeysRef.current.clear();
     setLoading(true);
     setError(null);
     try {
@@ -94,6 +135,71 @@ export function useWorkspaceDiffViewer(options: UseWorkspaceDiffViewerOptions) {
     }
   }, [enabled, hostBridge.git, ignoreWhitespaceChanges, repoPath, scope, status]);
 
+  const loadDiff = useCallback(async (item: GitWorkspaceDiffOutput) => {
+    if (!enabled || repoPath === null || isDiffLoaded(item)) {
+      return;
+    }
+    const diffKey = createGitDiffKey(item.path, item.staged);
+    if (loadingDiffKeysRef.current.has(diffKey)) {
+      return;
+    }
+    loadingDiffKeysRef.current.add(diffKey);
+    const listRequestId = requestIdRef.current;
+    setItems((currentItems) => currentItems.map((currentItem) => {
+      if (!isSameDiffItem(currentItem, item)) {
+        return currentItem;
+      }
+      return {
+        ...currentItem,
+        diffLoading: true,
+        diffError: null,
+      };
+    }));
+
+    try {
+      const output = await hostBridge.git.getDiff({
+        repoPath,
+        path: item.path,
+        staged: item.staged,
+        ignoreWhitespaceChanges,
+      });
+      const stats = countDiffStats(output.diff);
+      if (listRequestId !== requestIdRef.current) {
+        return;
+      }
+      setItems((currentItems) => currentItems.map((currentItem) => {
+        if (!isSameDiffItem(currentItem, item)) {
+          return currentItem;
+        }
+        return {
+          ...currentItem,
+          diff: output.diff,
+          diffLoaded: true,
+          diffLoading: false,
+          diffError: null,
+          additions: stats.additions,
+          deletions: stats.deletions,
+        };
+      }));
+    } catch (reason) {
+      if (listRequestId !== requestIdRef.current) {
+        return;
+      }
+      setItems((currentItems) => currentItems.map((currentItem) => {
+        if (!isSameDiffItem(currentItem, item)) {
+          return currentItem;
+        }
+        return {
+          ...currentItem,
+          diffLoading: false,
+          diffError: toErrorMessage(reason),
+        };
+      }));
+    } finally {
+      loadingDiffKeysRef.current.delete(diffKey);
+    }
+  }, [enabled, hostBridge.git, ignoreWhitespaceChanges, repoPath]);
+
   useEffect(() => {
     void refresh();
   }, [refresh, statusSignature]);
@@ -106,5 +212,6 @@ export function useWorkspaceDiffViewer(options: UseWorkspaceDiffViewerOptions) {
     loading,
     error,
     refresh,
+    loadDiff,
   };
 }

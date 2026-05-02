@@ -15,6 +15,7 @@ export interface GitDiscardInput extends GitPathsInput {
 export interface GitDiffInput extends GitRepoInput {
   readonly path: string;
   readonly staged: boolean;
+  readonly ignoreWhitespaceChanges?: boolean;
 }
 
 export type GitWorkspaceDiffScope = "unstaged" | "staged" | "all";
@@ -109,6 +110,9 @@ export interface GitWorkspaceDiffOutput {
   readonly staged: boolean;
   readonly section: GitWorkspaceDiffSection;
   readonly diff: string;
+  readonly diffLoaded?: boolean;
+  readonly diffLoading?: boolean;
+  readonly diffError?: string | null;
   readonly additions: number;
   readonly deletions: number;
 }

@@ -8,9 +8,11 @@ use crate::models::{
     SearchCodexSessionsInput,
 };
 use serde_json::Value;
+use std::collections::HashSet;
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 use std::time::Instant;
 use tauri::AppHandle;
 
@@ -22,6 +24,7 @@ const SUMMARY_TAIL_BYTES: u64 = 64 * 1024;
 const DEFAULT_SEARCH_LIMIT: usize = 20;
 const MAX_SEARCH_LIMIT: usize = 100;
 const MAX_MATCHES_PER_SESSION: usize = 3;
+static SESSION_INDEX_REFRESHES: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
 
 struct SessionHeader {
     session_id: String,
@@ -34,8 +37,16 @@ pub fn list_codex_sessions(
     agent_environment: AgentEnvironment,
 ) -> AppResult<Vec<CodexSessionSummary>> {
     let root = codex_sessions_root(agent_environment)?;
-    let sessions = index::list_cached_session_summaries(&root, agent_environment)?;
-    if index::session_index_needs_refresh(&root, agent_environment)? {
+    let refresh_key = session_index_refresh_key(&root, agent_environment);
+    let (sessions, needs_refresh) = if is_session_index_refresh_inflight(&refresh_key)? {
+        (
+            index::list_cached_session_summaries(&root, agent_environment)?,
+            false,
+        )
+    } else {
+        index::list_cached_session_summaries_with_refresh_state(&root, agent_environment)?
+    };
+    if needs_refresh {
         spawn_session_index_refresh(app, root, agent_environment);
     }
     Ok(sessions)
@@ -90,6 +101,15 @@ fn codex_sessions_root(agent_environment: AgentEnvironment) -> AppResult<PathBuf
     Ok(resolve_codex_home_relative_path(agent_environment, ".codex/sessions")?.host_path)
 }
 fn spawn_session_index_refresh(app: AppHandle, root: PathBuf, agent_environment: AgentEnvironment) {
+    let refresh_key = session_index_refresh_key(&root, agent_environment);
+    match try_begin_session_index_refresh(&refresh_key) {
+        Ok(true) => {}
+        Ok(false) => return,
+        Err(error) => {
+            eprintln!("start codex session index refresh failed: {error}");
+            return;
+        }
+    }
     std::thread::spawn(move || {
         let started_at = Instant::now();
         match index::list_session_summaries(&root, agent_environment) {
@@ -107,7 +127,41 @@ fn spawn_session_index_refresh(app: AppHandle, root: PathBuf, agent_environment:
                 eprintln!("refresh codex session index failed: {error}");
             }
         }
+        finish_session_index_refresh(&refresh_key);
     });
+}
+
+fn session_index_refresh_key(root: &Path, agent_environment: AgentEnvironment) -> String {
+    format!("{agent_environment:?}:{}", root.to_string_lossy())
+}
+
+fn is_session_index_refresh_inflight(refresh_key: &str) -> AppResult<bool> {
+    let refreshes = SESSION_INDEX_REFRESHES
+        .get_or_init(|| Mutex::new(HashSet::new()))
+        .lock()
+        .map_err(|error| {
+            AppError::Protocol(format!("session index refresh lock poisoned: {error}"))
+        })?;
+    Ok(refreshes.contains(refresh_key))
+}
+
+fn try_begin_session_index_refresh(refresh_key: &str) -> AppResult<bool> {
+    let mut refreshes = SESSION_INDEX_REFRESHES
+        .get_or_init(|| Mutex::new(HashSet::new()))
+        .lock()
+        .map_err(|error| {
+            AppError::Protocol(format!("session index refresh lock poisoned: {error}"))
+        })?;
+    Ok(refreshes.insert(refresh_key.to_string()))
+}
+
+fn finish_session_index_refresh(refresh_key: &str) {
+    if let Ok(mut refreshes) = SESSION_INDEX_REFRESHES
+        .get_or_init(|| Mutex::new(HashSet::new()))
+        .lock()
+    {
+        refreshes.remove(refresh_key);
+    }
 }
 
 fn collect_session_files(root: &Path, files: &mut Vec<PathBuf>) -> AppResult<()> {

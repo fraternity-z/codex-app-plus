@@ -3,7 +3,7 @@ use std::path::Path;
 
 use crate::error::{AppError, AppResult};
 
-use super::diff::get_diff_preview;
+use super::diff::{get_diff_preview_with_options, GitDiffPreviewOptions};
 use super::models::{
     GitBranchRef, GitCheckoutInput, GitCommitInput, GitDeleteBranchInput, GitDiffInput,
     GitDiffOutput, GitDiscardInput, GitPathsInput, GitPushInput, GitRemoteInput, GitRepoInput,
@@ -72,10 +72,13 @@ pub fn get_remote_url(
 pub fn get_diff(input: GitDiffInput, cache: &RepositoryContextCache) -> AppResult<GitDiffOutput> {
     let context = require_repository_context(&input.repo_path, cache)?;
     let path = validate_pathspec(&input.path)?;
+    let options = GitDiffPreviewOptions {
+        ignore_whitespace_changes: input.ignore_whitespace_changes.unwrap_or(false),
+    };
     Ok(GitDiffOutput {
         path: path.clone(),
         staged: input.staged,
-        diff: get_diff_preview(&context.repo_root, &path, input.staged)?,
+        diff: get_diff_preview_with_options(&context.repo_root, &path, input.staged, options)?,
     })
 }
 
@@ -169,7 +172,10 @@ pub fn commit(input: GitCommitInput, cache: &RepositoryContextCache) -> AppResul
 pub fn fetch(input: GitRepoInput, cache: &RepositoryContextCache) -> AppResult<()> {
     let context = require_repository_context(&input.repo_path, cache)?;
     let snapshot = get_status_snapshot_for_repo_root(&context.repo_root)?;
-    let upstream = snapshot.branch.as_ref().and_then(|branch| branch.upstream.as_deref());
+    let upstream = snapshot
+        .branch
+        .as_ref()
+        .and_then(|branch| branch.upstream.as_deref());
     run_fetch(&context.repo_root, upstream)
 }
 
@@ -181,7 +187,10 @@ pub fn pull(input: GitRepoInput, cache: &RepositoryContextCache) -> AppResult<()
 pub fn push(input: GitPushInput, cache: &RepositoryContextCache) -> AppResult<()> {
     let context = require_repository_context(&input.repo_path, cache)?;
     let snapshot = get_status_snapshot_for_repo_root(&context.repo_root)?;
-    let upstream = snapshot.branch.as_ref().and_then(|branch| branch.upstream.as_deref());
+    let upstream = snapshot
+        .branch
+        .as_ref()
+        .and_then(|branch| branch.upstream.as_deref());
     run_push(
         &context.repo_root,
         upstream,
@@ -220,9 +229,15 @@ pub fn delete_branch(input: GitDeleteBranchInput, cache: &RepositoryContextCache
         .and_then(|branch| branch.head.as_deref())
         == Some(branch_name)
     {
-        return Err(AppError::InvalidInput("不能删除当前检出的分支。".to_string()));
+        return Err(AppError::InvalidInput(
+            "不能删除当前检出的分支。".to_string(),
+        ));
     }
-    let delete_flag = if input.force.unwrap_or(false) { "-D" } else { "-d" };
+    let delete_flag = if input.force.unwrap_or(false) {
+        "-D"
+    } else {
+        "-d"
+    };
     let args = vec![
         OsString::from("branch"),
         OsString::from(delete_flag),

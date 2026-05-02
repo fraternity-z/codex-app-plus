@@ -92,6 +92,17 @@ pub(crate) fn list_cached_session_summaries(
     Ok(map_sorted_session_summaries(&cache, agent_environment))
 }
 
+pub(crate) fn list_cached_session_summaries_with_refresh_state(
+    root: &Path,
+    agent_environment: AgentEnvironment,
+) -> AppResult<(Vec<CodexSessionSummary>, bool)> {
+    let cache = load_session_index(root, agent_environment)?;
+    let sessions = map_sorted_session_summaries(&cache, agent_environment);
+    let signatures = collect_current_signatures(root)?;
+    let needs_refresh = !cache_matches_signatures(&cache, &signatures);
+    Ok((sessions, needs_refresh))
+}
+
 pub(crate) fn list_session_summaries(
     root: &Path,
     agent_environment: AgentEnvironment,

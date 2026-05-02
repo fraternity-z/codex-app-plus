@@ -29,6 +29,7 @@ pub struct GitDiffInput {
     pub repo_path: String,
     pub path: String,
     pub staged: bool,
+    pub ignore_whitespace_changes: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -192,6 +193,7 @@ pub struct GitWorkspaceDiffOutput {
     pub staged: bool,
     pub section: GitWorkspaceDiffSection,
     pub diff: String,
+    pub diff_loaded: bool,
     pub additions: usize,
     pub deletions: usize,
 }

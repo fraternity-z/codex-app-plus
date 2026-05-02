@@ -29,6 +29,9 @@ export function WorkspaceDiffConversationPreview(props: WorkspaceDiffConversatio
     if (active === null) {
       return null;
     }
+    if (active.diffLoaded !== true && active.diff.length === 0) {
+      return null;
+    }
     return parseUnifiedDiffCached(active.diff);
   }, [active]);
 
@@ -45,6 +48,23 @@ export function WorkspaceDiffConversationPreview(props: WorkspaceDiffConversatio
   }
 
   if (active === null || parsed === null) {
+    const hasError = active !== null && active.diffError !== undefined && active.diffError !== null;
+    const isLoaded = active !== null && (active.diffLoaded === true || active.diff.length > 0);
+    const isLoading = active !== null && (active.diffLoading === true || (!isLoaded && !hasError));
+    if (hasError) {
+      return (
+        <section className="workspace-diff-conversation-preview" aria-label="差异预览">
+          <EmptyPreview message="加载差异失败" hint={active?.diffError ?? ""} />
+        </section>
+      );
+    }
+    if (isLoading) {
+      return (
+        <section className="workspace-diff-conversation-preview" aria-label="差异预览">
+          <EmptyPreview message="正在加载差异" hint="文件 diff 会在选中后加载。" />
+        </section>
+      );
+    }
     return (
       <section className="workspace-diff-conversation-preview" aria-label="差异预览">
         <EmptyPreview message="未选择文件" hint="在右侧列表中点击一个文件以查看 diff。" />

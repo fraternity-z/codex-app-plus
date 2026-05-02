@@ -1,5 +1,5 @@
 import { confirm } from "@tauri-apps/plugin-dialog";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo } from "react";
 import type { GitWorkspaceDiffOutput, GitWorkspaceDiffSection } from "../../../bridge/types";
 import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
 import { parseUnifiedDiffCached } from "../model/diffPreviewModel";
@@ -17,6 +17,7 @@ interface WorkspaceDiffViewerCardProps {
   readonly expanded: boolean;
   readonly item: GitWorkspaceDiffOutput;
   readonly onDiscardPaths: (paths: ReadonlyArray<string>, deleteUntracked: boolean) => Promise<void>;
+  readonly onLoadDiff: (item: GitWorkspaceDiffOutput) => Promise<void>;
   readonly onStagePaths: (paths: ReadonlyArray<string>) => Promise<void>;
   readonly onToggleExpanded: (key: string) => void;
   readonly onUnstagePaths: (paths: ReadonlyArray<string>) => Promise<void>;
@@ -134,19 +135,32 @@ function FileActions(props: WorkspaceDiffViewerCardProps): JSX.Element {
 }
 
 function FileBody(props: {
+  readonly diffError?: string | null;
+  readonly diffLoaded?: boolean;
+  readonly diffLoading?: boolean;
   readonly diff: string;
   readonly expanded: boolean;
   readonly path: string;
   readonly viewStyle: DiffViewStyle;
 }): JSX.Element | null {
+  const diffLoaded = props.diffLoaded === true || props.diff.length > 0;
   const parsedDiff = useMemo(() => {
-    if (!props.expanded) {
+    if (!props.expanded || !diffLoaded) {
       return null;
     }
     return parseUnifiedDiffCached(props.diff);
-  }, [props.diff, props.expanded]);
+  }, [diffLoaded, props.diff, props.expanded]);
 
   if (parsedDiff === null) {
+    if (!props.expanded) {
+      return null;
+    }
+    if (props.diffError !== undefined && props.diffError !== null) {
+      return <div className="git-banner git-banner-error">加载差异失败：{props.diffError}</div>;
+    }
+    if (props.diffLoading === true || !diffLoaded) {
+      return <div className="workspace-diff-file-loading">正在加载差异…</div>;
+    }
     return null;
   }
   return (
@@ -187,6 +201,15 @@ function CollapseTrigger(props: {
 export const WorkspaceDiffViewerCard = memo(function WorkspaceDiffViewerCard(
   props: WorkspaceDiffViewerCardProps,
 ): JSX.Element {
+  const diffLoaded = props.item.diffLoaded === true || props.item.diff.length > 0;
+  const hasDiffError = props.item.diffError !== undefined && props.item.diffError !== null;
+  useEffect(() => {
+    if (!props.expanded || diffLoaded || props.item.diffLoading === true || hasDiffError) {
+      return;
+    }
+    void props.onLoadDiff(props.item);
+  }, [diffLoaded, hasDiffError, props.expanded, props.item, props.onLoadDiff]);
+
   return (
     <article className="workspace-diff-file-card" data-diff-path={props.item.path}>
       <header className="workspace-diff-file-header">
@@ -202,6 +225,9 @@ export const WorkspaceDiffViewerCard = memo(function WorkspaceDiffViewerCard(
       </header>
       <FileBody
         diff={props.item.diff}
+        diffError={props.item.diffError}
+        diffLoaded={diffLoaded}
+        diffLoading={props.item.diffLoading}
         expanded={props.expanded}
         path={props.item.path}
         viewStyle={props.viewStyle ?? "unified"}

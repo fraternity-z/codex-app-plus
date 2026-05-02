@@ -661,6 +661,20 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
     onSelectDiffPath?.(next);
   }, [diffViewer.items, expanded, onSelectDiffPath, selectedDiffPath]);
 
+  useEffect(() => {
+    if (!expanded || selectedDiffPath === null) {
+      return;
+    }
+    const selectedItem = diffViewer.items.find((item) => item.path === selectedDiffPath);
+    if (selectedItem === undefined) {
+      return;
+    }
+    if (selectedItem.diffLoaded === true || selectedItem.diff.length > 0 || selectedItem.diffLoading === true) {
+      return;
+    }
+    void diffViewer.loadDiff(selectedItem);
+  }, [diffViewer.items, diffViewer.loadDiff, expanded, selectedDiffPath]);
+
   const handleSelectFile = useCallback(
     (path: string) => {
       onSelectDiffPath?.(path);
@@ -796,6 +810,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
             items={diffViewer.items}
             loading={diffViewer.loading}
             onDiscardPaths={props.controller.discardPaths}
+            onLoadDiff={diffViewer.loadDiff}
             onStagePaths={props.controller.stagePaths}
             onUnstagePaths={props.controller.unstagePaths}
             showSectionLabel={scope === "all"}

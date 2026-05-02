@@ -17,7 +17,9 @@ use crate::proxy_settings::load_proxy_settings;
 use portable_pty::{native_pty_system, Child, ChildKiller, MasterPty, PtySize};
 use std::io::{Read, Write};
 use std::path::PathBuf;
+use std::sync::mpsc::{self, RecvTimeoutError};
 use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 use tauri::AppHandle;
 use terminal_environment::apply_utf8_environment;
 use terminal_output_decoder::Utf8ChunkDecoder;
@@ -25,6 +27,8 @@ use terminal_shell::{build_shell_command, resolve_shell_config, ShellConfig};
 const DEFAULT_COLUMNS: u16 = 120;
 const DEFAULT_ROWS: u16 = 32;
 const OUTPUT_BUFFER_SIZE: usize = 4096;
+const OUTPUT_CHANNEL_CAPACITY: usize = 64;
+const OUTPUT_THROTTLE_MS: u64 = 16;
 const ZERO_PIXELS: u16 = 0;
 type SessionMap = Arc<Mutex<HashMap<String, Arc<TerminalSession>>>>;
 struct TerminalSession {
@@ -240,6 +244,20 @@ fn spawn_output_thread(
     session: Arc<TerminalSession>,
     mut reader: Box<dyn Read + Send>,
 ) {
+    let (output_tx, output_rx) = mpsc::sync_channel::<String>(OUTPUT_CHANNEL_CAPACITY);
+    let emit_app = app.clone();
+    let emit_sessions = sessions.clone();
+    let emit_session_id = session_id.clone();
+    let emit_session = session.clone();
+    std::thread::spawn(move || {
+        emit_terminal_output_loop(
+            emit_app,
+            emit_sessions,
+            emit_session_id,
+            emit_session,
+            output_rx,
+        );
+    });
     std::thread::spawn(move || {
         let mut buffer = [0_u8; OUTPUT_BUFFER_SIZE];
         let mut decoder = Utf8ChunkDecoder::new();
@@ -249,7 +267,9 @@ fn spawn_output_thread(
                 Ok(0) => break,
                 Ok(bytes_read) => {
                     if let Some(chunk) = decoder.decode(&buffer[..bytes_read]) {
-                        emit_if_session_current(&app, &sessions, &session_id, &session, chunk);
+                        if output_tx.send(chunk).is_err() {
+                            break;
+                        }
                     }
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
@@ -258,9 +278,89 @@ fn spawn_output_thread(
         }
 
         if let Some(chunk) = decoder.finish() {
-            emit_if_session_current(&app, &sessions, &session_id, &session, chunk);
+            let _ = output_tx.send(chunk);
         }
     });
+}
+
+fn emit_terminal_output_loop(
+    app: AppHandle,
+    sessions: SessionMap,
+    session_id: String,
+    session: Arc<TerminalSession>,
+    output_rx: mpsc::Receiver<String>,
+) {
+    let throttle = Duration::from_millis(OUTPUT_THROTTLE_MS);
+    let mut pending_output = String::new();
+    let mut last_emit = Instant::now()
+        .checked_sub(throttle)
+        .unwrap_or_else(Instant::now);
+
+    loop {
+        if !pending_output.is_empty()
+            && (pending_output.len() >= OUTPUT_BUFFER_SIZE || last_emit.elapsed() >= throttle)
+        {
+            flush_terminal_output(
+                &app,
+                &sessions,
+                &session_id,
+                &session,
+                &mut pending_output,
+                &mut last_emit,
+            );
+            continue;
+        }
+
+        let receive_result = if pending_output.is_empty() {
+            output_rx.recv().map_err(|_| RecvTimeoutError::Disconnected)
+        } else {
+            let remaining = throttle
+                .checked_sub(last_emit.elapsed())
+                .unwrap_or(Duration::ZERO);
+            output_rx.recv_timeout(remaining)
+        };
+
+        match receive_result {
+            Ok(chunk) => pending_output.push_str(&chunk),
+            Err(RecvTimeoutError::Timeout) => {
+                flush_terminal_output(
+                    &app,
+                    &sessions,
+                    &session_id,
+                    &session,
+                    &mut pending_output,
+                    &mut last_emit,
+                );
+            }
+            Err(RecvTimeoutError::Disconnected) => {
+                flush_terminal_output(
+                    &app,
+                    &sessions,
+                    &session_id,
+                    &session,
+                    &mut pending_output,
+                    &mut last_emit,
+                );
+                break;
+            }
+        }
+    }
+}
+
+fn flush_terminal_output(
+    app: &AppHandle,
+    sessions: &SessionMap,
+    session_id: &str,
+    session: &Arc<TerminalSession>,
+    pending_output: &mut String,
+    last_emit: &mut Instant,
+) {
+    if pending_output.is_empty() {
+        return;
+    }
+    let chunk = std::mem::take(pending_output);
+    emit_if_session_current(app, sessions, session_id, session, chunk);
+    *last_emit = Instant::now();
 }
 
 fn spawn_wait_thread(

@@ -4,7 +4,7 @@ use std::path::Path;
 
 use crate::error::AppResult;
 
-use super::diff::{get_diff_preview_with_options, GitDiffPreviewOptions};
+use super::diff::GitDiffPreviewOptions;
 use super::models::{
     GitStatusEntry, GitStatusSnapshotOutput, GitWorkspaceDiffOutput, GitWorkspaceDiffScope,
     GitWorkspaceDiffSection,
@@ -16,22 +16,28 @@ const DIFF_EXIT_CODES: [i32; 2] = [0, 1];
 const DIFF_METADATA_PREFIXES: [&str; 6] =
     ["+++", "---", "diff --git", "@@", "index ", "\\ No newline"];
 
+#[derive(Clone, Copy, Debug, Default)]
+struct DiffStats {
+    additions: usize,
+    deletions: usize,
+}
+
 pub fn load_workspace_diffs(
     repo_root: &Path,
     snapshot: &GitStatusSnapshotOutput,
     scope: GitWorkspaceDiffScope,
     options: GitDiffPreviewOptions,
 ) -> AppResult<Vec<GitWorkspaceDiffOutput>> {
-    let staged_map = if scope.includes_staged() {
-        load_tracked_diff_map(repo_root, &snapshot.staged, true, options)?
+    let staged_stats = if scope.includes_staged() {
+        load_tracked_stats_map(repo_root, &snapshot.staged, true, options)?
     } else {
         HashMap::new()
     };
     let unstaged_entries = collect_unstaged_entries(snapshot, scope);
-    let unstaged_map = if unstaged_entries.is_empty() {
+    let unstaged_stats = if unstaged_entries.is_empty() {
         HashMap::new()
     } else {
-        load_tracked_diff_map(repo_root, &unstaged_entries, false, options)?
+        load_tracked_stats_map(repo_root, &unstaged_entries, false, options)?
     };
 
     let mut items = Vec::new();
@@ -40,19 +46,17 @@ pub fn load_workspace_diffs(
             &snapshot.unstaged,
             GitWorkspaceDiffSection::Unstaged,
             false,
-            &unstaged_map,
+            &unstaged_stats,
         ));
         items.extend(build_untracked_items(
-            repo_root,
             &snapshot.untracked,
             GitWorkspaceDiffSection::Untracked,
-            options,
-        )?);
+        ));
         items.extend(build_tracked_items(
             &snapshot.conflicted,
             GitWorkspaceDiffSection::Conflicted,
             false,
-            &unstaged_map,
+            &unstaged_stats,
         ));
     }
     if scope.includes_staged() {
@@ -60,7 +64,7 @@ pub fn load_workspace_diffs(
             &snapshot.staged,
             GitWorkspaceDiffSection::Staged,
             true,
-            &staged_map,
+            &staged_stats,
         ));
     }
     Ok(items)
@@ -82,32 +86,40 @@ fn build_tracked_items(
     entries: &[GitStatusEntry],
     section: GitWorkspaceDiffSection,
     staged: bool,
-    diff_map: &HashMap<String, String>,
+    stats_map: &HashMap<String, DiffStats>,
 ) -> Vec<GitWorkspaceDiffOutput> {
     entries
         .iter()
-        .filter_map(|entry| {
-            let diff = diff_map.get(&entry.path)?.clone();
-            if diff.trim().is_empty() {
-                return None;
-            }
-            Some(build_output(entry, section, staged, diff))
+        .map(|entry| {
+            build_output(
+                entry,
+                section,
+                staged,
+                String::new(),
+                false,
+                stats_map.get(&entry.path).copied().unwrap_or_default(),
+            )
         })
         .collect()
 }
 
 fn build_untracked_items(
-    repo_root: &Path,
     entries: &[GitStatusEntry],
     section: GitWorkspaceDiffSection,
-    options: GitDiffPreviewOptions,
-) -> AppResult<Vec<GitWorkspaceDiffOutput>> {
-    let mut items = Vec::with_capacity(entries.len());
-    for entry in entries {
-        let diff = get_diff_preview_with_options(repo_root, &entry.path, false, options)?;
-        items.push(build_output(entry, section, false, diff));
-    }
-    Ok(items)
+) -> Vec<GitWorkspaceDiffOutput> {
+    entries
+        .iter()
+        .map(|entry| {
+            build_output(
+                entry,
+                section,
+                false,
+                String::new(),
+                false,
+                DiffStats::default(),
+            )
+        })
+        .collect()
 }
 
 fn build_output(
@@ -115,8 +127,9 @@ fn build_output(
     section: GitWorkspaceDiffSection,
     staged: bool,
     diff: String,
+    diff_loaded: bool,
+    stats: DiffStats,
 ) -> GitWorkspaceDiffOutput {
-    let (additions, deletions) = count_diff_stats(&diff);
     GitWorkspaceDiffOutput {
         path: entry.path.clone(),
         display_path: entry.path.clone(),
@@ -125,8 +138,9 @@ fn build_output(
         staged,
         section,
         diff,
-        additions,
-        deletions,
+        diff_loaded,
+        additions: stats.additions,
+        deletions: stats.deletions,
     }
 }
 
@@ -138,22 +152,22 @@ fn resolve_status(entry: &GitStatusEntry, staged: bool) -> &str {
     }
 }
 
-fn load_tracked_diff_map(
+fn load_tracked_stats_map(
     repo_root: &Path,
     entries: &[GitStatusEntry],
     staged: bool,
     options: GitDiffPreviewOptions,
-) -> AppResult<HashMap<String, String>> {
+) -> AppResult<HashMap<String, DiffStats>> {
     let paths = unique_paths(entries);
     if paths.is_empty() {
         return Ok(HashMap::new());
     }
     let output = run_git_with_exit_codes(
         repo_root,
-        &create_batch_diff_args(&paths, staged, options),
+        &create_batch_numstat_args(&paths, staged, options),
         &DIFF_EXIT_CODES,
     )?;
-    Ok(split_diff_by_file(&output))
+    Ok(parse_numstat_output(&output))
 }
 
 fn unique_paths(entries: &[GitStatusEntry]) -> Vec<String> {
@@ -167,12 +181,18 @@ fn unique_paths(entries: &[GitStatusEntry]) -> Vec<String> {
     paths
 }
 
-fn create_batch_diff_args(
+fn create_batch_numstat_args(
     paths: &[String],
     staged: bool,
     options: GitDiffPreviewOptions,
 ) -> Vec<OsString> {
-    let mut args = to_args(&["diff", "--find-renames", "--no-ext-diff", "--no-color"]);
+    let mut args = to_args(&[
+        "diff",
+        "--numstat",
+        "--find-renames",
+        "--no-ext-diff",
+        "--no-color",
+    ]);
     if staged {
         args.push(OsString::from("--cached"));
     }
@@ -182,6 +202,41 @@ fn create_batch_diff_args(
     args.push(OsString::from("--"));
     args.extend(paths.iter().map(OsString::from));
     args
+}
+
+fn parse_numstat_output(output: &str) -> HashMap<String, DiffStats> {
+    let mut map = HashMap::new();
+    for line in output.lines() {
+        let mut parts = line.splitn(3, '\t');
+        let additions = parse_numstat_count(parts.next());
+        let deletions = parse_numstat_count(parts.next());
+        let Some(path) = parts.next() else {
+            continue;
+        };
+        map.insert(
+            normalize_numstat_path(path),
+            DiffStats {
+                additions,
+                deletions,
+            },
+        );
+    }
+    map
+}
+
+fn parse_numstat_count(value: Option<&str>) -> usize {
+    value
+        .and_then(|text| text.parse::<usize>().ok())
+        .unwrap_or_default()
+}
+
+fn normalize_numstat_path(path: &str) -> String {
+    if let Some((prefix, rest)) = path.split_once('{') {
+        if let Some((_, renamed_to)) = rest.rsplit_once(" => ") {
+            return format!("{prefix}{}", renamed_to.replace('}', ""));
+        }
+    }
+    path.to_string()
 }
 
 fn split_diff_by_file(output: &str) -> HashMap<String, String> {
@@ -236,7 +291,7 @@ fn count_diff_stats(diff: &str) -> (usize, usize) {
 
 #[cfg(test)]
 mod tests {
-    use super::{count_diff_stats, split_diff_by_file};
+    use super::{count_diff_stats, parse_numstat_output, split_diff_by_file};
 
     #[test]
     fn splits_combined_git_diff_output_by_path() {
@@ -272,5 +327,22 @@ mod tests {
         .join("\n");
 
         assert_eq!(count_diff_stats(&diff), (1, 1));
+    }
+
+    #[test]
+    fn parses_numstat_output_by_path() {
+        let stats = parse_numstat_output("2\t1\tsrc/App.tsx\n-\t-\tassets/logo.png\n");
+
+        assert_eq!(stats["src/App.tsx"].additions, 2);
+        assert_eq!(stats["src/App.tsx"].deletions, 1);
+        assert_eq!(stats["assets/logo.png"].additions, 0);
+        assert_eq!(stats["assets/logo.png"].deletions, 0);
+    }
+
+    #[test]
+    fn normalizes_numstat_braced_rename_to_new_path() {
+        let stats = parse_numstat_output("0\t0\tsrc/{OldName.ts => NewName.ts}\n");
+
+        assert!(stats.contains_key("src/NewName.ts"));
     }
 }
