@@ -6,12 +6,14 @@ import type { ConfigWriteResponse } from "../../../protocol/generated/v2/ConfigW
 import type { ExperimentalFeature } from "../../../protocol/generated/v2/ExperimentalFeature";
 import type { ExperimentalFeatureListResponse } from "../../../protocol/generated/v2/ExperimentalFeatureListResponse";
 import type { ListMcpServerStatusResponse } from "../../../protocol/generated/v2/ListMcpServerStatusResponse";
+import type { McpServerStatusDetail } from "../../../protocol/generated/v2/McpServerStatusDetail";
 import type { McpServerRefreshResponse } from "../../../protocol/generated/v2/McpServerRefreshResponse";
 import type { McpServerStatus } from "../../../protocol/generated/v2/McpServerStatus";
 import { ProtocolClient } from "../../../protocol/client";
 
 const EXPERIMENTAL_FEATURE_PAGE_SIZE = 100;
 const MCP_STATUS_PAGE_SIZE = 100;
+const MCP_STATUS_DETAIL = "toolsAndAuthOnly" satisfies McpServerStatusDetail;
 export const MCP_STATUS_CACHE_TTL_MS = 30 * 1000;
 
 interface McpStatusCacheEntry {
@@ -57,7 +59,8 @@ async function fetchAllMcpServerStatuses(client: ProtocolClient): Promise<Readon
   do {
     const response = (await client.request("mcpServerStatus/list", {
       cursor,
-      limit: MCP_STATUS_PAGE_SIZE
+      limit: MCP_STATUS_PAGE_SIZE,
+      detail: MCP_STATUS_DETAIL
     })) as ListMcpServerStatusResponse;
     statuses.push(...response.data);
     cursor = response.nextCursor;

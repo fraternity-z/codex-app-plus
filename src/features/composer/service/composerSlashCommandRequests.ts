@@ -6,11 +6,13 @@ import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigRe
 import type { ExperimentalFeature } from "../../../protocol/generated/v2/ExperimentalFeature";
 import type { ExperimentalFeatureListResponse } from "../../../protocol/generated/v2/ExperimentalFeatureListResponse";
 import type { ListMcpServerStatusResponse } from "../../../protocol/generated/v2/ListMcpServerStatusResponse";
+import type { McpServerStatusDetail } from "../../../protocol/generated/v2/McpServerStatusDetail";
 import type { McpServerStatus } from "../../../protocol/generated/v2/McpServerStatus";
 import type { PluginListResponse } from "../../../protocol/generated/v2/PluginListResponse";
 import type { ComposerCommandBridge } from "./composerCommandBridge";
 
 const LIST_PAGE_SIZE = 100;
+const MCP_STATUS_DETAIL = "toolsAndAuthOnly" satisfies McpServerStatusDetail;
 
 export async function refreshSlashConfig(
   bridge: ComposerCommandBridge,
@@ -40,7 +42,7 @@ export async function listAllMcpServerStatuses(
   const statuses: Array<McpServerStatus> = [];
   let cursor: string | null = null;
   do {
-    const response = (await bridge.request("mcpServerStatus/list", { cursor, limit: LIST_PAGE_SIZE })) as ListMcpServerStatusResponse;
+    const response = (await bridge.request("mcpServerStatus/list", { cursor, limit: LIST_PAGE_SIZE, detail: MCP_STATUS_DETAIL })) as ListMcpServerStatusResponse;
     statuses.push(...response.data);
     cursor = response.nextCursor;
   } while (cursor !== null);

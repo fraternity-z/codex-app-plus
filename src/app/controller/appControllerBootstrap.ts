@@ -2,8 +2,7 @@ import type { AgentEnvironment, HostBridge } from "../../bridge/types";
 import type { AppAction } from "../../domain/types";
 import type { CollaborationModeListResponse } from "../../protocol/generated/v2/CollaborationModeListResponse";
 import type { ConfigReadResponse } from "../../protocol/generated/v2/ConfigReadResponse";
-import type { McpServerStatus } from "../../protocol/generated/v2/McpServerStatus";
-import { listAllExperimentalFeatures, listAllMcpServerStatuses } from "../../features/settings";
+import { listAllExperimentalFeatures } from "../../features/settings";
 import { createConversationFromThreadSummary } from "../../features/conversation";
 import { listAllThreads, loadThreadCatalog } from "../../features/workspace";
 import { ProtocolClient } from "../../protocol/client";
@@ -36,16 +35,14 @@ export async function loadBootstrapSnapshot(
   dispatch: Dispatch,
   agentEnvironment: AgentEnvironment,
 ): Promise<void> {
-  const [, , config, collaborationModes, experimentalFeatures, statuses] = await Promise.all([
+  const [, , config, collaborationModes, experimentalFeatures] = await Promise.all([
     refreshAccountState(client, dispatch),
     loadConversationCatalog(client, hostBridge, dispatch, agentEnvironment),
     client.request("config/read", { includeLayers: true }),
     client.request("collaborationMode/list", {}),
     listAllExperimentalFeatures(client),
-    listAllMcpServerStatuses(client),
   ]);
   dispatch({ type: "config/loaded", config: config as ConfigReadResponse });
-  dispatch({ type: "mcp/statusesLoaded", statuses: statuses as ReadonlyArray<McpServerStatus> });
   const response = collaborationModes as CollaborationModeListResponse;
   dispatch({
     type: "collaborationModes/loaded",

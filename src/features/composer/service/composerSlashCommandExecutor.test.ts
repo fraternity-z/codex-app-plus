@@ -90,4 +90,29 @@ describe("composerSlashCommandExecutor", () => {
       cwds: ["E:/code/codex-app-plus"],
     });
   });
+
+  it("refreshes MCP status with the lightweight status detail", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === "config/read") {
+        return { config: {}, origins: {}, layers: [] };
+      }
+      if (method === "mcpServerStatus/list") {
+        return {
+          data: [{ name: "fetch", tools: {}, resources: [], resourceTemplates: [], authStatus: "unsupported" }],
+          nextCursor: null,
+        };
+      }
+      return {};
+    });
+    const deps = createDeps(request);
+
+    await executeDirectSlashCommand("mcp", "", createContext(), deps);
+
+    expect(request).toHaveBeenCalledWith("config/mcpServer/reload", undefined);
+    expect(request).toHaveBeenCalledWith("mcpServerStatus/list", {
+      cursor: null,
+      limit: 100,
+      detail: "toolsAndAuthOnly",
+    });
+  });
 });

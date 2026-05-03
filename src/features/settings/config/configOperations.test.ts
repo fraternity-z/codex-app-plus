@@ -27,7 +27,7 @@ const STATUS_PAGE = {
 };
 
 function createClient() {
-  const request = vi.fn(async (method: string) => {
+  const request = vi.fn(async (method: string, _params?: unknown) => {
     if (method === "config/value/write" || method === "config/batchWrite") {
       return { status: "ok", version: "u2", filePath: "C:/Users/Administrator/.codex/config.toml", overriddenMetadata: null };
     }
@@ -110,6 +110,11 @@ describe("configOperations", () => {
     await listAllMcpServerStatuses(client);
 
     expect(request.mock.calls.map(([method]) => method)).toEqual(["mcpServerStatus/list"]);
+    expect(request).toHaveBeenCalledWith("mcpServerStatus/list", {
+      cursor: null,
+      limit: 100,
+      detail: "toolsAndAuthOnly"
+    });
   });
 
   it("bypasses the MCP status cache when forced", async () => {
@@ -119,5 +124,9 @@ describe("configOperations", () => {
     await listAllMcpServerStatuses(client, { force: true });
 
     expect(request.mock.calls.map(([method]) => method)).toEqual(["mcpServerStatus/list", "mcpServerStatus/list"]);
+    expect(request.mock.calls.map(([, params]) => params)).toEqual([
+      { cursor: null, limit: 100, detail: "toolsAndAuthOnly" },
+      { cursor: null, limit: 100, detail: "toolsAndAuthOnly" }
+    ]);
   });
 });
