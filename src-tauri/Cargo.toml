@@ -23,6 +23,7 @@ tauri = { version = "2.2.0", features = ["protocol-asset", "tray-icon", "unstabl
 tauri-plugin-dialog = "2.6.0"
 tauri-plugin-notification = "2"
 tauri-plugin-process = "2.3.1"
+tauri-plugin-single-instance = "2.0.0"
 tauri-plugin-updater = "2.10.0"
 thiserror = "2.0.11"
 tokio = { version = "1.43.0", features = ["io-util", "macros", "net", "process", "rt-multi-thread", "sync", "time"] }
