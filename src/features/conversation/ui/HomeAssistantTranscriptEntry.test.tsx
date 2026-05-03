@@ -465,12 +465,11 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(summaryText?.textContent).toBe("已运行 Get-ChildItem -Path src/features");
   });
 
-  it("marks MCP, dynamic, and collab tool summaries for collapsed truncation", () => {
+  it("marks MCP and dynamic tool summaries for collapsed truncation", () => {
     const { container } = render(
       <>
         <HomeAssistantTranscriptEntry node={createMcpToolNode()} />
         <HomeAssistantTranscriptEntry node={createDynamicToolNode()} />
-        <HomeAssistantTranscriptEntry node={createCollabToolNode()} />
       </>,
       { wrapper: createI18nWrapper("en-US") },
     );
@@ -483,11 +482,23 @@ describe("HomeAssistantTranscriptEntry", () => {
       (element) => element.textContent,
     );
 
-    expect(summaries).toHaveLength(3);
+    expect(summaries).toHaveLength(2);
     expect(texts).toContain("Tool call: server-alpha/tool/with/a/very/long/name");
     expect(texts).toContain("Tool call: dynamic-tool-with-an-extremely-long-name");
-    expect(texts).toContain("Tool call: spawnAgent");
-    expect(labels.filter((label) => label === "Tool")).toHaveLength(3);
+    expect(labels.filter((label) => label === "Tool")).toHaveLength(2);
+  });
+
+  it("renders collab agent calls as visible subagent activity", () => {
+    const { container } = render(<HomeAssistantTranscriptEntry node={createCollabToolNode()} />, {
+      wrapper: createI18nWrapper("en-US"),
+    });
+
+    expect(container.querySelector(".home-assistant-transcript-subagents")).not.toBeNull();
+    expect(container.querySelector(".home-assistant-transcript-subagents-summary-text")?.textContent).toBe("Created 1 agent");
+    expect(screen.getByText("thread-helper")).toBeInTheDocument();
+    expect(screen.getByText("inspect the command UI")).toBeInTheDocument();
+    expect(screen.getByText("completed")).toBeInTheDocument();
+    expect(container.querySelector('summary[data-truncate-summary="true"]')).toBeNull();
   });
 
   it("does not mark turn plan summaries for collapsed truncation", () => {

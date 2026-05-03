@@ -176,7 +176,16 @@
   display: block;
 }
 
+.home-assistant-transcript-subagents details {
+  display: block;
+}
+
 .home-assistant-transcript-tool-group summary {
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.home-assistant-transcript-subagents summary {
   color: var(--text-muted);
   cursor: pointer;
 }
@@ -253,6 +262,82 @@
   white-space: nowrap;
 }
 
+.home-assistant-transcript-subagents-summary {
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-assistant-transcript-subagents-summary-text {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-assistant-transcript-subagents-body {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0 16px;
+}
+
+.home-assistant-transcript-subagent-row {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-md);
+  line-height: 1.45;
+}
+
+.home-assistant-transcript-subagent-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-assistant-transcript-subagent-line > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-assistant-transcript-subagent-id {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.home-assistant-transcript-subagent-status {
+  flex: 0 0 auto;
+  color: var(--text-subtle);
+  font-size: var(--app-ui-font-size-sm);
+}
+
+.home-assistant-transcript-subagent-status[data-agent-status="errored"],
+.home-assistant-transcript-subagent-status[data-agent-status="notFound"] {
+  color: var(--error-fg);
+}
+
+.home-assistant-transcript-subagent-status[data-agent-status="running"],
+.home-assistant-transcript-subagent-status[data-agent-status="pendingInit"] {
+  color: var(--accent-color);
+}
+
+.home-assistant-transcript-subagent-prompt,
+.home-assistant-transcript-subagent-message {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-subtle);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .home-assistant-transcript-tool-group-body {
   display: grid;
   gap: 2px;
@@ -293,6 +378,7 @@
 .home-assistant-transcript-file-change-open-summary .home-assistant-transcript-summary-chevron::before,
 .home-assistant-transcript-command-open-summary .home-assistant-transcript-summary-chevron::before,
 .home-assistant-transcript-file-diff-card[open] .home-assistant-transcript-file-diff-chevron::before,
+.home-assistant-transcript-subagents details[open] > .home-assistant-transcript-subagents-summary .home-assistant-transcript-tool-group-chevron::before,
 .home-assistant-transcript-tool-group details[open] > .home-assistant-transcript-tool-group-summary .home-assistant-transcript-tool-group-chevron::before {
   transform: rotate(45deg);
 }

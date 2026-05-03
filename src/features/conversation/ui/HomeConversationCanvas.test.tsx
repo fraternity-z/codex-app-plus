@@ -325,6 +325,31 @@ function createFileChangeEntry(
   };
 }
 
+function createCollabAgentEntry(
+  id: string,
+  agentId: string,
+  status: Extract<TimelineEntry, { kind: "collabAgentToolCall" }>["status"],
+): TimelineEntry {
+  return {
+    id,
+    kind: "collabAgentToolCall",
+    threadId: "thread-1",
+    turnId: "turn-1",
+    itemId: `item-${id}`,
+    tool: "spawnAgent",
+    status,
+    senderThreadId: "thread-1",
+    receiverThreadIds: [agentId],
+    prompt: `Generate ${agentId}`,
+    agentsStates: {
+      [agentId]: {
+        status: status === "failed" ? "errored" : "pendingInit",
+        message: null,
+      },
+    },
+  };
+}
+
 describe("HomeConversationCanvas", () => {
   it("renders a single bottom thinking indicator immediately after user input", () => {
     const { container } = renderCanvas([USER_MESSAGE], { activeTurnId: "turn-1" });
@@ -487,6 +512,38 @@ describe("HomeConversationCanvas", () => {
     const groupSummary = container.querySelector(".home-assistant-transcript-tool-group summary");
 
     expect(groupSummary?.textContent).toBe("已编辑2个文件，已执行4个命令");
+  });
+
+  it("keeps subagent activity out of generic tool groups and merges matching calls", () => {
+    const createdAgents = [
+      createCollabAgentEntry("collab-1", "agent-alpha", "completed"),
+      createCollabAgentEntry("collab-2", "agent-beta", "completed"),
+      createCollabAgentEntry("collab-3", "agent-gamma", "completed"),
+      createCollabAgentEntry("collab-4", "agent-delta", "completed"),
+    ];
+    const failedAgents = [
+      createCollabAgentEntry("collab-5", "agent-epsilon", "failed"),
+      createCollabAgentEntry("collab-6", "agent-zeta", "failed"),
+    ];
+    const { container } = renderCanvas(
+      [USER_MESSAGE, ASSISTANT_MESSAGE, ...createdAgents, ...failedAgents, SECOND_ASSISTANT_MESSAGE],
+      { turnStatuses: { "turn-1": "completed" } },
+    );
+
+    expect(container.querySelector(".home-assistant-transcript-tool-group")).toBeNull();
+    expect(screen.getByText("已生成4个智能体")).toBeInTheDocument();
+    expect(screen.getByText("生成2个智能体失败")).toBeInTheDocument();
+    const highlightedAgentIds = Array.from(container.querySelectorAll(".home-assistant-transcript-subagent-id")).map(
+      (element) => element.textContent,
+    );
+    expect(highlightedAgentIds).toEqual([
+      "agent-alpha",
+      "agent-beta",
+      "agent-gamma",
+      "agent-delta",
+      "agent-epsilon",
+      "agent-zeta",
+    ]);
   });
 
   it("keeps the context compaction divider between assistant messages", () => {

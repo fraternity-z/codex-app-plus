@@ -13,12 +13,13 @@ import { MarkdownRenderer } from "./MarkdownRenderer";
 import { HomePlanDraftCard } from "../../composer/ui/HomePlanDraftCard";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
-import type { CommandExecutionEntry, ImageGenerationEntry, ImageViewEntry } from "../../../domain/timeline";
+import type { CollabAgentToolCallEntry, CommandExecutionEntry, ImageGenerationEntry, ImageViewEntry } from "../../../domain/timeline";
 import { useI18n } from "../../../i18n/useI18n";
 import { parseUnifiedDiffCached } from "../../git/model/diffPreviewModel";
 import type { FileUpdateChange } from "../../../protocol/generated/v2/FileUpdateChange";
 
 type AssistantNode = Extract<ConversationRenderNode, { kind: "assistantMessage" | "reasoningBlock" | "traceItem" | "auxiliaryBlock" }>;
+type CollabAgentTarget = { readonly id: string; readonly state: CollabAgentToolCallEntry["agentsStates"][string] | null };
 
 interface HomeAssistantTranscriptEntryProps {
   readonly node: AssistantNode;
@@ -89,6 +90,10 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
     return <ImageGenerationTranscriptEntry entry={props.node.item} />;
   }
 
+  if (props.node.kind === "traceItem" && props.node.item.kind === "collabAgentToolCall") {
+    return <HomeSubagentTranscriptEntry entries={[props.node.item]} />;
+  }
+
   if (model.kind === "message" && model.message) {
     if (model.message.text.trim().length === 0) {
       return <></>;
@@ -122,6 +127,180 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
   }
 
   return <p className={`home-assistant-transcript-entry home-assistant-transcript-line${traceEntry ? " home-assistant-transcript-line-trace" : ""}`}>{summaryContent}</p>;
+}
+
+export function HomeSubagentTranscriptEntry(props: { readonly entries: ReadonlyArray<CollabAgentToolCallEntry> }): JSX.Element {
+  const { t } = useI18n();
+  const rows = props.entries.flatMap((entry) => getCollabAgentTargets(entry).map((target) => ({ entry, target })));
+  const fallbackEntry = props.entries[0] ?? null;
+  const visibleRows = rows.length > 0 ? rows : fallbackEntry === null ? [] : [{ entry: fallbackEntry, target: { id: fallbackEntry.senderThreadId, state: null } }];
+  const count = Math.max(rows.length, 1);
+  if (fallbackEntry === null) {
+    return <></>;
+  }
+  return (
+    <section className="home-assistant-transcript-entry home-assistant-transcript-subagents" data-tool={fallbackEntry.tool} data-status={fallbackEntry.status}>
+      <details open>
+        <summary className="home-assistant-transcript-line home-assistant-transcript-summary home-assistant-transcript-subagents-summary">
+          <span className="home-assistant-transcript-subagents-summary-text">
+            {formatCollabAgentSummary(fallbackEntry, count, t)}
+          </span>
+          <span className="home-assistant-transcript-tool-group-chevron" aria-hidden="true" />
+        </summary>
+        <div className="home-assistant-transcript-subagents-body">
+          {visibleRows.map(({ entry, target }, index) => (
+            <CollabAgentRow key={`${entry.id}:${target.id}:${index}`} entry={entry} target={target} />
+          ))}
+        </div>
+      </details>
+    </section>
+  );
+}
+
+function CollabAgentRow(props: {
+  readonly entry: CollabAgentToolCallEntry;
+  readonly target: CollabAgentTarget;
+}): JSX.Element {
+  const { t } = useI18n();
+  const prompt = shouldShowCollabPrompt(props.entry) ? props.entry.prompt?.trim() ?? "" : "";
+  const message = props.target.state?.message?.trim() ?? "";
+  return (
+    <div className="home-assistant-transcript-subagent-row">
+      <div className="home-assistant-transcript-subagent-line">
+        <span>
+          {formatCollabAgentRowPrefix(props.entry, t)}
+          <span className="home-assistant-transcript-subagent-id">{props.target.id}</span>
+          {formatCollabAgentRowSuffix(props.entry, prompt, t)}
+        </span>
+        {props.target.state === null ? null : (
+          <span className="home-assistant-transcript-subagent-status" data-agent-status={props.target.state.status}>
+            {formatCollabAgentStatus(props.target.state.status, t)}
+          </span>
+        )}
+      </div>
+      {prompt.length > 0 ? (
+        <p className="home-assistant-transcript-subagent-prompt">{prompt}</p>
+      ) : null}
+      {message.length > 0 ? (
+        <p className="home-assistant-transcript-subagent-message">{message}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function getCollabAgentTargets(entry: CollabAgentToolCallEntry): ReadonlyArray<CollabAgentTarget> {
+  const ids: string[] = [];
+  for (const id of entry.receiverThreadIds) {
+    if (!ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+  for (const id of Object.keys(entry.agentsStates)) {
+    if (!ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+  return ids.map((id) => ({ id, state: entry.agentsStates[id] ?? null }));
+}
+
+function shouldShowCollabPrompt(entry: CollabAgentToolCallEntry): boolean {
+  return (entry.tool === "spawnAgent" || entry.tool === "sendInput") && (entry.prompt?.trim().length ?? 0) > 0;
+}
+
+function formatCollabAgentCount(count: number, t: ReturnType<typeof useI18n>["t"]): string {
+  return t(count === 1
+    ? "home.conversation.transcript.subagents.agentSingular"
+    : "home.conversation.transcript.subagents.agentPlural", { count: String(count) });
+}
+
+function formatCollabAgentSummary(
+  entry: CollabAgentToolCallEntry,
+  count: number,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  const agent = formatCollabAgentCount(count, t);
+  if (entry.tool === "spawnAgent") {
+    if (entry.status === "inProgress") return t("home.conversation.transcript.subagents.creating", { count: String(count), agent });
+    if (entry.status === "failed") return t("home.conversation.transcript.subagents.createFailed", { count: String(count), agent });
+    return t("home.conversation.transcript.subagents.created", { count: String(count), agent });
+  }
+  if (entry.tool === "closeAgent") {
+    if (entry.status === "inProgress") return t("home.conversation.transcript.subagents.closing", { count: String(count), agent });
+    if (entry.status === "failed") return t("home.conversation.transcript.subagents.closeFailed", { count: String(count), agent });
+    return t("home.conversation.transcript.subagents.closed", { count: String(count), agent });
+  }
+  if (entry.tool === "sendInput") {
+    if (entry.status === "inProgress") return t("home.conversation.transcript.subagents.sendingInput", { count: String(count), agent });
+    if (entry.status === "failed") return t("home.conversation.transcript.subagents.sendInputFailed", { count: String(count), agent });
+    return t("home.conversation.transcript.subagents.sentInput", { count: String(count), agent });
+  }
+  if (entry.tool === "resumeAgent") {
+    if (entry.status === "inProgress") return t("home.conversation.transcript.subagents.resuming", { count: String(count), agent });
+    if (entry.status === "failed") return t("home.conversation.transcript.subagents.resumeFailed", { count: String(count), agent });
+    return t("home.conversation.transcript.subagents.resumed", { count: String(count), agent });
+  }
+  if (entry.status === "inProgress") return t("home.conversation.transcript.subagents.waiting", { count: String(count), agent });
+  if (entry.status === "failed") return t("home.conversation.transcript.subagents.waitFailed", { count: String(count), agent });
+  return t("home.conversation.transcript.subagents.waited", { count: String(count), agent });
+}
+
+function formatCollabAgentRowPrefix(
+  entry: CollabAgentToolCallEntry,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  if (entry.tool === "spawnAgent") {
+    if (entry.status === "inProgress") return t("home.conversation.transcript.subagents.rowCreatingPrefix");
+    if (entry.status === "failed") return t("home.conversation.transcript.subagents.rowCreateFailedPrefix");
+    return t("home.conversation.transcript.subagents.rowCreatedPrefix");
+  }
+  if (entry.tool === "closeAgent") {
+    if (entry.status === "inProgress") return t("home.conversation.transcript.subagents.rowClosingPrefix");
+    if (entry.status === "failed") return t("home.conversation.transcript.subagents.rowCloseFailedPrefix");
+    return t("home.conversation.transcript.subagents.rowClosedPrefix");
+  }
+  if (entry.tool === "sendInput") {
+    if (entry.status === "inProgress") return t("home.conversation.transcript.subagents.rowSendingInputPrefix");
+    if (entry.status === "failed") return t("home.conversation.transcript.subagents.rowSendInputFailedPrefix");
+    return t("home.conversation.transcript.subagents.rowSentInputPrefix");
+  }
+  if (entry.tool === "resumeAgent") {
+    if (entry.status === "inProgress") return t("home.conversation.transcript.subagents.rowResumingPrefix");
+    if (entry.status === "failed") return t("home.conversation.transcript.subagents.rowResumeFailedPrefix");
+    return t("home.conversation.transcript.subagents.rowResumedPrefix");
+  }
+  if (entry.status === "inProgress") return t("home.conversation.transcript.subagents.rowWaitingPrefix");
+  if (entry.status === "failed") return t("home.conversation.transcript.subagents.rowWaitFailedPrefix");
+  return t("home.conversation.transcript.subagents.rowWaitedPrefix");
+}
+
+function formatCollabAgentRowSuffix(
+  entry: CollabAgentToolCallEntry,
+  prompt: string,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  if (prompt.length === 0) {
+    return "";
+  }
+  if (entry.tool === "spawnAgent") {
+    return t("home.conversation.transcript.subagents.promptSuffix");
+  }
+  if (entry.tool === "sendInput") {
+    return t("home.conversation.transcript.subagents.inputSuffix");
+  }
+  return "";
+}
+
+function formatCollabAgentStatus(
+  status: NonNullable<CollabAgentTarget["state"]>["status"],
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  if (status === "pendingInit") return t("home.conversation.transcript.subagents.status.pendingInit");
+  if (status === "running") return t("home.conversation.transcript.subagents.status.running");
+  if (status === "interrupted") return t("home.conversation.transcript.subagents.status.interrupted");
+  if (status === "completed") return t("home.conversation.transcript.subagents.status.completed");
+  if (status === "errored") return t("home.conversation.transcript.subagents.status.errored");
+  if (status === "shutdown") return t("home.conversation.transcript.subagents.status.shutdown");
+  return t("home.conversation.transcript.subagents.status.notFound");
 }
 
 function ReasoningTranscriptEntry(props: { readonly block: Extract<AssistantNode, { kind: "reasoningBlock" }>["block"] }): JSX.Element {

@@ -119,6 +119,7 @@ function isCompactVisibleEntry(entry: TimelineEntry): boolean {
   }
   return entry.kind === "userMessage"
     || entry.kind === "agentMessage"
+    || entry.kind === "collabAgentToolCall"
     || entry.kind === "plan"
     || entry.kind === "turnPlanSnapshot"
     || entry.kind === "pendingApproval"

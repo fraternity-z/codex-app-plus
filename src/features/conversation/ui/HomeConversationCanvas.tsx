@@ -8,7 +8,7 @@ import type {
   TimelineEntry,
 } from "../../../domain/types";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
-import type { ConversationMessage } from "../../../domain/timeline";
+import type { CollabAgentToolCallEntry, ConversationMessage } from "../../../domain/timeline";
 import type { ConnectionRetryInfo } from "../../home/model/homeConnectionRetry";
 import { useI18n } from "../../../i18n";
 import {
@@ -17,6 +17,7 @@ import {
 } from "../model/localConversationGroups";
 import { classifyCommand } from "../model/commandIntent";
 import { HomeConnectionStatusToast } from "../../home/ui/HomeConnectionStatusToast";
+import { HomeSubagentTranscriptEntry } from "./HomeAssistantTranscriptEntry";
 import { HomeChatMessageActions } from "./HomeChatMessage";
 import { HomeTimelineEntry } from "./HomeTimelineEntry";
 import { HomeTurnThinkingIndicator } from "./HomeTurnThinkingIndicator";
@@ -54,12 +55,18 @@ interface RenderGroup {
 
 type AssistantFlowRenderNode = Exclude<RenderGroup["nodes"][number], { readonly kind: "userBubble" }>;
 type AssistantTraceNode = Extract<AssistantFlowRenderNode, { readonly kind: "traceItem" }>;
+type AssistantSubagentTraceNode = AssistantTraceNode & { readonly item: CollabAgentToolCallEntry };
 type AssistantDisplayNode =
   | AssistantFlowRenderNode
   | {
     readonly key: string;
     readonly kind: "assistantToolGroup";
     readonly nodes: ReadonlyArray<AssistantTraceNode>;
+  }
+  | {
+    readonly key: string;
+    readonly kind: "assistantSubagentGroup";
+    readonly nodes: ReadonlyArray<AssistantSubagentTraceNode>;
   };
 
 function useMeasuredRenderGroups(groups: ReadonlyArray<RenderGroup>) {
@@ -279,6 +286,14 @@ function renderAssistantDisplayNode(props: {
       />
     );
   }
+  if (props.node.kind === "assistantSubagentGroup") {
+    return (
+      <HomeSubagentTranscriptEntry
+        key={props.node.key}
+        entries={props.node.nodes.map((node) => node.item)}
+      />
+    );
+  }
 
   return (
     <HomeTimelineEntry
@@ -363,6 +378,25 @@ function createAssistantDisplayNodes(
 
   while (index < nodes.length) {
     const node = nodes[index];
+    if (isSubagentTraceNode(node)) {
+      const run: Array<AssistantSubagentTraceNode> = [];
+      let cursor = index;
+      while (cursor < nodes.length) {
+        const runNode = nodes[cursor];
+        if (!isSubagentTraceNode(runNode) || !sameSubagentGroup(node, runNode)) {
+          break;
+        }
+        run.push(runNode);
+        cursor += 1;
+      }
+      displayNodes.push({
+        key: `subagent-group:${run.map((entry) => entry.key).join(":")}`,
+        kind: "assistantSubagentGroup",
+        nodes: run,
+      });
+      index = cursor;
+      continue;
+    }
     if (
       node !== undefined
       && isFoldableTraceNode(node)
@@ -452,8 +486,15 @@ function isFoldableTraceNode(node: AssistantFlowRenderNode | undefined): node is
     || node.item.kind === "fileChange"
     || node.item.kind === "mcpToolCall"
     || node.item.kind === "dynamicToolCall"
-    || node.item.kind === "collabAgentToolCall"
     || node.item.kind === "webSearch";
+}
+
+function isSubagentTraceNode(node: AssistantFlowRenderNode | undefined): node is AssistantSubagentTraceNode {
+  return node?.kind === "traceItem" && node.item.kind === "collabAgentToolCall";
+}
+
+function sameSubagentGroup(left: AssistantSubagentTraceNode, right: AssistantSubagentTraceNode): boolean {
+  return left.item.tool === right.item.tool && left.item.status === right.item.status;
 }
 
 function shouldCreateAssistantToolGroup(nodes: ReadonlyArray<AssistantTraceNode>): boolean {

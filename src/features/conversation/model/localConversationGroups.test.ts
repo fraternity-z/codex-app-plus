@@ -102,6 +102,27 @@ function createPlan(): TimelineEntry {
   };
 }
 
+function createCollabAgentToolCall(): TimelineEntry {
+  return {
+    id: "collab-1",
+    kind: "collabAgentToolCall",
+    threadId: "thread-1",
+    turnId: "turn-1",
+    itemId: "item-collab",
+    tool: "spawnAgent",
+    status: "completed",
+    senderThreadId: "thread-1",
+    receiverThreadIds: ["agent-1"],
+    prompt: "Inspect subagent UI",
+    agentsStates: {
+      "agent-1": {
+        status: "completed",
+        message: null,
+      },
+    },
+  };
+}
+
 function createRawResponse(): TimelineEntry {
   return {
     id: "raw-1",
@@ -238,12 +259,13 @@ describe("localConversationGroups", () => {
     expect(group.showThinkingIndicator).toBe(false);
   });
 
-  it("keeps only messages, plans, requests, and warning/error notices in compact mode", () => {
+  it("keeps messages, plans, subagent activity, requests, and warning/error notices in compact mode", () => {
     const [group] = splitActivitiesIntoRenderGroups(
       [
         createUserMessage(),
         createAssistantMessage(),
         createPlan(),
+        createCollabAgentToolCall(),
         createReasoning(),
         createCommand(),
         createRawResponse(),
@@ -260,6 +282,7 @@ describe("localConversationGroups", () => {
       "userBubble",
       "assistantMessage",
       "auxiliaryBlock",
+      "traceItem",
       "auxiliaryBlock",
       "requestBlock",
     ]);
