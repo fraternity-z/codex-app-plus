@@ -154,7 +154,7 @@
   flex-direction: column;
   align-self: stretch;
   min-width: 0;
-  gap: 10px;
+  gap: 16px;
   padding-bottom: 38px;
   margin-bottom: -38px;
 }
@@ -210,7 +210,7 @@
   max-width: 100%;
   justify-content: flex-end;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .home-chat-message-assistant .home-chat-attachments {
@@ -444,7 +444,7 @@
 }
 
 .home-chat-markdown > * {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
 }
 
 .home-chat-markdown > *:last-child,

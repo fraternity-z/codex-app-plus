@@ -52,7 +52,7 @@
 }
 
 .home-assistant-transcript-message .home-chat-markdown > * {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .home-assistant-transcript-message .home-chat-markdown > *:last-child {
@@ -280,8 +280,8 @@
 
 .home-assistant-transcript-subagents-body {
   display: grid;
-  gap: 6px;
-  margin: 8px 0 0 16px;
+  gap: 8px;
+  margin: 10px 0 0 16px;
 }
 
 .home-assistant-transcript-subagent-row {
@@ -340,8 +340,8 @@
 
 .home-assistant-transcript-tool-group-body {
   display: grid;
-  gap: 2px;
-  margin: 8px 0 0 16px;
+  gap: 6px;
+  margin: 10px 0 0 16px;
 }
 
 .home-assistant-transcript-file-change-counts {
@@ -395,7 +395,7 @@
 
 .home-assistant-transcript-detail-panel {
   --assistant-transcript-detail-height: 170px;
-  margin: 8px 0 0 16px;
+  margin: 10px 0 0 16px;
   padding: 12px;
   border: 1px solid var(--border-light);
   border-radius: 14px;
