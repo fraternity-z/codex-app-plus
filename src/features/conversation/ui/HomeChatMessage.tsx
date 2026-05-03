@@ -92,7 +92,11 @@ export function HomeChatMessage(props: HomeChatMessageProps): JSX.Element {
           ) : <>
             {hasText ? (
               <div className={contentClassName}>
-                <ConversationMessageContent className={markdownClassName} message={props.message} />
+                <ConversationMessageContent
+                  className={markdownClassName}
+                  message={props.message}
+                  variant={assistant ? "assistant-inline" : "user-bubble"}
+                />
               </div>
             ) : null}
             <HomeChatMessageActions

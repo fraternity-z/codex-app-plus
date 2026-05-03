@@ -21,7 +21,17 @@ type MarkdownVariant = "body" | "title";
 type MarkdownRemarkPlugins = NonNullable<ComponentProps<typeof ReactMarkdown>["remarkPlugins"]>;
 type MarkdownRehypePlugins = NonNullable<ComponentProps<typeof ReactMarkdown>["rehypePlugins"]>;
 
-const MARKDOWN_REMARK_PLUGINS = [remarkGfm, remarkBreaks, remarkMath, remarkFileLinks] as unknown as MarkdownRemarkPlugins;
+const BASE_MARKDOWN_REMARK_PLUGINS = [
+  remarkGfm,
+  remarkBreaks,
+  remarkMath,
+] as unknown as MarkdownRemarkPlugins;
+const FILE_LINK_MARKDOWN_REMARK_PLUGINS = [
+  remarkGfm,
+  remarkBreaks,
+  remarkMath,
+  remarkFileLinks,
+] as unknown as MarkdownRemarkPlugins;
 const MARKDOWN_REHYPE_PLUGINS = [[rehypeKatex, { strict: "ignore" }]] as unknown as MarkdownRehypePlugins;
 
 // 将 LLM 常用的 LaTeX 风格分隔符 (\[...\] / \(...\)) 归一化为
@@ -50,6 +60,7 @@ function normalizeMathDelimiters(markdown: string): string {
 
 interface MarkdownRendererProps {
   readonly className?: string;
+  readonly enableFileLinks?: boolean;
   readonly markdown: string;
   readonly variant?: MarkdownVariant;
   readonly workspacePath?: string | null;
@@ -93,6 +104,7 @@ function FileReferenceLink({
 
 export const MarkdownRenderer = memo(function MarkdownRenderer(props: MarkdownRendererProps): JSX.Element {
   const { workspacePath = null, onOpenFileLink, onOpenFileLinkMenu, onOpenExternalLink } = props;
+  const canOpenFileLinks = props.enableFileLinks !== false && onOpenFileLink !== undefined;
 
   const handleFileLinkClick = useCallback((event: React.MouseEvent, path: ParsedFileLocation) => {
     event.preventDefault();
@@ -116,6 +128,9 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(props: MarkdownRe
 
   const resolvedHrefFilePathCache = useMemo(() => new Map<string, ParsedFileLocation | null>(), [props.markdown, workspacePath]);
   const resolveHrefFilePath = useCallback((url: string) => {
+    if (!canOpenFileLinks) {
+      return null;
+    }
     if (resolvedHrefFilePathCache.has(url)) {
       return resolvedHrefFilePathCache.get(url) ?? null;
     }
@@ -126,126 +141,126 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(props: MarkdownRe
     }
     resolvedHrefFilePathCache.set(url, resolvedPath);
     return resolvedPath;
-  }, [resolvedHrefFilePathCache, workspacePath]);
+  }, [canOpenFileLinks, resolvedHrefFilePathCache, workspacePath]);
 
   const components: Components = useMemo(() => {
-    const nextComponents: Components = onOpenFileLink
-      ? {
-        a: ({ href, children }) => {
-          const url = (href ?? "").trim();
+    const nextComponents: Components = {
+      a: ({ href, children }) => {
+        const url = (href ?? "").trim();
 
-          if (isFileLinkUrl(url)) {
-            const path = parseFileLinkUrl(url);
-            if (!path) {
-              return (
-                <a href={href} onClick={handleLocalLinkClick}>
-                  {children}
-                </a>
-              );
-            }
-            return (
-              <FileReferenceLink
-                href={href ?? toFileLink(path)}
-                rawPath={path}
-                showFilePath={false}
-                workspacePath={workspacePath}
-                onClick={handleFileLinkClick}
-                onContextMenu={handleFileLinkContextMenu}
-              />
-            );
-          }
-
-          const hrefFilePath = resolveHrefFilePath(url);
-          if (hrefFilePath) {
-            const formattedHrefFilePath = formatParsedFileLocation(hrefFilePath);
-            const clickHandler = (event: React.MouseEvent) =>
-              handleFileLinkClick(event, hrefFilePath);
-            const contextMenuHandler = onOpenFileLinkMenu
-              ? (event: React.MouseEvent) => handleFileLinkContextMenu(event, hrefFilePath)
-              : undefined;
-            return (
-              <a
-                href={href ?? toFileLink(hrefFilePath)}
-                title={formattedHrefFilePath}
-                onClick={clickHandler}
-                onContextMenu={contextMenuHandler}
-              >
-                {children}
-              </a>
-            );
-          }
-
-          const isExternal =
-            url.startsWith("http://") ||
-            url.startsWith("https://") ||
-            url.startsWith("mailto:");
-
-          if (!isExternal) {
-            if (url.startsWith("#")) {
-              return <a href={href}>{children}</a>;
-            }
+        if (canOpenFileLinks && isFileLinkUrl(url)) {
+          const path = parseFileLinkUrl(url);
+          if (!path) {
             return (
               <a href={href} onClick={handleLocalLinkClick}>
                 {children}
               </a>
             );
           }
-
-          return (
-            <a
-              href={href}
-              target="_blank"
-              rel="noreferrer"
-              onClick={onOpenExternalLink ? (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                onOpenExternalLink(url);
-              } : undefined}
-            >
-              {children}
-            </a>
-          );
-        },
-        code: ({ className: codeClassName, children }) => {
-          if (codeClassName) {
-            return <code className={codeClassName}>{children}</code>;
-          }
-          const text = String(children ?? "").trim();
-          const fileTarget = parseInlineFileTarget(text);
-          if (!fileTarget) {
-            return <code>{children}</code>;
-          }
-          const href = toFileLink(fileTarget);
           return (
             <FileReferenceLink
-              href={href}
-              rawPath={fileTarget}
+              href={href ?? toFileLink(path)}
+              rawPath={path}
               showFilePath={false}
               workspacePath={workspacePath}
               onClick={handleFileLinkClick}
               onContextMenu={handleFileLinkContextMenu}
             />
           );
-        },
         }
-      : {
-        a: ({ node: _node, ...aProps }) => <a {...aProps} target="_blank" rel="noreferrer" />,
-      };
+
+        const hrefFilePath = canOpenFileLinks ? resolveHrefFilePath(url) : null;
+        if (hrefFilePath) {
+          const formattedHrefFilePath = formatParsedFileLocation(hrefFilePath);
+          const clickHandler = (event: React.MouseEvent) =>
+            handleFileLinkClick(event, hrefFilePath);
+          const contextMenuHandler = onOpenFileLinkMenu
+            ? (event: React.MouseEvent) => handleFileLinkContextMenu(event, hrefFilePath)
+            : undefined;
+          return (
+            <a
+              href={href ?? toFileLink(hrefFilePath)}
+              title={formattedHrefFilePath}
+              onClick={clickHandler}
+              onContextMenu={contextMenuHandler}
+            >
+              {children}
+            </a>
+          );
+        }
+
+        const isExternal =
+          url.startsWith("http://") ||
+          url.startsWith("https://") ||
+          url.startsWith("mailto:");
+
+        if (!isExternal) {
+          if (url.startsWith("#")) {
+            return <a href={href}>{children}</a>;
+          }
+          return (
+            <a href={href} onClick={handleLocalLinkClick}>
+              {children}
+            </a>
+          );
+        }
+
+        return (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            onClick={onOpenExternalLink ? (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onOpenExternalLink(url);
+            } : undefined}
+          >
+            {children}
+          </a>
+        );
+      },
+      code: ({ className: codeClassName, children }) => {
+        if (codeClassName) {
+          return <code className={codeClassName}>{children}</code>;
+        }
+        if (!canOpenFileLinks) {
+          return <code>{children}</code>;
+        }
+        const text = String(children ?? "").trim();
+        const fileTarget = parseInlineFileTarget(text);
+        if (!fileTarget) {
+          return <code>{children}</code>;
+        }
+        const href = toFileLink(fileTarget);
+        return (
+          <FileReferenceLink
+            href={href}
+            rawPath={fileTarget}
+            showFilePath={false}
+            workspacePath={workspacePath}
+            onClick={handleFileLinkClick}
+            onContextMenu={handleFileLinkContextMenu}
+          />
+        );
+      },
+    };
 
     if (props.variant === "title") {
       nextComponents.p = ({ node: _node, ...pProps }) => <span {...pProps} />;
     }
 
     return nextComponents;
-  }, [handleFileLinkClick, handleFileLinkContextMenu, handleLocalLinkClick, onOpenExternalLink, onOpenFileLink, onOpenFileLinkMenu, props.variant, resolveHrefFilePath, workspacePath]);
+  }, [canOpenFileLinks, handleFileLinkClick, handleFileLinkContextMenu, handleLocalLinkClick, onOpenExternalLink, onOpenFileLinkMenu, props.variant, resolveHrefFilePath, workspacePath]);
 
+  const remarkPlugins = canOpenFileLinks ? FILE_LINK_MARKDOWN_REMARK_PLUGINS : BASE_MARKDOWN_REMARK_PLUGINS;
   const normalizedMarkdown = useMemo(() => normalizeMathDelimiters(props.markdown), [props.markdown]);
   const urlTransform = useMemo(() => (url: string) => {
     if (resolveHrefFilePath(url)) {
       return url;
     }
     if (
-      isFileLinkUrl(url) ||
+      (canOpenFileLinks && isFileLinkUrl(url)) ||
       url.startsWith("http://") ||
       url.startsWith("https://") ||
       url.startsWith("mailto:") ||
@@ -261,12 +276,12 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(props: MarkdownRe
       return url;
     }
     return "";
-  }, [resolveHrefFilePath]);
+  }, [canOpenFileLinks, resolveHrefFilePath]);
 
   const content = (
     <ReactMarkdown
       components={components}
-      remarkPlugins={MARKDOWN_REMARK_PLUGINS}
+      remarkPlugins={remarkPlugins}
       rehypePlugins={MARKDOWN_REHYPE_PLUGINS}
       urlTransform={urlTransform}
     >

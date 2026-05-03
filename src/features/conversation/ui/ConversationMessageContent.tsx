@@ -19,11 +19,12 @@ interface ConversationMessageContentProps {
 export const ConversationMessageContent = memo(function ConversationMessageContent(props: ConversationMessageContentProps): JSX.Element {
   const fileLinkActions = useFileLinkActions();
   const segments = useMemo(() => splitMessageSegments(props.message.text), [props.message.text]);
+  const enableFileLinks = props.variant !== "user-bubble" && props.message.role !== "user";
 
   return (
     <div className={props.className}>
       {segments.map((segment, index) =>
-        renderSegment(segment, index, fileLinkActions),
+        renderSegment(segment, index, fileLinkActions, enableFileLinks),
       )}
     </div>
   );
@@ -67,6 +68,7 @@ function renderSegment(
   segment: MessageSegment,
   index: number,
   fileLinkActions: ReturnType<typeof useFileLinkActions>,
+  enableFileLinks: boolean,
 ): JSX.Element {
   if (segment.type === "proposed-plan") {
     return <HomePlanDraftCard key={`segment-${index}`} markdown={segment.text} />;
@@ -75,6 +77,7 @@ function renderSegment(
   return (
     <MarkdownRenderer
       key={`segment-${index}`}
+      enableFileLinks={enableFileLinks}
       markdown={segment.text}
       workspacePath={fileLinkActions?.workspacePath}
       onOpenFileLink={fileLinkActions?.openFileLink}

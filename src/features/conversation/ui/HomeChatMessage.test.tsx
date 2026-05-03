@@ -1,12 +1,19 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
+import { FileLinkProvider, type FileLinkActions } from "../hooks/fileLinkContext";
 import { HomeChatMessage } from "./HomeChatMessage";
 
 const I18nWrapper = createI18nWrapper("zh-CN");
 
-function renderMessage(element: JSX.Element) {
-  return render(element, { wrapper: I18nWrapper });
+function renderMessage(
+  element: JSX.Element,
+  options: { readonly fileLinkActions?: FileLinkActions } = {},
+) {
+  const tree = options.fileLinkActions ? (
+    <FileLinkProvider value={options.fileLinkActions}>{element}</FileLinkProvider>
+  ) : element;
+  return render(tree, { wrapper: I18nWrapper });
 }
 
 describe("HomeChatMessage", () => {
@@ -81,6 +88,63 @@ describe("HomeChatMessage", () => {
     expect(screen.getByText("正在输出正文")).toBeInTheDocument();
     expect(screen.queryByText("Thinking")).toBeNull();
     expect(assistantChildren).toEqual(["home-chat-message-stack home-chat-message-stack-assistant"]);
+  });
+
+  it("does not convert user message file paths into clickable file links", () => {
+    const fileLinkActions = {
+      openFileLink: vi.fn(),
+      openExternalLink: vi.fn(),
+      workspacePath: "E:/code/codex-app-plus",
+    };
+
+    const { container } = renderMessage(
+      <HomeChatMessage
+        message={{
+          id: "user-path-1",
+          kind: "userMessage",
+          role: "user",
+          threadId: "thread-1",
+          turnId: "turn-1",
+          itemId: "item-user",
+          text: "第一，这个用户消息不应该解析 src/features/conversation/ui/HomeChatMessage.tsx:95",
+          status: "done",
+        }}
+      />,
+      { fileLinkActions },
+    );
+
+    expect(container.querySelector(".home-chat-message-user .message-file-link")).toBeNull();
+    expect(container.querySelector(".home-chat-message-user a[href^='codex-file:']")).toBeNull();
+    expect(container.textContent).toContain("src/features/conversation/ui/HomeChatMessage.tsx:95");
+  });
+
+  it("keeps assistant file paths clickable", () => {
+    const fileLinkActions = {
+      openFileLink: vi.fn(),
+      openExternalLink: vi.fn(),
+      workspacePath: "E:/code/codex-app-plus",
+    };
+
+    const { container } = renderMessage(
+      <HomeChatMessage
+        message={{
+          id: "assistant-path-1",
+          kind: "agentMessage",
+          role: "assistant",
+          threadId: "thread-1",
+          turnId: "turn-1",
+          itemId: "item-assistant",
+          text: "已修改 src/features/conversation/ui/HomeChatMessage.tsx:95",
+          status: "done",
+        }}
+      />,
+      { fileLinkActions },
+    );
+
+    const fileLink = container.querySelector(".home-chat-message-assistant .message-file-link");
+
+    expect(fileLink).not.toBeNull();
+    expect(fileLink?.getAttribute("href")).toContain("codex-file:");
   });
 
   it("does not render an empty assistant body", () => {
