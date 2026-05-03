@@ -5,7 +5,7 @@ import type { FuzzyFileSearchResponse } from "../../../protocol/generated/FuzzyF
 import type { FuzzyFileSearchResult } from "../../../protocol/generated/FuzzyFileSearchResult";
 import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
 import { BrowserSidebarPanel } from "../../browser/ui/BrowserSidebarPanel";
-import { OfficialCloseIcon, OfficialFolderIcon, OfficialPlusIcon, OfficialSortIcon } from "../../shared/ui/officialIcons";
+import { OfficialCloseIcon, OfficialFolderIcon, OfficialPlusIcon } from "../../shared/ui/officialIcons";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import { SidebarIcon } from "../../shared/ui/icons";
 import { useWorkspaceDiffViewer } from "../hooks/useWorkspaceDiffViewer";
@@ -23,7 +23,6 @@ import {
   GitDiffIcon,
   GitDiffSplitViewIcon,
   GitDiffUnifiedViewIcon,
-  GitHubMarkIcon,
   GitRefreshIcon,
 } from "./gitIcons";
 import { WorkspaceDiffScopeSelector } from "./WorkspaceDiffScopeSelector";
@@ -31,7 +30,7 @@ import { WorkspaceDiffViewer } from "./WorkspaceDiffViewer";
 import { WorkspaceDiffFileList } from "./WorkspaceDiffFileList";
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
 
-type WorkspaceSidePanelTab = "summary" | "review" | "browser";
+type WorkspaceSidePanelTab = "review" | "browser";
 type BrowserOpenRequest = { readonly id: number; readonly url: string | null };
 
 interface WorkspaceDiffSidebarProps {
@@ -58,13 +57,6 @@ function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function countStatusChanges(status: WorkspaceGitController["status"]): number {
-  if (status === null) {
-    return 0;
-  }
-  return status.staged.length + status.unstaged.length + status.untracked.length + status.conflicted.length;
-}
-
 function isFuzzyFileSearchResponse(value: unknown): value is FuzzyFileSearchResponse {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -86,30 +78,11 @@ function resolveProjectFilePath(file: FuzzyFileSearchResult): string {
   return `${root}${separator}${relativePath}`;
 }
 
-function SummaryTabIcon(props: { readonly className?: string }): JSX.Element {
-  return <OfficialSortIcon className={props.className} />;
-}
-
 function ReviewTabIcon(props: { readonly className?: string }): JSX.Element {
   return (
     <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <rect x="4" y="4" width="12" height="12" rx="2.4" stroke="currentColor" strokeWidth="1.4" />
       <path d="M10 6.9v6.2M6.9 10h6.2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PencilLineIcon(props: { readonly className?: string }): JSX.Element {
-  return (
-    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M4.25 13.95 3.75 16.25l2.3-.5 8.9-8.9a1.62 1.62 0 0 0-2.3-2.3l-8.4 8.4Z"
-        stroke="currentColor"
-        strokeWidth="1.35"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="m11.8 5.4 2.8 2.8" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
     </svg>
   );
 }
@@ -169,7 +142,6 @@ function SidePanelHeader(props: SidePanelHeaderProps): JSX.Element {
   const menuRef = useRef<HTMLDivElement>(null);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
   const tabs: ReadonlyArray<{ readonly id: WorkspaceSidePanelTab; readonly label: string }> = [
-    { id: "summary", label: "概览" },
     { id: "review", label: "审查" },
     ...(props.browserTabOpen ? [{ id: "browser" as const, label: "浏览器" }] : []),
   ];
@@ -183,7 +155,7 @@ function SidePanelHeader(props: SidePanelHeaderProps): JSX.Element {
       <div className="workspace-side-panel-tabs" role="tablist" aria-label="侧边面板标签页">
         {tabs.map((tab) => {
           const active = props.activeTab === tab.id;
-          const TabIcon = tab.id === "summary" ? SummaryTabIcon : tab.id === "review" ? ReviewTabIcon : null;
+          const TabIcon = tab.id === "review" ? ReviewTabIcon : null;
           const tabButton = (
             <button
               key={tab.id}
@@ -531,65 +503,6 @@ function ProjectFileSearchDialog(props: {
   );
 }
 
-function SidePanelSummary(props: {
-  readonly selectedRootName: string;
-  readonly selectedRootPath: string;
-  readonly controller: WorkspaceGitController;
-  readonly diffSummary: { readonly additions: number; readonly deletions: number; readonly files: number };
-  readonly onRefresh: () => Promise<void>;
-}): JSX.Element {
-  const status = props.controller.status;
-  const changedFiles = countStatusChanges(status);
-  const stagedCount = status?.staged.length ?? 0;
-  const changeDetail = status === null
-    ? "读取中"
-    : stagedCount > 0
-      ? `已暂存 ${stagedCount}`
-      : changedFiles > 0
-        ? `未暂存 ${changedFiles}`
-        : "无变更";
-
-  return (
-    <div className="workspace-diff-sidebar-content workspace-side-summary">
-      <section className="workspace-side-summary-section" aria-label="进度">
-        <div className="workspace-side-summary-heading">
-          <h2>进度</h2>
-          <span>未接入</span>
-        </div>
-        <p className="workspace-side-summary-muted">较长回复会显示进度</p>
-      </section>
-      <section className="workspace-side-summary-section" aria-label="分支详情">
-        <h2>分支详情</h2>
-        <div className="workspace-side-summary-row workspace-side-summary-row-unavailable">
-          <GitHubMarkIcon className="workspace-side-summary-row-icon" />
-          <span>GitHub CLI</span>
-          <span>未通过身份验证</span>
-          <span className="workspace-side-summary-badge">未接入</span>
-        </div>
-        <div className="workspace-side-summary-row">
-          <PencilLineIcon className="workspace-side-summary-row-icon" />
-          <span>更改</span>
-          <span>{changeDetail}</span>
-        </div>
-      </section>
-      <section className="workspace-side-summary-section" aria-label="生成结果">
-        <div className="workspace-side-summary-heading">
-          <h2>生成结果</h2>
-          <span>未接入</span>
-        </div>
-        <p className="workspace-side-summary-muted">查看并打开文件</p>
-      </section>
-      <section className="workspace-side-summary-section" aria-label="来源">
-        <div className="workspace-side-summary-heading">
-          <h2>来源</h2>
-          <span>未接入</span>
-        </div>
-        <p className="workspace-side-summary-muted">跟踪所用来源</p>
-      </section>
-    </div>
-  );
-}
-
 function ResizeHandle(props: {
   readonly onMouseDown?: (event: ReactMouseEvent) => void;
   readonly active: boolean;
@@ -820,15 +733,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
       </div>
     </>
   );
-  const activeContent = activeTab === "summary" ? (
-    <SidePanelSummary
-      selectedRootName={props.selectedRootName}
-      selectedRootPath={props.selectedRootPath}
-      controller={props.controller}
-      diffSummary={diffViewer.summary}
-      onRefresh={refreshReview}
-    />
-  ) : activeTab === "browser" ? (
+  const activeContent = activeTab === "browser" ? (
     <BrowserSidebarPanel
       active={props.open && activeTab === "browser"}
       hostBridge={props.hostBridge}

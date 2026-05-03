@@ -20,6 +20,7 @@
   min-height: 0;
   display: flex;
   position: relative;
+  overflow: hidden;
 }
 
 .home-main-stage > .home-conversation {

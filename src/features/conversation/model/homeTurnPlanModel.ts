@@ -10,6 +10,13 @@ export interface TurnPlanModel {
   readonly completedSteps: number;
 }
 
+export interface TurnPlanOverview {
+  readonly additions: number | null;
+  readonly changedFiles: number;
+  readonly deletions: number | null;
+  readonly generatedImages: number;
+}
+
 type TranslateFn = (key: MessageKey, params?: TranslationParams) => string;
 
 export function selectLatestTurnPlan(entries: ReadonlyArray<TimelineEntry>): TurnPlanModel | null {

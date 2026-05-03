@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import type { ComposerPermissionLevel } from "../../composer/model/composerPermission";
 import type { ComposerModelOption, ComposerSelection } from "../../composer/model/composerPreferences";
 import type { ThreadDetailLevel } from "../../settings/hooks/useAppPreferences";
@@ -41,7 +41,7 @@ import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import type { WorkspaceLaunchScriptsState } from "../hooks/useWorkspaceLaunchScripts";
 import { extractConnectionRetryInfo } from "../model/homeConnectionRetry";
 import {
-  createTurnPlanChangeKey,
+  createTurnPlanOverview,
   deriveHomeViewMainContentState,
 } from "../model/homeViewMainContentModel";
 import { HomeBannerStack, selectVisibleHomeBanners } from "./HomeBannerStack";
@@ -382,9 +382,17 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
     }),
     [props.activities, props.selectedConversationLoading, props.selectedThread],
   );
-  const [planDrawerCollapsed, setPlanDrawerCollapsed] = useState(true);
+  const [planDrawerPinned, setPlanDrawerPinned] = useState(false);
   const [dismissedPlanPromptId, setDismissedPlanPromptId] = useState<string | null>(null);
-  const planSnapshotKeyRef = useRef<string | null>(null);
+  const turnPlanOverview = useMemo(
+    () => createTurnPlanOverview({
+      activities: props.activities,
+      diffItems: props.diffItems,
+      gitStatus: props.gitController.status,
+      plan: derivedState.currentTurnPlan,
+    }),
+    [derivedState.currentTurnPlan, props.activities, props.diffItems, props.gitController.status],
+  );
   const { openFileLink } = useFileLinkOpener(
     props.hostBridge,
     props.selectedRootPath,
@@ -408,20 +416,6 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
     }),
     [openFileLink, openExternalLink, props.selectedRootPath],
   );
-
-  useEffect(() => {
-    if (derivedState.currentTurnPlan === null) {
-      setPlanDrawerCollapsed(true);
-      planSnapshotKeyRef.current = null;
-      return;
-    }
-
-    const nextKey = createTurnPlanChangeKey(derivedState.currentTurnPlan);
-    if (nextKey !== planSnapshotKeyRef.current) {
-      setPlanDrawerCollapsed(true);
-      planSnapshotKeyRef.current = nextKey;
-    }
-  }, [derivedState.currentTurnPlan]);
 
   const showPlanPrompt = derivedState.latestPlanPrompt !== null
     && !props.isResponding
@@ -528,12 +522,14 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           workspaceSwitch={props.workspaceSwitch}
           canEditMessages={!props.isResponding}
         />
+        <HomeTurnPlanDrawer
+          plan={derivedState.currentTurnPlan}
+          overview={turnPlanOverview}
+          pinned={planDrawerPinned}
+          visible={derivedState.conversationActive}
+          onTogglePinned={() => setPlanDrawerPinned((value) => !value)}
+        />
       </div>
-      <HomeTurnPlanDrawer
-        plan={derivedState.currentTurnPlan}
-        collapsed={planDrawerCollapsed}
-        onToggle={() => setPlanDrawerCollapsed((value) => !value)}
-      />
       {derivedState.pendingUserInput !== null ? (
         <HomeUserInputPrompt
           busy={props.busy}

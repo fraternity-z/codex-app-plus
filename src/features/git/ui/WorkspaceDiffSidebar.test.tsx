@@ -262,7 +262,7 @@ describe("WorkspaceDiffSidebar", () => {
     await waitFor(() => expect(screen.getByLabelText("当前分组新增 1 行，删除 1 行")).toBeInTheDocument());
   });
 
-  it("renders the overview sections with not-connected markers", () => {
+  it("does not render the removed overview tab", () => {
     renderSidebar(
       createController({
         status: createStatus({
@@ -278,15 +278,9 @@ describe("WorkspaceDiffSidebar", () => {
       createHostBridge(vi.fn().mockResolvedValue([])),
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "概览" }));
-
-    expect(screen.getByRole("heading", { name: "进度" })).toBeInTheDocument();
-    expect(screen.getByText("较长回复会显示进度")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "分支详情" })).toBeInTheDocument();
-    expect(screen.getByText("GitHub CLI")).toBeInTheDocument();
-    expect(screen.getByText("未通过身份验证")).toBeInTheDocument();
-    expect(screen.getByText("已暂存 29")).toBeInTheDocument();
-    expect(screen.getAllByText("未接入").length).toBeGreaterThanOrEqual(4);
+    expect(screen.queryByRole("tab", { name: "概览" })).toBeNull();
+    expect(screen.getByRole("tab", { name: "审查" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByText("GitHub CLI")).toBeNull();
   });
 
   it("opens a project file search dialog and opens the selected result", async () => {

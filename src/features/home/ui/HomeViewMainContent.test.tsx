@@ -22,7 +22,9 @@ vi.mock("../../conversation/ui/HomeConversationCanvas", () => ({
 }));
 
 vi.mock("../../conversation/ui/HomeTurnPlanDrawer", () => ({
-  HomeTurnPlanDrawer: () => <div data-testid="plan-drawer">plan drawer</div>,
+  HomeTurnPlanDrawer: (props: { readonly visible: boolean }) => (
+    props.visible ? <div data-testid="plan-drawer">plan drawer</div> : null
+  ),
 }));
 
 vi.mock("../../conversation/ui/HomeUserInputPrompt", () => ({
@@ -186,5 +188,19 @@ describe("HomeViewMainContent", () => {
     expect(screen.getByTestId("plan-drawer")).toBeInTheDocument();
     expect(container.querySelector(".replica-main-diff-preview-active")).not.toBeNull();
     expect(container.querySelector(".home-main-overlay")).not.toBeNull();
+  });
+
+  it("hides the progress card in the new conversation empty state", () => {
+    render(
+      <HomeViewMainContent
+        {...createProps({
+          activities: [],
+          selectedConversationLoading: false,
+          selectedThread: null,
+        })}
+      />,
+    );
+
+    expect(screen.queryByTestId("plan-drawer")).toBeNull();
   });
 });

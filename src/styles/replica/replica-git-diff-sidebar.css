@@ -344,99 +344,6 @@
   font-size: 12px;
 }
 
-.workspace-side-summary {
-  align-content: start;
-  gap: 38px;
-  width: min(100%, 420px);
-  padding: 34px 28px 24px 32px;
-}
-
-.workspace-side-summary-section {
-  min-width: 0;
-  display: grid;
-  align-content: start;
-  gap: 12px;
-}
-
-.workspace-side-summary-section h2 {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.35;
-}
-
-.workspace-side-summary-heading {
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.workspace-side-summary-heading > span,
-.workspace-side-summary-badge {
-  min-width: 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-panel-soft) 70%, transparent);
-  color: color-mix(in srgb, var(--text-subtle) 82%, transparent);
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 18px;
-  padding: 0 7px;
-}
-
-.workspace-side-summary-muted {
-  margin: 0;
-  color: var(--text-subtle);
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.workspace-side-summary-row {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 18px auto minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: 8px;
-  row-gap: 4px;
-  color: var(--text-soft);
-  font-size: 14px;
-  line-height: 1.35;
-}
-
-.workspace-side-summary-row + .workspace-side-summary-row {
-  margin-top: 10px;
-}
-
-.workspace-side-summary-row-unavailable {
-  color: color-mix(in srgb, var(--text-main) 82%, var(--text-muted));
-}
-
-.workspace-side-summary-row-icon {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  color: var(--text-muted);
-}
-
-.workspace-side-summary-row > span:nth-child(2) {
-  flex: 0 0 auto;
-  color: var(--text-main);
-  font-weight: 500;
-}
-
-.workspace-side-summary-row > span:nth-child(3) {
-  min-width: 0;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspace-side-summary-badge {
-  flex: 0 0 auto;
-}
-
 .workspace-side-browser {
   flex: 1 1 0;
   height: 100%;
@@ -796,13 +703,11 @@ html[data-theme="dark"] .workspace-file-search-backdrop {
 }
 
 html[data-theme="dark"] .workspace-file-search-title,
-html[data-theme="dark"] .workspace-file-search-field,
-html[data-theme="dark"] .workspace-side-summary-section h2 {
+html[data-theme="dark"] .workspace-file-search-field {
   color: var(--text-muted);
 }
 
-html[data-theme="dark"] .workspace-file-search-field input::placeholder,
-html[data-theme="dark"] .workspace-side-summary-muted {
+html[data-theme="dark"] .workspace-file-search-field input::placeholder {
   color: var(--text-subtle);
 }
 

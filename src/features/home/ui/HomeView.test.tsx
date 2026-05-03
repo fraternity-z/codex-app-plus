@@ -565,17 +565,27 @@ describe("HomeView", () => {
     ));
   });
 
-  it("keeps the task list collapsed by default", () => {
-    renderHomeView({ activities: [createTurnPlanActivity()] });
+  it("shows the task progress card by default and lets it stay pinned", () => {
+    const { container } = renderHomeView({ activities: [createTurnPlanActivity()] });
 
-    const toggle = screen.getByRole("button", { name: /任务清单/ });
+    const toggle = screen.getByRole("button", { name: "固定进度卡片" });
     expect(toggle).toBeInTheDocument();
-    expect(screen.queryByText("Inspect UI")).toBeNull();
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText("Inspect UI")).toBeInTheDocument();
+    expect(screen.getByText("Adjust spacing")).toBeInTheDocument();
+    expect(container.querySelector(".home-turn-progress-card-pinned")).toBeNull();
 
     fireEvent.click(toggle);
 
-    expect(screen.getByText("Inspect UI")).toBeInTheDocument();
-    expect(screen.getByText("Adjust spacing")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "取消固定进度卡片" })).toHaveAttribute("aria-pressed", "true");
+    expect(container.querySelector(".home-turn-progress-card-pinned")).not.toBeNull();
+  });
+
+  it("keeps the progress card visible for an existing thread without a current plan", () => {
+    renderHomeView({ activities: [] });
+
+    expect(screen.getByRole("region", { name: "进度卡片" })).toBeInTheDocument();
+    expect(screen.getByText("较长回复会显示进度")).toBeInTheDocument();
   });
 
   it("renders command cards and shows user input prompts above the composer", () => {
@@ -814,6 +824,7 @@ describe("HomeView", () => {
     });
 
     expect(screen.getByRole("heading", { level: 2, name: "Current workspace" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "进度卡片" })).toBeNull();
     expect(screen.queryByText("Ready to start a new thread")).toBeNull();
   });
 
