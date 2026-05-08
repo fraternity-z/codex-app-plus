@@ -1,16 +1,37 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ConfigBatchWriteParams",
-  "type": "object",
-  "required": [
-    "edits"
-  ],
+  "definitions": {
+    "ConfigEdit": {
+      "properties": {
+        "keyPath": {
+          "type": "string"
+        },
+        "mergeStrategy": {
+          "$ref": "#/definitions/MergeStrategy"
+        },
+        "value": true
+      },
+      "required": [
+        "keyPath",
+        "mergeStrategy",
+        "value"
+      ],
+      "type": "object"
+    },
+    "MergeStrategy": {
+      "enum": [
+        "replace",
+        "upsert"
+      ],
+      "type": "string"
+    }
+  },
   "properties": {
     "edits": {
-      "type": "array",
       "items": {
         "$ref": "#/definitions/ConfigEdit"
-      }
+      },
+      "type": "array"
     },
     "expectedVersion": {
       "type": [
@@ -30,30 +51,9 @@
       "type": "boolean"
     }
   },
-  "definitions": {
-    "ConfigEdit": {
-      "type": "object",
-      "required": [
-        "keyPath",
-        "mergeStrategy",
-        "value"
-      ],
-      "properties": {
-        "keyPath": {
-          "type": "string"
-        },
-        "mergeStrategy": {
-          "$ref": "#/definitions/MergeStrategy"
-        },
-        "value": true
-      }
-    },
-    "MergeStrategy": {
-      "type": "string",
-      "enum": [
-        "replace",
-        "upsert"
-      ]
-    }
-  }
+  "required": [
+    "edits"
+  ],
+  "title": "ConfigBatchWriteParams",
+  "type": "object"
 }

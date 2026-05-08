@@ -1,12 +1,80 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ApplyPatchApprovalParams",
-  "type": "object",
-  "required": [
-    "callId",
-    "conversationId",
-    "fileChanges"
-  ],
+  "definitions": {
+    "FileChange": {
+      "oneOf": [
+        {
+          "properties": {
+            "content": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "add"
+              ],
+              "title": "AddFileChangeType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "type"
+          ],
+          "title": "AddFileChange",
+          "type": "object"
+        },
+        {
+          "properties": {
+            "content": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "delete"
+              ],
+              "title": "DeleteFileChangeType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "type"
+          ],
+          "title": "DeleteFileChange",
+          "type": "object"
+        },
+        {
+          "properties": {
+            "move_path": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "enum": [
+                "update"
+              ],
+              "title": "UpdateFileChangeType",
+              "type": "string"
+            },
+            "unified_diff": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "unified_diff"
+          ],
+          "title": "UpdateFileChange",
+          "type": "object"
+        }
+      ]
+    },
+    "ThreadId": {
+      "type": "string"
+    }
+  },
   "properties": {
     "callId": {
       "description": "Use to correlate this with [codex_protocol::protocol::PatchApplyBeginEvent] and [codex_protocol::protocol::PatchApplyEndEvent].",
@@ -16,10 +84,10 @@
       "$ref": "#/definitions/ThreadId"
     },
     "fileChanges": {
-      "type": "object",
       "additionalProperties": {
         "$ref": "#/definitions/FileChange"
-      }
+      },
+      "type": "object"
     },
     "grantRoot": {
       "description": "When set, the agent is asking the user to allow writes under this root for the remainder of the session (unclear if this is honored today).",
@@ -36,79 +104,11 @@
       ]
     }
   },
-  "definitions": {
-    "FileChange": {
-      "oneOf": [
-        {
-          "type": "object",
-          "required": [
-            "content",
-            "type"
-          ],
-          "properties": {
-            "content": {
-              "type": "string"
-            },
-            "type": {
-              "type": "string",
-              "enum": [
-                "add"
-              ],
-              "title": "AddFileChangeType"
-            }
-          },
-          "title": "AddFileChange"
-        },
-        {
-          "type": "object",
-          "required": [
-            "content",
-            "type"
-          ],
-          "properties": {
-            "content": {
-              "type": "string"
-            },
-            "type": {
-              "type": "string",
-              "enum": [
-                "delete"
-              ],
-              "title": "DeleteFileChangeType"
-            }
-          },
-          "title": "DeleteFileChange"
-        },
-        {
-          "type": "object",
-          "required": [
-            "type",
-            "unified_diff"
-          ],
-          "properties": {
-            "move_path": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "type": {
-              "type": "string",
-              "enum": [
-                "update"
-              ],
-              "title": "UpdateFileChangeType"
-            },
-            "unified_diff": {
-              "type": "string"
-            }
-          },
-          "title": "UpdateFileChange"
-        }
-      ]
-    },
-    "ThreadId": {
-      "type": "string"
-    }
-  }
+  "required": [
+    "callId",
+    "conversationId",
+    "fileChanges"
+  ],
+  "title": "ApplyPatchApprovalParams",
+  "type": "object"
 }

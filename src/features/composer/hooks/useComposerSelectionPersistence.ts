@@ -8,7 +8,7 @@ import {
 } from "../model/composerPreferences";
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
 import type { ReasoningEffort } from "../../../protocol/generated/ReasoningEffort";
-import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
+import type { ServiceTier } from "../../../protocol/ServiceTier";
 
 const PERSIST_DELAY_MS = 250;
 

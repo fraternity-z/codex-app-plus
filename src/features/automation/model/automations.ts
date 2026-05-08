@@ -1,6 +1,6 @@
 import type { MessageKey } from "../../../i18n";
 import type { ReasoningEffort } from "../../../protocol/generated/ReasoningEffort";
-import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
+import type { ServiceTier } from "../../../protocol/ServiceTier";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 
 export type AutomationScheduleMode = "daily" | "weekdays" | "weekly";

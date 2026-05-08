@@ -12,6 +12,7 @@ import {
 function createThread(overrides: Record<string, unknown> = {}) {
   return {
     id: "thread-1",
+    sessionId: "session-1",
     forkedFromId: null,
     preview: "Inspect workspace",
     ephemeral: false,
@@ -23,6 +24,7 @@ function createThread(overrides: Record<string, unknown> = {}) {
     cwd: "E:/code/FPGA",
     cliVersion: "0.1.0",
     source: "appServer" as const,
+    threadSource: null,
     agentNickname: null,
     agentRole: null,
     gitInfo: null,

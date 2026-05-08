@@ -1,5 +1,5 @@
 import type { CollaborationPreset } from "../../../domain/timeline";
-import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
+import type { ServiceTier } from "../../../protocol/ServiceTier";
 import { useI18n } from "../../../i18n/useI18n";
 import { useEffect, useRef, useState } from "react";
 import { OfficialChevronRightIcon } from "../../shared/ui/officialIcons";

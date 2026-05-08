@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
 import type { ReasoningEffort } from "../../../protocol/generated/ReasoningEffort";
-import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
+import type { ServiceTier } from "../../../protocol/ServiceTier";
 import {
   type ComposerModelOption,
   listComposerModels,

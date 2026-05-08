@@ -1,7 +1,7 @@
 import type { AgentEnvironment } from "../bridge/types";
 import type { ComposerPermissionLevel } from "../features/composer/model/composerPermission";
 import type { ReasoningEffort } from "../protocol/generated/ReasoningEffort";
-import type { ServiceTier } from "../protocol/generated/ServiceTier";
+import type { ServiceTier } from "../protocol/ServiceTier";
 import type { Tool } from "../protocol/generated/Tool";
 import type { ModeKind } from "../protocol/generated/ModeKind";
 import type { MessagePhase } from "../protocol/generated/MessagePhase";

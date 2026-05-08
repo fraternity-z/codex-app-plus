@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReasoningEffort } from "../../../protocol/generated/ReasoningEffort";
-import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
+import type { ServiceTier } from "../../../protocol/ServiceTier";
 import {
   type ComposerSelection,
   type ComposerModelOption,

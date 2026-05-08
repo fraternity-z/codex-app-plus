@@ -1,12 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ModelProviderCapabilitiesReadResponse",
-  "type": "object",
-  "required": [
-    "imageGeneration",
-    "namespaceTools",
-    "webSearch"
-  ],
   "properties": {
     "imageGeneration": {
       "type": "boolean"
@@ -17,5 +10,12 @@
     "webSearch": {
       "type": "boolean"
     }
-  }
+  },
+  "required": [
+    "imageGeneration",
+    "namespaceTools",
+    "webSearch"
+  ],
+  "title": "ModelProviderCapabilitiesReadResponse",
+  "type": "object"
 }

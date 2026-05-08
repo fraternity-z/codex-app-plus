@@ -1,13 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "FileChangeOutputDeltaNotification",
-  "type": "object",
-  "required": [
-    "delta",
-    "itemId",
-    "threadId",
-    "turnId"
-  ],
+  "description": "Deprecated legacy notification for `apply_patch` textual output.\n\nThe server no longer emits this notification.",
   "properties": {
     "delta": {
       "type": "string"
@@ -21,5 +14,13 @@
     "turnId": {
       "type": "string"
     }
-  }
+  },
+  "required": [
+    "delta",
+    "itemId",
+    "threadId",
+    "turnId"
+  ],
+  "title": "FileChangeOutputDeltaNotification",
+  "type": "object"
 }

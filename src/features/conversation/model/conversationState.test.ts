@@ -75,6 +75,7 @@ function createNotificationTurn(overrides: Partial<Turn> = {}): Turn {
   return {
     id: "turn-1",
     items: [],
+    itemsView: "full",
     status: "completed",
     error: null,
     startedAt: 1,
@@ -90,6 +91,7 @@ describe("conversationState", () => {
     const thread = {
       id: "thread-1",
       forkedFromId: null,
+      sessionId: "session-1",
       preview: "thread preview",
       ephemeral: false,
       modelProvider: "openai",
@@ -100,6 +102,7 @@ describe("conversationState", () => {
       cwd: "E:/code/codex-app-plus",
       cliVersion: "0.1.0",
       source: "appServer" as const,
+      threadSource: null,
       agentNickname: null,
       agentRole: null,
       gitInfo: { sha: null, branch: "feature/thread-branch", originUrl: null },

@@ -287,7 +287,7 @@ export function applyAppServerNotification(context: NotificationContext, method:
   }
   if (method === "thread/realtime/started") {
     const payload = params as ThreadRealtimeStartedNotification;
-    dispatch({ type: "realtime/started", threadId: payload.threadId, sessionId: payload.sessionId });
+    dispatch({ type: "realtime/started", threadId: payload.threadId, sessionId: payload.realtimeSessionId });
     return;
   }
   if (method === "thread/realtime/itemAdded") {

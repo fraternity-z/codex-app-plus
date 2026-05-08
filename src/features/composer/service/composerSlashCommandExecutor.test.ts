@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AppAction } from "../../../domain/types";
 import type { CollaborationPreset } from "../../../domain/timeline";
-import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
+import type { ServiceTier } from "../../../protocol/ServiceTier";
 import type { ComposerCommandBridge } from "./composerCommandBridge";
 import {
   executeDirectSlashCommand,

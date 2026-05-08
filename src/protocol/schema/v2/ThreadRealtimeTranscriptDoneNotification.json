@@ -1,13 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ThreadRealtimeTranscriptDoneNotification",
   "description": "EXPERIMENTAL - final transcript text emitted when realtime completes a transcript part.",
-  "type": "object",
-  "required": [
-    "role",
-    "text",
-    "threadId"
-  ],
   "properties": {
     "role": {
       "type": "string"
@@ -19,5 +12,12 @@
     "threadId": {
       "type": "string"
     }
-  }
+  },
+  "required": [
+    "role",
+    "text",
+    "threadId"
+  ],
+  "title": "ThreadRealtimeTranscriptDoneNotification",
+  "type": "object"
 }

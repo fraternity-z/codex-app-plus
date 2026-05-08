@@ -14,7 +14,7 @@ import type { ThreadGoalSetResponse } from "../../../protocol/generated/v2/Threa
 import type { ThreadGoalStatus } from "../../../protocol/generated/v2/ThreadGoalStatus";
 import type { ThreadResumeResponse } from "../../../protocol/generated/v2/ThreadResumeResponse";
 import type { ConfigRequirementsReadResponse } from "../../../protocol/generated/v2/ConfigRequirementsReadResponse";
-import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
+import type { ServiceTier } from "../../../protocol/ServiceTier";
 import type { ComposerSlashCapabilitySnapshot } from "../model/composerSlashCommandCatalog";
 import { readUserConfigWriteTarget } from "../../settings/config/configWriteTarget";
 import { createConversationFromThread } from "../../conversation/model/conversationState";

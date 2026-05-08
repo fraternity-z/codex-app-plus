@@ -1,11 +1,14 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ThreadMemoryModeSetParams",
-  "type": "object",
-  "required": [
-    "mode",
-    "threadId"
-  ],
+  "definitions": {
+    "ThreadMemoryMode": {
+      "enum": [
+        "enabled",
+        "disabled"
+      ],
+      "type": "string"
+    }
+  },
   "properties": {
     "mode": {
       "$ref": "#/definitions/ThreadMemoryMode"
@@ -14,13 +17,10 @@
       "type": "string"
     }
   },
-  "definitions": {
-    "ThreadMemoryMode": {
-      "type": "string",
-      "enum": [
-        "enabled",
-        "disabled"
-      ]
-    }
-  }
+  "required": [
+    "mode",
+    "threadId"
+  ],
+  "title": "ThreadMemoryModeSetParams",
+  "type": "object"
 }

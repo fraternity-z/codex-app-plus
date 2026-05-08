@@ -1,31 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "ThreadGoalSetResponse",
-  "type": "object",
-  "required": [
-    "goal"
-  ],
-  "properties": {
-    "goal": {
-      "$ref": "#/definitions/ThreadGoal"
-    }
-  },
   "definitions": {
     "ThreadGoal": {
-      "type": "object",
-      "required": [
-        "createdAt",
-        "objective",
-        "status",
-        "threadId",
-        "timeUsedSeconds",
-        "tokensUsed",
-        "updatedAt"
-      ],
       "properties": {
         "createdAt": {
-          "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "type": "integer"
         },
         "objective": {
           "type": "string"
@@ -37,34 +17,54 @@
           "type": "string"
         },
         "timeUsedSeconds": {
-          "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "type": "integer"
         },
         "tokenBudget": {
+          "format": "int64",
           "type": [
             "integer",
             "null"
-          ],
-          "format": "int64"
+          ]
         },
         "tokensUsed": {
-          "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "type": "integer"
         },
         "updatedAt": {
-          "type": "integer",
-          "format": "int64"
+          "format": "int64",
+          "type": "integer"
         }
-      }
+      },
+      "required": [
+        "createdAt",
+        "objective",
+        "status",
+        "threadId",
+        "timeUsedSeconds",
+        "tokensUsed",
+        "updatedAt"
+      ],
+      "type": "object"
     },
     "ThreadGoalStatus": {
-      "type": "string",
       "enum": [
         "active",
         "paused",
         "budgetLimited",
         "complete"
-      ]
+      ],
+      "type": "string"
     }
-  }
+  },
+  "properties": {
+    "goal": {
+      "$ref": "#/definitions/ThreadGoal"
+    }
+  },
+  "required": [
+    "goal"
+  ],
+  "title": "ThreadGoalSetResponse",
+  "type": "object"
 }

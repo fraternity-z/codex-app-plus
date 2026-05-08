@@ -11,6 +11,7 @@ function createPluginListResponse(): PluginListResponse {
       plugins: [{
         id: "browser-use@openai-bundled",
         name: "browser-use",
+        shareContext: null,
         source: {
           type: "local",
           path: "C:/Users/Administrator/.codex/plugins/cache/openai-bundled/browser-use/0.1.0-alpha1",
@@ -19,6 +20,8 @@ function createPluginListResponse(): PluginListResponse {
         enabled: true,
         installPolicy: "AVAILABLE",
         authPolicy: "ON_INSTALL",
+        availability: "AVAILABLE",
+        keywords: [],
         interface: {
           displayName: "Browser Use",
           shortDescription: "Control the in-app browser with Codex",
@@ -41,6 +44,7 @@ function createPluginListResponse(): PluginListResponse {
       }, {
         id: "hidden@openai-bundled",
         name: "hidden",
+        shareContext: null,
         source: {
           type: "local",
           path: "C:/Users/Administrator/.codex/plugins/cache/openai-bundled/hidden/0.1.0",
@@ -49,6 +53,8 @@ function createPluginListResponse(): PluginListResponse {
         enabled: false,
         installPolicy: "AVAILABLE",
         authPolicy: "ON_INSTALL",
+        availability: "AVAILABLE",
+        keywords: [],
         interface: null,
       }],
     }],

@@ -51,6 +51,7 @@ export function buildInterruptedTurn(conversation: ConversationState | null, tur
   return {
     id: turn.turnId,
     items: turn.items.map((itemState) => itemState.item),
+    itemsView: "full",
     status: "interrupted",
     error: null,
     startedAt: turn.turnStartedAtMs === null ? null : Math.floor(turn.turnStartedAtMs / 1000),

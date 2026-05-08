@@ -1,58 +1,29 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "FuzzyFileSearchSessionUpdatedNotification",
-  "type": "object",
-  "required": [
-    "files",
-    "query",
-    "sessionId"
-  ],
-  "properties": {
-    "files": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/FuzzyFileSearchResult"
-      }
-    },
-    "query": {
-      "type": "string"
-    },
-    "sessionId": {
-      "type": "string"
-    }
-  },
   "definitions": {
     "FuzzyFileSearchMatchType": {
-      "type": "string",
       "enum": [
         "file",
         "directory"
-      ]
+      ],
+      "type": "string"
     },
     "FuzzyFileSearchResult": {
       "description": "Superset of [`codex_file_search::FileMatch`]",
-      "type": "object",
-      "required": [
-        "file_name",
-        "match_type",
-        "path",
-        "root",
-        "score"
-      ],
       "properties": {
         "file_name": {
           "type": "string"
         },
         "indices": {
+          "items": {
+            "format": "uint32",
+            "minimum": 0.0,
+            "type": "integer"
+          },
           "type": [
             "array",
             "null"
-          ],
-          "items": {
-            "type": "integer",
-            "format": "uint32",
-            "minimum": 0.0
-          }
+          ]
         },
         "match_type": {
           "$ref": "#/definitions/FuzzyFileSearchMatchType"
@@ -64,11 +35,40 @@
           "type": "string"
         },
         "score": {
-          "type": "integer",
           "format": "uint32",
-          "minimum": 0.0
+          "minimum": 0.0,
+          "type": "integer"
         }
-      }
+      },
+      "required": [
+        "file_name",
+        "match_type",
+        "path",
+        "root",
+        "score"
+      ],
+      "type": "object"
     }
-  }
+  },
+  "properties": {
+    "files": {
+      "items": {
+        "$ref": "#/definitions/FuzzyFileSearchResult"
+      },
+      "type": "array"
+    },
+    "query": {
+      "type": "string"
+    },
+    "sessionId": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "files",
+    "query",
+    "sessionId"
+  ],
+  "title": "FuzzyFileSearchSessionUpdatedNotification",
+  "type": "object"
 }

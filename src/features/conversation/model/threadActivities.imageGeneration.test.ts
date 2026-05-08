@@ -5,6 +5,7 @@ import { mapThreadHistoryToActivities } from "./threadActivities";
 function createThread(): Thread {
   return {
     id: "thread-1",
+    sessionId: "session-1",
     forkedFromId: null,
     preview: "Generate an image",
     ephemeral: false,
@@ -16,6 +17,7 @@ function createThread(): Thread {
     cwd: "E:/code/codex-app-plus",
     cliVersion: "0.0.0-test",
     source: "appServer",
+    threadSource: null,
     agentNickname: null,
     agentRole: null,
     gitInfo: null,
@@ -27,6 +29,7 @@ function createThread(): Thread {
       startedAt: 1776729600,
       completedAt: 1776729601,
       durationMs: 1000,
+      itemsView: "full",
       items: [{
         type: "imageGeneration",
         id: "ig_123",

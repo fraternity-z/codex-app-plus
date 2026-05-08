@@ -14,6 +14,7 @@ function createRpcThread(overrides?: Partial<{
 }>): Thread {
   return {
     id: overrides?.id ?? "thread-1",
+    sessionId: "session-1",
     forkedFromId: null,
     preview: "preview",
     ephemeral: false,
@@ -25,6 +26,7 @@ function createRpcThread(overrides?: Partial<{
     cwd: overrides?.cwd ?? "E:/code/project-a",
     cliVersion: "0.0.1",
     source: overrides?.source ?? "appServer",
+    threadSource: null,
     agentNickname: overrides?.agentNickname ?? null,
     agentRole: overrides?.agentRole ?? null,
     gitInfo: { branch: "feature/rpc-branch", sha: null, originUrl: null },

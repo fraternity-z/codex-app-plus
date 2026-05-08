@@ -53,6 +53,7 @@ function createThread(
 ): Thread {
   return {
     id: "thread-1",
+    sessionId: "session-1",
     forkedFromId: null,
     preview: "Preview",
     ephemeral: false,
@@ -64,6 +65,7 @@ function createThread(
     cwd: "E:/code/codex-app-plus",
     cliVersion: "1.0.0",
     source: "appServer",
+    threadSource: null,
     agentNickname: null,
     agentRole: null,
     gitInfo: null,
@@ -79,6 +81,7 @@ function createTurn(
   return {
     id: "turn-1",
     items: [],
+    itemsView: "full",
     status: "inProgress",
     error: null,
     startedAt: 1,
@@ -236,6 +239,7 @@ describe("useAppNotificationsRuntime", () => {
             threadId: "thread-1",
             turnId: "turn-1",
             itemId: "item-1",
+            startedAtMs: 1,
             command: "pnpm test",
           },
         },

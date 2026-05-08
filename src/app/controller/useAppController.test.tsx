@@ -706,6 +706,7 @@ describe("useAppController server request lifecycle", () => {
         threadId: "thread-1",
         turnId: "turn-1",
         itemId: "item-1",
+        startedAtMs: 1,
         reason: "Review diff",
       });
     });
@@ -752,6 +753,7 @@ describe("useAppController server request lifecycle", () => {
         threadId: "thread-1",
         turnId: "turn-1",
         itemId: "item-1",
+        startedAtMs: 1,
         command: "Get-Content src/state/appReducer.ts",
         availableDecisions: [{
           acceptWithExecpolicyAmendment: {
@@ -801,6 +803,7 @@ describe("useAppController server request lifecycle", () => {
         threadId: "thread-1",
         turnId: "turn-1",
         itemId: "item-1",
+        startedAtMs: 1,
         command: "Get-ChildItem src",
         cwd: "E:/code/codex-app-plus",
         availableDecisions: [{
@@ -835,6 +838,7 @@ describe("useAppController server request lifecycle", () => {
         threadId: "thread-1",
         turnId: "turn-2",
         itemId: "item-2",
+        startedAtMs: 1,
         command: "Get-ChildItem src/features -Force",
         cwd: "E:/code/codex-app-plus",
         availableDecisions: ["accept", "decline"],

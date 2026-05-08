@@ -7,7 +7,7 @@ import {
   type KeyboardEvent,
   type RefObject,
 } from "react";
-import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
+import type { ServiceTier } from "../../../protocol/ServiceTier";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import type { CollaborationPreset } from "../../../domain/timeline";
 import type { AppState } from "../../../domain/types";

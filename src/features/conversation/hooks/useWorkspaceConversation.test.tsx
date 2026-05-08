@@ -31,6 +31,7 @@ function Wrapper(props: PropsWithChildren): JSX.Element {
 function createThread(overrides: Record<string, unknown> = {}) {
   return {
     id: "thread-1",
+    sessionId: "session-1",
     forkedFromId: null,
     preview: "请分析当前工作区",
     ephemeral: false,
@@ -42,6 +43,7 @@ function createThread(overrides: Record<string, unknown> = {}) {
     cwd: "E:/code/FPGA",
     cliVersion: "0.1.0",
     source: "appServer" as const,
+    threadSource: null,
     agentNickname: null,
     agentRole: null,
     gitInfo: null,
@@ -55,6 +57,7 @@ function createTurn(status: "inProgress" | "completed" = "inProgress") {
   return {
     id: "turn-1",
     items: [],
+    itemsView: "full" as const,
     status,
     error: null,
     startedAt: 1,
@@ -84,12 +87,13 @@ function createThreadStartResponse(threadOverrides: Record<string, unknown> = {}
 }
 
 function createSubAgentSource(parentThreadId = "thread-1") {
-  return { subAgent: { thread_spawn: { parent_thread_id: parentThreadId, depth: 1, agent_nickname: null, agent_role: "explorer" } } };
+  return { subAgent: { thread_spawn: { parent_thread_id: parentThreadId, depth: 1, agent_path: null, agent_nickname: null, agent_role: "explorer" } } };
 }
 
 function createCollabTurn(childThreadId: string, status: "completed" | "errored" | "shutdown" | "notFound") {
   return {
     id: "turn-1",
+    itemsView: "full",
     status: "completed" as const,
     error: null,
     startedAt: 1,
@@ -118,6 +122,7 @@ function createRunningCollabTurn(
 ) {
   return {
     id: `turn-${senderThreadId}`,
+    itemsView: "full",
     status: "completed" as const,
     error: null,
     startedAt: 1,
@@ -1468,6 +1473,7 @@ describe("useWorkspaceConversation", () => {
           type: "conversation/upserted",
           conversation: createConversationFromThread(createThread({
             id: "thread-1",
+    sessionId: "session-1",
             turns: [createRunningCollabTurn("thread-1", ["thread-2"])],
           }), { resumeState: "resumed" })
         });

@@ -6,6 +6,7 @@ import { collectDescendantThreadIds, forceCloseThreadRuntime, type ThreadRuntime
 function createThread(overrides: Record<string, unknown> = {}) {
   return {
     id: "thread-1",
+    sessionId: "session-1",
     forkedFromId: null,
     preview: "thread",
     ephemeral: false,
@@ -17,6 +18,7 @@ function createThread(overrides: Record<string, unknown> = {}) {
     cwd: "E:/code/FPGA",
     cliVersion: "0.1.0",
     source: "appServer" as const,
+    threadSource: null,
     agentNickname: null,
     agentRole: null,
     gitInfo: null,
@@ -33,6 +35,7 @@ function createConversation(overrides: Record<string, unknown> = {}): Conversati
 function createCollabTurn(senderThreadId: string, receiverThreadIds: ReadonlyArray<string>) {
   return {
     id: `turn-${senderThreadId}`,
+    itemsView: "full",
     status: "completed" as const,
     error: null,
     startedAt: 1,
@@ -46,6 +49,8 @@ function createCollabTurn(senderThreadId: string, receiverThreadIds: ReadonlyArr
       senderThreadId,
       receiverThreadIds: [...receiverThreadIds],
       prompt: "inspect",
+      model: null,
+      reasoningEffort: null,
       agentsStates: Object.fromEntries(receiverThreadIds.map((threadId) => [threadId, { status: "running", message: null }])),
     }],
   };
@@ -68,16 +73,16 @@ describe("threadRuntimeCleanup", () => {
       }),
       "thread-2": createConversation({
         id: "thread-2",
-        source: { subAgent: { thread_spawn: { parent_thread_id: "thread-1", depth: 1, agent_nickname: null, agent_role: "explorer" } } },
+        source: { subAgent: { thread_spawn: { parent_thread_id: "thread-1", depth: 1, agent_path: null, agent_nickname: null, agent_role: "explorer" } } },
         turns: [createCollabTurn("thread-2", ["thread-3"])],
       }),
       "thread-3": createConversation({
         id: "thread-3",
-        source: { subAgent: { thread_spawn: { parent_thread_id: "thread-2", depth: 2, agent_nickname: null, agent_role: "explorer" } } },
+        source: { subAgent: { thread_spawn: { parent_thread_id: "thread-2", depth: 2, agent_path: null, agent_nickname: null, agent_role: "explorer" } } },
       }),
       "thread-4": createConversation({
         id: "thread-4",
-        source: { subAgent: { thread_spawn: { parent_thread_id: "thread-1", depth: 1, agent_nickname: null, agent_role: "explorer" } } },
+        source: { subAgent: { thread_spawn: { parent_thread_id: "thread-1", depth: 1, agent_path: null, agent_nickname: null, agent_role: "explorer" } } },
       }),
     } satisfies Readonly<Record<string, ConversationState | undefined>>;
 

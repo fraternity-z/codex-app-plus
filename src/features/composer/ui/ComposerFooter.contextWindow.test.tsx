@@ -35,6 +35,7 @@ function Wrapper(props: PropsWithChildren): JSX.Element {
 function createThread() {
   return {
     id: "thread-1",
+    sessionId: "session-1",
     forkedFromId: null,
     preview: "分析当前工作区",
     ephemeral: false,
@@ -46,6 +47,7 @@ function createThread() {
     cwd: "E:/code/codex-app-plus",
     cliVersion: "0.1.0",
     source: "appServer" as const,
+    threadSource: null,
     agentNickname: null,
     agentRole: null,
     gitInfo: { sha: null, branch: "main", originUrl: null },

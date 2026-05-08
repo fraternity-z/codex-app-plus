@@ -1,37 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "GetAccountRateLimitsResponse",
-  "type": "object",
-  "required": [
-    "rateLimits"
-  ],
-  "properties": {
-    "rateLimits": {
-      "description": "Backward-compatible single-bucket view; mirrors the historical payload.",
-      "allOf": [
-        {
-          "$ref": "#/definitions/RateLimitSnapshot"
-        }
-      ]
-    },
-    "rateLimitsByLimitId": {
-      "description": "Multi-bucket view keyed by metered `limit_id` (for example, `codex`).",
-      "type": [
-        "object",
-        "null"
-      ],
-      "additionalProperties": {
-        "$ref": "#/definitions/RateLimitSnapshot"
-      }
-    }
-  },
   "definitions": {
     "CreditsSnapshot": {
-      "type": "object",
-      "required": [
-        "hasCredits",
-        "unlimited"
-      ],
       "properties": {
         "balance": {
           "type": [
@@ -45,10 +15,14 @@
         "unlimited": {
           "type": "boolean"
         }
-      }
+      },
+      "required": [
+        "hasCredits",
+        "unlimited"
+      ],
+      "type": "object"
     },
     "PlanType": {
-      "type": "string",
       "enum": [
         "free",
         "go",
@@ -62,20 +36,20 @@
         "enterprise",
         "edu",
         "unknown"
-      ]
+      ],
+      "type": "string"
     },
     "RateLimitReachedType": {
-      "type": "string",
       "enum": [
         "rate_limit_reached",
         "workspace_owner_credits_depleted",
         "workspace_member_credits_depleted",
         "workspace_owner_usage_limit_reached",
         "workspace_member_usage_limit_reached"
-      ]
+      ],
+      "type": "string"
     },
     "RateLimitSnapshot": {
-      "type": "object",
       "properties": {
         "credits": {
           "anyOf": [
@@ -139,33 +113,59 @@
             }
           ]
         }
-      }
+      },
+      "type": "object"
     },
     "RateLimitWindow": {
-      "type": "object",
+      "properties": {
+        "resetsAt": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "usedPercent": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "windowDurationMins": {
+          "format": "int64",
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
       "required": [
         "usedPercent"
       ],
-      "properties": {
-        "resetsAt": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "int64"
-        },
-        "usedPercent": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "windowDurationMins": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "int64"
-        }
-      }
+      "type": "object"
     }
-  }
+  },
+  "properties": {
+    "rateLimits": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/RateLimitSnapshot"
+        }
+      ],
+      "description": "Backward-compatible single-bucket view; mirrors the historical payload."
+    },
+    "rateLimitsByLimitId": {
+      "additionalProperties": {
+        "$ref": "#/definitions/RateLimitSnapshot"
+      },
+      "description": "Multi-bucket view keyed by metered `limit_id` (for example, `codex`).",
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "rateLimits"
+  ],
+  "title": "GetAccountRateLimitsResponse",
+  "type": "object"
 }

@@ -32,6 +32,7 @@ function createThread(source: ThreadSummary["source"], overrides?: Partial<Threa
 function createRuntimeThread(overrides: Record<string, unknown> = {}) {
   return {
     id: "thread-1",
+    sessionId: "session-1",
     forkedFromId: null,
     preview: "thread",
     ephemeral: false,
@@ -43,6 +44,7 @@ function createRuntimeThread(overrides: Record<string, unknown> = {}) {
     cwd: ROOT.path,
     cliVersion: "0.1.0",
     source: "appServer" as const,
+    threadSource: null,
     agentNickname: null,
     agentRole: null,
     gitInfo: null,
@@ -53,12 +55,13 @@ function createRuntimeThread(overrides: Record<string, unknown> = {}) {
 }
 
 function createSubAgentSource(parentThreadId = "thread-1") {
-  return { subAgent: { thread_spawn: { parent_thread_id: parentThreadId, depth: 1, agent_nickname: null, agent_role: "explorer" } } };
+  return { subAgent: { thread_spawn: { parent_thread_id: parentThreadId, depth: 1, agent_path: null, agent_nickname: null, agent_role: "explorer" } } };
 }
 
 function createRunningCollabTurn(senderThreadId: string, childThreadIds: ReadonlyArray<string>) {
   return {
     id: `turn-${senderThreadId}`,
+    itemsView: "full",
     status: "completed" as const,
     error: null,
     startedAt: 1,
@@ -72,6 +75,8 @@ function createRunningCollabTurn(senderThreadId: string, childThreadIds: Readonl
       senderThreadId,
       receiverThreadIds: [...childThreadIds],
       prompt: "inspect ui",
+      model: null,
+      reasoningEffort: null,
       agentsStates: Object.fromEntries(childThreadIds.map((threadId) => [threadId, { status: "running", message: null }])),
     }],
   };
@@ -373,7 +378,7 @@ describe("HomeSidebar", () => {
           conversation: createConversationFromThread(createRuntimeThread({
             id: "thread-rpc",
             status: { type: "active" as const, activeFlags: [] },
-            turns: [createRunningCollabTurn("thread-rpc", ["thread-child"]), { id: "turn-1", status: "inProgress" as const, error: null, items: [], startedAt: 1, completedAt: null, durationMs: null }],
+            turns: [createRunningCollabTurn("thread-rpc", ["thread-child"]), { id: "turn-1", itemsView: "full", status: "inProgress" as const, error: null, items: [], startedAt: 1, completedAt: null, durationMs: null }],
           }), { resumeState: "resumed" })
         });
         dispatch({
@@ -382,7 +387,7 @@ describe("HomeSidebar", () => {
             id: "thread-child",
             source: createSubAgentSource("thread-rpc"),
             status: { type: "active" as const, activeFlags: [] },
-            turns: [{ id: "turn-1", status: "inProgress" as const, error: null, items: [], startedAt: 1, completedAt: null, durationMs: null }],
+            turns: [{ id: "turn-1", itemsView: "full", status: "inProgress" as const, error: null, items: [], startedAt: 1, completedAt: null, durationMs: null }],
           }), { resumeState: "resumed" })
         });
       },

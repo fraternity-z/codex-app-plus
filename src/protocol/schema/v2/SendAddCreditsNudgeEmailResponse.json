@@ -1,22 +1,22 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "SendAddCreditsNudgeEmailResponse",
-  "type": "object",
-  "required": [
-    "status"
-  ],
+  "definitions": {
+    "AddCreditsNudgeEmailStatus": {
+      "enum": [
+        "sent",
+        "cooldown_active"
+      ],
+      "type": "string"
+    }
+  },
   "properties": {
     "status": {
       "$ref": "#/definitions/AddCreditsNudgeEmailStatus"
     }
   },
-  "definitions": {
-    "AddCreditsNudgeEmailStatus": {
-      "type": "string",
-      "enum": [
-        "sent",
-        "cooldown_active"
-      ]
-    }
-  }
+  "required": [
+    "status"
+  ],
+  "title": "SendAddCreditsNudgeEmailResponse",
+  "type": "object"
 }

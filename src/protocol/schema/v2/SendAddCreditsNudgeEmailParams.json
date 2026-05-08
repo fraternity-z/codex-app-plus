@@ -1,22 +1,22 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "SendAddCreditsNudgeEmailParams",
-  "type": "object",
-  "required": [
-    "creditType"
-  ],
+  "definitions": {
+    "AddCreditsNudgeCreditType": {
+      "enum": [
+        "credits",
+        "usage_limit"
+      ],
+      "type": "string"
+    }
+  },
   "properties": {
     "creditType": {
       "$ref": "#/definitions/AddCreditsNudgeCreditType"
     }
   },
-  "definitions": {
-    "AddCreditsNudgeCreditType": {
-      "type": "string",
-      "enum": [
-        "credits",
-        "usage_limit"
-      ]
-    }
-  }
+  "required": [
+    "creditType"
+  ],
+  "title": "SendAddCreditsNudgeEmailParams",
+  "type": "object"
 }

@@ -136,6 +136,7 @@ function createNotificationTurn(overrides: Partial<Turn> = {}): Turn {
   return {
     id: "turn-1",
     items: [],
+    itemsView: "full",
     status: "completed",
     error: null,
     startedAt: 1,

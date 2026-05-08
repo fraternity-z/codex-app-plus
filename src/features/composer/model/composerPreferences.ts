@@ -1,6 +1,6 @@
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import type { ReasoningEffort } from "../../../protocol/generated/ReasoningEffort";
-import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
+import type { ServiceTier } from "../../../protocol/ServiceTier";
 import type { Model } from "../../../protocol/generated/v2/Model";
 import type { ModelListResponse } from "../../../protocol/generated/v2/ModelListResponse";
 

@@ -5,7 +5,6 @@ import type { CollaborationMode } from "../CollaborationMode";
 import type { Personality } from "../Personality";
 import type { ReasoningEffort } from "../ReasoningEffort";
 import type { ReasoningSummary } from "../ReasoningSummary";
-import type { ServiceTier } from "../ServiceTier";
 import type { JsonValue } from "../serde_json/JsonValue";
 import type { ApprovalsReviewer } from "./ApprovalsReviewer";
 import type { AskForApproval } from "./AskForApproval";
@@ -58,7 +57,7 @@ model?: string | null,
 /**
  * Override the service tier for this turn and subsequent turns.
  */
-serviceTier?: ServiceTier | null | null,
+serviceTier?: string | null | null,
 /**
  * Override the reasoning effort for this turn and subsequent turns.
  */

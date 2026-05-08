@@ -33,6 +33,8 @@ function createAppServerClient() {
         defaultReasoningEffort: "high",
         inputModalities: [],
         supportsPersonality: false,
+        additionalSpeedTiers: [],
+        serviceTiers: [],
         isDefault: false
       }
     ],

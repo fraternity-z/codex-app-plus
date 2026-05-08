@@ -40,11 +40,14 @@ function createMarketplacePluginsResponse(): PluginListResponse {
       plugins: [{
         id: "browser-use@openai-curated",
         name: "browser-use",
+        shareContext: null,
         source: { type: "remote" },
         installed: true,
         enabled: true,
         installPolicy: "INSTALLED_BY_DEFAULT",
         authPolicy: "ON_USE",
+        availability: "AVAILABLE",
+        keywords: [],
         interface: {
           displayName: "Browser Use",
           shortDescription: "Control the in-app browser with Codex",
@@ -67,11 +70,14 @@ function createMarketplacePluginsResponse(): PluginListResponse {
       }, {
         id: "figma@openai-curated",
         name: "figma",
+        shareContext: null,
         source: { type: "remote" },
         installed: false,
         enabled: false,
         installPolicy: "AVAILABLE",
         authPolicy: "ON_USE",
+        availability: "AVAILABLE",
+        keywords: [],
         interface: {
           displayName: "Figma",
           shortDescription: "Use Figma MCP for design-to-code work",
@@ -99,11 +105,14 @@ function createMarketplacePluginsResponse(): PluginListResponse {
       plugins: [{
         id: "hidden@openai-bundled",
         name: "hidden",
+        shareContext: null,
         source: { type: "local", path: "C:/Users/Administrator/.codex/plugins/openai-bundled/hidden" },
         installed: false,
         enabled: false,
         installPolicy: "AVAILABLE",
         authPolicy: "ON_USE",
+        availability: "AVAILABLE",
+        keywords: [],
         interface: null,
       }],
     }],
@@ -128,6 +137,7 @@ function createPluginReadResponse(): PluginReadResponse {
       summary: createMarketplacePluginsResponse().marketplaces[0]!.plugins[0]!,
       description: "Control the in-app browser with Codex",
       skills: [],
+      hooks: [],
       apps: [{
         id: "browser-use",
         name: "Browser Use",
