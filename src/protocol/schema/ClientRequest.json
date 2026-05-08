@@ -3641,11 +3641,6 @@
           ],
           "description": "Named profile selection for the forked thread. Cannot be combined with `sandbox`. Use bounded `modifications` for supported thread adjustments instead of replacing the full permissions profile."
         },
-        "persistExtendedHistory": {
-          "default": false,
-          "description": "Deprecated and ignored by app-server. Kept only so older clients can continue sending the field while rollout persistence always uses the limited history policy.",
-          "type": "boolean"
-        },
         "sandbox": {
           "anyOf": [
             {
@@ -4264,11 +4259,6 @@
           ],
           "description": "Named profile selection for the resumed thread. Cannot be combined with `sandbox`. Use bounded `modifications` for supported thread adjustments instead of replacing the full permissions profile."
         },
-        "persistExtendedHistory": {
-          "default": false,
-          "description": "Deprecated and ignored by app-server. Kept only so older clients can continue sending the field while rollout persistence always uses the limited history policy.",
-          "type": "boolean"
-        },
         "personality": {
           "anyOf": [
             {
@@ -4490,11 +4480,6 @@
             }
           ],
           "description": "Named profile selection for this thread. Cannot be combined with `sandbox`. Use bounded `modifications` for supported turn/thread adjustments instead of replacing the full permissions profile."
-        },
-        "persistExtendedHistory": {
-          "default": false,
-          "description": "Deprecated and ignored by app-server. Kept only so older clients can continue sending the field while rollout persistence always uses the limited history policy.",
-          "type": "boolean"
         },
         "personality": {
           "anyOf": [

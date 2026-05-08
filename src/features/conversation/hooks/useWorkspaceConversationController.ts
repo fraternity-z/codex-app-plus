@@ -159,7 +159,6 @@ export function useWorkspaceConversationController({
       try {
         const response = await appServerClient.request("thread/resume", {
           threadId: conversationId,
-          persistExtendedHistory: true,
         }) as ThreadResumeResponse;
         dispatch({ type: "conversation/loaded", conversationId, thread: response.thread });
       } catch (error) {
@@ -253,7 +252,6 @@ export function useWorkspaceConversationController({
         serviceTier: sendOptions.selection.serviceTier ?? null,
         cwd: agentWorkspacePath,
         experimentalRawEvents: false,
-        persistExtendedHistory: true,
         ...createThreadPermissionOverrides(sendOptions.permissionLevel, options.permissionSettings),
       }) as ThreadStartResponse
     );

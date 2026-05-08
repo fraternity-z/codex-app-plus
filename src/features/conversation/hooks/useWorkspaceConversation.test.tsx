@@ -1163,7 +1163,7 @@ describe("useWorkspaceConversation", () => {
 
     await waitFor(() => expect(request).toHaveBeenCalledWith(expect.objectContaining({
       method: "thread/resume",
-      params: { threadId: "thread-1", persistExtendedHistory: true },
+      params: { threadId: "thread-1" },
     })));
   });
 

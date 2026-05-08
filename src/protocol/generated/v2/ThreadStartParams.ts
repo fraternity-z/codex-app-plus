@@ -47,9 +47,4 @@ mockExperimentalField?: string | null,
  * This is for internal use only (e.g. Codex Cloud).
  */
 experimentalRawEvents: boolean,
-/**
- * Deprecated and ignored by app-server. Kept only so older clients can
- * continue sending the field while rollout persistence always uses the
- * limited history policy.
- */
-persistExtendedHistory: boolean, };
+};
