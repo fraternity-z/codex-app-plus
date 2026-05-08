@@ -75,6 +75,101 @@ describe("composerSlashCommandExecutor", () => {
     });
   });
 
+  it("sets a thread goal with inline arguments", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === "thread/goal/set") {
+        return {
+          goal: {
+            threadId: "thread-1",
+            objective: "finish the migration",
+            status: "active",
+            tokenBudget: null,
+            tokensUsed: 0,
+            timeUsedSeconds: 0,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        };
+      }
+      return {};
+    });
+    const deps = createDeps(request);
+
+    await executeDirectSlashCommand("goal", "finish the migration", createContext(), deps);
+
+    expect(request).toHaveBeenCalledWith("thread/goal/set", {
+      threadId: "thread-1",
+      objective: "finish the migration",
+    });
+  });
+
+  it("routes /goal controls to the goal API", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === "thread/goal/set") {
+        return {
+          goal: {
+            threadId: "thread-1",
+            objective: "finish the migration",
+            status: "paused",
+            tokenBudget: 1000,
+            tokensUsed: 10,
+            timeUsedSeconds: 60,
+            createdAt: 1,
+            updatedAt: 2,
+          },
+        };
+      }
+      if (method === "thread/goal/clear") {
+        return { cleared: true };
+      }
+      return {};
+    });
+    const deps = createDeps(request);
+
+    await executeDirectSlashCommand("goal", "pause", createContext(), deps);
+    await executeDirectSlashCommand("goal", "resume", createContext(), deps);
+    await executeDirectSlashCommand("goal", "clear", createContext(), deps);
+
+    expect(request).toHaveBeenCalledWith("thread/goal/set", {
+      threadId: "thread-1",
+      status: "paused",
+    });
+    expect(request).toHaveBeenCalledWith("thread/goal/set", {
+      threadId: "thread-1",
+      status: "active",
+    });
+    expect(request).toHaveBeenCalledWith("thread/goal/clear", {
+      threadId: "thread-1",
+    });
+  });
+
+  it("shows the current goal when /goal has no arguments", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === "thread/goal/get") {
+        return {
+          goal: {
+            threadId: "thread-1",
+            objective: "finish the migration",
+            status: "active",
+            tokenBudget: 1000,
+            tokensUsed: 10,
+            timeUsedSeconds: 60,
+            createdAt: 1,
+            updatedAt: 2,
+          },
+        };
+      }
+      return {};
+    });
+    const deps = createDeps(request);
+
+    await executeDirectSlashCommand("goal", "", createContext(), deps);
+
+    expect(request).toHaveBeenCalledWith("thread/goal/get", {
+      threadId: "thread-1",
+    });
+  });
+
   it("lists plugins through plugin/list", async () => {
     const request = vi.fn(async (method: string) => {
       if (method === "plugin/list") {

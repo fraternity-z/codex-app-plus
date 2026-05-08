@@ -14,6 +14,7 @@ export type ComposerSlashExecutionKind = "direct" | "picker" | "local" | "unavai
 export interface ComposerSlashCapabilitySnapshot {
   readonly collaborationModesEnabled: boolean;
   readonly connectorsEnabled: boolean;
+  readonly goalCommandEnabled: boolean;
   readonly pluginsCommandEnabled: boolean;
   readonly fastCommandEnabled: boolean;
   readonly personalityCommandEnabled: boolean;
@@ -37,13 +38,14 @@ export interface ComposerSlashDefinition {
   readonly argumentHint?: string;
   readonly unavailableReason?: string;
   readonly inlineArgsDisabledReason?: string;
-  readonly visibilityGate?: "collaboration" | "apps" | "plugins" | "fast" | "realtime" | "sandbox" | "personality";
+  readonly visibilityGate?: "collaboration" | "apps" | "plugins" | "goal" | "fast" | "realtime" | "sandbox" | "personality";
   readonly debugOnly?: boolean;
 }
 
 export const DEFAULT_COMPOSER_SLASH_CAPABILITIES: ComposerSlashCapabilitySnapshot = Object.freeze({
   collaborationModesEnabled: true,
   connectorsEnabled: true,
+  goalCommandEnabled: true,
   pluginsCommandEnabled: true,
   fastCommandEnabled: true,
   personalityCommandEnabled: true,
@@ -72,6 +74,7 @@ const COMMANDS = Object.freeze<ReadonlyArray<ComposerSlashDefinition>>([
   { id: "init", description: "初始化当前工作区的 AGENTS.md。", flavor: "official", executionKind: "direct", action: null, aliases: [], availableDuringTask: false, supportsInlineArgs: false, requiresWorkspace: true },
   { id: "compact", description: "压缩当前线程上下文。", flavor: "official", executionKind: "direct", action: null, aliases: [], availableDuringTask: false, supportsInlineArgs: false, requiresThread: true },
   { id: "plan", description: "切换到 Plan collaboration preset。", flavor: "official", executionKind: "direct", action: null, aliases: [], availableDuringTask: false, supportsInlineArgs: true, visibilityGate: "collaboration", inlineArgsDisabledReason: PLAN_INLINE_ARGS_DISABLED_REASON },
+  { id: "goal", description: "设置或查看长任务目标。", flavor: "official", executionKind: "direct", action: null, aliases: [], availableDuringTask: true, supportsInlineArgs: true, requiresThread: true, visibilityGate: "goal" },
   { id: "collab", description: "选择 collaboration mode。", flavor: "official", executionKind: "picker", action: "openCollaboration", aliases: [], availableDuringTask: true, supportsInlineArgs: false, visibilityGate: "collaboration" },
   { id: "agent", description: "管理当前 agent。", flavor: "official", executionKind: "unavailable", action: null, aliases: [], availableDuringTask: true, supportsInlineArgs: false, unavailableReason: UNIMPLEMENTED_OFFICIAL_REASON },
   { id: "diff", description: "显示当前工作区 diff。", flavor: "official", executionKind: "local", action: "toggleDiff", aliases: [], availableDuringTask: true, supportsInlineArgs: false, requiresWorkspace: true },
@@ -151,6 +154,9 @@ function isCommandVisible(
   }
   if (command.visibilityGate === "plugins") {
     return capabilities.pluginsCommandEnabled;
+  }
+  if (command.visibilityGate === "goal") {
+    return capabilities.goalCommandEnabled;
   }
   if (command.visibilityGate === "fast") {
     return capabilities.fastCommandEnabled;

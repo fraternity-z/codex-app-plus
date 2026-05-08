@@ -387,6 +387,37 @@ describe("HomeComposer commands", () => {
     expect((textarea as HTMLTextAreaElement).value).toBe("");
   });
 
+  it("executes /goal through the official goal API", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === "thread/goal/set") {
+        return {
+          goal: {
+            threadId: "thread-1",
+            objective: "finish the migration",
+            status: "active",
+            tokenBudget: null,
+            tokensUsed: 0,
+            timeUsedSeconds: 0,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+        };
+      }
+      return {};
+    });
+    renderHarness({ request });
+    const textarea = screen.getByRole("textbox");
+
+    fireEvent.change(textarea, { target: { value: "/goal finish the migration", selectionStart: 26 } });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+
+    await waitFor(() => expect(request).toHaveBeenCalledWith("thread/goal/set", {
+      threadId: "thread-1",
+      objective: "finish the migration",
+    }));
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
+  });
+
   it("shows /new as unavailable while the assistant is responding", async () => {
     const onCreateThread = vi.fn().mockResolvedValue(undefined);
     renderHarness({ isResponding: true, onCreateThread });

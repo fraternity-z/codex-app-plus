@@ -118,6 +118,34 @@ describe("applyAppServerNotification", () => {
     }));
   });
 
+  it("surfaces thread goal updates as banners", () => {
+    const dispatch = vi.fn<(action: AppAction) => void>();
+
+    applyAppServerNotification(createContext(dispatch), "thread/goal/updated", {
+      threadId: "thread-1",
+      turnId: null,
+      goal: {
+        threadId: "thread-1",
+        objective: "finish the migration",
+        status: "active",
+        tokenBudget: 1000,
+        tokensUsed: 10,
+        timeUsedSeconds: 60,
+        createdAt: 1,
+        updatedAt: 2,
+      },
+    });
+
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
+      type: "banner/pushed",
+      banner: expect.objectContaining({
+        source: "thread-goal",
+        title: "Goal updated",
+        detail: expect.stringContaining("finish the migration"),
+      }),
+    }));
+  });
+
   it("flushes pending text deltas before completing an item", () => {
     let state = appReducer(INITIAL_STATE, {
       type: "conversation/upserted",

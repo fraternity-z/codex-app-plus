@@ -8,6 +8,10 @@ import type { GetAccountRateLimitsResponse } from "../../../protocol/generated/v
 import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsListResponse";
 import type { ReviewStartResponse } from "../../../protocol/generated/v2/ReviewStartResponse";
 import type { ThreadForkResponse } from "../../../protocol/generated/v2/ThreadForkResponse";
+import type { ThreadGoalClearResponse } from "../../../protocol/generated/v2/ThreadGoalClearResponse";
+import type { ThreadGoalGetResponse } from "../../../protocol/generated/v2/ThreadGoalGetResponse";
+import type { ThreadGoalSetResponse } from "../../../protocol/generated/v2/ThreadGoalSetResponse";
+import type { ThreadGoalStatus } from "../../../protocol/generated/v2/ThreadGoalStatus";
 import type { ThreadResumeResponse } from "../../../protocol/generated/v2/ThreadResumeResponse";
 import type { ConfigRequirementsReadResponse } from "../../../protocol/generated/v2/ConfigRequirementsReadResponse";
 import type { ServiceTier } from "../../../protocol/generated/ServiceTier";
@@ -21,6 +25,7 @@ import {
   formatAppSummary,
   formatConfigDebugDetail,
   formatFeatureSummary,
+  formatGoalSummary,
   formatMcpSummary,
   formatPluginSummary,
   formatSkillSummary,
@@ -84,6 +89,7 @@ export async function executeDirectSlashCommand(
   if (commandId === "fork") return forkThread(context, deps);
   if (commandId === "compact") return compactThread(context.selectedThreadId, deps);
   if (commandId === "plan") return enablePlanPreset(context.collaborationPreset, argumentsText, deps);
+  if (commandId === "goal") return manageThreadGoal(context.selectedThreadId, argumentsText, deps);
   if (commandId === "status") return showStatus(context, deps);
   if (commandId === "debug-config") return showDebugConfig(deps);
   if (commandId === "mcp") return refreshMcpStatuses(deps);
@@ -221,6 +227,61 @@ async function compactThread(selectedThreadId: string | null, deps: SlashExecuti
   await deps.composerCommandBridge.request("thread/compact/start", { threadId: selectedThreadId });
   pushThreadNotice(deps.dispatch, selectedThreadId, "已发起上下文压缩", "等待官方 compact 通知。", "info", "thread/compact/start");
 }
+
+async function manageThreadGoal(selectedThreadId: string | null, argumentsText: string, deps: SlashExecutionDependencies): Promise<void> {
+  if (selectedThreadId === null) throw new Error("请先打开一个线程。");
+  const trimmed = argumentsText.trim();
+  if (trimmed.length === 0) {
+    await showThreadGoal(selectedThreadId, deps);
+    return;
+  }
+  const control = parseGoalControl(trimmed);
+  if (control === "clear") {
+    const response = (await deps.composerCommandBridge.request("thread/goal/clear", { threadId: selectedThreadId })) as ThreadGoalClearResponse;
+    pushThreadNotice(
+      deps.dispatch,
+      selectedThreadId,
+      response.cleared ? "已清除目标" : "当前没有目标",
+      response.cleared ? null : "可用 /goal <目标> 创建新的长任务目标。",
+      "info",
+      "thread/goal/clear",
+    );
+    return;
+  }
+  if (control !== null) {
+    const response = (await deps.composerCommandBridge.request("thread/goal/set", {
+      threadId: selectedThreadId,
+      status: control,
+    })) as ThreadGoalSetResponse;
+    pushThreadNotice(deps.dispatch, selectedThreadId, control === "paused" ? "目标已暂停" : "目标已恢复", formatGoalSummary(response.goal), "info", "thread/goal/set");
+    return;
+  }
+  const response = (await deps.composerCommandBridge.request("thread/goal/set", {
+    threadId: selectedThreadId,
+    objective: trimmed,
+  })) as ThreadGoalSetResponse;
+  pushThreadNotice(deps.dispatch, selectedThreadId, "目标已设置", formatGoalSummary(response.goal), "info", "thread/goal/set");
+}
+
+async function showThreadGoal(selectedThreadId: string, deps: SlashExecutionDependencies): Promise<void> {
+  const response = (await deps.composerCommandBridge.request("thread/goal/get", {
+    threadId: selectedThreadId,
+  })) as ThreadGoalGetResponse;
+  if (response.goal === null) {
+    pushThreadNotice(deps.dispatch, selectedThreadId, "当前没有目标", "用法：/goal <目标>。例如：/goal improve benchmark coverage", "info", "thread/goal/get");
+    return;
+  }
+  pushThreadNotice(deps.dispatch, selectedThreadId, "当前目标", formatGoalSummary(response.goal), "info", "thread/goal/get");
+}
+
+function parseGoalControl(argumentsText: string): "clear" | ThreadGoalStatus | null {
+  const normalized = argumentsText.toLowerCase();
+  if (normalized === "clear") return "clear";
+  if (normalized === "pause") return "paused";
+  if (normalized === "resume" || normalized === "unpause") return "active";
+  return null;
+}
+
 function enablePlanPreset(currentPreset: CollaborationPreset, argumentsText: string, deps: SlashExecutionDependencies): void {
   if (argumentsText.trim().length > 0) {
     throw new Error("当前桌面壳暂不支持 `/plan 提示词` 直接发送，请先执行 /plan，再单独发送消息。");

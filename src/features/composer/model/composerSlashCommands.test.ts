@@ -31,6 +31,7 @@ describe("composerSlashCommands", () => {
       "init",
       "compact",
       "plan",
+      "goal",
       "collab",
       "agent",
       "diff",
@@ -105,9 +106,11 @@ describe("composerSlashCommands", () => {
     } as const;
     const createThread = listComposerSlashCommands("new", busyContext)[0];
     const stop = listComposerSlashCommands("stop", busyContext)[0];
+    const goal = listComposerSlashCommands("goal", busyContext)[0];
 
     expect(createThread?.disabledReason).toContain("任务正在执行");
     expect(stop?.disabledReason).toBeNull();
+    expect(goal?.disabledReason).toBeNull();
   });
 
   it("requires arguments for rename and realtime start, and blocks inline /plan prompts", () => {

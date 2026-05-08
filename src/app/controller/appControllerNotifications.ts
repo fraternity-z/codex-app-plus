@@ -30,6 +30,8 @@ import type { ServerRequestResolvedNotification } from "../../protocol/generated
 import type { TerminalInteractionNotification } from "../../protocol/generated/v2/TerminalInteractionNotification";
 import type { ThreadArchivedNotification } from "../../protocol/generated/v2/ThreadArchivedNotification";
 import type { ThreadClosedNotification } from "../../protocol/generated/v2/ThreadClosedNotification";
+import type { ThreadGoalClearedNotification } from "../../protocol/generated/v2/ThreadGoalClearedNotification";
+import type { ThreadGoalUpdatedNotification } from "../../protocol/generated/v2/ThreadGoalUpdatedNotification";
 import type { ThreadNameUpdatedNotification } from "../../protocol/generated/v2/ThreadNameUpdatedNotification";
 import type { ThreadRealtimeClosedNotification } from "../../protocol/generated/v2/ThreadRealtimeClosedNotification";
 import type { ThreadRealtimeErrorNotification } from "../../protocol/generated/v2/ThreadRealtimeErrorNotification";
@@ -47,6 +49,7 @@ import type { TurnStartedNotification } from "../../protocol/generated/v2/TurnSt
 import type { WindowsSandboxSetupCompletedNotification } from "../../protocol/generated/v2/WindowsSandboxSetupCompletedNotification";
 import type { WindowsWorldWritableWarningNotification } from "../../protocol/generated/v2/WindowsWorldWritableWarningNotification";
 import { createConversationFromThread } from "../../features/conversation";
+import { formatGoalSummary } from "../../features/composer/service/composerSlashCommandSummary";
 
 interface NotificationContext {
   readonly dispatch: Dispatch<AppAction>;
@@ -181,6 +184,16 @@ export function applyAppServerNotification(context: NotificationContext, method:
   if (method === "thread/name/updated") {
     const payload = params as ThreadNameUpdatedNotification;
     dispatch({ type: "conversation/titleChanged", conversationId: payload.threadId, title: payload.threadName ?? null });
+    return;
+  }
+  if (method === "thread/goal/updated") {
+    const payload = params as ThreadGoalUpdatedNotification;
+    pushBanner(dispatch, "info", "Goal updated", formatGoalSummary(payload.goal), "thread-goal");
+    return;
+  }
+  if (method === "thread/goal/cleared") {
+    const payload = params as ThreadGoalClearedNotification;
+    pushBanner(dispatch, "info", "Goal cleared", `Thread: ${payload.threadId}`, "thread-goal");
     return;
   }
   if (method === "thread/tokenUsage/updated") {

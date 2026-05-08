@@ -8,6 +8,8 @@ import type { ConfigRequirementsReadResponse } from "../../../protocol/generated
 import type { McpServerStatus } from "../../../protocol/generated/v2/McpServerStatus";
 import type { AppInfo } from "../../../protocol/generated/v2/AppInfo";
 import type { PluginListResponse } from "../../../protocol/generated/v2/PluginListResponse";
+import type { ThreadGoal } from "../../../protocol/generated/v2/ThreadGoal";
+import type { ThreadGoalStatus } from "../../../protocol/generated/v2/ThreadGoalStatus";
 import { readUserConfigWriteTarget } from "../../settings/config/configWriteTarget";
 
 const SUMMARY_LIMIT = 5;
@@ -75,7 +77,55 @@ export function formatPluginSummary(response: PluginListResponse): string {
   return `共 ${plugins.length} 个插件，已安装 ${installed} 个，已启用 ${enabled} 个；市场：${formatNames(marketplaceSummary)}${loadErrors}`;
 }
 
+export function formatGoalSummary(goal: ThreadGoal): string {
+  const lines = [
+    `状态：${formatGoalStatus(goal.status)}`,
+    `目标：${goal.objective}`,
+    `耗时：${formatGoalDuration(goal.timeUsedSeconds)}`,
+    `已用 token：${formatCompactNumber(goal.tokensUsed)}`,
+  ];
+  if (goal.tokenBudget !== null) {
+    lines.push(`token 预算：${formatCompactNumber(goal.tokenBudget)}`);
+  }
+  lines.push("");
+  lines.push(formatGoalCommandHint(goal.status));
+  return lines.join("\n");
+}
+
 function formatNames(items: ReadonlyArray<string>): string {
   if (items.length === 0) return "无";
   return items.slice(0, SUMMARY_LIMIT).join(", ");
+}
+
+function formatGoalStatus(status: ThreadGoalStatus): string {
+  if (status === "active") return "active";
+  if (status === "paused") return "paused";
+  if (status === "budgetLimited") return "limited by budget";
+  return "complete";
+}
+
+function formatGoalCommandHint(status: ThreadGoalStatus): string {
+  if (status === "active") return "可用命令：/goal pause, /goal clear";
+  if (status === "paused") return "可用命令：/goal resume, /goal clear";
+  return "可用命令：/goal clear";
+}
+
+function formatGoalDuration(seconds: number): string {
+  const wholeSeconds = Math.max(0, Math.floor(seconds));
+  if (wholeSeconds < 60) return `${wholeSeconds}s`;
+  const minutes = Math.floor(wholeSeconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`;
+}
+
+function formatCompactNumber(value: number): string {
+  if (value < 1000) return String(value);
+  if (value < 1_000_000) return `${formatCompactDecimal(value / 1000)}K`;
+  return `${formatCompactDecimal(value / 1_000_000)}M`;
+}
+
+function formatCompactDecimal(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, "");
 }

@@ -11,13 +11,13 @@ function expectUnique(items: ReadonlyArray<string>): void {
 }
 
 describe("protocol method coverage", () => {
-  it("contains all 85 client request methods", () => {
-    expect(CLIENT_REQUEST_METHODS.length).toBe(85);
+  it("contains all 88 client request methods", () => {
+    expect(CLIENT_REQUEST_METHODS.length).toBe(88);
     expectUnique(CLIENT_REQUEST_METHODS);
   });
 
-  it("contains all 56 server notifications", () => {
-    expect(SERVER_NOTIFICATION_METHODS.length).toBe(56);
+  it("contains all 58 server notifications", () => {
+    expect(SERVER_NOTIFICATION_METHODS.length).toBe(58);
     expectUnique(SERVER_NOTIFICATION_METHODS);
   });
 
