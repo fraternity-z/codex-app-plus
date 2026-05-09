@@ -148,6 +148,142 @@ export function OfficialAlertCircleIcon(props: IconProps): JSX.Element {
   );
 }
 
+export function OfficialPermissionDefaultIcon(props: IconProps): JSX.Element {
+  return (
+    <svg
+      width={16}
+      height={16}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M3 4.5H5.25"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8.75 4.5H13"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.25 3.25H7.75C8.16421 3.25 8.5 3.58579 8.5 4V5C8.5 5.41421 8.16421 5.75 7.75 5.75H6.25C5.83579 5.75 5.5 5.41421 5.5 5V4C5.5 3.58579 5.83579 3.25 6.25 3.25Z"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3 8H8.25"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+      <path
+        d="M11.75 8H13"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9.25 6.75H10.75C11.1642 6.75 11.5 7.08579 11.5 7.5V8.5C11.5 8.91421 11.1642 9.25 10.75 9.25H9.25C8.83579 9.25 8.5 8.91421 8.5 8.5V7.5C8.5 7.08579 8.83579 6.75 9.25 6.75Z"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3 11.5H4.75"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8.25 11.5H13"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+      <path
+        d="M5.75 10.25H7.25C7.66421 10.25 8 10.5858 8 11V12C8 12.4142 7.66421 12.75 7.25 12.75H5.75C5.33579 12.75 5 12.4142 5 12V11C5 10.5858 5.33579 10.25 5.75 10.25Z"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function OfficialPermissionAutoReviewIcon(props: IconProps): JSX.Element {
+  return (
+    <svg
+      width={16}
+      height={16}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M5.45 2.75H10.55C10.8815 2.75 11.1995 2.8817 11.4339 3.11612L12.8839 4.56612C13.1183 4.80054 13.25 5.11848 13.25 5.45V10.55C13.25 10.8815 13.1183 11.1995 12.8839 11.4339L11.4339 12.8839C11.1995 13.1183 10.8815 13.25 10.55 13.25H5.45C5.11848 13.25 4.80054 13.1183 4.56612 12.8839L3.11612 11.4339C2.8817 11.1995 2.75 10.8815 2.75 10.55V5.45C2.75 5.11848 2.8817 4.80054 3.11612 4.56612L4.56612 3.11612C4.80054 2.8817 5.11848 2.75 5.45 2.75Z"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5.875 6.25L7.625 8L5.875 9.75"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.75 9.75H10.5"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function OfficialPermissionFullAccessIcon(props: IconProps): JSX.Element {
+  return (
+    <svg
+      width={16}
+      height={16}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M8 2.25L12.75 4V7.65C12.75 10.6088 10.8784 13.2347 8 14.25C5.12157 13.2347 3.25 10.6088 3.25 7.65V4L8 2.25Z"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 5.625V8.5"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8 10.875H8.0075"
+        stroke="currentColor"
+        strokeWidth="1.45"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function OfficialCloseIcon(props: IconProps): JSX.Element {
   return (
     <svg
@@ -306,14 +442,14 @@ export function OfficialPinIcon(props: IconProps): JSX.Element {
     <svg
       width={20}
       height={20}
-      viewBox="0 0 20 20"
+      viewBox="0 0 1024 1024"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
       {...props}
     >
       <path
-        d="M7.25 3.5H12.75C13.1642 3.5 13.5 3.83579 13.5 4.25C13.5 4.66421 13.1642 5 12.75 5H12.25V9.2L15.18 12.13C15.3945 12.3445 15.4587 12.6671 15.3426 12.9472C15.2266 13.2273 14.9532 13.41 14.65 13.41H10.75V16.75C10.75 17.1642 10.4142 17.5 10 17.5C9.58579 17.5 9.25 17.1642 9.25 16.75V13.41H5.35C5.04683 13.41 4.77343 13.2273 4.65736 12.9472C4.54129 12.6671 4.60547 12.3445 4.82 12.13L7.75 9.2V5H7.25C6.83579 5 6.5 4.66421 6.5 4.25C6.5 3.83579 6.83579 3.5 7.25 3.5ZM9.25 5V9.51C9.25 9.70891 9.17098 9.89968 9.03033 10.0403L7.16066 11.91H12.8393L10.9697 10.0403C10.829 9.89968 10.75 9.70891 10.75 9.51V5H9.25Z"
+        d="M894.9 347.7c-2.1-2.1-203.7-203.5-223.4-222.8-0.7-0.7-1.3-1.3-2.1-1.9-36.6-29.8-89.3-27.1-122.6 6.3-28.2 28.1-26.6 65.8-25.6 90.3 0.1 6.3 0.3 12.8 0.3 18.8 0 26.1-24.6 63.9-62.6 96.3-39.7 33.9-85.4 54.6-111.3 50.4-6.1-1-11.7-1.5-16.7-1.9-2.4-0.2-4.5-0.4-6.6-0.6-122.2-30.3-177.2 49.9-183.6 60-9.3 16.2-6.8 36.6 6.3 49.6l133.6 133.6-170.4 230.7c-12.1 16.2-10.4 38.5 4.1 53.1 8 8 18.4 12.1 28.8 12.1 8.4 0 16.8-2.6 23.9-8l233.1-168.4 132 132c13.3 13.3 33.9 15.8 50.4 5.8 9.2-5.8 89.2-60.4 59.7-180.1-0.3-2-2-16.5-2.9-24.7-2.1-25.6 22.9-82.7 63.5-126.9 28.8-31.3 58.3-48.6 83-48.6 6 0 12.5 0.1 18.4 0.3 25 1.1 62.8 2.7 90.9-25.4 17.3-17.3 26.9-40.3 26.8-64.9-0.1-24.6-9.6-47.7-27-65.1z m-28.8 100.9c-14.2 14.2-34.7 14.5-60.6 13.4-6.6-0.1-13.4-0.3-19.7-0.3-46.5 0-87.1 33.6-113.1 61.8-45.7 49.7-77.6 117.6-74.1 158.5 1.1 9.9 3.1 26.9 3.5 28.8 23 93.7-34.8 133.3-41.1 137.4L418.3 705.6c-6.7-9.1-20.4-12.4-29.5-5.7l-245.7 181L324 636c6-8.2 5.2-19.5-2-26.6L175.9 463.7c4.2-6.7 44.1-64.7 138.3-41.4 1.9 0.6 3.8 1 5.8 1 2.3 0.3 4.8 0.5 7.5 0.7 4.1 0.3 8.7 0.7 13.8 1.6 46 7.4 104.8-26 144.4-59.7 48.2-41.1 77-88.7 77-127.4 0-6.3-0.1-13.1-0.3-20.1-1-25.3-0.7-45.7 13.6-60.1 18.5-18.5 47.6-20 67-4.2 6.3 6.1 221 220.5 223.1 222.6 9.6 9.6 14.9 22.4 15 36-0.1 13.6-5.4 26.3-15 35.9z"
         fill="currentColor"
       />
     </svg>

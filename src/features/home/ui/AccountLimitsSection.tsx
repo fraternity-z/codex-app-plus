@@ -1,17 +1,21 @@
+import type { ReactNode } from "react";
 import { memo, useCallback, useState } from "react";
 import type { RateLimitSnapshot } from "../../../protocol/generated/v2/RateLimitSnapshot";
 import { useI18n } from "../../../i18n";
+import { OfficialChevronRightIcon } from "../../shared/ui/officialIcons";
 import { buildAccountLimitCards } from "../model/homeAccountLimitsModel";
 import { AccountLimitCard } from "./AccountLimitCard";
 import "./AccountLimitsSection.css";
 
 export interface AccountLimitsSectionProps {
   readonly rateLimits: RateLimitSnapshot | null;
+  readonly leadingIcon?: ReactNode;
   className?: string;
 }
 
 export const AccountLimitsSection = memo(function AccountLimitsSection({
   rateLimits,
+  leadingIcon,
   className,
 }: AccountLimitsSectionProps) {
   const { t } = useI18n();
@@ -38,8 +42,11 @@ export const AccountLimitsSection = memo(function AccountLimitsSection({
         aria-haspopup="menu"
         aria-expanded={isExpanded}
       >
-        <span className="account-limits-trigger-text">● {t("accountLimits.title")}</span>
-        <span className="account-limits-arrow">{isExpanded ? "‹" : "›"}</span>
+        <span className="account-limits-trigger-left">
+          {leadingIcon ? <span className="account-limits-trigger-icon" aria-hidden="true">{leadingIcon}</span> : null}
+          <span className="account-limits-trigger-text">{t("accountLimits.title")}</span>
+        </span>
+        <OfficialChevronRightIcon className="account-limits-arrow" />
       </button>
 
       {isExpanded ? (

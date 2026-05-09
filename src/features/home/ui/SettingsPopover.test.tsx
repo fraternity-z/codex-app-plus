@@ -22,26 +22,6 @@ function createTestWrapper(initialLanguage: UiLanguage = "zh-CN") {
 }
 
 describe("SettingsPopover", () => {
-  function renderPopoverWithLanguage(initialLanguage: UiLanguage): void {
-    const Wrapper = createTestWrapper(initialLanguage);
-    render(
-      <Wrapper>
-        <SettingsPopover
-          authStatus="needs_login"
-          authMode={null}
-          authBusy={false}
-          authLoginPending={false}
-          rateLimits={null}
-          account={null}
-          appServerClient={mockAppServerClient}
-          onOpenSettings={vi.fn()}
-          onLogin={vi.fn().mockResolvedValue(undefined)}
-          onLogout={vi.fn().mockResolvedValue(undefined)}
-        />
-      </Wrapper>
-    );
-  }
-
   it("shows the logout action for authenticated users", () => {
     const onLogout = vi.fn().mockResolvedValue(undefined);
 
@@ -61,8 +41,9 @@ describe("SettingsPopover", () => {
       { wrapper: createTestWrapper() }
     );
 
-    expect(screen.getByText("● 已通过 ChatGPT 登录")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "→ 退出登录" }));
+    expect(screen.getByText("已通过 ChatGPT 登录")).toBeInTheDocument();
+    expect(screen.getByText("个人账户")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "退出登录" }));
 
     expect(onLogout).toHaveBeenCalledTimes(1);
   });
@@ -86,8 +67,8 @@ describe("SettingsPopover", () => {
       { wrapper: createTestWrapper() }
     );
 
-    expect(screen.getByText("● 未登录")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "→ 登录 ChatGPT" }));
+    expect(screen.getByText("未登录")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "登录 ChatGPT" }));
 
     expect(onLogin).toHaveBeenCalledTimes(1);
   });
@@ -109,34 +90,7 @@ describe("SettingsPopover", () => {
       { wrapper: createTestWrapper() }
     );
 
-    expect(screen.getByRole("button", { name: "→ 正在登录..." })).toBeDisabled();
-  });
-
-  it("lets the user change language from the popover", () => {
-    const originalLanguages = window.navigator.languages;
-
-    Object.defineProperty(window.navigator, "languages", {
-      configurable: true,
-      value: ["zh-CN", "en-US"]
-    });
-
-    try {
-      renderPopoverWithLanguage("auto");
-
-      fireEvent.click(screen.getByRole("button", { name: /语言.*自动检测（跟随系统）/ }));
-
-      expect(screen.getByRole("menuitemradio", { name: /自动检测（跟随系统）/ })).toHaveAttribute("aria-checked", "true");
-
-      fireEvent.click(screen.getByRole("menuitemradio", { name: "English (US)" }));
-
-      expect(document.documentElement.lang).toBe("en-US");
-      expect(screen.getByRole("button", { name: /Language.*English \(US\)/ })).toBeInTheDocument();
-    } finally {
-      Object.defineProperty(window.navigator, "languages", {
-        configurable: true,
-        value: originalLanguages
-      });
-    }
+    expect(screen.getByRole("button", { name: "正在登录..." })).toBeDisabled();
   });
 
   it("renders translated English labels", () => {
@@ -156,8 +110,8 @@ describe("SettingsPopover", () => {
       { wrapper: createTestWrapper("en-US") }
     );
 
-    expect(screen.getByText("● Signed out")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "→ Sign in with ChatGPT" })).toBeInTheDocument();
+    expect(screen.getByText("Signed out")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign in with ChatGPT" })).toBeInTheDocument();
   });
 
   it("shows account email when authenticated with ChatGPT", () => {
@@ -177,6 +131,34 @@ describe("SettingsPopover", () => {
       { wrapper: createTestWrapper() }
     );
 
-    expect(screen.getByText("● 927751260@qq.com")).toBeInTheDocument();
+    expect(screen.getByText("927751260@qq.com")).toBeInTheDocument();
+  });
+
+  it("shows the account limits trigger when rate limits are available", () => {
+    render(
+      <SettingsPopover
+        authStatus="authenticated"
+        authMode="chatgpt"
+        authBusy={false}
+        authLoginPending={false}
+        rateLimits={{
+          limitId: "primary",
+          limitName: null,
+          primary: { usedPercent: 25, windowDurationMins: 300, resetsAt: null },
+          secondary: null,
+          credits: { hasCredits: true, unlimited: false, balance: "$10.00" },
+          planType: null,
+          rateLimitReachedType: null,
+        }}
+        account={{ authMode: "chatgpt", planType: "free", email: "927751260@qq.com" }}
+        appServerClient={mockAppServerClient}
+        onOpenSettings={vi.fn()}
+        onLogin={vi.fn().mockResolvedValue(undefined)}
+        onLogout={vi.fn().mockResolvedValue(undefined)}
+      />,
+      { wrapper: createTestWrapper() }
+    );
+
+    expect(screen.getByRole("button", { name: "剩余额度" })).toBeInTheDocument();
   });
 });

@@ -14,7 +14,7 @@
 .settings-sidebar {
   border-right: 1px solid var(--border-light);
   background: var(--surface-panel);
-  padding: 12px 12px 18px;
+  padding: 12px 5px 18px;
   min-width: 0;
   overflow: hidden;
   transition: padding 0.3s ease, border-color 0.3s ease;
@@ -51,17 +51,17 @@
 .settings-nav {
   margin-top: 10px;
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .settings-nav-item {
-  height: 36px;
+  height: 32px;
   border: 0;
   border-radius: 10px;
   background: transparent;
   color: var(--text-soft);
   text-align: left;
-  padding: 0 12px;
+  padding: 0 16px;
   font-size: var(--app-ui-font-size-md);
   display: flex;
   align-items: center;

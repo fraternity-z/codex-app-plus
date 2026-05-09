@@ -1,13 +1,13 @@
 .account-limits-trigger {
   width: 100%;
-  height: 38px;
+  height: 32px;
   border: 0;
-  border-radius: 10px;
-  padding: 0 12px;
+  border-radius: 8px;
+  padding: 0 2px;
   background: transparent;
-  color: var(--text-soft);
+  color: var(--text-main);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.35;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -30,18 +30,36 @@
   outline-offset: 1px;
 }
 
+.account-limits-trigger-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.account-limits-trigger-icon,
+.account-limits-trigger-icon svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
 .account-limits-trigger-text {
-  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .account-limits-arrow {
-  flex-shrink: 0;
-  transform: rotate(-90deg);
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
   transition: transform 0.15s ease;
 }
 
-.account-limits-trigger:hover .account-limits-arrow {
-  transform: rotate(-90deg) translateX(2px);
+.account-limits-trigger[aria-expanded="true"] .account-limits-arrow {
+  transform: rotate(90deg);
 }
 
 .account-limits-content {

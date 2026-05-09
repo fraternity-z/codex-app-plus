@@ -601,7 +601,7 @@
 
 .home-turn-progress-card-pinned .home-turn-progress-pin-icon {
   color: var(--accent-color);
-  transform: rotate(32deg);
+  transform: none;
 }
 
 .home-turn-progress-section {

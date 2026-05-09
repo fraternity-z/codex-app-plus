@@ -1,49 +1,82 @@
 .settings-popover {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 6px;
+  right: 6px;
   bottom: calc(100% + 8px);
   z-index: 30;
-  border: 1px solid var(--border-light);
-  border-radius: 14px;
+  box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--border-light) 86%, transparent);
+  border-radius: 12px;
   background: var(--surface-panel);
-  box-shadow: var(--shadow-lg);
-  padding: 8px;
-  min-width: 240px;
+  box-shadow: 0 10px 24px color-mix(in srgb, #000 12%, transparent), 0 2px 8px color-mix(in srgb, #000 8%, transparent);
+  padding: 6px 12px;
+  min-width: 0;
+  color: var(--text-main);
+}
+
+.settings-popover-row {
+  width: 100%;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.35;
 }
 
 .settings-popover-status {
-  height: 38px;
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
   color: var(--text-muted);
-  border-bottom: 1px solid var(--border-light);
-  font-size: 13px;
-  line-height: 1.5;
-  background: var(--surface-panel-muted);
-  min-width: 0;
+}
+
+.settings-popover-status span,
+.settings-popover-account span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.settings-popover-account {
+  color: var(--text-muted);
+}
+
+.settings-popover-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--border-light);
+}
+
 .settings-popover-item {
   width: 100%;
-  height: 38px;
+  height: 32px;
   border: 0;
-  border-radius: 10px;
-  padding: 0 12px;
+  border-radius: 8px;
+  padding: 0 2px;
   background: transparent;
-  color: var(--text-soft);
+  color: var(--text-main);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.35;
   display: flex;
   align-items: center;
   justify-content: space-between;
   text-align: left;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.settings-popover-item-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.settings-popover-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: currentColor;
 }
 
 .settings-popover-item:hover {
@@ -66,7 +99,7 @@
 }
 
 .settings-popover-danger {
-  color: var(--error-fg);
+  color: var(--text-main);
 }
 
 .settings-popover-submenu {

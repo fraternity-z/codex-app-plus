@@ -1,13 +1,19 @@
+import type { SVGProps } from "react";
 import type { ComposerPermissionLevel } from "../model/composerPermission";
 import { useI18n } from "../../../i18n/useI18n";
-import { OfficialArrowTopRightIcon } from "../../shared/ui/officialIcons";
+import {
+  OfficialArrowTopRightIcon,
+  OfficialPermissionAutoReviewIcon,
+  OfficialPermissionDefaultIcon,
+  OfficialPermissionFullAccessIcon,
+} from "../../shared/ui/officialIcons";
 
 export type PermissionLevel = ComposerPermissionLevel;
 
 interface PermissionOption {
   readonly key: PermissionLevel;
   readonly label: string;
-  readonly icon: string;
+  readonly Icon: (props: SVGProps<SVGSVGElement>) => JSX.Element;
 }
 
 type PermissionLabelKey =
@@ -108,9 +114,9 @@ export function PermissionsPopover(props: {
   const { t } = useI18n();
   const { selected, onSelect } = props;
   const permissionOptions: ReadonlyArray<PermissionOption> = [
-    { key: "default", label: t("home.composer.defaultPermission"), icon: "\u25cb" },
-    { key: "autoReview", label: t("home.composer.autoReviewPermission"), icon: "\u2726" },
-    { key: "full", label: t("home.composer.fullPermission"), icon: "!" }
+    { key: "default", label: t("home.composer.defaultPermission"), Icon: OfficialPermissionDefaultIcon },
+    { key: "autoReview", label: t("home.composer.autoReviewPermission"), Icon: OfficialPermissionAutoReviewIcon },
+    { key: "full", label: t("home.composer.fullPermission"), Icon: OfficialPermissionFullAccessIcon },
   ];
 
   return (
@@ -125,7 +131,7 @@ export function PermissionsPopover(props: {
         >
           <span className="popover-item-left">
             <span className="popover-item-icon" aria-hidden="true">
-              {option.icon}
+              <option.Icon />
             </span>
             {option.label}
           </span>
