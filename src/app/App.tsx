@@ -42,6 +42,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const appUpdate = useAppSelector((state) => state.appUpdate);
   const [screenHistory, setScreenHistory] = useState(() => createScreenHistoryState("home"));
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [petAwake, setPetAwake] = useState(false);
   const screen = screenHistory.current;
   const authBusy = !bootstrapState.initialized || bootstrapState.bootstrapBusy || bootstrapState.authLoginPending;
   const shouldShowAuthChoice = bootstrapState.authStatus === "needs_login" && screen === "home";
@@ -101,11 +102,13 @@ export function App({ hostBridge }: AppProps): JSX.Element {
         workspace={workspace}
         automations={automations}
         appUpdate={appUpdate}
+        petAwake={petAwake}
         authBusy={authBusy}
         authLoginPending={bootstrapState.authLoginPending}
         onGoBack={goBack}
         onGoForward={goForward}
         onBackHome={backHome}
+        onClosePet={() => setPetAwake(false)}
         onDismissSettingsMenu={() => setSettingsMenuOpen(false)}
         onOpenApiKeySettings={openApiKeySettings}
         onOpenSettings={openSettings}
@@ -114,6 +117,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
         onOpenSkillsLearnMore={() => hostBridge.app.openExternal(SKILLS_LEARN_MORE_URL)}
         onOpenAutomation={openAutomation}
         onOpenAutomationLearnMore={() => hostBridge.app.openExternal(AUTOMATION_LEARN_MORE_URL)}
+        onTogglePetAwake={() => setPetAwake((current) => !current)}
         onToggleSettingsMenu={() => setSettingsMenuOpen((openValue) => !openValue)}
       />
     </I18nProvider>

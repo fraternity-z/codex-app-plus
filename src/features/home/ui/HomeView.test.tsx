@@ -315,6 +315,7 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
         onOpenAutomation={vi.fn()}
         onSelectWorkspaceOpener={vi.fn()}
         onSelectComposerPermissionLevel={vi.fn()}
+        onTogglePetAwake={vi.fn()}
         onSelectRoot={vi.fn()}
         onSelectThread={vi.fn()}
         onSelectCollaborationPreset={handleSelectCollaborationPreset}
@@ -751,6 +752,7 @@ describe("HomeView", () => {
           onOpenAutomation={vi.fn()}
           onSelectWorkspaceOpener={vi.fn()}
           onSelectComposerPermissionLevel={vi.fn()}
+          onTogglePetAwake={vi.fn()}
           onSelectRoot={vi.fn()}
           onSelectThread={vi.fn()}
           onSelectCollaborationPreset={vi.fn()}

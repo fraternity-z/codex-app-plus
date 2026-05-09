@@ -51,6 +51,7 @@ import type { CommandExecResponse } from "../../../protocol/generated/v2/Command
 
 const MIN_TRIMMED_MESSAGE_LENGTH = 1;
 const MAX_COMPOSER_INPUT_EXTRA_ROWS = 3;
+const noop = () => undefined;
 type ReportErrorFn = ReturnType<typeof useUiBannerNotifications>["reportError"];
 
 export interface HomeComposerProps {
@@ -83,6 +84,7 @@ export interface HomeComposerProps {
   readonly onSetMultiAgentEnabled?: (enabled: boolean) => Promise<void>;
   readonly onSelectPermissionLevel: (level: ComposerPermissionLevel) => void;
   readonly onOpenCodexWeb?: () => Promise<void> | void;
+  readonly onTogglePet?: () => void;
   readonly onToggleDiff: () => void;
   readonly onUpdateThreadBranch: (branch: string) => Promise<void>;
   readonly onInterruptTurn: () => Promise<void>;
@@ -140,6 +142,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     onCreateThread: props.onCreateThread,
     onSendTurn: props.onSendTurn,
     onToggleDiff: props.onToggleDiff,
+    onTogglePet: props.onTogglePet ?? noop,
     onSelectModel: handleSelectModel,
     onSelectServiceTier: handleSelectServiceTier,
     onSelectPermissionLevel: props.onSelectPermissionLevel,

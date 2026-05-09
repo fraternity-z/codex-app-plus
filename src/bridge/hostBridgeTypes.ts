@@ -13,6 +13,7 @@ import type {
   CodexAuthModeStateOutput,
   CodexAuthSwitchResult,
   CreateAgentInput,
+  CustomPetsOutput,
   CustomPromptOutput,
   CodexSessionReadInput,
   CodexSessionReadOutput,
@@ -25,6 +26,7 @@ import type {
   GetCodexAuthModeStateInput,
   ImportOfficialDataInput,
   ListCodexSessionsInput,
+  ListCustomPetsInput,
   ListManagedPromptsInput,
   ManagedPromptOutput,
   SearchCodexSessionsInput,
@@ -127,6 +129,7 @@ export interface HostBridge {
     revealPathInFolder(input: RevealPathInFolderInput): Promise<void>;
     readWorkspaceState(): Promise<WorkspacePersistenceState | null>;
     writeWorkspaceState(input: WorkspacePersistenceState): Promise<void>;
+    listCustomPets(input: ListCustomPetsInput): Promise<CustomPetsOutput>;
     listCustomPrompts(input: ReadCustomPromptsInput): Promise<ReadonlyArray<CustomPromptOutput>>;
     listManagedPrompts(input: ListManagedPromptsInput): Promise<ReadonlyArray<ManagedPromptOutput>>;
     upsertManagedPrompt(input: UpsertManagedPromptInput): Promise<ManagedPromptOutput>;

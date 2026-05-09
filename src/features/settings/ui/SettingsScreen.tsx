@@ -51,8 +51,10 @@ interface SettingsScreenProps {
   readonly section: SettingsSection;
   readonly sidebarCollapsed: boolean;
   readonly workspace: WorkspaceRootController;
+  readonly petAwake: boolean;
   readonly onBackHome: () => void;
   readonly onSelectSection: (section: SettingsSection) => void;
+  readonly onTogglePetAwake: () => void;
 }
 
 export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
@@ -198,8 +200,10 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     onTestNotificationSound: testNotificationSound,
     onTestSystemNotification: testSystemNotification,
     notificationTestFeedback,
+    petAwake: props.petAwake,
     onBackHome: props.onBackHome,
     onSelectSection: props.onSelectSection,
+    onTogglePetAwake: props.onTogglePetAwake,
     onAddRoot: () => void addRoot(),
     onOpenConfigToml: openConfigToml,
     onOpenConfigDocs: openConfigDocs,
@@ -209,6 +213,12 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
       props.hostBridge.app.readGlobalAgentInstructions({
         agentEnvironment: props.preferences.agentEnvironment,
       }),
+    listCustomPets: () =>
+      props.hostBridge.app.listCustomPets({
+        agentEnvironment: props.preferences.agentEnvironment,
+      }),
+    openCustomPetsFolder: (path) =>
+      props.hostBridge.app.revealPathInFolder({ path }),
     listManagedPrompts: () =>
       props.hostBridge.app.listManagedPrompts({
         agentEnvironment: props.preferences.agentEnvironment,

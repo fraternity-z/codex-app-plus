@@ -35,6 +35,7 @@ describe("composerSlashCommands", () => {
       "collab",
       "agent",
       "diff",
+      "pet",
       "copy",
       "mention",
       "status",
@@ -111,6 +112,23 @@ describe("composerSlashCommands", () => {
     expect(createThread?.disabledReason).toContain("任务正在执行");
     expect(stop?.disabledReason).toBeNull();
     expect(goal?.disabledReason).toBeNull();
+  });
+
+  it("keeps /pet available as a local toggle during running tasks", () => {
+    const pet = listComposerSlashCommands("pet", {
+      hasThread: false,
+      hasWorkspace: false,
+      realtimeActive: false,
+      taskRunning: true,
+      capabilities: DEFAULT_COMPOSER_SLASH_CAPABILITIES,
+    })[0];
+
+    expect(pet).toMatchObject({
+      id: "pet",
+      name: "/pet",
+      metaLabel: "Local",
+      disabledReason: null,
+    });
   });
 
   it("requires arguments for rename and realtime start, and blocks inline /plan prompts", () => {

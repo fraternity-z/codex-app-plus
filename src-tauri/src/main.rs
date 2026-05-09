@@ -26,6 +26,7 @@ mod git;
 mod global_agent_instructions;
 mod media_permissions;
 mod models;
+mod pets;
 mod process_manager;
 mod process_supervisor;
 mod proxy_environment;
@@ -52,9 +53,9 @@ use commands::{
     app_activate_codex_chatgpt, app_capture_codex_oauth_snapshot, app_clear_chatgpt_auth_state,
     app_control_window, app_create_agent, app_delete_agent, app_delete_codex_session,
     app_delete_managed_prompt, app_get_agents_settings, app_get_codex_auth_mode_state,
-    app_import_official_data, app_list_codex_sessions, app_list_custom_prompts,
-    app_list_managed_prompts, app_open_codex_config_toml, app_open_external,
-    app_open_file_in_editor, app_open_workspace, app_read_agent_config,
+    app_import_official_data, app_list_codex_sessions, app_list_custom_pets,
+    app_list_custom_prompts, app_list_managed_prompts, app_open_codex_config_toml,
+    app_open_external, app_open_file_in_editor, app_open_workspace, app_read_agent_config,
     app_read_chatgpt_auth_tokens, app_read_codex_session, app_read_global_agent_instructions,
     app_read_proxy_settings, app_read_workspace_state, app_remember_command_approval_rule,
     app_reveal_path_in_folder, app_search_codex_sessions, app_server_restart, app_server_start,
@@ -88,10 +89,14 @@ fn main() {
     #[cfg(target_os = "windows")]
     windows_child_process::ensure_hidden_parent_console();
 
-    let app = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
-            show_main_window(app);
-        }))
+    let builder = tauri::Builder::default();
+
+    #[cfg(not(debug_assertions))]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        show_main_window(app);
+    }));
+
+    let app = builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
@@ -148,6 +153,7 @@ fn main() {
             app_read_agent_config,
             app_write_agent_config,
             app_read_global_agent_instructions,
+            app_list_custom_pets,
             app_list_custom_prompts,
             app_list_managed_prompts,
             app_upsert_managed_prompt,

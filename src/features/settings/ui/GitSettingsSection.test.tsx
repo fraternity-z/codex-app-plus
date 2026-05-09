@@ -53,6 +53,7 @@ function renderSection(): void {
           setContrast: () => undefined,
           setAppearanceThemeColors: () => undefined,
           setCodeStyle: () => undefined,
+          setSelectedPetId: () => undefined,
         }}
       />
     );

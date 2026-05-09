@@ -136,12 +136,28 @@ export interface ReadCustomPromptsInput {
   readonly agentEnvironment: AgentEnvironment;
 }
 
+export interface ListCustomPetsInput {
+  readonly agentEnvironment: AgentEnvironment;
+}
+
 export interface CustomPromptOutput {
   readonly name: string;
   readonly path: string;
   readonly content: string;
   readonly description: string | null;
   readonly argumentHint: string | null;
+}
+
+export interface CustomPetOutput {
+  readonly id: string;
+  readonly displayName: string;
+  readonly description: string | null;
+  readonly spritesheetDataUrl: string;
+}
+
+export interface CustomPetsOutput {
+  readonly avatarDirectory: string;
+  readonly avatars: ReadonlyArray<CustomPetOutput>;
 }
 
 export interface ListManagedPromptsInput {

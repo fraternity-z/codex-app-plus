@@ -4,6 +4,7 @@ import type { AppUpdateState } from "../../domain/types";
 import type { ResolvedTheme } from "../../domain/theme";
 import type { AutomationsController } from "../../features/automation";
 import { AppNotificationViewport } from "../../features/notifications";
+import { CodexPetLayer } from "../../features/pets/ui/CodexPetLayer";
 import { type AppPreferencesController, type SettingsSection } from "../../features/settings";
 import type { WorkspaceRootController } from "../../features/workspace";
 import type { AppController } from "../controller/appControllerTypes";
@@ -27,9 +28,11 @@ export interface AppScreenContentProps {
   readonly authBusy: boolean;
   readonly authLoginPending: boolean;
   readonly automations: AutomationsController;
+  readonly petAwake: boolean;
   readonly onGoBack: () => void;
   readonly onGoForward: () => void;
   readonly onBackHome: () => void;
+  readonly onClosePet: () => void;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenApiKeySettings: () => void;
   readonly onOpenSettings: () => void;
@@ -38,6 +41,7 @@ export interface AppScreenContentProps {
   readonly onOpenSkillsLearnMore: () => Promise<void>;
   readonly onOpenAutomation: () => void;
   readonly onOpenAutomationLearnMore: () => Promise<void>;
+  readonly onTogglePetAwake: () => void;
   readonly onToggleSettingsMenu: () => void;
 }
 
@@ -50,6 +54,12 @@ export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
   const toggleSettingsSidebarCollapsed = useCallback(() => {
     setSettingsSidebarCollapsed((currentValue) => !currentValue);
   }, []);
+  const listCustomPets = useCallback(
+    () => props.hostBridge.app.listCustomPets({
+      agentEnvironment: props.preferences.agentEnvironment,
+    }),
+    [props.hostBridge.app, props.preferences.agentEnvironment],
+  );
   const titlebarSidebarControl = useMemo(() => {
     if (props.shouldShowAuthChoice) {
       return null;
@@ -105,6 +115,12 @@ export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
           settingsSidebarCollapsed,
         })}
       </div>
+      <CodexPetLayer
+        awake={props.petAwake}
+        selectedPetId={props.preferences.selectedPetId}
+        listCustomPets={listCustomPets}
+        onClose={props.onClosePet}
+      />
       <AppNotificationViewport hostBridge={props.hostBridge} />
       <AppUpdateReadyPrompt
         appUpdate={props.appUpdate}

@@ -224,6 +224,7 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       onOpenAutomation={vi.fn()}
       onSelectWorkspaceOpener={vi.fn()}
       onSelectComposerPermissionLevel={vi.fn()}
+      onTogglePetAwake={vi.fn()}
       onUpdateThreadBranch={vi.fn().mockResolvedValue(undefined)}
       onSelectRoot={vi.fn()}
       onSelectThread={vi.fn()}

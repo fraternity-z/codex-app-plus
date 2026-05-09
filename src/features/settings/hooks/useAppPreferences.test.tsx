@@ -47,6 +47,7 @@ describe("useAppPreferences", () => {
     expect(result.current.contrast).toBe(DEFAULT_APP_PREFERENCES.contrast);
     expect(result.current.appearanceColors).toEqual(DEFAULT_APPEARANCE_COLOR_SCHEME);
     expect(result.current.codeStyle).toBe(DEFAULT_APP_PREFERENCES.codeStyle);
+    expect(result.current.selectedPetId).toBe(DEFAULT_APP_PREFERENCES.selectedPetId);
   });
 
   it("persists updated preferences after remount", async () => {
@@ -92,6 +93,7 @@ describe("useAppPreferences", () => {
         foreground: "#111827",
       });
       first.result.current.setCodeStyle("Dracula");
+      first.result.current.setSelectedPetId("dewey");
     });
 
     await waitFor(() => {
@@ -141,6 +143,7 @@ describe("useAppPreferences", () => {
       foreground: "#111827",
     });
     expect(second.result.current.codeStyle).toBe("Dracula");
+    expect(second.result.current.selectedPetId).toBe("dewey");
   });
 
   it("migrates the legacy default Chinese language to auto detection", () => {

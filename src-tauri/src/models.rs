@@ -360,6 +360,12 @@ pub struct ListCustomPromptsInput {
     pub agent_environment: AgentEnvironment,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListCustomPetsInput {
+    pub agent_environment: AgentEnvironment,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomPromptOutput {
@@ -368,6 +374,22 @@ pub struct CustomPromptOutput {
     pub content: String,
     pub description: Option<String>,
     pub argument_hint: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomPetOutput {
+    pub id: String,
+    pub display_name: String,
+    pub description: Option<String>,
+    pub spritesheet_data_url: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomPetsOutput {
+    pub avatar_directory: String,
+    pub avatars: Vec<CustomPetOutput>,
 }
 
 #[derive(Debug, Deserialize)]

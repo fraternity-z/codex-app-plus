@@ -60,6 +60,7 @@ interface HomeScreenProps {
   readonly workspace: WorkspaceRootController;
   readonly automations: AutomationsController;
   readonly mainContentOverride?: JSX.Element | null;
+  readonly onTogglePetAwake: () => void;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
   readonly onOpenSettingsSection: (section: import("../../settings/ui/SettingsView").SettingsSection) => void;
@@ -232,6 +233,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       onOpenAutomation={props.onOpenAutomation}
       onSelectWorkspaceOpener={props.preferences.setWorkspaceOpener}
       onSelectComposerPermissionLevel={props.preferences.setComposerPermissionLevel}
+      onTogglePetAwake={props.onTogglePetAwake}
       onSelectRoot={actions.selectRoot}
       onSelectThread={conversation.selectThread}
       onSelectWorkspaceThread={actions.selectWorkspaceThread}

@@ -41,6 +41,7 @@ function ComposerHarness(props: {
   readonly isResponding?: boolean;
   readonly onCreateThread?: ReturnType<typeof vi.fn>;
   readonly onToggleDiff?: ReturnType<typeof vi.fn>;
+  readonly onTogglePet?: ReturnType<typeof vi.fn>;
   readonly onSelectCollaborationPreset?: ReturnType<typeof vi.fn>;
   readonly onSendTurn?: ReturnType<typeof vi.fn>;
   readonly request?: ReturnType<typeof vi.fn>;
@@ -100,6 +101,7 @@ function ComposerHarness(props: {
       onSendTurn={props.onSendTurn ?? vi.fn().mockResolvedValue(undefined)}
       onPersistComposerSelection={vi.fn().mockResolvedValue(undefined)}
       onSelectPermissionLevel={setPermissionLevel}
+      onTogglePet={props.onTogglePet ?? vi.fn()}
       onToggleDiff={props.onToggleDiff ?? vi.fn()}
       onUpdateThreadBranch={vi.fn().mockResolvedValue(undefined)}
       onInterruptTurn={vi.fn().mockResolvedValue(undefined)}
@@ -315,6 +317,18 @@ describe("HomeComposer commands", () => {
     fireEvent.keyDown(textarea, { key: "Enter" });
 
     await waitFor(() => expect(onToggleDiff).toHaveBeenCalled());
+  });
+
+  it("executes /pet immediately", async () => {
+    const onTogglePet = vi.fn();
+    renderHarness({ onTogglePet });
+    const textarea = screen.getByRole("textbox");
+
+    fireEvent.change(textarea, { target: { value: "/pet", selectionStart: 4 } });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+
+    await waitFor(() => expect(onTogglePet).toHaveBeenCalled());
+    expect((textarea as HTMLTextAreaElement).value).toBe("");
   });
 
   it("opens the permissions picker from /approvals", async () => {

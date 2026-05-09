@@ -15,6 +15,7 @@ import type {
   BrowserUseApprovalMode,
   BrowserUseOriginKind,
   BrowserUseSettingsOutput,
+  CustomPetsOutput,
 } from "../../../bridge/types";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import type { GitWorktreeEntry } from "../../../bridge/types";
@@ -76,14 +77,18 @@ export interface SettingsViewProps {
     readonly tone: "success" | "error";
     readonly message: string;
   } | null;
+  readonly petAwake: boolean;
   onBackHome: () => void;
   onSelectSection: (section: SettingsSection) => void;
   onAddRoot: () => void;
+  onTogglePetAwake: () => void;
   onOpenConfigToml: () => Promise<void>;
   onOpenConfigDocs: () => Promise<void>;
   onOpenMcpDocs: () => Promise<void>;
   refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
   readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
+  listCustomPets: () => Promise<CustomPetsOutput>;
+  openCustomPetsFolder: (path: string) => Promise<void>;
   listManagedPrompts: () => Promise<ReadonlyArray<ManagedPromptOutput>>;
   upsertManagedPrompt: (
     input: Omit<UpsertManagedPromptInput, "agentEnvironment">
@@ -227,8 +232,13 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
   if (section === "appearance") {
     return (
       <AppearanceSettingsSection
+        busy={props.busy}
         preferences={props.preferences}
         resolvedTheme={props.resolvedTheme}
+        petAwake={props.petAwake}
+        listCustomPets={props.listCustomPets}
+        openCustomPetsFolder={props.openCustomPetsFolder}
+        onTogglePetAwake={props.onTogglePetAwake}
       />
     );
   }

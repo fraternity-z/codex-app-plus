@@ -28,20 +28,22 @@ use crate::models::{
     ActivateCodexChatgptInput, AppServerStartInput, CaptureCodexOauthSnapshotInput,
     ChatgptAuthTokensOutput, CodexAuthModeStateOutput, CodexAuthSwitchResult,
     CodexSessionReadInput, CodexSessionReadOutput, CodexSessionSearchResult, CodexSessionSummary,
-    CreateAgentInput, CustomPromptOutput, DeleteAgentInput, DeleteCodexSessionInput,
-    DeleteManagedPromptInput, GetAgentsSettingsInput, GetCodexAuthModeStateInput,
-    GlobalAgentInstructionsOutput, ImportOfficialDataInput, ListCodexSessionsInput,
-    ListCustomPromptsInput, ListManagedPromptsInput, ManagedPromptOutput, OpenCodexConfigTomlInput,
-    OpenFileInEditorInput, OpenWorkspaceInput, ReadAgentConfigInput, ReadAgentConfigOutput,
-    ReadGlobalAgentInstructionsInput, ReadProxySettingsInput, ReadProxySettingsOutput,
-    RememberCommandApprovalRuleInput, RememberCommandApprovalRuleOutput, RevealPathInFolderInput,
-    RpcCancelInput, RpcNotifyInput, RpcRequestInput, RpcRequestOutput, SearchCodexSessionsInput,
-    ServerRequestResolveInput, SetAgentsCoreInput, SetUserModelInstructionsFileInput,
-    ShowContextMenuInput, ShowNotificationInput, UpdateAgentInput, UpdateChatgptAuthTokensInput,
+    CreateAgentInput, CustomPetsOutput, CustomPromptOutput, DeleteAgentInput,
+    DeleteCodexSessionInput, DeleteManagedPromptInput, GetAgentsSettingsInput,
+    GetCodexAuthModeStateInput, GlobalAgentInstructionsOutput, ImportOfficialDataInput,
+    ListCodexSessionsInput, ListCustomPetsInput, ListCustomPromptsInput, ListManagedPromptsInput,
+    ManagedPromptOutput, OpenCodexConfigTomlInput, OpenFileInEditorInput, OpenWorkspaceInput,
+    ReadAgentConfigInput, ReadAgentConfigOutput, ReadGlobalAgentInstructionsInput,
+    ReadProxySettingsInput, ReadProxySettingsOutput, RememberCommandApprovalRuleInput,
+    RememberCommandApprovalRuleOutput, RevealPathInFolderInput, RpcCancelInput, RpcNotifyInput,
+    RpcRequestInput, RpcRequestOutput, SearchCodexSessionsInput, ServerRequestResolveInput,
+    SetAgentsCoreInput, SetUserModelInstructionsFileInput, ShowContextMenuInput,
+    ShowNotificationInput, UpdateAgentInput, UpdateChatgptAuthTokensInput,
     UpdateGlobalAgentInstructionsInput, UpdateProxySettingsInput, UpdateProxySettingsOutput,
     UpsertManagedPromptInput, WindowChromeAction, WorkspacePersistenceState, WriteAgentConfigInput,
     WriteAgentConfigOutput,
 };
+use crate::pets::list_custom_pets;
 use crate::process_manager::ProcessManager;
 use crate::proxy_settings::{read_proxy_settings, write_proxy_settings};
 use crate::window_theme::{apply_window_theme, WindowTheme};
@@ -265,6 +267,11 @@ pub async fn app_list_custom_prompts(
     input: ListCustomPromptsInput,
 ) -> Result<Vec<CustomPromptOutput>, String> {
     run_blocking(move || list_custom_prompts(input)).await
+}
+
+#[tauri::command]
+pub async fn app_list_custom_pets(input: ListCustomPetsInput) -> Result<CustomPetsOutput, String> {
+    run_blocking(move || list_custom_pets(input)).await
 }
 
 #[tauri::command]

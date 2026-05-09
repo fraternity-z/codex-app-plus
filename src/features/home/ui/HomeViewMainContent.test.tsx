@@ -148,6 +148,7 @@ function createProps(
     onRemoveQueuedFollowUp: vi.fn(),
     onClearQueuedFollowUps: vi.fn(),
     onCreateThread: vi.fn().mockResolvedValue(undefined),
+    onTogglePetAwake: vi.fn(),
     onToggleDiff: vi.fn(),
     onToggleTerminal: vi.fn(),
     onRetryConnection: vi.fn().mockResolvedValue(undefined),

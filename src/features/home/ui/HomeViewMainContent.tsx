@@ -116,6 +116,7 @@ export interface HomeViewMainContentProps {
   readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
   readonly onClearQueuedFollowUps: () => void;
   readonly onCreateThread: () => Promise<void>;
+  readonly onTogglePetAwake: () => void;
   readonly onToggleDiff: () => void;
   readonly onToggleTerminal: () => void;
   readonly onRetryConnection: () => Promise<void>;
@@ -315,6 +316,7 @@ interface HomeComposerSectionProps {
   readonly onSelectComposerPermissionLevel: (level: ComposerPermissionLevel) => void;
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
   readonly onSetMultiAgentEnabled?: (enabled: boolean) => Promise<void>;
+  readonly onTogglePetAwake: () => void;
   readonly onToggleDiff: () => void;
   readonly onUpdateThreadBranch: (branch: string) => Promise<void>;
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
@@ -362,6 +364,7 @@ const HomeComposerSection = memo(function HomeComposerSection(
       onSetMultiAgentEnabled={props.onSetMultiAgentEnabled}
       onSelectPermissionLevel={props.onSelectComposerPermissionLevel}
       onOpenCodexWeb={props.onOpenCodexWeb}
+      onTogglePet={props.onTogglePetAwake}
       onToggleDiff={props.onToggleDiff}
       onUpdateThreadBranch={props.onUpdateThreadBranch}
       onInterruptTurn={props.onInterruptTurn}
@@ -586,6 +589,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           onSelectComposerPermissionLevel={props.onSelectComposerPermissionLevel}
           onSendTurn={props.onSendTurn}
           onSetMultiAgentEnabled={props.onSetMultiAgentEnabled}
+          onTogglePetAwake={props.onTogglePetAwake}
           onToggleDiff={props.onToggleDiff}
           onUpdateThreadBranch={props.onUpdateThreadBranch}
           queuedFollowUps={props.queuedFollowUps}

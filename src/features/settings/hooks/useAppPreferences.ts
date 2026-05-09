@@ -29,6 +29,7 @@ import {
   normalizeCodeFontFamily,
   normalizeUiFontFamily,
 } from "../model/fontPreferences";
+import { DEFAULT_SELECTED_PET_ID, normalizePetId } from "../../pets/model/petCatalog";
 import {
   APP_PREFERENCES_STORAGE_KEY,
   DEFAULT_APP_PREFERENCES,
@@ -77,6 +78,7 @@ export interface AppPreferences {
   readonly contrast: number;
   readonly appearanceColors: AppearanceColorScheme;
   readonly codeStyle: CodeStyleId;
+  readonly selectedPetId: string;
 }
 
 export interface AppPreferencesController extends AppPreferences {
@@ -115,6 +117,7 @@ export interface AppPreferencesController extends AppPreferences {
     colors: Partial<AppearanceThemeColors>,
   ) => void;
   setCodeStyle: (style: CodeStyleId) => void;
+  setSelectedPetId: (id: string) => void;
 }
 type PreferencesStateSetter = Dispatch<SetStateAction<AppPreferences>>;
 
@@ -218,6 +221,11 @@ export function useAppPreferences(): AppPreferencesController {
     [setPreferences],
   );
   const setCodeStyle = usePreferenceSetter(setPreferences, "codeStyle");
+  const setSelectedPetId = usePreferenceSetter(
+    setPreferences,
+    "selectedPetId",
+    (value) => normalizePetId(value, DEFAULT_SELECTED_PET_ID),
+  );
 
   return useMemo(
     () => ({
@@ -254,6 +262,7 @@ export function useAppPreferences(): AppPreferencesController {
       setContrast,
       setAppearanceThemeColors,
       setCodeStyle,
+      setSelectedPetId,
     }),
     [
       preferences,
@@ -289,6 +298,7 @@ export function useAppPreferences(): AppPreferencesController {
       setContrast,
       setAppearanceThemeColors,
       setCodeStyle,
+      setSelectedPetId,
     ]
   );
 }

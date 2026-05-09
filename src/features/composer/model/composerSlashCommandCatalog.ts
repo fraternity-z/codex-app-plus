@@ -1,6 +1,7 @@
 export type ComposerSlashAction =
   | "createThread"
   | "toggleDiff"
+  | "togglePet"
   | "openMention"
   | "openModel"
   | "openPermissions"
@@ -78,6 +79,7 @@ const COMMANDS = Object.freeze<ReadonlyArray<ComposerSlashDefinition>>([
   { id: "collab", description: "选择 collaboration mode。", flavor: "official", executionKind: "picker", action: "openCollaboration", aliases: [], availableDuringTask: true, supportsInlineArgs: false, visibilityGate: "collaboration" },
   { id: "agent", description: "管理当前 agent。", flavor: "official", executionKind: "unavailable", action: null, aliases: [], availableDuringTask: true, supportsInlineArgs: false, unavailableReason: UNIMPLEMENTED_OFFICIAL_REASON },
   { id: "diff", description: "显示当前工作区 diff。", flavor: "official", executionKind: "local", action: "toggleDiff", aliases: [], availableDuringTask: true, supportsInlineArgs: false, requiresWorkspace: true },
+  { id: "pet", description: "快速唤醒或隐藏宠物。", flavor: "local", executionKind: "local", action: "togglePet", aliases: [], availableDuringTask: true, supportsInlineArgs: false },
   { id: "copy", description: "复制当前内容。", flavor: "official", executionKind: "unavailable", action: null, aliases: [], availableDuringTask: true, supportsInlineArgs: false, unavailableReason: UNIMPLEMENTED_OFFICIAL_REASON },
   { id: "mention", description: "提及一个文件。", flavor: "official", executionKind: "local", action: "openMention", aliases: [], availableDuringTask: true, supportsInlineArgs: false, requiresWorkspace: true },
   { id: "status", description: "查看当前会话配置与 token 使用情况。", flavor: "official", executionKind: "direct", action: null, aliases: [], availableDuringTask: true, supportsInlineArgs: false },

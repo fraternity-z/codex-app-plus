@@ -70,6 +70,7 @@ interface UseComposerCommandPaletteOptions {
   readonly onCreateThread: () => Promise<void>;
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
   readonly onToggleDiff: () => void;
+  readonly onTogglePet: () => void;
   readonly onSelectModel: (model: string) => void;
   readonly onSelectServiceTier: (serviceTier: ServiceTier | null) => void;
   readonly onSelectPermissionLevel: (level: ComposerPermissionLevel) => void;
@@ -93,7 +94,7 @@ interface UseComposerCommandPaletteState {
   readonly syncFromTextareaSelection: () => void;
 }
 
-const LOCAL_OR_PICKER_COMMANDS = new Set(["new", "clear", "diff", "mention", "model", "approvals", "permissions", "collab", "resume", "personality"]);
+const LOCAL_OR_PICKER_COMMANDS = new Set(["new", "clear", "diff", "pet", "mention", "model", "approvals", "permissions", "collab", "resume", "personality"]);
 
 export function useComposerCommandPalette(
   options: UseComposerCommandPaletteOptions,
@@ -377,15 +378,15 @@ async function selectRootSlashItem(itemKey: string, options: UseComposerCommandP
     }, {
       onSendTurn: options.onSendTurn,
     });
-    await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
+    await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff, onTogglePet: options.onTogglePet }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
     return;
   }
   if (LOCAL_OR_PICKER_COMMANDS.has(itemKey)) {
-    await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
+    await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff, onTogglePet: options.onTogglePet }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
     return;
   }
   await executeDirectSlashCommand(itemKey, parsed.argumentsText, slashContext, slashDeps);
-  await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
+  await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff, onTogglePet: options.onTogglePet }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
 }
 
 async function selectCustomPromptItem(

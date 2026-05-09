@@ -124,6 +124,7 @@ export interface HomeViewProps {
   readonly onSelectCollaborationPreset: (preset: CollaborationPreset) => void;
   readonly onInputChange: (text: string) => void;
   readonly onCreateThread: () => Promise<void>;
+  readonly onTogglePetAwake: () => void;
   readonly onCreateThreadInRoot?: (rootId: string) => Promise<void>;
   readonly onArchiveThread?: (threadId: string) => Promise<void>;
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;

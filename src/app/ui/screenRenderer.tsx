@@ -52,8 +52,10 @@ function renderOverlayScreen(props: AppScreenRenderProps): JSX.Element | null {
       section={props.screen}
       sidebarCollapsed={props.settingsSidebarCollapsed}
       workspace={props.workspace}
+      petAwake={props.petAwake}
       onBackHome={props.onBackHome}
       onSelectSection={props.onOpenSettingsSection}
+      onTogglePetAwake={props.onTogglePetAwake}
     />
   );
 }
@@ -70,6 +72,7 @@ function renderHomeScreen(props: AppScreenRenderProps): JSX.Element {
       sidebarCollapsed={props.homeSidebarCollapsed}
       workspace={props.workspace}
       automations={props.automations}
+      onTogglePetAwake={props.onTogglePetAwake}
       onDismissSettingsMenu={props.onDismissSettingsMenu}
       onOpenSettings={props.onOpenSettings}
       onOpenSettingsSection={props.onOpenSettingsSection}

@@ -1,4 +1,5 @@
 import type { AppPreferencesController } from "../hooks/useAppPreferences";
+import type { CustomPetsOutput } from "../../../bridge/types";
 import type { ResolvedTheme } from "../../../domain/theme";
 import { useI18n } from "../../../i18n";
 import LightIcon from "../../../assets/icons/light.svg";
@@ -18,10 +19,16 @@ import {
 import { AppearanceColorControl } from "./AppearanceColorControl";
 import { CodeStylePreview } from "./CodeStylePreview";
 import { CodeStyleSelect } from "./CodeStyleSelect";
+import { PetSettingsCard } from "./PetSettingsCard";
 
 interface AppearanceSettingsSectionProps {
   readonly preferences: AppPreferencesController;
   readonly resolvedTheme: ResolvedTheme;
+  readonly busy: boolean;
+  readonly petAwake: boolean;
+  readonly listCustomPets: () => Promise<CustomPetsOutput>;
+  readonly openCustomPetsFolder: (path: string) => Promise<void>;
+  onTogglePetAwake: () => void;
 }
 
 interface ThemeChipProps {
@@ -118,7 +125,7 @@ function resolveEditingTheme(
   return themeMode === "system" ? resolvedTheme : themeMode;
 }
 
-function AppearanceGrid(props: AppearanceSettingsSectionProps): JSX.Element {
+function AppearanceGrid(props: Pick<AppearanceSettingsSectionProps, "preferences" | "resolvedTheme">): JSX.Element {
   const { preferences, resolvedTheme } = props;
   const { t } = useI18n();
   const editingTheme = resolveEditingTheme(preferences.themeMode, resolvedTheme);
@@ -294,6 +301,14 @@ export function AppearanceSettingsSection(
       </section>
 
       <AppearanceFontSizes preferences={preferences} />
+      <PetSettingsCard
+        busy={props.busy}
+        petAwake={props.petAwake}
+        preferences={preferences}
+        listCustomPets={props.listCustomPets}
+        openCustomPetsFolder={props.openCustomPetsFolder}
+        onTogglePetAwake={props.onTogglePetAwake}
+      />
     </div>
   );
 }

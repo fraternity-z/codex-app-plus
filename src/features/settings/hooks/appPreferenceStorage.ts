@@ -22,6 +22,7 @@ import {
   DEFAULT_CODE_STYLE,
   isCodeStyleId,
 } from "../model/codeStyleCatalog";
+import { DEFAULT_SELECTED_PET_ID, normalizePetId } from "../../pets/model/petCatalog";
 import {
   DEFAULT_APPEARANCE_COLOR_SCHEME,
   readStoredAppearanceColorScheme,
@@ -104,6 +105,7 @@ export const DEFAULT_APP_PREFERENCES: AppPreferences = {
   contrast: APP_CONTRAST_DEFAULT,
   appearanceColors: DEFAULT_APPEARANCE_COLOR_SCHEME,
   codeStyle: DEFAULT_CODE_STYLE,
+  selectedPetId: DEFAULT_SELECTED_PET_ID,
 };
 
 function isPreferenceValue<T extends string>(
@@ -357,6 +359,7 @@ function sanitizeStoredPreferences(value: unknown): AppPreferences {
     codeStyle: isCodeStyleId(record.codeStyle)
       ? record.codeStyle
       : DEFAULT_APP_PREFERENCES.codeStyle,
+    selectedPetId: normalizePetId(record.selectedPetId, DEFAULT_SELECTED_PET_ID),
   };
 }
 

@@ -44,6 +44,7 @@ function createPreferencesController(): AppPreferencesController {
     setContrast: vi.fn(),
     setAppearanceThemeColors: vi.fn(),
     setCodeStyle: vi.fn(),
+    setSelectedPetId: vi.fn(),
   };
 }
 
@@ -74,14 +75,21 @@ function createBaseProps(
     steerAvailable: true,
     busy: false,
     ready: true,
+    petAwake: false,
     onBackHome: vi.fn(),
     onSelectSection: vi.fn(),
     onAddRoot: vi.fn(),
+    onTogglePetAwake: vi.fn(),
     onOpenConfigToml: vi.fn().mockResolvedValue(undefined),
     onOpenConfigDocs: vi.fn().mockResolvedValue(undefined),
     onOpenMcpDocs: vi.fn().mockResolvedValue(undefined),
     refreshConfigSnapshot: vi.fn().mockResolvedValue({ config: {}, origins: {}, layers: [] }),
     readGlobalAgentInstructions: vi.fn().mockResolvedValue({ path: "~/.codex/AGENTS.md", content: "" }),
+    listCustomPets: vi.fn().mockResolvedValue({
+      avatarDirectory: "C:\\Users\\Administrator\\.codex\\pets",
+      avatars: [],
+    }),
+    openCustomPetsFolder: vi.fn().mockResolvedValue(undefined),
     listManagedPrompts: vi.fn().mockResolvedValue([]),
     upsertManagedPrompt: vi.fn().mockResolvedValue({
       name: "system-prompt",

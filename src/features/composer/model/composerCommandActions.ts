@@ -9,6 +9,7 @@ export interface SlashCommandExecutionOptions {
   readonly onInputChange: (text: string) => void;
   readonly onCreateThread: () => Promise<void>;
   readonly onToggleDiff: () => void;
+  readonly onTogglePet: () => void;
 }
 
 export function focusTextarea(textareaRef: RefObject<HTMLTextAreaElement>, caret: number): void {
@@ -42,6 +43,9 @@ export async function executeSlashCommand(
   }
   if (itemKey === "diff") {
     options.onToggleDiff();
+  }
+  if (itemKey === "pet") {
+    options.onTogglePet();
   }
   if (itemKey === "model") {
     setManualMode("slash-model");

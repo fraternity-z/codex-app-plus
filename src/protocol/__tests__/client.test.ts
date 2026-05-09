@@ -36,6 +36,7 @@ function createHostBridge(): HostBridge {
       revealPathInFolder: vi.fn().mockResolvedValue(undefined),
       readWorkspaceState: vi.fn().mockResolvedValue(null),
       writeWorkspaceState: vi.fn().mockResolvedValue(undefined),
+      listCustomPets: vi.fn().mockResolvedValue({ avatarDirectory: "~/.codex/pets", avatars: [] }),
       listCustomPrompts: vi.fn().mockResolvedValue([]),
       listManagedPrompts: vi.fn().mockResolvedValue([]),
       upsertManagedPrompt: vi.fn().mockResolvedValue({

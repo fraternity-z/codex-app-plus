@@ -78,6 +78,8 @@ function renderSection(locale: Locale = "zh-CN", steerAvailable = true): void {
           setAppearanceThemeColors: () => undefined,
           setCodeStyle: (codeStyle) =>
             setPreferences((current) => ({ ...current, codeStyle })),
+          setSelectedPetId: (selectedPetId) =>
+            setPreferences((current) => ({ ...current, selectedPetId })),
         }}
         onTestNotificationSound={() => undefined}
         onTestSystemNotification={() => undefined}
@@ -183,6 +185,8 @@ describe("GeneralSettingsSection", () => {
             setAppearanceThemeColors: () => undefined,
             setCodeStyle: (codeStyle) =>
               setPreferences((current) => ({ ...current, codeStyle })),
+            setSelectedPetId: (selectedPetId) =>
+              setPreferences((current) => ({ ...current, selectedPetId })),
           }}
           onTestNotificationSound={onTestNotificationSound}
           onTestSystemNotification={onTestSystemNotification}

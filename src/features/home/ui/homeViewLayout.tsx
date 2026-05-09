@@ -173,6 +173,7 @@ export function createHomeMainContentProps(
     onSelectWorkspaceOpener: props.onSelectWorkspaceOpener,
     onSendTurn: props.onSendTurn,
     onSetMultiAgentEnabled: props.onSetMultiAgentEnabled,
+    onTogglePetAwake: props.onTogglePetAwake,
     onToggleDiff,
     onToggleTerminal,
     onUpdateThreadBranch: props.onUpdateThreadBranch,

@@ -52,6 +52,7 @@ function createPreferencesController(
     setContrast: vi.fn(),
     setAppearanceThemeColors: vi.fn(),
     setCodeStyle: vi.fn(),
+    setSelectedPetId: vi.fn(),
   };
 }
 

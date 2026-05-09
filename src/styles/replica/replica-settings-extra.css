@@ -151,6 +151,291 @@
   color: #b91c1c;
 }
 
+.codex-pet-avatar {
+  aspect-ratio: 192 / 208;
+  width: 7.04rem;
+  background-repeat: no-repeat;
+  background-size: 800% 900%;
+  image-rendering: pixelated;
+  flex: 0 0 auto;
+}
+
+.settings-pets-card {
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--surface-panel);
+  box-shadow: none;
+}
+
+.settings-pets-header {
+  width: 100%;
+  min-height: 78px;
+  border: 0;
+  background: transparent;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-pets-header:focus-visible,
+.settings-pet-pill-button:focus-visible,
+.settings-pet-select-button:focus-visible,
+.settings-pets-open-folder:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.settings-pets-header-copy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.settings-pets-header-copy strong {
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 550;
+  line-height: 1.35;
+}
+
+.settings-pets-header-copy span {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.settings-pet-chevron {
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+  flex: 0 0 auto;
+}
+
+.settings-pet-chevron-open {
+  transform: rotate(225deg);
+}
+
+.settings-pets-expanded {
+  border-top: 1px solid var(--border-light);
+}
+
+.settings-pets-toolbar {
+  min-height: 66px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.settings-pet-pill-button,
+.settings-pet-select-button,
+.settings-pets-open-folder {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--surface-panel-soft);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.settings-pet-pill-button,
+.settings-pet-select-button {
+  min-height: 34px;
+  padding: 0 14px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.settings-pet-pill-button:hover,
+.settings-pet-select-button:hover,
+.settings-pets-open-folder:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-main);
+}
+
+.settings-pet-pill-button:disabled,
+.settings-pet-select-button:disabled {
+  opacity: 0.62;
+  cursor: default;
+}
+
+.settings-pet-list {
+  display: grid;
+}
+
+.settings-pet-row {
+  min-height: 111px;
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.settings-pet-preview {
+  width: 80px;
+  height: 80px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--surface-panel-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.settings-pet-preview-avatar {
+  transform: translateY(2px);
+}
+
+.settings-pet-copy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.settings-pet-copy strong {
+  color: var(--text-main);
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 550;
+}
+
+.settings-pet-copy p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.settings-pet-select-button-selected {
+  color: var(--text-muted);
+}
+
+.settings-pets-custom-footer {
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 16px;
+}
+
+.settings-pets-custom-copy {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.settings-pets-custom-copy strong {
+  color: var(--text-main);
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.settings-pets-custom-copy code {
+  color: var(--text-muted);
+  font-family: var(--app-code-font-family);
+  font-size: calc(var(--app-code-font-size) - 2px);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-pets-open-folder {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  color: var(--text-muted);
+  background: transparent;
+  font-size: 14px;
+}
+
+.settings-pets-open-folder-icon {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  flex: 0 0 auto;
+}
+
+.settings-pets-open-folder-icon::before,
+.settings-pets-open-folder-icon::after {
+  position: absolute;
+  content: "";
+  border-color: currentColor;
+}
+
+.settings-pets-open-folder-icon::before {
+  top: 0;
+  right: 0;
+  width: 7px;
+  height: 7px;
+  border-top: 1.5px solid;
+  border-right: 1.5px solid;
+}
+
+.settings-pets-open-folder-icon::after {
+  right: 1px;
+  top: 1px;
+  width: 11px;
+  border-top: 1.5px solid;
+  transform: rotate(-45deg);
+  transform-origin: right center;
+}
+
+.settings-pets-status {
+  margin: 0;
+  padding: 0 16px 14px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settings-pets-status-error {
+  color: #b91c1c;
+}
+
+.codex-pet-overlay {
+  position: fixed;
+  left: 28px;
+  top: 28px;
+  z-index: 70;
+  width: max-content;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+}
+
+.codex-pet-overlay-dragging {
+  cursor: grabbing;
+}
+
+.codex-pet-overlay-avatar {
+  filter: drop-shadow(0 14px 20px rgba(15, 23, 42, 0.18));
+}
+
+.codex-pet-context-menu {
+  min-width: 132px;
+}
+
 .settings-prompt-head {
   align-items: flex-start;
 }

@@ -18,6 +18,7 @@ import type {
   CodexAuthModeStateOutput,
   CodexAuthSwitchResult,
   CreateAgentInput,
+  CustomPetsOutput,
   CustomPromptOutput,
   CodexSessionReadInput,
   CodexSessionReadOutput,
@@ -50,6 +51,7 @@ import type {
   HostBridge,
   ImportOfficialDataInput,
   ListCodexSessionsInput,
+  ListCustomPetsInput,
   ListManagedPromptsInput,
   ManagedPromptOutput,
   SearchCodexSessionsInput,
@@ -181,6 +183,11 @@ export function createTauriHostBridge(): HostBridge {
         invokeCommand<WorkspacePersistenceState | null>("app_read_workspace_state"),
       writeWorkspaceState: (input: WorkspacePersistenceState) =>
         invokeWithInput<WorkspacePersistenceState>("app_write_workspace_state", input),
+      listCustomPets: (input: ListCustomPetsInput) =>
+        invokeWithInput<ListCustomPetsInput, CustomPetsOutput>(
+          "app_list_custom_pets",
+          input
+        ),
       listCustomPrompts: (input: ReadCustomPromptsInput) =>
         invokeWithInput<ReadCustomPromptsInput, ReadonlyArray<CustomPromptOutput>>(
           "app_list_custom_prompts",

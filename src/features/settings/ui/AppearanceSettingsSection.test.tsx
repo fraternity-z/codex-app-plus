@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { ResolvedTheme } from "../../../domain/theme";
 import { type Locale } from "../../../i18n";
@@ -16,14 +16,26 @@ import {
   normalizeCodeFontFamily,
   normalizeUiFontFamily,
 } from "../model/fontPreferences";
+import { CodexPetLayer } from "../../pets/ui/CodexPetLayer";
 import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
 
 function renderSection(
   locale: Locale = "zh-CN",
   resolvedTheme: ResolvedTheme = "light",
+  overrides: Partial<{
+    readonly listCustomPets: ComponentProps<typeof AppearanceSettingsSection>["listCustomPets"];
+    readonly openCustomPetsFolder: ComponentProps<typeof AppearanceSettingsSection>["openCustomPetsFolder"];
+  }> = {},
 ): void {
+  const listCustomPets = overrides.listCustomPets ?? vi.fn().mockResolvedValue({
+    avatarDirectory: "C:\\Users\\Administrator\\.codex\\pets",
+    avatars: [],
+  });
+  const openCustomPetsFolder = overrides.openCustomPetsFolder ?? vi.fn().mockResolvedValue(undefined);
+
   function Wrapper(): JSX.Element {
     const [preferences, setPreferences] = useState(DEFAULT_APP_PREFERENCES);
+    const [petAwake, setPetAwake] = useState(false);
     const controller: AppPreferencesController = {
       ...preferences,
       setAgentEnvironment: (agentEnvironment) =>
@@ -112,13 +124,28 @@ function renderSection(
         })),
       setCodeStyle: (codeStyle) =>
         setPreferences((current) => ({ ...current, codeStyle })),
+      setSelectedPetId: (selectedPetId) =>
+        setPreferences((current) => ({ ...current, selectedPetId })),
     };
 
     return (
+      <>
       <AppearanceSettingsSection
+        busy={false}
         preferences={controller}
         resolvedTheme={resolvedTheme}
+        petAwake={petAwake}
+        listCustomPets={listCustomPets}
+        openCustomPetsFolder={openCustomPetsFolder}
+        onTogglePetAwake={() => setPetAwake((current) => !current)}
       />
+      <CodexPetLayer
+        awake={petAwake}
+        selectedPetId={controller.selectedPetId}
+        listCustomPets={listCustomPets}
+        onClose={() => setPetAwake(false)}
+      />
+      </>
     );
   }
 
@@ -257,5 +284,87 @@ describe("AppearanceSettingsSection", () => {
     expect(screen.getByRole("button", { name: "Code style：Codex" })).toBeInTheDocument();
     expect(screen.getByText("You're editing the dark theme colors.")).toBeInTheDocument();
     expect(screen.getByLabelText("Background")).toHaveValue("#111111");
+  });
+
+  it("renders the official pet picker at the bottom and saves selected pet ids", async () => {
+    const listCustomPets = vi.fn().mockResolvedValue({
+      avatarDirectory: "C:\\Users\\Administrator\\.codex\\pets",
+      avatars: [
+        {
+          id: "custom:001",
+          displayName: "001",
+          description: "A tiny snow-star companion.",
+          spritesheetDataUrl: "data:image/webp;base64,abc",
+        },
+      ],
+    });
+
+    renderSection("zh-CN", "light", { listCustomPets });
+
+    const petHeader = screen.getByRole("button", { name: /宠物/ });
+    const fontSizeLabel = screen.getByText("代码字号");
+    expect(
+      Boolean(fontSizeLabel.compareDocumentPosition(petHeader) & Node.DOCUMENT_POSITION_FOLLOWING),
+    ).toBe(true);
+
+    fireEvent.click(petHeader);
+
+    expect(await screen.findByText("The original Codex companion.")).toBeInTheDocument();
+    expect(screen.getByText("A tiny snow-star companion.")).toBeInTheDocument();
+    expect(screen.getByText("C:\\Users\\Administrator\\.codex\\pets")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "选择 Dewey" }));
+
+    expect(screen.getByText("已选择 Dewey")).toBeInTheDocument();
+  });
+
+  it("moves the floating pet close action into the right-click menu", () => {
+    renderSection("zh-CN", "light");
+
+    fireEvent.click(screen.getByRole("button", { name: /宠物/ }));
+    fireEvent.click(screen.getByRole("button", { name: "唤醒宠物" }));
+
+    const overlay = document.querySelector<HTMLElement>(".codex-pet-overlay");
+    expect(overlay).not.toBeNull();
+    expect(document.querySelector(".codex-pet-overlay-close")).toBeNull();
+
+    fireEvent.contextMenu(overlay!, { clientX: 160, clientY: 120 });
+    fireEvent.click(screen.getByRole("menuitem", { name: "隐藏宠物" }));
+
+    expect(document.querySelector(".codex-pet-overlay")).toBeNull();
+  });
+
+  it("lets the floating pet be dragged and animates toward the drag direction", () => {
+    renderSection("zh-CN", "light");
+
+    fireEvent.click(screen.getByRole("button", { name: /宠物/ }));
+    fireEvent.click(screen.getByRole("button", { name: "唤醒宠物" }));
+
+    const overlay = document.querySelector<HTMLElement>(".codex-pet-overlay");
+    expect(overlay).not.toBeNull();
+    const avatar = overlay!.querySelector<HTMLElement>(".codex-pet-overlay-avatar");
+    expect(avatar).not.toBeNull();
+
+    const initialLeft = Number.parseFloat(overlay!.style.left);
+
+    fireEvent.mouseDown(overlay!, {
+      button: 0,
+      clientX: 100,
+      clientY: 100,
+    });
+    fireEvent.mouseMove(overlay!, {
+      clientX: 60,
+      clientY: 104,
+    });
+
+    expect(Number.parseFloat(overlay!.style.left)).toBeLessThan(initialLeft);
+    expect(avatar).toHaveAttribute("data-pet-state", "running-left");
+
+    fireEvent.mouseUp(overlay!, {
+      clientX: 60,
+      clientY: 104,
+    });
+
+    expect(avatar).toHaveAttribute("data-pet-state", "idle");
   });
 });
