@@ -166,6 +166,7 @@ mod tests {
             vec!["/C".to_string(), path.to_string_lossy().to_string()]
         );
         assert_eq!(cli.display_path, path.to_string_lossy());
+        assert_codex_home_env(&cli);
     }
 
     #[test]
@@ -178,7 +179,10 @@ mod tests {
         fs::create_dir_all(&directory).unwrap();
         fs::write(directory.join("codex.cmd"), "@echo off").unwrap();
         env::set_var("PATH", &directory);
-        env::remove_var("CODEX_APP_PLUS_BUNDLED_CODEX_ROOT");
+        env::set_var(
+            "CODEX_APP_PLUS_BUNDLED_CODEX_ROOT",
+            unique_temp_dir("codex-app-plus", "invalid-bundle-root"),
+        );
         env::set_var("CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX", "1");
 
         let cli = CodexCli::resolve(None, &AppServerStartInput::default()).unwrap();
@@ -309,6 +313,19 @@ mod tests {
             .get_args()
             .map(|value| value.to_string_lossy().to_string())
             .collect()
+    }
+
+    fn assert_codex_home_env(cli: &CodexCli) {
+        let codex_home = cli
+            .environment
+            .iter()
+            .find_map(|(key, value)| (key == "CODEX_HOME").then(|| value.as_deref()).flatten())
+            .expect("CODEX_HOME should be set for Windows CLI launches");
+
+        assert!(
+            codex_home.ends_with(".codex"),
+            "unexpected CODEX_HOME: {codex_home}"
+        );
     }
 
     fn restore_env(name: &str, value: Option<std::ffi::OsString>) {

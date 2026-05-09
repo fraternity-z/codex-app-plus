@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use tauri::AppHandle;
 
+use crate::agent_environment::{resolve_host_codex_home, CODEX_HOME_ENV};
 use crate::bundled_codex_cli::{
     allow_system_codex_fallback, resolve_windows_cli as resolve_bundled_windows_cli,
     windows_environment,
@@ -109,11 +110,13 @@ fn build_windows_cli(resolved: ResolvedWindowsCliPath) -> AppResult<CodexCli> {
     let extension = file_extension(&resolved.path);
     let path_text = display_path.clone();
     let proxy_settings = load_proxy_settings(crate::models::AgentEnvironment::WindowsNative)?;
+    let codex_home = resolve_host_codex_home()?.to_string_lossy().to_string();
     let mut environment = proxy_environment_assignments(&proxy_settings)
         .into_iter()
         .map(|(key, value)| (key.to_string(), value))
         .collect::<Vec<_>>();
     environment.extend(resolved.environment);
+    environment.push((CODEX_HOME_ENV.to_string(), Some(codex_home)));
 
     if extension == "cmd" || extension == "bat" {
         return Ok(CodexCli {

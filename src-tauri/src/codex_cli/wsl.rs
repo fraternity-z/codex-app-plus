@@ -2,6 +2,7 @@ use std::path::Path;
 
 use tauri::AppHandle;
 
+use crate::agent_environment::{resolve_wsl_codex_home, CODEX_HOME_ENV};
 use crate::bundled_codex_cli::{allow_system_codex_fallback, ensure_wsl_cli};
 use crate::error::{AppError, AppResult};
 use crate::models::AppServerStartInput;
@@ -19,6 +20,9 @@ const WSL_LOGIN_SHELL: &str = "bash";
 const WSL_LOGIN_EXEC_FLAG: &str = "-ic";
 const WSL_LOGIN_EXEC_SCRIPT: &str = "exec \"$@\"";
 const WSL_LOGIN_ARG0: &str = "codex-app-plus";
+
+#[cfg(test)]
+const TEST_WSL_CODEX_HOME: &str = "/mnt/c/Users/me/.codex";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct WslLaunchSpec {
@@ -40,12 +44,14 @@ pub(super) fn resolve_wsl_cli(
     let context = resolve_default_wsl_context()?;
     let resolved_program = resolve_wsl_codex_program(app, &wsl_program, &context, input)?;
     let proxy_settings = load_proxy_settings(crate::models::AgentEnvironment::Wsl)?;
+    let codex_home = resolve_wsl_codex_home(&context)?;
     let spec = build_launch_spec_with_path_dirs(
         &wsl_program,
         &context,
         &resolved_program.program,
         &proxy_settings,
         &resolved_program.path_dirs,
+        &codex_home,
     )?;
     Ok(CodexCli {
         program: spec.wsl_program,
@@ -62,7 +68,14 @@ fn build_launch_spec(
     program: &str,
     proxy_settings: &crate::models::ProxySettings,
 ) -> AppResult<WslLaunchSpec> {
-    build_launch_spec_with_path_dirs(wsl_program, context, program, proxy_settings, &[])
+    build_launch_spec_with_path_dirs(
+        wsl_program,
+        context,
+        program,
+        proxy_settings,
+        &[],
+        TEST_WSL_CODEX_HOME,
+    )
 }
 
 fn build_launch_spec_with_path_dirs(
@@ -71,8 +84,10 @@ fn build_launch_spec_with_path_dirs(
     program: &str,
     proxy_settings: &crate::models::ProxySettings,
     path_dirs: &[String],
+    codex_home: &str,
 ) -> AppResult<WslLaunchSpec> {
-    let prefix_args = build_wsl_exec_prefix(context, program, proxy_settings, path_dirs);
+    let prefix_args =
+        build_wsl_exec_prefix(context, program, proxy_settings, path_dirs, codex_home);
     let wsl_program_text = wsl_program.to_string_lossy().to_string();
     Ok(WslLaunchSpec {
         display_path: build_display_path(&wsl_program_text, &prefix_args),
@@ -141,6 +156,7 @@ fn build_wsl_exec_prefix(
     program: &str,
     proxy_settings: &crate::models::ProxySettings,
     path_dirs: &[String],
+    codex_home: &str,
 ) -> Vec<String> {
     vec![
         "--distribution".to_string(),
@@ -150,7 +166,7 @@ fn build_wsl_exec_prefix(
         "--exec".to_string(),
         WSL_LOGIN_SHELL.to_string(),
         WSL_LOGIN_EXEC_FLAG.to_string(),
-        build_wsl_exec_script(proxy_settings, path_dirs),
+        build_wsl_exec_script(proxy_settings, path_dirs, codex_home),
         WSL_LOGIN_ARG0.to_string(),
         program.to_string(),
     ]
@@ -159,14 +175,20 @@ fn build_wsl_exec_prefix(
 fn build_wsl_exec_script(
     proxy_settings: &crate::models::ProxySettings,
     path_dirs: &[String],
+    codex_home: &str,
 ) -> String {
-    let mut statements = proxy_environment_assignments(proxy_settings)
-        .into_iter()
-        .map(|(key, value)| match value {
-            Some(value) => format!("export {key}={};", shell_quote(value.as_str())),
-            None => format!("unset {key};"),
-        })
-        .collect::<Vec<_>>();
+    let mut statements = vec![format!(
+        "export {CODEX_HOME_ENV}={};",
+        shell_quote(codex_home)
+    )];
+    statements.extend(
+        proxy_environment_assignments(proxy_settings)
+            .into_iter()
+            .map(|(key, value)| match value {
+                Some(value) => format!("export {key}={};", shell_quote(value.as_str())),
+                None => format!("unset {key};"),
+            }),
+    );
     if !path_dirs.is_empty() {
         let joined = path_dirs
             .iter()
@@ -221,7 +243,7 @@ mod tests {
 
     use super::{build_launch_spec, resolve_wsl_codex_candidate};
 
-    const DISABLED_PROXY_EXEC_SCRIPT: &str = "unset HTTP_PROXY; unset http_proxy; unset HTTPS_PROXY; unset https_proxy; unset NO_PROXY; unset no_proxy; exec \"$@\"";
+    const DISABLED_PROXY_EXEC_SCRIPT: &str = "export CODEX_HOME='/mnt/c/Users/me/.codex'; unset HTTP_PROXY; unset http_proxy; unset HTTPS_PROXY; unset https_proxy; unset NO_PROXY; unset no_proxy; exec \"$@\"";
 
     fn wsl_context() -> WslContext {
         WslContext {
