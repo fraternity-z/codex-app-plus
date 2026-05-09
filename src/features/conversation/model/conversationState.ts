@@ -12,6 +12,7 @@ import type {
 import type { ThreadSummary } from "../../../domain/types";
 import type { NoticeLevel } from "../../../domain/timeline";
 import type { ResponseItem } from "../../../protocol/generated/ResponseItem";
+import type { FileUpdateChange } from "../../../protocol/generated/v2/FileUpdateChange";
 import type { Thread } from "../../../protocol/generated/v2/Thread";
 import type { ThreadItem } from "../../../protocol/generated/v2/ThreadItem";
 import type { ThreadTokenUsage } from "../../../protocol/generated/v2/ThreadTokenUsage";
@@ -300,6 +301,41 @@ export function upsertConversationItem(conversation: ConversationState, turnId: 
     const fallbackAnchor = item.type === "contextCompaction" && existingItem === undefined ? getLastTurnItemId(turn) : null;
     const nextTurn = upsertTurnItem(turn, item);
     return item.type === "contextCompaction" ? clearContextCompactionFallbacks(nextTurn, fallbackAnchor) : nextTurn;
+  });
+}
+
+export function updateConversationFileChangePatch(
+  conversation: ConversationState,
+  turnId: string,
+  itemId: string,
+  changes: ReadonlyArray<FileUpdateChange>,
+): ConversationState {
+  return updateTurn(conversation, turnId, (turn) => {
+    const itemIndex = turn.items.findIndex((entry) => entry.item.id === itemId);
+    if (itemIndex < 0) {
+      return {
+        ...turn,
+        items: [
+          ...turn.items,
+          createItemState({ type: "fileChange", id: itemId, changes: [...changes], status: "inProgress" }),
+        ],
+      };
+    }
+    const current = turn.items[itemIndex];
+    if (current.item.type !== "fileChange") {
+      return turn;
+    }
+    const nextItemState = {
+      ...current,
+      item: {
+        ...current.item,
+        changes: [...changes],
+      },
+    };
+    return {
+      ...turn,
+      items: turn.items.map((entry, index) => (index === itemIndex ? nextItemState : entry)),
+    };
   });
 }
 

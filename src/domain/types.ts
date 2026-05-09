@@ -5,6 +5,7 @@ import type { FuzzyFileSearchResult } from "../protocol/generated/FuzzyFileSearc
 import type { ResponseItem } from "../protocol/generated/ResponseItem";
 import type { ConfigReadResponse } from "../protocol/generated/v2/ConfigReadResponse";
 import type { ExperimentalFeature } from "../protocol/generated/v2/ExperimentalFeature";
+import type { FileUpdateChange } from "../protocol/generated/v2/FileUpdateChange";
 import type { McpServerStatus } from "../protocol/generated/v2/McpServerStatus";
 import type { RateLimitSnapshot } from "../protocol/generated/v2/RateLimitSnapshot";
 import type { ThreadRealtimeAudioChunk } from "../protocol/generated/v2/ThreadRealtimeAudioChunk";
@@ -190,6 +191,7 @@ export type AppAction =
   | { type: "conversation/turnCompleted"; conversationId: string; turn: Turn }
   | { type: "conversation/itemStarted"; conversationId: string; turnId: string; item: ThreadItem }
   | { type: "conversation/itemCompleted"; conversationId: string; turnId: string; item: ThreadItem }
+  | { type: "conversation/fileChangePatchUpdated"; conversationId: string; turnId: string; itemId: string; changes: ReadonlyArray<FileUpdateChange> }
   | { type: "conversation/textDeltasFlushed"; entries: ReadonlyArray<ConversationTextDelta> }
   | { type: "conversation/outputDeltasFlushed"; entries: ReadonlyArray<ConversationOutputDelta> }
   | { type: "conversation/terminalInteraction"; conversationId: string; turnId: string; itemId: string; stdin: string }

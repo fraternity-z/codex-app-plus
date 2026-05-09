@@ -17,6 +17,7 @@ import type { ConfigWarningNotification } from "../../protocol/generated/v2/Conf
 import type { ContextCompactedNotification } from "../../protocol/generated/v2/ContextCompactedNotification";
 import type { DeprecationNoticeNotification } from "../../protocol/generated/v2/DeprecationNoticeNotification";
 import type { ErrorNotification } from "../../protocol/generated/v2/ErrorNotification";
+import type { FileChangePatchUpdatedNotification } from "../../protocol/generated/v2/FileChangePatchUpdatedNotification";
 import type { ItemCompletedNotification } from "../../protocol/generated/v2/ItemCompletedNotification";
 import type { ItemStartedNotification } from "../../protocol/generated/v2/ItemStartedNotification";
 import type { McpServerOauthLoginCompletedNotification } from "../../protocol/generated/v2/McpServerOauthLoginCompletedNotification";
@@ -95,6 +96,11 @@ export function applyAppServerNotification(context: NotificationContext, method:
   if (method === "item/fileChange/outputDelta") {
     const payload = params as import("../../protocol/generated/v2/FileChangeOutputDeltaNotification").FileChangeOutputDeltaNotification;
     outputDeltaQueue.enqueue({ conversationId: payload.threadId, turnId: payload.turnId, itemId: payload.itemId, target: "fileChange", delta: payload.delta });
+    return;
+  }
+  if (method === "item/fileChange/patchUpdated") {
+    const payload = params as FileChangePatchUpdatedNotification;
+    dispatch({ type: "conversation/fileChangePatchUpdated", conversationId: payload.threadId, turnId: payload.turnId, itemId: payload.itemId, changes: payload.changes });
     return;
   }
   if (method === "item/commandExecution/terminalInteraction") {

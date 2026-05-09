@@ -4,6 +4,7 @@ const PARSED_DIFF_CACHE_LIMIT = 200;
 const parsedDiffCache = new Map<string, ParsedDiffFile>();
 
 type DiffLineKind = "add" | "context" | "delete" | "meta";
+type PlainTextDiffKind = "add" | "delete";
 
 export interface ParsedDiffLine {
   readonly kind: DiffLineKind;
@@ -74,6 +75,11 @@ function createDiffLine(
   return { kind, content, oldLine, newLine };
 }
 
+function splitRawLines(raw: string): ReadonlyArray<string> {
+  const splitLines = raw.split(/\r?\n/);
+  return raw.endsWith("\n") ? splitLines.slice(0, -1) : splitLines;
+}
+
 function parseDiffLine(
   line: string,
   cursor: LineCursor,
@@ -132,8 +138,7 @@ function trimParsedDiffCache(): void {
 }
 
 export function parseUnifiedDiff(raw: string): ParsedDiffFile {
-  const splitLines = raw.split(/\r?\n/);
-  const lines = raw.endsWith("\n") ? splitLines.slice(0, -1) : splitLines;
+  const lines = splitRawLines(raw);
   const hunks: ParsedDiffHunk[] = [];
   let additions = 0;
   let deletions = 0;
@@ -166,6 +171,33 @@ export function parseUnifiedDiff(raw: string): ParsedDiffFile {
 
   pushCurrentHunk(hunks, currentHeader, currentParsedHeader, currentLines);
   return { hunks, additions, deletions, raw };
+}
+
+export function parsePlainTextFileDiff(raw: string, kind: PlainTextDiffKind): ParsedDiffFile {
+  const lines = splitRawLines(raw);
+  const additions = kind === "add" ? lines.length : 0;
+  const deletions = kind === "delete" ? lines.length : 0;
+  const oldStart = kind === "delete" ? 1 : 0;
+  const oldCount = kind === "delete" ? lines.length : 0;
+  const newStart = kind === "add" ? 1 : 0;
+  const newCount = kind === "add" ? lines.length : 0;
+  const parsedLines = lines.map((line, index) => kind === "add"
+    ? createDiffLine("add", line, null, index + 1)
+    : createDiffLine("delete", line, index + 1, null));
+  return {
+    hunks: [{
+      header: `@@ -${oldStart},${oldCount} +${newStart},${newCount} @@`,
+      oldStart,
+      oldCount,
+      newStart,
+      newCount,
+      sectionTitle: "",
+      lines: parsedLines,
+    }],
+    additions,
+    deletions,
+    raw,
+  };
 }
 
 export function parseUnifiedDiffCached(raw: string): ParsedDiffFile {

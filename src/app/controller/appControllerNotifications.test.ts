@@ -188,6 +188,39 @@ describe("applyAppServerNotification", () => {
     }
   });
 
+  it("applies live file patch update notifications before item completion", () => {
+    let state = appReducer(INITIAL_STATE, {
+      type: "conversation/upserted",
+      conversation: createConversationFromThread(createThread()),
+    });
+    const dispatch = (action: AppAction) => {
+      state = appReducer(state, action);
+    };
+
+    applyAppServerNotification(createContext(dispatch), "item/fileChange/patchUpdated", {
+      threadId: "thread-1",
+      turnId: "turn-1",
+      itemId: "file-1",
+      changes: [{
+        path: "src/NewFile.ts",
+        kind: { type: "add" },
+        diff: "export const value = 1;\n",
+      }],
+    });
+
+    const item = state.conversationsById["thread-1"]?.turns[0]?.items[0]?.item;
+    expect(item).toMatchObject({
+      type: "fileChange",
+      id: "file-1",
+      status: "inProgress",
+      changes: [{
+        path: "src/NewFile.ts",
+        kind: { type: "add" },
+        diff: "export const value = 1;\n",
+      }],
+    });
+  });
+
   it("suppresses reconnect retry notices that only carry retry progress", () => {
     const dispatch = vi.fn<(action: AppAction) => void>();
 

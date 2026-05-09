@@ -2,7 +2,7 @@ import { confirm } from "@tauri-apps/plugin-dialog";
 import { memo, useEffect, useMemo } from "react";
 import type { GitWorkspaceDiffOutput, GitWorkspaceDiffSection } from "../../../bridge/types";
 import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
-import { parseUnifiedDiffCached } from "../model/diffPreviewModel";
+import { parseWorkspaceDiffText } from "../model/workspaceDiffDisplayModel";
 import { GitDiffCodeView } from "./GitDiffCodeView";
 import {
   GitChevronDownIcon,
@@ -141,6 +141,7 @@ function FileBody(props: {
   readonly diff: string;
   readonly expanded: boolean;
   readonly path: string;
+  readonly section: GitWorkspaceDiffSection;
   readonly viewStyle: DiffViewStyle;
 }): JSX.Element | null {
   const diffLoaded = props.diffLoaded === true || props.diff.length > 0;
@@ -148,8 +149,8 @@ function FileBody(props: {
     if (!props.expanded || !diffLoaded) {
       return null;
     }
-    return parseUnifiedDiffCached(props.diff);
-  }, [diffLoaded, props.diff, props.expanded]);
+    return parseWorkspaceDiffText(props.diff, props.section);
+  }, [diffLoaded, props.diff, props.expanded, props.section]);
 
   if (parsedDiff === null) {
     if (!props.expanded) {
@@ -230,6 +231,7 @@ export const WorkspaceDiffViewerCard = memo(function WorkspaceDiffViewerCard(
         diffLoading={props.item.diffLoading}
         expanded={props.expanded}
         path={props.item.path}
+        section={props.item.section}
         viewStyle={props.viewStyle ?? "unified"}
       />
     </article>

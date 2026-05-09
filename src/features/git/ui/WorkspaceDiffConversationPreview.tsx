@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { GitWorkspaceDiffOutput } from "../../../bridge/types";
-import { parseUnifiedDiffCached } from "../model/diffPreviewModel";
+import { parseWorkspaceDiffText } from "../model/workspaceDiffDisplayModel";
 import { GitDiffCodeView } from "./GitDiffCodeView";
 import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
 
@@ -32,7 +32,7 @@ export function WorkspaceDiffConversationPreview(props: WorkspaceDiffConversatio
     if (active.diffLoaded !== true && active.diff.length === 0) {
       return null;
     }
-    return parseUnifiedDiffCached(active.diff);
+    return parseWorkspaceDiffText(active.diff, active.section);
   }, [active]);
 
   const styleClass = props.diffStyle === "split"

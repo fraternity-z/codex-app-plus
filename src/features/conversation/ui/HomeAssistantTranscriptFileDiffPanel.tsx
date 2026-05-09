@@ -1,8 +1,9 @@
 import { useCallback, useRef } from "react";
 import type { FileUpdateChange } from "../../../protocol/generated/v2/FileUpdateChange";
 import type { PatchChangeKind } from "../../../protocol/generated/v2/PatchChangeKind";
-import { parseUnifiedDiffCached, type ParsedDiffFile } from "../../git/model/diffPreviewModel";
+import type { ParsedDiffFile } from "../../git/model/diffPreviewModel";
 import { GitDiffCodeView } from "../../git/ui/GitDiffCodeView";
+import { parseFileUpdateChangeDiff } from "../model/fileChangeDiffModel";
 import { getFileChangeDisplayName } from "../model/fileChangeSummary";
 
 interface HomeAssistantTranscriptFileDiffPanelProps {
@@ -26,7 +27,7 @@ export function HomeAssistantTranscriptFileDiffPanel(
 function TranscriptFileDiffCard(props: { readonly change: FileUpdateChange; readonly defaultOpen: boolean }): JSX.Element {
   const initializedRef = useRef(false);
   const title = getDiffTitle(props.change);
-  const parsedDiff = getParsedDiff(props.change.diff);
+  const parsedDiff = getParsedDiff(props.change);
   const actionLabel = `复制 ${title} diff`;
   const setDetailsRef = useCallback((node: HTMLDetailsElement | null) => {
     if (node === null || initializedRef.current) {
@@ -93,11 +94,8 @@ function createChangeKey(change: FileUpdateChange): string {
   return `${change.kind.type}:${movedFrom}:${change.path}`;
 }
 
-function getParsedDiff(diff: string): ParsedDiffFile | null {
-  if (diff.trim().length === 0) {
-    return null;
-  }
-  return parseUnifiedDiffCached(diff);
+function getParsedDiff(change: FileUpdateChange): ParsedDiffFile | null {
+  return parseFileUpdateChangeDiff(change);
 }
 
 async function copyDiffToClipboard(diff: string): Promise<void> {

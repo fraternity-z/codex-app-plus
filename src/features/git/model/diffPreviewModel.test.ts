@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collapseDiffRows, parseUnifiedDiff } from "./diffPreviewModel";
+import { collapseDiffRows, parsePlainTextFileDiff, parseUnifiedDiff } from "./diffPreviewModel";
 
 describe("diffPreviewModel", () => {
   it("parses unified diff hunks and change counts", () => {
@@ -43,5 +43,18 @@ describe("diffPreviewModel", () => {
 
     expect(rows.some((row) => row.kind === "collapsed")).toBe(true);
     expect(rows.filter((row) => row.kind === "collapsed")[0]).toMatchObject({ count: 4 });
+  });
+
+  it("creates a structured diff for plain text added file content", () => {
+    const parsed = parsePlainTextFileDiff("import { test } from \"vitest\";\n\ntest(\"works\", () => {});\n", "add");
+
+    expect(parsed.hunks).toHaveLength(1);
+    expect(parsed.additions).toBe(3);
+    expect(parsed.deletions).toBe(0);
+    expect(parsed.hunks[0]?.lines).toEqual([
+      { kind: "add", content: "import { test } from \"vitest\";", oldLine: null, newLine: 1 },
+      { kind: "add", content: "", oldLine: null, newLine: 2 },
+      { kind: "add", content: "test(\"works\", () => {});", oldLine: null, newLine: 3 },
+    ]);
   });
 });

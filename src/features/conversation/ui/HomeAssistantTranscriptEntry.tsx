@@ -15,8 +15,8 @@ import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismis
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
 import type { CollabAgentToolCallEntry, CommandExecutionEntry, ImageGenerationEntry, ImageViewEntry } from "../../../domain/timeline";
 import { useI18n } from "../../../i18n/useI18n";
-import { parseUnifiedDiffCached } from "../../git/model/diffPreviewModel";
 import type { FileUpdateChange } from "../../../protocol/generated/v2/FileUpdateChange";
+import { parseFileUpdateChangeDiff } from "../model/fileChangeDiffModel";
 
 type AssistantNode = Extract<ConversationRenderNode, { kind: "assistantMessage" | "reasoningBlock" | "traceItem" | "auxiliaryBlock" }>;
 type CollabAgentTarget = { readonly id: string; readonly state: CollabAgentToolCallEntry["agentsStates"][string] | null };
@@ -543,7 +543,10 @@ function summarizeFileChangeDiffStats(changes: ReadonlyArray<FileUpdateChange>):
     if (change.diff.trim().length === 0) {
       continue;
     }
-    const parsed = parseUnifiedDiffCached(change.diff);
+    const parsed = parseFileUpdateChangeDiff(change);
+    if (parsed === null) {
+      continue;
+    }
     additions += parsed.additions;
     deletions += parsed.deletions;
     hasDiff = true;

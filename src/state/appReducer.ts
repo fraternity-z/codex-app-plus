@@ -21,6 +21,7 @@ import {
   syncCompletedTurn,
   syncStartedTurn,
   touchConversation,
+  updateConversationFileChangePatch,
   upsertConversationItem,
 } from "../features/conversation/model/conversationState";
 import { reduceAppUpdateState } from "../features/settings/update/appUpdateReducer";
@@ -174,6 +175,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "conversation/itemStarted":
     case "conversation/itemCompleted":
       return updateConversation(state, action.conversationId, (conversation) => upsertConversationItem(conversation, action.turnId, action.item));
+    case "conversation/fileChangePatchUpdated":
+      return updateConversation(state, action.conversationId, (conversation) => updateConversationFileChangePatch(conversation, action.turnId, action.itemId, action.changes));
     case "conversation/textDeltasFlushed":
       return flushConversationTextDeltas(state, action.entries);
     case "conversation/outputDeltasFlushed":

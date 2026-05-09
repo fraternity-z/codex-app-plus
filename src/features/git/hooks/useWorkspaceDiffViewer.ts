@@ -5,6 +5,7 @@ import type {
   HostBridge,
 } from "../../../bridge/types";
 import { createGitDiffKey } from "../model/gitDiffKey";
+import { countWorkspaceDiffStats } from "../model/workspaceDiffDisplayModel";
 import type { GitChangeScope } from "../ui/GitChangeBrowser";
 
 export interface WorkspaceDiffViewerSummary {
@@ -51,32 +52,6 @@ function calculateSummary(items: ReadonlyArray<GitWorkspaceDiffOutput>): Workspa
     }),
     { files: 0, additions: 0, deletions: 0 },
   );
-}
-
-function countDiffStats(diff: string): Pick<WorkspaceDiffViewerSummary, "additions" | "deletions"> {
-  let additions = 0;
-  let deletions = 0;
-  for (const line of diff.split("\n")) {
-    if (
-      line.length === 0 ||
-      line.startsWith("+++") ||
-      line.startsWith("---") ||
-      line.startsWith("diff --git") ||
-      line.startsWith("@@") ||
-      line.startsWith("index ") ||
-      line.startsWith("\\ No newline")
-    ) {
-      continue;
-    }
-    if (line.startsWith("+")) {
-      additions += 1;
-      continue;
-    }
-    if (line.startsWith("-")) {
-      deletions += 1;
-    }
-  }
-  return { additions, deletions };
 }
 
 function isSameDiffItem(left: GitWorkspaceDiffOutput, right: GitWorkspaceDiffOutput): boolean {
@@ -163,7 +138,7 @@ export function useWorkspaceDiffViewer(options: UseWorkspaceDiffViewerOptions) {
         staged: item.staged,
         ignoreWhitespaceChanges,
       });
-      const stats = countDiffStats(output.diff);
+      const stats = countWorkspaceDiffStats(output.diff, item.section);
       if (listRequestId !== requestIdRef.current) {
         return;
       }

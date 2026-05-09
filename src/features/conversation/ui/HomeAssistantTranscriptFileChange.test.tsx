@@ -117,4 +117,34 @@ describe("HomeAssistantTranscriptEntry file change summary", () => {
     expect(screen.queryByText("Patch")).toBeNull();
     expect(screen.queryByText("C:\\workspace\\codex-app-plus\\src\\App.tsx")).not.toBeInTheDocument();
   });
+
+  it("renders direct added file content as a structured diff", () => {
+    const entry = createFileChangeEntry([
+      {
+        path: "src/composerSlashCommandExecutor.test.ts",
+        kind: { type: "add" },
+        diff: [
+          "import { describe, expect, it } from \"vitest\";",
+          "",
+          "describe(\"composer slash command executor\", () => {",
+          "  it(\"executes\", () => {});",
+          "});",
+        ].join("\n"),
+      },
+    ]);
+
+    const { container } = render(<HomeAssistantTranscriptEntry node={{ key: entry.id, kind: "traceItem", item: entry }} />, {
+      wrapper: createI18nWrapper(),
+    });
+
+    expect(container.querySelector(".home-assistant-transcript-summary-text")?.textContent).toBe("已编辑 composerSlashCommandExecutor.test.ts+5-0");
+    expect(screen.queryByText("当前 diff 暂时无法结构化展示，下面显示原始输出。")).not.toBeInTheDocument();
+    expect(screen.getAllByText("+5")).toHaveLength(2);
+    expect(screen.getAllByText("-0")).toHaveLength(2);
+    expect(container.querySelectorAll(".workspace-diff-code-row-add")).toHaveLength(5);
+    expect(screen.getByText(
+      (_, element) => element?.classList.contains("workspace-diff-code-content") === true
+        && element.textContent === "import { describe, expect, it } from \"vitest\";",
+    )).toBeInTheDocument();
+  });
 });
