@@ -376,6 +376,7 @@ function HomeAssistantToolGroup(props: {
   readonly onEditUserMessage: (message: ConversationMessage, text: string) => Promise<void>;
 }): JSX.Element {
   const { t } = useI18n();
+  const bodyNodes = createAssistantToolGroupBodyNodes(props.node.nodes);
   return (
     <section className="home-assistant-transcript-entry home-assistant-transcript-tool-group">
       <details>
@@ -386,7 +387,7 @@ function HomeAssistantToolGroup(props: {
           <span className="home-assistant-transcript-tool-group-chevron" aria-hidden="true" />
         </summary>
         <div className="home-assistant-transcript-tool-group-body">
-          {props.node.nodes.map((node) => (
+          {bodyNodes.map((node) => (
             <HomeTimelineEntry
               key={node.key}
               node={node}
@@ -402,6 +403,24 @@ function HomeAssistantToolGroup(props: {
       </details>
     </section>
   );
+}
+
+function createAssistantToolGroupBodyNodes(nodes: ReadonlyArray<AssistantTraceNode>): Array<AssistantTraceNode> {
+  return nodes.flatMap((node) => {
+    if (node.item.kind !== "fileChange" || node.item.changes.length <= 1) {
+      return [node];
+    }
+    const fileChange = node.item;
+    return fileChange.changes.map((change, index): AssistantTraceNode => ({
+      ...node,
+      key: `${node.key}:change:${index}`,
+      item: {
+        ...fileChange,
+        id: `${fileChange.id}:change:${index}`,
+        changes: [change],
+      },
+    }));
+  });
 }
 
 function createRenderGroups(

@@ -501,6 +501,37 @@ describe("HomeConversationCanvas", () => {
     expect(groupSummary?.textContent).toBe("已编辑2个文件");
   });
 
+  it("expands folded multi-file changes into one row per edited file", () => {
+    const fileChange = createFileChangeEntry([
+      {
+        path: "src/App.tsx",
+        kind: { type: "update", move_path: null },
+        diff: ["@@ -1 +1 @@", "-old", "+new"].join("\n"),
+      },
+      {
+        path: "src/main.tsx",
+        kind: { type: "update", move_path: null },
+        diff: ["@@ -0,0 +1,2 @@", "+import \"./style.css\";", "+export const ready = true;"].join("\n"),
+      },
+    ]);
+    const { container } = renderCanvas([USER_MESSAGE, ASSISTANT_MESSAGE, fileChange, SECOND_ASSISTANT_MESSAGE]);
+    const toolGroup = container.querySelector(".home-assistant-transcript-tool-group");
+    const groupDetails = toolGroup?.querySelector(":scope > details") as HTMLDetailsElement | null;
+    const groupSummary = toolGroup?.querySelector(":scope > details > summary");
+    const groupBody = toolGroup?.querySelector(".home-assistant-transcript-tool-group-body");
+
+    expect(groupSummary?.textContent).toBe("已编辑2个文件");
+    fireEvent.click(groupSummary as Element);
+    expect(groupDetails?.open).toBe(true);
+
+    const rowSummaries = Array.from(
+      groupBody?.querySelectorAll(".home-assistant-transcript-details-trace > details > summary .home-assistant-transcript-summary-text") ?? [],
+    ).map((element) => element.textContent);
+    expect(rowSummaries).toEqual(["已编辑 App.tsx+1-1", "已编辑 main.tsx+2-0"]);
+    expect(groupBody?.textContent).not.toContain("等 2 个文件");
+    expect(groupBody?.querySelectorAll(".home-assistant-transcript-file-diff-card")).toHaveLength(2);
+  });
+
   it("summarizes mixed folded tools by edited files and executed commands", () => {
     const commandOne = createCompletedCommandEntry("command-1", "Get-Content src/App.tsx");
     const commandTwo = createCompletedCommandEntry("command-2", "Get-Content src/main.tsx");
