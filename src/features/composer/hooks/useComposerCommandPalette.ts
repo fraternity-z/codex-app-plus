@@ -25,8 +25,8 @@ import type { ComposerCommandBridge } from "../service/composerCommandBridge";
 import { customPromptNameFromPaletteKey } from "../model/customPromptPalette";
 import { createCustomPromptCommandInsert } from "../model/customPromptTemplate";
 import type { ComposerActiveTrigger } from "../model/composerInputTriggers";
-import { replaceComposerTrigger } from "../model/composerInputTriggers";
-import { createPaletteItems, getPaletteTitle, type PaletteMode } from "../model/composerPaletteData";
+import { getActiveComposerTrigger, replaceComposerTrigger } from "../model/composerInputTriggers";
+import { createPaletteItems, createTriggerKey, getPaletteTitle, type PaletteMode } from "../model/composerPaletteData";
 import { findComposerSlashCommand, parseComposerSlashQuery } from "../model/composerSlashCommands";
 import { stopMentionSession, syncMentionSession, type MentionSessionRefs } from "../model/composerMentionSession";
 import {
@@ -417,7 +417,8 @@ function useCompletePaletteItem(options: UseComposerCommandPaletteOptions, trigg
       const slashCommand = item.label.startsWith("/") ? item.label : `/${item.key}`;
       const next = replaceComposerTrigger(options.inputText, trigger.activeTrigger.range, `${slashCommand} `);
       options.onInputChange(next.text);
-      trigger.setSuppressedTriggerKey(null);
+      trigger.syncFromTextInput(next.text, next.caret);
+      suppressCompletedTrigger(trigger, next.text, next.caret);
       focusTextarea(trigger.textareaRef, next.caret);
       return;
     }
@@ -425,7 +426,8 @@ function useCompletePaletteItem(options: UseComposerCommandPaletteOptions, trigg
       const skillCommand = item.label.startsWith("$") ? item.label : `$${item.label}`;
       const next = replaceComposerTrigger(options.inputText, trigger.activeTrigger.range, `${skillCommand} `);
       options.onInputChange(next.text);
-      trigger.setSuppressedTriggerKey(null);
+      trigger.syncFromTextInput(next.text, next.caret);
+      suppressCompletedTrigger(trigger, next.text, next.caret);
       focusTextarea(trigger.textareaRef, next.caret);
       return;
     }
@@ -433,8 +435,13 @@ function useCompletePaletteItem(options: UseComposerCommandPaletteOptions, trigg
     const mentionToken = mentionReference.startsWith("@") ? mentionReference : `@${mentionReference}`;
     const next = replaceComposerTrigger(options.inputText, trigger.activeTrigger.range, `${mentionToken} `);
     options.onInputChange(next.text);
+    trigger.syncFromTextInput(next.text, next.caret);
     focusTextarea(trigger.textareaRef, next.caret);
   }, [options, trigger]);
+}
+
+function suppressCompletedTrigger(trigger: ReturnType<typeof usePaletteTrigger>, text: string, caret: number): void {
+  trigger.setSuppressedTriggerKey(createTriggerKey(getActiveComposerTrigger(text, caret)));
 }
 
 function shouldSuppressSlashPalette(mode: PaletteMode, activeTrigger: ComposerActiveTrigger | null): boolean {

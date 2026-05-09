@@ -14,6 +14,7 @@ const protocolState = vi.hoisted(() => ({
     onServerRequest: (id: RequestId, method: string, params: unknown) => void;
     onFatalError: (message: string) => void;
   },
+  initialized: false,
   request: vi.fn(),
   startAppServer: vi.fn().mockResolvedValue(undefined),
   restartAppServer: vi.fn().mockResolvedValue(undefined),
@@ -33,15 +34,22 @@ vi.mock("../../protocol/client", () => ({
     detach(): void {}
 
     startAppServer(input?: unknown): Promise<void> {
+      protocolState.initialized = false;
       return protocolState.startAppServer(input);
     }
 
     restartAppServer(input?: unknown): Promise<void> {
+      protocolState.initialized = false;
       return protocolState.restartAppServer(input);
     }
 
-    initializeConnection(): Promise<void> {
-      return protocolState.initializeConnection();
+    async initializeConnection(): Promise<void> {
+      await protocolState.initializeConnection();
+      protocolState.initialized = true;
+    }
+
+    isInitialized(): boolean {
+      return protocolState.initialized;
     }
 
     request(method: string, params: unknown): Promise<unknown> {
@@ -158,6 +166,7 @@ describe("useAppController retry gating", () => {
   beforeEach(() => {
     vi.useRealTimers();
     protocolState.handlers = null;
+    protocolState.initialized = false;
     protocolState.request = createRequestStub();
     protocolState.startAppServer.mockClear();
     protocolState.restartAppServer.mockClear();

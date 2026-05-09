@@ -216,10 +216,14 @@ describe("ProtocolClient", () => {
       onFatalError: vi.fn()
     });
 
+    expect(client.isInitialized()).toBe(false);
+
     await client.initializeConnection({
       clientInfo: { name: "test", title: "Test", version: "1.0.0" },
       capabilities: { experimentalApi: true, optOutNotificationMethods: null }
     });
+
+    expect(client.isInitialized()).toBe(true);
 
     expect(hostBridge.rpc.request).toHaveBeenCalledWith({
       method: "initialize",

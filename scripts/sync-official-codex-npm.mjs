@@ -16,6 +16,7 @@ const PLATFORM_PACKAGE_RELATIVES = {
 
 const args = parseArgs(process.argv.slice(2));
 const outRoot = path.resolve(args.out ?? DEFAULT_OUT);
+const npmCommand = process.platform === 'win32' ? { file: 'cmd.exe', args: ['/d', '/s', '/c', 'npm.cmd'] } : { file: 'npm', args: [] };
 
 if (!args.source && !args.npm) {
   args.source = "E:/code/codex";
@@ -109,8 +110,8 @@ function installFromNpm(specifier, outRoot) {
   const npmRoot = path.join(outRoot, "npm");
   mkdirSync(npmRoot, { recursive: true });
   execFileSync(
-    "npm",
-    [
+    npmCommand.file,
+    [...npmCommand.args, ...[
       "install",
       "--prefix",
       npmRoot,
@@ -118,7 +119,7 @@ function installFromNpm(specifier, outRoot) {
       "--no-audit",
       "--no-fund",
       specifier,
-    ],
+    ]],
     { stdio: "inherit" },
   );
 
@@ -150,8 +151,8 @@ function installDeclaredPlatformPackages(npmRoot, packageJson) {
     }
     try {
       execFileSync(
-        "npm",
-        [
+        npmCommand.file,
+        [...npmCommand.args, ...[
           "install",
           "--prefix",
           npmRoot,
@@ -160,7 +161,7 @@ function installDeclaredPlatformPackages(npmRoot, packageJson) {
           "--no-fund",
           "--force",
           `${alias}@${spec}`,
-        ],
+        ]],
         { stdio: "inherit" },
       );
     } catch (error) {

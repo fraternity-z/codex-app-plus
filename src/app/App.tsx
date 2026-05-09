@@ -43,7 +43,7 @@ export function App({ hostBridge }: AppProps): JSX.Element {
   const [screenHistory, setScreenHistory] = useState(() => createScreenHistoryState("home"));
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const screen = screenHistory.current;
-  const authBusy = bootstrapState.bootstrapBusy || bootstrapState.authLoginPending;
+  const authBusy = !bootstrapState.initialized || bootstrapState.bootstrapBusy || bootstrapState.authLoginPending;
   const shouldShowAuthChoice = bootstrapState.authStatus === "needs_login" && screen === "home";
 
   useAppFontVariables(preferences);

@@ -10,6 +10,7 @@ import type { AccountRequestClient, AppHostBridge } from "./appControllerTypes";
 
 type Dispatch = (action: AppAction) => void;
 const CHATGPT_LOGIN_DISABLED_MESSAGE = "ChatGPT login is disabled. Use API key login instead.";
+type AuthSnapshot = { status: AuthStatus; mode: string | null };
 
 async function writeForcedChatgptLoginMethod(client: AccountRequestClient): Promise<void> {
   try {
@@ -48,7 +49,7 @@ export async function ensureChatgptModeForLogin(
   await writeForcedChatgptLoginMethod(client);
 }
 
-function mapAuthStatus(response: GetAuthStatusResponse): { status: AuthStatus; mode: string | null } {
+function mapAuthStatus(response: GetAuthStatusResponse): AuthSnapshot {
   if (response.requiresOpenaiAuth === true && response.authMethod === null) {
     return { status: "needs_login", mode: null };
   }
@@ -58,27 +59,41 @@ function mapAuthStatus(response: GetAuthStatusResponse): { status: AuthStatus; m
   return { status: "unknown", mode: response.authMethod };
 }
 
-async function loadAuthStatus(client: AccountRequestClient, dispatch: Dispatch): Promise<void> {
+function mapAccountAuthStatus(response: GetAccountResponse): AuthSnapshot {
+  if (response.account?.type === "chatgpt") {
+    return { status: "authenticated", mode: "chatgpt" };
+  }
+  if (response.account?.type === "apiKey") {
+    return { status: "authenticated", mode: "apikey" };
+  }
+  if (response.requiresOpenaiAuth) {
+    return { status: "needs_login", mode: null };
+  }
+  return { status: "authenticated", mode: null };
+}
+
+async function loadAuthStatus(client: AccountRequestClient): Promise<AuthSnapshot | null> {
   try {
     const response = (await client.request("getAuthStatus", { includeToken: false, refreshToken: false })) as GetAuthStatusResponse;
-    const auth = mapAuthStatus(response);
-    dispatch({ type: "auth/changed", status: auth.status, mode: auth.mode });
+    return mapAuthStatus(response);
   } catch {
-    dispatch({ type: "auth/changed", status: "unknown", mode: null });
+    return null;
   }
 }
 
-async function loadAccountSnapshot(client: AccountRequestClient, dispatch: Dispatch): Promise<void> {
+async function loadAccountSnapshot(client: AccountRequestClient, dispatch: Dispatch): Promise<AuthSnapshot | null> {
   try {
     const response = (await client.request("account/read", { refreshToken: false })) as GetAccountResponse;
     const account = mapAccountSummary(response);
     if (account === null) {
       dispatch({ type: "account/updated", account: null });
-      return;
+      return mapAccountAuthStatus(response);
     }
     dispatch({ type: "account/updated", account });
+    return mapAccountAuthStatus(response);
   } catch {
     dispatch({ type: "account/updated", account: null });
+    return null;
   }
 }
 
@@ -103,11 +118,13 @@ async function loadRateLimits(client: AccountRequestClient, dispatch: Dispatch):
 }
 
 export async function refreshAccountState(client: AccountRequestClient, dispatch: Dispatch): Promise<void> {
-  await Promise.all([
-    loadAuthStatus(client, dispatch),
+  const [authStatus, accountAuthStatus] = await Promise.all([
+    loadAuthStatus(client),
     loadAccountSnapshot(client, dispatch),
     loadRateLimits(client, dispatch),
   ]);
+  const auth = authStatus ?? accountAuthStatus ?? { status: "unknown", mode: null };
+  dispatch({ type: "auth/changed", status: auth.status, mode: auth.mode });
 }
 
 export async function openChatgptLogin(

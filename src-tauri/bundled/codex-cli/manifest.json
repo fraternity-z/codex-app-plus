@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
   "distribution": "official-npm",
-  "version": "unbundled",
+  "version": "0.129.0",
   "source": {
     "package": "@openai/codex",
-    "specifier": null,
+    "specifier": "@openai/codex@0.129.0",
     "localPath": null,
     "commit": null
   },

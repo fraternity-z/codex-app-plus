@@ -77,6 +77,10 @@ export class ProtocolClient {
     return this.#hostBridge.appServer.stop();
   }
 
+  isInitialized(): boolean {
+    return this.#initialized;
+  }
+
   async initializeConnection(params: InitializeParams): Promise<void> {
     if (this.#initialized) {
       return;

@@ -27,11 +27,12 @@ import {
   refreshAccountState,
 } from "./appControllerAccount";
 import { reportServerRequestError } from "./appControllerServerRequests";
-import type {
-  AppController,
-  ConfigReadResponse,
-  ConfigBatchWriteParams,
-  ConfigValueWriteParams,
+import {
+  toErrorMessage,
+  type AppController,
+  type ConfigBatchWriteParams,
+  type ConfigReadResponse,
+  type ConfigValueWriteParams,
 } from "./appControllerTypes";
 import { useAppControllerPluginActions } from "./appControllerPluginActions";
 
@@ -44,6 +45,7 @@ interface UseAppControllerActionsArgs {
   readonly bootstrap: (forceRestart: boolean) => Promise<void>;
   readonly client: ProtocolClient;
   readonly dispatch: Dispatch;
+  readonly ensureAppServerReady: () => Promise<boolean>;
   readonly hostBridge: HostBridge;
   readonly pendingRequestsRef: MutableRefObject<Record<string, import("../../domain/serverRequests").ReceivedServerRequest>>;
   readonly selectedConversationId: string | null;
@@ -78,6 +80,7 @@ export function useAppControllerActions({
   bootstrap,
   client,
   dispatch,
+  ensureAppServerReady,
   hostBridge,
   pendingRequestsRef,
   selectedConversationId,
@@ -93,32 +96,45 @@ export function useAppControllerActions({
   }, [dispatch]);
 
   const login = useCallback(async () => {
-    await runBusy(async () => {
-      await ensureChatgptModeForLogin(client, hostBridge, agentEnvironment);
-      const loggedInWithTokens = await loginWithStoredTokens(client, hostBridge);
-      if (loggedInWithTokens) {
-        dispatch({ type: "authLogin/completed", success: true, error: null });
-        await refreshAccountState(client, dispatch);
-        await hostBridge.app.captureCodexOauthSnapshot({
-          agentEnvironment,
+    try {
+      if (!(await ensureAppServerReady())) {
+        dispatch({
+          type: "authLogin/completed",
+          success: false,
+          error: "Codex app-server 尚未完成初始化，请稍后重试。",
         });
         return;
       }
-      let openedBrowser: boolean;
-      try {
-        openedBrowser = await openChatgptLogin(client, hostBridge, dispatch);
-      } catch (error) {
-        if (!isChatgptLoginDisabledError(error)) {
-          throw error;
-        }
+      await runBusy(async () => {
         await ensureChatgptModeForLogin(client, hostBridge, agentEnvironment);
-        openedBrowser = await openChatgptLogin(client, hostBridge, dispatch);
-      }
-      if (!openedBrowser) {
-        await refreshAccountState(client, dispatch);
-      }
-    });
-  }, [agentEnvironment, client, dispatch, hostBridge, runBusy]);
+        const loggedInWithTokens = await loginWithStoredTokens(client, hostBridge);
+        if (loggedInWithTokens) {
+          dispatch({ type: "authLogin/completed", success: true, error: null });
+          await refreshAccountState(client, dispatch);
+          await hostBridge.app.captureCodexOauthSnapshot({
+            agentEnvironment,
+          });
+          return;
+        }
+        let openedBrowser: boolean;
+        try {
+          openedBrowser = await openChatgptLogin(client, hostBridge, dispatch);
+        } catch (error) {
+          if (!isChatgptLoginDisabledError(error)) {
+            throw error;
+          }
+          await ensureChatgptModeForLogin(client, hostBridge, agentEnvironment);
+          openedBrowser = await openChatgptLogin(client, hostBridge, dispatch);
+        }
+        if (!openedBrowser) {
+          await refreshAccountState(client, dispatch);
+        }
+      });
+    } catch (error) {
+      dispatch({ type: "authLogin/completed", success: false, error: toErrorMessage(error) });
+      console.error("登录 ChatGPT 失败", error);
+    }
+  }, [agentEnvironment, client, dispatch, ensureAppServerReady, hostBridge, runBusy]);
 
   const logout = useCallback(async () => {
     await runBusy(async () => {

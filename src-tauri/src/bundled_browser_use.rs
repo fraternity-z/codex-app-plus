@@ -1,6 +1,8 @@
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+#[cfg(debug_assertions)]
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use serde_json::json;
 use tauri::{AppHandle, Manager};
@@ -19,6 +21,10 @@ const PLUGIN_ID: &str = "browser-use@openai-bundled";
 const PLUGIN_RELATIVE_PATH: &str = "plugins/browser-use";
 const TMP_MARKETPLACE_PATH: &str = ".codex/.tmp/bundled-marketplaces/openai-bundled";
 const USER_CONFIG_PATH: &str = ".codex/config.toml";
+const MISSING_SOURCE_WARNING: &str =
+    "OpenAI Browser Use plugin source not found; skipping Browser Use plugin registration";
+#[cfg(debug_assertions)]
+static MISSING_SOURCE_WARNING_EMITTED: AtomicBool = AtomicBool::new(false);
 const NODE_REPL_MCP_SCRIPT: &str =
     include_str!("../bundled/browser-use-node-repl/node-repl-mcp.mjs");
 const NODE_REPL_MCP_CONFIG: &str = r#"{
@@ -47,9 +53,7 @@ pub fn ensure_registered(app: &AppHandle, agent_environment: AgentEnvironment) -
 
     let Some(source_root) = resolve_official_plugin_root(app, agent_environment, codex_home)?
     else {
-        eprintln!(
-            "OpenAI Browser Use plugin source not found; skipping Browser Use plugin registration"
-        );
+        log_missing_source_warning();
         return Ok(());
     };
 
@@ -62,6 +66,28 @@ pub fn ensure_registered(app: &AppHandle, agent_environment: AgentEnvironment) -
     materialize_plugin_cache(&install_root, &plugin_cache_root)?;
     augment_plugin_for_node_repl(&plugin_cache_root)?;
     register_marketplace_in_config(&config_path.host_path, &install_root)
+}
+
+fn log_missing_source_warning() {
+    if missing_source_warning_should_emit() {
+        eprintln!("{MISSING_SOURCE_WARNING}");
+    }
+}
+
+fn missing_source_warning_should_emit() -> bool {
+    #[cfg(debug_assertions)]
+    {
+        !MISSING_SOURCE_WARNING_EMITTED.swap(true, Ordering::Relaxed)
+    }
+    #[cfg(not(debug_assertions))]
+    {
+        true
+    }
+}
+
+#[cfg(all(test, debug_assertions))]
+fn reset_missing_source_warning_for_test() {
+    MISSING_SOURCE_WARNING_EMITTED.store(false, Ordering::Relaxed);
 }
 
 fn resolve_official_plugin_root(
@@ -388,6 +414,17 @@ mod tests {
                 r"C:\Users\me\.codex\plugins\cache\openai-bundled\browser-use\0.1.0-alpha1"
             )
         );
+    }
+
+    #[cfg(debug_assertions)]
+    #[test]
+    fn missing_source_warning_emits_once_in_debug_builds() {
+        super::reset_missing_source_warning_for_test();
+
+        assert!(super::missing_source_warning_should_emit());
+        assert!(!super::missing_source_warning_should_emit());
+
+        super::reset_missing_source_warning_for_test();
     }
 
     #[test]

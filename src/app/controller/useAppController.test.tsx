@@ -17,6 +17,7 @@ const protocolState = vi.hoisted(() => ({
     onServerRequest: (id: RequestId, method: string, params: unknown) => void;
     onFatalError: (message: string) => void;
   },
+  initialized: false,
   request: vi.fn(),
   startAppServer: vi.fn().mockResolvedValue(undefined),
   restartAppServer: vi.fn().mockResolvedValue(undefined),
@@ -38,19 +39,27 @@ vi.mock("../../protocol/client", () => ({
     detach(): void {}
 
     startAppServer(input?: unknown): Promise<void> {
+      protocolState.initialized = false;
       return protocolState.startAppServer(input);
     }
 
     restartAppServer(input?: unknown): Promise<void> {
+      protocolState.initialized = false;
       return protocolState.restartAppServer(input);
     }
 
     stopAppServer(): Promise<void> {
+      protocolState.initialized = false;
       return protocolState.stopAppServer();
     }
 
-    initializeConnection(): Promise<void> {
-      return protocolState.initializeConnection();
+    async initializeConnection(): Promise<void> {
+      await protocolState.initializeConnection();
+      protocolState.initialized = true;
+    }
+
+    isInitialized(): boolean {
+      return protocolState.initialized;
     }
 
     request(method: string, params: unknown): Promise<unknown> {
@@ -111,6 +120,7 @@ import {
   loginWithStoredTokens,
   logoutWithLocalCleanup,
   openChatgptLogin,
+  refreshAccountState,
   useAppController,
 } from "./useAppController";
 
@@ -232,6 +242,16 @@ function createConfigSnapshot(version: string) {
   };
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 function wrapper(props: PropsWithChildren): JSX.Element {
   return <AppStoreProvider>{props.children}</AppStoreProvider>;
 }
@@ -272,6 +292,7 @@ function useControllerHarness(
 describe("useAppController auth helpers", () => {
   beforeEach(() => {
     protocolState.handlers = null;
+    protocolState.initialized = false;
     protocolState.request = createRequestStub();
     protocolState.startAppServer.mockClear();
     protocolState.restartAppServer.mockClear();
@@ -357,6 +378,39 @@ describe("useAppController auth helpers", () => {
       ),
     ).toBe(true);
     expect(isChatgptLoginDisabledError(new Error("boom"))).toBe(false);
+  });
+
+  it("uses account/read as the auth state fallback when getAuthStatus fails", async () => {
+    const dispatch = vi.fn();
+    const client = {
+      request: vi.fn(async (method: string) => {
+        switch (method) {
+          case "getAuthStatus":
+            throw new Error("getAuthStatus unavailable");
+          case "account/read":
+            return {
+              account: { type: "chatgpt", email: "user@example.com", planType: "plus" },
+              requiresOpenaiAuth: false,
+            };
+          case "account/rateLimits/read":
+            return { rateLimits: null };
+          default:
+            return {};
+        }
+      }),
+    };
+
+    await refreshAccountState(client as never, dispatch);
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "account/updated",
+      account: { authMode: "chatgpt", email: "user@example.com", planType: "plus" },
+    });
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "auth/changed",
+      status: "authenticated",
+      mode: "chatgpt",
+    });
   });
 
   it("cleans local auth state during logout", async () => {
@@ -605,11 +659,45 @@ describe("useAppController auth helpers", () => {
       type: "chatgpt",
     });
   });
+
+  it("waits for app-server initialization before controller login requests", async () => {
+    const initialization = createDeferred<void>();
+    protocolState.initializeConnection.mockImplementationOnce(() => initialization.promise);
+    const hostBridge = createHostBridge();
+    const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
+
+    await waitFor(() => {
+      expect(protocolState.initializeConnection).toHaveBeenCalledTimes(1);
+    });
+    protocolState.request.mockClear();
+
+    let loginPromise!: Promise<void>;
+    act(() => {
+      loginPromise = result.current.controller.login();
+    });
+    await Promise.resolve();
+
+    expect(protocolState.request).not.toHaveBeenCalledWith(
+      "account/login/start",
+      expect.anything(),
+    );
+
+    await act(async () => {
+      initialization.resolve();
+      await loginPromise;
+    });
+
+    expect(protocolState.request).toHaveBeenCalledWith(
+      "account/login/start",
+      expect.objectContaining({ type: "chatgptAuthTokens" }),
+    );
+  });
 });
 
 describe("useAppController server request lifecycle", () => {
   beforeEach(() => {
     protocolState.handlers = null;
+    protocolState.initialized = false;
     protocolState.request = createRequestStub();
     protocolState.resolveServerRequest.mockReset();
     protocolState.resolveServerRequest.mockResolvedValue(undefined);

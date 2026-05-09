@@ -217,7 +217,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       fatalError={state.fatalError}
       authStatus={state.authStatus}
       authMode={state.authMode}
-      authBusy={state.bootstrapBusy || state.authLoginPending}
+      authBusy={!state.initialized || state.bootstrapBusy || state.authLoginPending}
       authLoginPending={state.authLoginPending}
       retryScheduledAt={state.retryScheduledAt}
       workspaceSwitch={state.workspaceSwitch}

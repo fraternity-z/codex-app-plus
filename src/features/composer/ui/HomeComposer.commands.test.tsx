@@ -475,6 +475,19 @@ describe("HomeComposer commands", () => {
     expect(textarea.selectionStart).toBe(textarea.value.length);
   });
 
+  it("hides inline slash command palette after Tab completion", async () => {
+    renderHarness();
+    const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;
+
+    fireEvent.change(textarea, { target: { value: "/go", selectionStart: 3 } });
+
+    await waitFor(() => expect(screen.getByRole("menuitem", { name: /\/goal/i })).toBeInTheDocument());
+    fireEvent.keyDown(textarea, { key: "Tab" });
+
+    await waitFor(() => expect(textarea.value).toBe("/goal "));
+    await waitFor(() => expect(screen.queryByRole("menu", { name: "Run command" })).not.toBeInTheDocument());
+  });
+
   it("completes hovered slash command with Tab", async () => {
     renderHarness();
     const textarea = screen.getByRole("textbox") as HTMLTextAreaElement;

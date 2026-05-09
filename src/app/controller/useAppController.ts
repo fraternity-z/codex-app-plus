@@ -42,6 +42,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
   const clientRef = useRef<ProtocolClient | null>(null);
   const bootStartedRef = useRef(false);
   const bootingRef = useRef(false);
+  const bootstrapPromiseRef = useRef<Promise<void> | null>(null);
   const retryTimerRef = useRef<number | null>(null);
   const retryHandlerRef = useRef<() => void>(() => undefined);
   const textDeltaQueueRef = useRef<FrameTextDeltaQueue | null>(null);
@@ -168,31 +169,44 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
     return clientRef.current;
   }, [dispatch, hostBridge, requestTracker, scheduleRetry]);
 
-  const bootstrap = useCallback(async (forceRestart: boolean) => {
-    if (bootingRef.current) {
-      return;
+  const bootstrap = useCallback((forceRestart: boolean): Promise<void> => {
+    if (bootstrapPromiseRef.current !== null) {
+      return bootstrapPromiseRef.current;
     }
     bootingRef.current = true;
-    clearRetry();
-    dispatch({ type: "bootstrapBusy/changed", busy: true });
-    dispatch({ type: "initialized/changed", ready: false });
-    try {
-      if (forceRestart) {
-        await client.restartAppServer(createAppServerStartInput(agentEnvironment));
-      } else {
-        await startOrReuseAppServer(client, agentEnvironment);
+    const promise = (async () => {
+      clearRetry();
+      dispatch({ type: "bootstrapBusy/changed", busy: true });
+      dispatch({ type: "initialized/changed", ready: false });
+      try {
+        if (forceRestart) {
+          await client.restartAppServer(createAppServerStartInput(agentEnvironment));
+        } else {
+          await startOrReuseAppServer(client, agentEnvironment);
+        }
+        await client.initializeConnection(createInitializeParams());
+        dispatch({ type: "initialized/changed", ready: true });
+        await loadBootstrapSnapshot(client, hostBridge, dispatch, agentEnvironment);
+      } catch (error) {
+        dispatch({ type: "fatal/error", message: toErrorMessage(error) });
+        scheduleRetry();
+      } finally {
+        dispatch({ type: "bootstrapBusy/changed", busy: false });
+        bootingRef.current = false;
+        bootstrapPromiseRef.current = null;
       }
-      await client.initializeConnection(createInitializeParams());
-      dispatch({ type: "initialized/changed", ready: true });
-      await loadBootstrapSnapshot(client, hostBridge, dispatch, agentEnvironment);
-    } catch (error) {
-      dispatch({ type: "fatal/error", message: toErrorMessage(error) });
-      scheduleRetry();
-    } finally {
-      dispatch({ type: "bootstrapBusy/changed", busy: false });
-      bootingRef.current = false;
-    }
+    })();
+    bootstrapPromiseRef.current = promise;
+    return promise;
   }, [agentEnvironment, clearRetry, client, dispatch, scheduleRetry]);
+
+  const ensureAppServerReady = useCallback(async (): Promise<boolean> => {
+    if (client.isInitialized()) {
+      return true;
+    }
+    await bootstrap(false);
+    return client.isInitialized();
+  }, [bootstrap, client]);
 
   const refreshConversationCatalog = useCallback(async () => {
     if (clientRef.current === null || sessionIndexReloadInFlightRef.current || bootingRef.current) {
@@ -273,6 +287,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
     bootstrap,
     client,
     dispatch,
+    ensureAppServerReady,
     hostBridge,
     pendingRequestsRef,
     selectedConversationId: runtimeState.selectedConversationId,

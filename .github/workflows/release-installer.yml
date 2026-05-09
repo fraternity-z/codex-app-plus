@@ -149,6 +149,50 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Resolve bundled Codex CLI version
+        id: codex_cli
+        shell: pwsh
+        run: |
+          $manifest = Get-Content src-tauri/bundled/codex-cli/manifest.json -Raw | ConvertFrom-Json
+          $specifier = [string]$manifest.source.specifier
+          if ([string]::IsNullOrWhiteSpace($specifier)) {
+            throw "src-tauri/bundled/codex-cli/manifest.json must set source.specifier, e.g. @openai/codex@0.129.0"
+          }
+
+          $versionMatch = [regex]::Match($specifier, '@openai/codex@(.+)$')
+          if (-not $versionMatch.Success) {
+            throw "Unsupported Codex CLI npm specifier: $specifier"
+          }
+
+          "specifier=$specifier" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "version=$($versionMatch.Groups[1].Value)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Sync bundled Codex CLI
+        run: pnpm sync:codex-cli --npm ${{ steps.codex_cli.outputs.specifier }}
+
+      - name: Verify bundled Codex CLI
+        shell: pwsh
+        env:
+          EXPECTED_CODEX_CLI_VERSION: ${{ steps.codex_cli.outputs.version }}
+        run: |
+          $codex = "src-tauri/bundled/codex-cli/npm/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/codex/codex.exe"
+          if (-not (Test-Path $codex)) {
+            throw "Bundled Codex CLI binary missing: $codex"
+          }
+
+          $version = & $codex --version
+          if ($LASTEXITCODE -ne 0) {
+            throw "Bundled Codex CLI version check failed"
+          }
+          $expectedPattern = [regex]::Escape($env:EXPECTED_CODEX_CLI_VERSION)
+          if ($version -notmatch $expectedPattern) {
+            throw "Unexpected bundled Codex CLI version: $version; expected $env:EXPECTED_CODEX_CLI_VERSION"
+          }
+
+          & $codex app-server --help | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "Bundled Codex CLI app-server command is unavailable"
+          }
       - name: Build installer
         env:
           CI: true
