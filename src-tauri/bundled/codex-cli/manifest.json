@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 2,
+  "distribution": "official-npm",
+  "version": "unbundled",
+  "source": {
+    "package": "@openai/codex",
+    "specifier": null,
+    "localPath": null,
+    "commit": null
+  },
+  "npmPackage": {
+    "name": "@openai/codex",
+    "root": "npm/node_modules/@openai/codex",
+    "platformPackages": {
+      "windowsX64": "npm/node_modules/@openai/codex-win32-x64",
+      "windowsArm64": "npm/node_modules/@openai/codex-win32-arm64",
+      "linuxX64": "npm/node_modules/@openai/codex-linux-x64",
+      "linuxArm64": "npm/node_modules/@openai/codex-linux-arm64"
+    }
+  }
+}

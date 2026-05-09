@@ -28,7 +28,7 @@
   "bundle": {
     "active": true,
     "targets": "nsis",
-    "resources": ["bundled/computer-use-windows"],
+    "resources": ["bundled/computer-use-windows", "bundled/codex-cli"],
     "createUpdaterArtifacts": true
   },
   "plugins": {

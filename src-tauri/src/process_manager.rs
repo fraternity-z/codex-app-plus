@@ -222,7 +222,7 @@ async fn spawn_runtime(
     bundled_computer_use::ensure_registered(&app, agent_environment)?;
     bundled_browser_use::ensure_registered(&app, agent_environment)?;
 
-    let cli = CodexCli::resolve(&input)?;
+    let cli = CodexCli::resolve(Some(&app), &input)?;
     let _version = cli.detect_version().await?;
     let supervisor = ProcessSupervisor::new("app-server")?;
     let stderr_log = AppServerStderrLog::new();

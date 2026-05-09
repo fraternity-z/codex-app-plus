@@ -1,5 +1,8 @@
 use std::path::Path;
 
+use tauri::AppHandle;
+
+use crate::bundled_codex_cli::{allow_system_codex_fallback, ensure_wsl_cli};
 use crate::error::{AppError, AppResult};
 use crate::models::AppServerStartInput;
 use crate::proxy_environment::proxy_environment_assignments;
@@ -24,13 +27,26 @@ struct WslLaunchSpec {
     wsl_program: String,
 }
 
-pub(super) fn resolve_wsl_cli(input: &AppServerStartInput) -> AppResult<CodexCli> {
+struct ResolvedWslCodexProgram {
+    program: String,
+    path_dirs: Vec<String>,
+}
+
+pub(super) fn resolve_wsl_cli(
+    app: Option<&AppHandle>,
+    input: &AppServerStartInput,
+) -> AppResult<CodexCli> {
     let wsl_program = resolve_wsl_command_path();
     let context = resolve_default_wsl_context()?;
-    let program = resolve_wsl_codex_program(input.codex_path.as_deref())?;
-    let resolved_program = ensure_wsl_command_available(&context, &program)?;
+    let resolved_program = resolve_wsl_codex_program(app, &wsl_program, &context, input)?;
     let proxy_settings = load_proxy_settings(crate::models::AgentEnvironment::Wsl)?;
-    let spec = build_launch_spec(&wsl_program, &context, &resolved_program, &proxy_settings)?;
+    let spec = build_launch_spec_with_path_dirs(
+        &wsl_program,
+        &context,
+        &resolved_program.program,
+        &proxy_settings,
+        &resolved_program.path_dirs,
+    )?;
     Ok(CodexCli {
         program: spec.wsl_program,
         prefix_args: spec.prefix_args,
@@ -45,7 +61,17 @@ fn build_launch_spec(
     program: &str,
     proxy_settings: &crate::models::ProxySettings,
 ) -> AppResult<WslLaunchSpec> {
-    let prefix_args = build_wsl_exec_prefix(context, program, proxy_settings);
+    build_launch_spec_with_path_dirs(wsl_program, context, program, proxy_settings, &[])
+}
+
+fn build_launch_spec_with_path_dirs(
+    wsl_program: &Path,
+    context: &WslContext,
+    program: &str,
+    proxy_settings: &crate::models::ProxySettings,
+    path_dirs: &[String],
+) -> AppResult<WslLaunchSpec> {
+    let prefix_args = build_wsl_exec_prefix(context, program, proxy_settings, path_dirs);
     let wsl_program_text = wsl_program.to_string_lossy().to_string();
     Ok(WslLaunchSpec {
         display_path: build_display_path(&wsl_program_text, &prefix_args),
@@ -54,7 +80,48 @@ fn build_launch_spec(
     })
 }
 
-fn resolve_wsl_codex_program(codex_path: Option<&str>) -> AppResult<String> {
+fn resolve_wsl_codex_program(
+    app: Option<&AppHandle>,
+    wsl_program: &Path,
+    context: &WslContext,
+    input: &AppServerStartInput,
+) -> AppResult<ResolvedWslCodexProgram> {
+    if input
+        .codex_path
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .is_none()
+    {
+        let allow_system_fallback = allow_system_codex_fallback();
+        match ensure_wsl_cli(app, wsl_program, context) {
+            Ok(Some(bundled)) => {
+                return Ok(ResolvedWslCodexProgram {
+                    program: bundled.linux_path,
+                    path_dirs: bundled.path_dirs,
+                });
+            }
+            Ok(None) => {}
+            Err(error) if !allow_system_fallback => return Err(error),
+            Err(_) => {}
+        }
+        if !allow_system_fallback {
+            return Err(AppError::InvalidInput(
+                "未找到软件内置的 WSL/Linux Codex CLI。请先运行 `pnpm sync:codex-cli -- --source E:/code/codex` 或 `pnpm sync:codex-cli -- --npm @openai/codex@latest` 生成内置官方 npm CLI。"
+                    .to_string(),
+            ));
+        }
+    }
+
+    let candidate = resolve_wsl_codex_candidate(input.codex_path.as_deref())?;
+    let program = ensure_wsl_command_available(context, &candidate)?;
+    Ok(ResolvedWslCodexProgram {
+        program,
+        path_dirs: Vec::new(),
+    })
+}
+
+fn resolve_wsl_codex_candidate(codex_path: Option<&str>) -> AppResult<String> {
     let candidate = codex_path
         .map(str::trim)
         .filter(|value| !value.is_empty())
@@ -72,6 +139,7 @@ fn build_wsl_exec_prefix(
     context: &WslContext,
     program: &str,
     proxy_settings: &crate::models::ProxySettings,
+    path_dirs: &[String],
 ) -> Vec<String> {
     vec![
         "--distribution".to_string(),
@@ -81,21 +149,32 @@ fn build_wsl_exec_prefix(
         "--exec".to_string(),
         WSL_LOGIN_SHELL.to_string(),
         WSL_LOGIN_EXEC_FLAG.to_string(),
-        build_wsl_exec_script(proxy_settings),
+        build_wsl_exec_script(proxy_settings, path_dirs),
         WSL_LOGIN_ARG0.to_string(),
         program.to_string(),
     ]
 }
 
-fn build_wsl_exec_script(proxy_settings: &crate::models::ProxySettings) -> String {
-    let statements = proxy_environment_assignments(proxy_settings)
+fn build_wsl_exec_script(
+    proxy_settings: &crate::models::ProxySettings,
+    path_dirs: &[String],
+) -> String {
+    let mut statements = proxy_environment_assignments(proxy_settings)
         .into_iter()
         .map(|(key, value)| match value {
             Some(value) => format!("export {key}={};", shell_quote(value.as_str())),
             None => format!("unset {key};"),
         })
-        .collect::<Vec<_>>()
-        .join(" ");
+        .collect::<Vec<_>>();
+    if !path_dirs.is_empty() {
+        let joined = path_dirs
+            .iter()
+            .map(|path| shell_quote(path))
+            .collect::<Vec<_>>()
+            .join(":");
+        statements.push(format!("export PATH={joined}:\"$PATH\";"));
+    }
+    let statements = statements.join(" ");
     if statements.is_empty() {
         return WSL_LOGIN_EXEC_SCRIPT.to_string();
     }
@@ -139,7 +218,7 @@ mod tests {
 
     use crate::wsl_support::WslContext;
 
-    use super::{build_launch_spec, resolve_wsl_codex_program};
+    use super::{build_launch_spec, resolve_wsl_codex_candidate};
 
     const DISABLED_PROXY_EXEC_SCRIPT: &str = "unset HTTP_PROXY; unset http_proxy; unset HTTPS_PROXY; unset https_proxy; unset NO_PROXY; unset no_proxy; exec \"$@\"";
 
@@ -152,7 +231,7 @@ mod tests {
 
     #[test]
     fn uses_default_codex_command_when_path_is_blank() {
-        let program = resolve_wsl_codex_program(Some("   ")).expect("default program");
+        let program = resolve_wsl_codex_candidate(Some("   ")).expect("default program");
 
         assert_eq!(program, "codex");
     }
@@ -186,8 +265,9 @@ mod tests {
 
     #[test]
     fn rejects_windows_codex_path_in_wsl_mode() {
-        let error = resolve_wsl_codex_program(Some(r"C:\Users\dev\AppData\Roaming\npm\codex.cmd"))
-            .expect_err("windows path should be rejected");
+        let error =
+            resolve_wsl_codex_candidate(Some(r"C:\Users\dev\AppData\Roaming\npm\codex.cmd"))
+                .expect_err("windows path should be rejected");
 
         assert!(error
             .to_string()
@@ -259,7 +339,9 @@ mod tests {
     #[cfg(not(windows))]
     fn proxy_env_lock() -> std::sync::MutexGuard<'static, ()> {
         static LOCK: std::sync::OnceLock<std::sync::Mutex<()>> = std::sync::OnceLock::new();
-        LOCK.get_or_init(|| std::sync::Mutex::new(())).lock().unwrap()
+        LOCK.get_or_init(|| std::sync::Mutex::new(()))
+            .lock()
+            .unwrap()
     }
 
     #[cfg(not(windows))]

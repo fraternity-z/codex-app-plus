@@ -8,6 +8,7 @@ coverage/
 src-tauri/target/
 src-tauri/gen/
 src-tauri/.cargo/
+src-tauri/bundled/codex-cli/npm/
 
 output/
 %TEMP%/

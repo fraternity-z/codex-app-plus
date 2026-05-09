@@ -1,5 +1,6 @@
 use std::process::Stdio;
 
+use tauri::AppHandle;
 use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command};
 
 use crate::agent_environment::resolve_agent_environment;
@@ -27,10 +28,10 @@ pub struct CodexCli {
 }
 
 impl CodexCli {
-    pub fn resolve(input: &AppServerStartInput) -> AppResult<Self> {
+    pub fn resolve(app: Option<&AppHandle>, input: &AppServerStartInput) -> AppResult<Self> {
         match resolve_agent_environment(input.agent_environment) {
-            AgentEnvironment::WindowsNative => windows::resolve_windows_cli(input),
-            AgentEnvironment::Wsl => wsl::resolve_wsl_cli(input),
+            AgentEnvironment::WindowsNative => windows::resolve_windows_cli(app, input),
+            AgentEnvironment::Wsl => wsl::resolve_wsl_cli(app, input),
         }
     }
 
@@ -157,7 +158,7 @@ mod tests {
             codex_path: Some(path.to_string_lossy().to_string()),
             ..AppServerStartInput::default()
         };
-        let cli = CodexCli::resolve(&input).unwrap();
+        let cli = CodexCli::resolve(None, &input).unwrap();
 
         assert_eq!(cli.program, "cmd.exe");
         assert_eq!(
@@ -168,39 +169,104 @@ mod tests {
     }
 
     #[test]
-    fn finds_codex_on_path() {
+    fn finds_codex_on_path_when_system_fallback_is_enabled() {
         let _guard = env_lock();
         let original_path = env::var_os("PATH");
+        let original_bundle_root = env::var_os("CODEX_APP_PLUS_BUNDLED_CODEX_ROOT");
+        let original_allow_system = env::var_os("CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX");
         let directory = unique_temp_dir("codex-app-plus", "path");
         fs::create_dir_all(&directory).unwrap();
         fs::write(directory.join("codex.cmd"), "@echo off").unwrap();
         env::set_var("PATH", &directory);
+        env::remove_var("CODEX_APP_PLUS_BUNDLED_CODEX_ROOT");
+        env::set_var("CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX", "1");
 
-        let cli = CodexCli::resolve(&AppServerStartInput::default()).unwrap();
+        let cli = CodexCli::resolve(None, &AppServerStartInput::default()).unwrap();
 
-        if let Some(path) = original_path {
-            env::set_var("PATH", path);
-        } else {
-            env::remove_var("PATH");
-        }
+        restore_env("PATH", original_path);
+        restore_env("CODEX_APP_PLUS_BUNDLED_CODEX_ROOT", original_bundle_root);
+        restore_env("CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX", original_allow_system);
 
         assert_eq!(cli.program, "cmd.exe");
         assert!(cli.display_path.ends_with("codex.cmd"));
     }
 
     #[test]
+    fn prefers_bundled_codex_over_path() {
+        let _guard = env_lock();
+        let original_path = env::var_os("PATH");
+        let original_bundle_root = env::var_os("CODEX_APP_PLUS_BUNDLED_CODEX_ROOT");
+        let original_allow_system = env::var_os("CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX");
+        let bundle_root = unique_temp_dir("codex-app-plus", "bundled");
+        let path_root = unique_temp_dir("codex-app-plus", "system");
+        let package_root = bundle_root.join("npm/node_modules/@openai/codex");
+        let platform_root = bundle_root.join("npm/node_modules/@openai/codex-win32-x64");
+        let bundled_binary = platform_root.join("vendor/x86_64-pc-windows-msvc/codex/codex.exe");
+        fs::create_dir_all(bundled_binary.parent().unwrap()).unwrap();
+        fs::create_dir_all(package_root.join("bin")).unwrap();
+        fs::create_dir_all(&path_root).unwrap();
+        fs::write(&bundled_binary, []).unwrap();
+        fs::write(package_root.join("bin/codex.js"), "#!/usr/bin/env node").unwrap();
+        fs::write(
+            package_root.join("package.json"),
+            r#"{"name":"@openai/codex"}"#,
+        )
+        .unwrap();
+        fs::write(
+            platform_root.join("package.json"),
+            r#"{"name":"@openai/codex"}"#,
+        )
+        .unwrap();
+        fs::write(path_root.join("codex.cmd"), "@echo off").unwrap();
+        fs::write(
+            bundle_root.join("manifest.json"),
+            r#"{"schemaVersion":2,"version":"test","npmPackage":{"name":"@openai/codex","root":"npm/node_modules/@openai/codex","platformPackages":{"windowsX64":"npm/node_modules/@openai/codex-win32-x64","linuxX64":"npm/node_modules/@openai/codex-linux-x64"}}}"#,
+        )
+        .unwrap();
+        env::set_var("PATH", &path_root);
+        env::set_var("CODEX_APP_PLUS_BUNDLED_CODEX_ROOT", &bundle_root);
+        env::remove_var("CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX");
+
+        let cli = CodexCli::resolve(None, &AppServerStartInput::default()).unwrap();
+
+        restore_env("PATH", original_path);
+        restore_env("CODEX_APP_PLUS_BUNDLED_CODEX_ROOT", original_bundle_root);
+        restore_env("CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX", original_allow_system);
+
+        assert_eq!(std::path::PathBuf::from(&cli.program), bundled_binary);
+        assert!(cli.prefix_args.is_empty());
+        assert_eq!(std::path::PathBuf::from(&cli.display_path), bundled_binary);
+    }
+
+    #[test]
     fn returns_error_when_codex_missing() {
         let _guard = env_lock();
         let original_path = env::var_os("PATH");
+        let original_bundle_root = env::var_os("CODEX_APP_PLUS_BUNDLED_CODEX_ROOT");
+        let original_allow_system = env::var_os("CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX");
+        let bundle_root = unique_temp_dir("codex-app-plus", "missing-bundle");
+        let package_root = bundle_root.join("npm/node_modules/@openai/codex");
+        fs::create_dir_all(package_root.join("bin")).unwrap();
+        fs::write(package_root.join("bin/codex.js"), "#!/usr/bin/env node").unwrap();
+        fs::write(
+            package_root.join("package.json"),
+            r#"{"name":"@openai/codex"}"#,
+        )
+        .unwrap();
+        fs::write(
+            bundle_root.join("manifest.json"),
+            r#"{"schemaVersion":2,"version":"test","npmPackage":{"name":"@openai/codex","root":"npm/node_modules/@openai/codex","platformPackages":{"windowsX64":"npm/node_modules/@openai/codex-win32-x64","linuxX64":"npm/node_modules/@openai/codex-linux-x64"}}}"#,
+        )
+        .unwrap();
         env::set_var("PATH", unique_temp_dir("codex-app-plus", "missing"));
+        env::set_var("CODEX_APP_PLUS_BUNDLED_CODEX_ROOT", &bundle_root);
+        env::remove_var("CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX");
 
-        let result = CodexCli::resolve(&AppServerStartInput::default());
+        let result = CodexCli::resolve(None, &AppServerStartInput::default());
 
-        if let Some(path) = original_path {
-            env::set_var("PATH", path);
-        } else {
-            env::remove_var("PATH");
-        }
+        restore_env("PATH", original_path);
+        restore_env("CODEX_APP_PLUS_BUNDLED_CODEX_ROOT", original_bundle_root);
+        restore_env("CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX", original_allow_system);
 
         assert!(result.is_err());
     }
@@ -243,5 +309,13 @@ mod tests {
             .get_args()
             .map(|value| value.to_string_lossy().to_string())
             .collect()
+    }
+
+    fn restore_env(name: &str, value: Option<std::ffi::OsString>) {
+        if let Some(value) = value {
+            env::set_var(name, value);
+        } else {
+            env::remove_var(name);
+        }
     }
 }

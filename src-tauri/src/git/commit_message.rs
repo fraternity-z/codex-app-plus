@@ -5,6 +5,7 @@ use std::process::Stdio;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde_json::Value;
+use tauri::AppHandle;
 use tokio::io::AsyncWriteExt;
 
 use crate::codex_cli::CodexCli;
@@ -22,6 +23,7 @@ const CODEX_API_KEY_ENV_VAR: &str = "CODEX_API_KEY";
 const OPENAI_API_KEY_ENV_VAR: &str = "OPENAI_API_KEY";
 
 pub async fn generate_commit_message(
+    app: AppHandle,
     input: GitGenerateCommitMessageInput,
     cache: &RepositoryContextCache,
 ) -> AppResult<GitGenerateCommitMessageOutput> {
@@ -55,10 +57,13 @@ pub async fn generate_commit_message(
     );
     let schema_path = write_temp_file("schema", COMMIT_MESSAGE_SCHEMA)?;
     let message_path = write_temp_file("message", "")?;
-    let cli = CodexCli::resolve(&AppServerStartInput {
-        agent_environment: input.agent_environment,
-        codex_path: None,
-    })?;
+    let cli = CodexCli::resolve(
+        Some(&app),
+        &AppServerStartInput {
+            agent_environment: input.agent_environment,
+            codex_path: None,
+        },
+    )?;
     let result = run_codex_exec(
         &cli,
         &context.repo_root,

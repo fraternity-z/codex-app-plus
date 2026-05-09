@@ -1,6 +1,12 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
+use tauri::AppHandle;
+
+use crate::bundled_codex_cli::{
+    allow_system_codex_fallback, resolve_windows_cli as resolve_bundled_windows_cli,
+    windows_environment,
+};
 use crate::error::{AppError, AppResult};
 use crate::models::AppServerStartInput;
 use crate::proxy_environment::proxy_environment_assignments;
@@ -10,21 +16,64 @@ use super::CodexCli;
 
 const WINDOWS_CANDIDATES: [&str; 4] = ["codex.cmd", "codex.exe", "codex.ps1", "codex"];
 
-pub(super) fn resolve_windows_cli(input: &AppServerStartInput) -> AppResult<CodexCli> {
-    let path = resolve_windows_codex_path(input)?;
-    build_windows_cli(path)
+struct ResolvedWindowsCliPath {
+    path: PathBuf,
+    environment: Vec<(String, Option<String>)>,
 }
 
-fn resolve_windows_codex_path(input: &AppServerStartInput) -> AppResult<PathBuf> {
+pub(super) fn resolve_windows_cli(
+    app: Option<&AppHandle>,
+    input: &AppServerStartInput,
+) -> AppResult<CodexCli> {
+    let resolved = resolve_windows_codex_path(app, input)?;
+    build_windows_cli(resolved)
+}
+
+fn resolve_windows_codex_path(
+    app: Option<&AppHandle>,
+    input: &AppServerStartInput,
+) -> AppResult<ResolvedWindowsCliPath> {
     if let Some(path) = resolve_windows_custom_path(input)? {
-        return Ok(path);
+        return Ok(ResolvedWindowsCliPath {
+            path,
+            environment: Vec::new(),
+        });
     }
 
-    search_path_candidates().ok_or_else(|| {
-        AppError::InvalidInput(
-            "未检测到已安装的 Codex，请先确认 `codex` 已加入 Windows PATH。".to_string(),
-        )
-    })
+    let allow_system_fallback = allow_system_codex_fallback();
+    let mut bundled_error = None;
+    match resolve_bundled_windows_cli(app) {
+        Ok(Some(bundled)) => {
+            let environment = windows_environment(&bundled);
+            return Ok(ResolvedWindowsCliPath {
+                path: bundled.path,
+                environment,
+            });
+        }
+        Ok(None) => {}
+        Err(error) if allow_system_fallback => {
+            bundled_error = Some(error);
+        }
+        Err(error) => return Err(error),
+    }
+
+    if allow_system_fallback {
+        if let Some(path) = search_path_candidates() {
+            return Ok(ResolvedWindowsCliPath {
+                path,
+                environment: Vec::new(),
+            });
+        }
+    }
+
+    if let Some(error) = bundled_error {
+        return Err(error);
+    }
+
+    Err(AppError::InvalidInput(
+        "未找到软件内置的 Codex CLI。请先运行 `pnpm sync:codex-cli -- --source E:/code/codex` 或 `pnpm sync:codex-cli -- --npm @openai/codex@latest` 生成内置官方 npm CLI。"
+            .to_string(),
+    ))
 }
 
 fn resolve_windows_custom_path(input: &AppServerStartInput) -> AppResult<Option<PathBuf>> {
@@ -55,15 +104,16 @@ fn search_path_candidates() -> Option<PathBuf> {
     None
 }
 
-fn build_windows_cli(path: PathBuf) -> AppResult<CodexCli> {
-    let display_path = path.to_string_lossy().to_string();
-    let extension = file_extension(&path);
+fn build_windows_cli(resolved: ResolvedWindowsCliPath) -> AppResult<CodexCli> {
+    let display_path = resolved.path.to_string_lossy().to_string();
+    let extension = file_extension(&resolved.path);
     let path_text = display_path.clone();
     let proxy_settings = load_proxy_settings(crate::models::AgentEnvironment::WindowsNative)?;
-    let environment = proxy_environment_assignments(&proxy_settings)
+    let mut environment = proxy_environment_assignments(&proxy_settings)
         .into_iter()
         .map(|(key, value)| (key.to_string(), value))
         .collect::<Vec<_>>();
+    environment.extend(resolved.environment);
 
     if extension == "cmd" || extension == "bat" {
         return Ok(CodexCli {

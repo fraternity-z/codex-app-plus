@@ -1,4 +1,4 @@
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::error::AppResult;
 
@@ -155,11 +155,12 @@ pub async fn git_commit(
 
 #[tauri::command]
 pub async fn git_generate_commit_message(
+    app: AppHandle,
     state: State<'_, GitRuntimeState>,
     input: GitGenerateCommitMessageInput,
 ) -> Result<GitGenerateCommitMessageOutput, String> {
     let cache = state.repository_cache();
-    super::commit_message::generate_commit_message(input, &cache)
+    super::commit_message::generate_commit_message(app, input, &cache)
         .await
         .map_err(|error| error.to_string())
 }

@@ -10,6 +10,7 @@ mod browser;
 mod browser_commands;
 mod browser_use_backend;
 mod bundled_browser_use;
+mod bundled_codex_cli;
 mod bundled_computer_use;
 mod codex_auth;
 mod codex_cli;

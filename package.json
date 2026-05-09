@@ -13,7 +13,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "generate:licenses": "node ./scripts/generate-third-party-licenses.mjs",
-    "generate:protocol": "node ./scripts/generate-protocol.mjs"
+    "generate:protocol": "node ./scripts/generate-protocol.mjs",
+    "sync:codex-cli": "node ./scripts/sync-official-codex-npm.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
