@@ -228,15 +228,16 @@ fn cached_session_summaries_return_immediately_before_refresh() {
         &build_session_contents("thread-cached", "Updated title", "2026-03-01T11:00:00Z"),
     );
 
-    let cached = index::list_cached_session_summaries(&root, AgentEnvironment::WindowsNative)
+    let (cached, needs_refresh) =
+        index::list_cached_session_summaries_with_refresh_state(
+            &root,
+            AgentEnvironment::WindowsNative,
+        )
         .expect("read cached session summaries");
 
     assert_eq!(cached.len(), 1);
     assert_eq!(cached[0].title, "Cached title");
-    assert!(
-        index::session_index_needs_refresh(&root, AgentEnvironment::WindowsNative)
-            .expect("detect stale session index")
-    );
+    assert!(needs_refresh);
 
     fs::remove_dir_all(root).expect("remove temp session root");
 }

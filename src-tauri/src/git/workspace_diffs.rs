@@ -13,6 +13,7 @@ use super::process::run_git_with_exit_codes;
 use super::repository::to_args;
 
 const DIFF_EXIT_CODES: [i32; 2] = [0, 1];
+#[cfg(test)]
 const DIFF_METADATA_PREFIXES: [&str; 6] =
     ["+++", "---", "diff --git", "@@", "index ", "\\ No newline"];
 
@@ -239,6 +240,7 @@ fn normalize_numstat_path(path: &str) -> String {
     path.to_string()
 }
 
+#[cfg(test)]
 fn split_diff_by_file(output: &str) -> HashMap<String, String> {
     let mut map = HashMap::new();
     let mut current_path: Option<String> = None;
@@ -255,18 +257,21 @@ fn split_diff_by_file(output: &str) -> HashMap<String, String> {
     map
 }
 
+#[cfg(test)]
 fn insert_chunk(map: &mut HashMap<String, String>, path: &Option<String>, lines: &[&str]) {
     if let Some(path) = path {
         map.insert(path.clone(), lines.join("\n"));
     }
 }
 
+#[cfg(test)]
 fn parse_diff_header_path(line: &str) -> Option<String> {
     let rest = line.strip_prefix("diff --git ")?;
     let (_, new_path) = rest.split_once(" b/")?;
     Some(new_path.to_string())
 }
 
+#[cfg(test)]
 fn count_diff_stats(diff: &str) -> (usize, usize) {
     let mut additions = 0;
     let mut deletions = 0;

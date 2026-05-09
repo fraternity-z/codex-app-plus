@@ -55,6 +55,7 @@ pub(super) fn resolve_wsl_cli(
     })
 }
 
+#[cfg(test)]
 fn build_launch_spec(
     wsl_program: &Path,
     context: &WslContext,

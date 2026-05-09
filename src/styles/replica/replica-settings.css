@@ -97,10 +97,10 @@
 }
 
 .settings-nav-item-active {
-  background: var(--surface-panel);
+  background: var(--surface-hover);
   color: var(--text-main);
   font-weight: 600;
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
 }
 
 .settings-nav-item--coming-soon {

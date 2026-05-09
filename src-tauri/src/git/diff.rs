@@ -17,6 +17,7 @@ pub struct GitDiffPreviewOptions {
     pub ignore_whitespace_changes: bool,
 }
 
+#[cfg(test)]
 pub fn get_diff_preview(repo_root: &Path, path: &str, staged: bool) -> AppResult<String> {
     get_diff_preview_with_options(repo_root, path, staged, GitDiffPreviewOptions::default())
 }

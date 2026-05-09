@@ -120,15 +120,6 @@ pub(crate) fn list_session_summaries(
     Ok(map_sorted_session_summaries(&cache, agent_environment))
 }
 
-pub(crate) fn session_index_needs_refresh(
-    root: &Path,
-    agent_environment: AgentEnvironment,
-) -> AppResult<bool> {
-    let cache = load_session_index(root, agent_environment)?;
-    let signatures = collect_current_signatures(root)?;
-    Ok(cache_matches_signatures(&cache, &signatures) == false)
-}
-
 pub(crate) fn find_session_path(
     root: &Path,
     agent_environment: AgentEnvironment,
