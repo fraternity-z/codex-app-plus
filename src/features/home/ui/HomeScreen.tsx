@@ -146,7 +146,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
     openCreateWorktreeDialog: (root) => setCreateDialogRoot(root),
     closeCreateWorktreeDialog: () => setCreateDialogRoot(null),
   });
-  useAutomationRunner({
+  const automationRunner = useAutomationRunner({
     agentEnvironment: props.preferences.agentEnvironment,
     appServerClient,
     appServerReady,
@@ -166,6 +166,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
         defaultModel={composerPicker.defaultModel}
         defaultEffort={composerPicker.defaultEffort}
         defaultServiceTier={composerPicker.defaultServiceTier}
+        onRunAutomation={automationRunner.runAutomationNow}
         onOpenLearnMore={props.onOpenAutomationLearnMore}
       />
     )

@@ -64,9 +64,11 @@ function createAutomations(
 function renderAutomationScreen(props: {
   readonly automations?: AutomationsController;
   readonly workspace?: WorkspaceRootController;
+  readonly onRunAutomation?: (automationId: string) => Promise<void>;
 } = {}) {
   const automations = props.automations ?? createAutomations();
   const workspace = props.workspace ?? createWorkspace();
+  const onRunAutomation = props.onRunAutomation ?? vi.fn().mockResolvedValue(undefined);
   render(
     <AutomationScreen
       automations={automations}
@@ -75,11 +77,12 @@ function renderAutomationScreen(props: {
       defaultModel="gpt-5.5"
       defaultEffort="high"
       defaultServiceTier={null}
+      onRunAutomation={onRunAutomation}
       onOpenLearnMore={vi.fn().mockResolvedValue(undefined)}
     />,
     { wrapper: createI18nWrapper() },
   );
-  return { automations, workspace };
+  return { automations, workspace, onRunAutomation };
 }
 
 describe("AutomationScreen", () => {
@@ -154,6 +157,26 @@ describe("AutomationScreen", () => {
       }),
       workspaceRoot,
     );
+  });
+
+  it("runs an existing automation immediately", () => {
+    const automation = createAutomationRecord(
+      {
+        name: "CI monitor",
+        prompt: "Check CI",
+        schedule: { mode: "daily", time: "09:00" },
+        workspaceRootId: workspaceRoot.id,
+      },
+      workspaceRoot,
+      new Date(2026, 3, 28, 8, 0),
+    );
+    const automations = createAutomations({ automations: [automation] });
+    const onRunAutomation = vi.fn().mockResolvedValue(undefined);
+    renderAutomationScreen({ automations, onRunAutomation });
+
+    fireEvent.click(screen.getByRole("button", { name: "立即运行" }));
+
+    expect(onRunAutomation).toHaveBeenCalledWith(automation.id);
   });
 
   it("saves selected model and reasoning effort from the footer controls", () => {

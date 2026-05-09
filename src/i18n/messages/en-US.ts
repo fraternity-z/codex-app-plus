@@ -626,6 +626,7 @@ export const enUS = {
       existingTitle: "Created",
       enabled: "Enabled",
       disabled: "Paused",
+      runNow: "Run now",
       delete: "Delete",
       nextRun: "Next run: {time}",
       sections: {

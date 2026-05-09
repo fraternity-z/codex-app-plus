@@ -104,6 +104,8 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
   const logout = props.onLogout ?? (async () => undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sendPending, setSendPending] = useState(false);
+  const sendPendingRef = useRef(false);
   const [multiAgentPending, setMultiAgentPending] = useState(false);
   const [codexCloudPending, setCodexCloudPending] = useState(false);
   const [codexCloudEnvironmentId, setCodexCloudEnvironmentId] = useState(readStoredCodexCloudEnvironmentId);
@@ -150,7 +152,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     onLogout: logout,
   });
   const appServerReady = props.appServerReady !== false;
-  const interactionDisabled = props.busy || multiAgentPending || codexCloudPending;
+  const interactionDisabled = props.busy || sendPending || multiAgentPending || codexCloudPending;
   const hasDraftToSend = hasDraftContent(composerBodyText, attachments.length > 0 || fileReferencePaths.length > 0);
   const canSend = appServerReady
     && !interactionDisabled
@@ -207,6 +209,8 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     promoteFailedMessage: t("home.composer.promoteFailed"),
     reportError,
     sendFailedMessage: t("home.composer.sendFailed"),
+    sendPendingRef,
+    setSendPending,
     stopDictation: dictation.stop,
   });
 
@@ -460,12 +464,17 @@ function useHomeComposerActions(args: {
   readonly promoteFailedMessage: string;
   readonly reportError: ReportErrorFn;
   readonly sendFailedMessage: string;
+  readonly sendPendingRef: { current: boolean };
+  readonly setSendPending: (pending: boolean) => void;
   readonly stopDictation: () => void;
 }) {
   const submit = useCallback((followUpOverride?: FollowUpMode) => {
-    if (args.canSend) {
-      args.stopDictation();
+    if (!args.canSend || args.sendPendingRef.current) {
+      return;
     }
+    args.sendPendingRef.current = true;
+    args.setSendPending(true);
+    args.stopDictation();
     void submitTurn({
       attachments: args.attachments,
       canSend: args.canSend,
@@ -479,6 +488,9 @@ function useHomeComposerActions(args: {
       permissionLevel: args.permissionLevel,
       reportError: args.reportError,
       sendFailedMessage: args.sendFailedMessage,
+    }).finally(() => {
+      args.sendPendingRef.current = false;
+      args.setSendPending(false);
     });
   }, [args]);
 

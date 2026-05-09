@@ -93,6 +93,14 @@ function createQueuedFollowUp(overrides?: Partial<QueuedFollowUp>): QueuedFollow
   };
 }
 
+function createDeferred() {
+  let resolvePromise: () => void = () => undefined;
+  const promise = new Promise<void>((resolve) => {
+    resolvePromise = resolve;
+  });
+  return { promise, resolve: resolvePromise };
+}
+
 function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>) {
   const onSendTurn = vi.fn().mockResolvedValue(undefined);
   const onInterruptTurn = vi.fn().mockResolvedValue(undefined);
@@ -167,6 +175,22 @@ describe("HomeComposer follow-up", () => {
 
     await waitFor(() => expect(onSendTurn).toHaveBeenCalledTimes(1));
     expect(onInterruptTurn).not.toHaveBeenCalled();
+  });
+
+  it("ignores repeated send clicks while the first submit is pending", async () => {
+    const sendDeferred = createDeferred();
+    const onSendTurn = vi.fn(() => sendDeferred.promise);
+    renderComposer({ inputText: "Continue analyzing this error", onSendTurn });
+    const sendButton = screen.getByRole("button", { name: "Send message" });
+
+    fireEvent.click(sendButton);
+    fireEvent.click(sendButton);
+
+    await waitFor(() => expect(onSendTurn).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(sendButton).toBeDisabled());
+
+    sendDeferred.resolve();
+    await waitFor(() => expect(sendButton).toBeEnabled());
   });
 
   it("interrupts from Enter while responding without a draft", () => {

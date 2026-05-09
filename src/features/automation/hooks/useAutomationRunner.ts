@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { AgentEnvironment } from "../../../bridge/types";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import type { ThreadStartResponse } from "../../../protocol/generated/v2/ThreadStartResponse";
@@ -32,15 +32,30 @@ interface UseAutomationRunnerOptions {
 
 const AUTOMATION_POLL_INTERVAL_MS = 60_000;
 
-export function useAutomationRunner(options: UseAutomationRunnerOptions): void {
+export interface AutomationRunnerController {
+  readonly runAutomationNow: (automationId: string) => Promise<void>;
+}
+
+export function useAutomationRunner(options: UseAutomationRunnerOptions): AutomationRunnerController {
   const dispatch = useAppDispatch();
   const runningAutomationIds = useRef(new Set<string>());
+  const {
+    agentEnvironment,
+    appServerClient,
+    appServerReady,
+    automations,
+    defaultEffort,
+    defaultModel,
+    defaultServiceTier,
+    permissionSettings,
+    recordAutomationRunResult,
+  } = options;
 
   const runAutomation = useCallback(async (automation: AutomationRecord) => {
-    const model = automation.model ?? options.defaultModel;
-    const effort = automation.effort ?? options.defaultEffort;
-    const serviceTier = automation.serviceTier ?? options.defaultServiceTier ?? null;
-    if (!options.appServerReady || model === null) {
+    const model = automation.model ?? defaultModel;
+    const effort = automation.effort ?? defaultEffort;
+    const serviceTier = automation.serviceTier ?? defaultServiceTier ?? null;
+    if (!appServerReady || model === null) {
       return;
     }
     if (runningAutomationIds.current.has(automation.id)) {
@@ -51,25 +66,25 @@ export function useAutomationRunner(options: UseAutomationRunnerOptions): void {
     try {
       const agentWorkspacePath = resolveAgentWorkspacePath(
         automation.workspacePath,
-        options.agentEnvironment,
+        agentEnvironment,
       );
-      const threadResponse = await options.appServerClient.request("thread/start", {
+      const threadResponse = await appServerClient.request("thread/start", {
         model,
         serviceTier,
         cwd: agentWorkspacePath,
         experimentalRawEvents: false,
-        ...createThreadPermissionOverrides("default", options.permissionSettings),
+        ...createThreadPermissionOverrides("default", permissionSettings),
       }) as ThreadStartResponse;
       const conversation = createConversationFromThread(threadResponse.thread, {
         hidden: false,
         resumeState: "resumed",
-        agentEnvironment: options.agentEnvironment,
+        agentEnvironment,
       });
       dispatch({ type: "conversation/upserted", conversation });
       dispatch({ type: "conversation/titleChanged", conversationId: conversation.id, title: automation.name });
 
       const cwd = threadResponse.thread.cwd || threadResponse.cwd || agentWorkspacePath;
-      const input = createInput(automation.prompt, [], options.agentEnvironment);
+      const input = createInput(automation.prompt, [], agentEnvironment);
       dispatch({
         type: "conversation/turnPlaceholderAdded",
         conversationId: conversation.id,
@@ -82,20 +97,20 @@ export function useAutomationRunner(options: UseAutomationRunnerOptions): void {
           collaborationMode: null,
         },
       });
-      const turnResponse = await options.appServerClient.request("turn/start", {
+      const turnResponse = await appServerClient.request("turn/start", {
         threadId: conversation.id,
         model,
         effort: effort ?? undefined,
         serviceTier,
-        cwd: resolveConversationCwd(cwd, options.agentEnvironment) ?? undefined,
+        cwd: resolveConversationCwd(cwd, agentEnvironment) ?? undefined,
         input,
-        ...createTurnPermissionOverrides("default", options.permissionSettings),
+        ...createTurnPermissionOverrides("default", permissionSettings),
       }) as TurnStartResponse;
       dispatch({ type: "conversation/turnStarted", conversationId: conversation.id, turn: turnResponse.turn });
       dispatch({ type: "conversation/touched", conversationId: conversation.id, updatedAt: runAt.toISOString() });
-      options.recordAutomationRunResult(automation.id, { runAt, error: null });
+      recordAutomationRunResult(automation.id, { runAt, error: null });
     } catch (error) {
-      options.recordAutomationRunResult(automation.id, {
+      recordAutomationRunResult(automation.id, {
         runAt,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -103,25 +118,44 @@ export function useAutomationRunner(options: UseAutomationRunnerOptions): void {
       runningAutomationIds.current.delete(automation.id);
     }
   }, [
+    agentEnvironment,
+    appServerClient,
+    appServerReady,
+    defaultEffort,
+    defaultModel,
+    defaultServiceTier,
     dispatch,
-    options,
+    permissionSettings,
+    recordAutomationRunResult,
   ]);
 
+  const runAutomationNow = useCallback(async (automationId: string) => {
+    const automation = automations.find((item) => item.id === automationId);
+    if (automation === undefined) {
+      return;
+    }
+    await runAutomation(automation);
+  }, [automations, runAutomation]);
+
   const runDueAutomations = useCallback(() => {
-    if (!options.appServerReady || options.defaultModel === null) {
+    if (!appServerReady || defaultModel === null) {
       return;
     }
     const now = new Date();
-    for (const automation of options.automations) {
+    for (const automation of automations) {
       if (isAutomationDue(automation, now)) {
         void runAutomation(automation);
       }
     }
-  }, [options.appServerReady, options.automations, options.defaultModel, runAutomation]);
+  }, [appServerReady, automations, defaultModel, runAutomation]);
 
   useEffect(() => {
     runDueAutomations();
     const intervalId = window.setInterval(runDueAutomations, AUTOMATION_POLL_INTERVAL_MS);
     return () => window.clearInterval(intervalId);
   }, [runDueAutomations]);
+
+  return useMemo(() => ({
+    runAutomationNow,
+  }), [runAutomationNow]);
 }

@@ -29,6 +29,7 @@ interface AutomationScreenProps {
   readonly defaultModel: string | null;
   readonly defaultEffort: ComposerSelection["effort"];
   readonly defaultServiceTier?: ComposerSelection["serviceTier"];
+  readonly onRunAutomation: (automationId: string) => Promise<void>;
   readonly onOpenLearnMore: () => Promise<void>;
 }
 
@@ -107,6 +108,13 @@ export function AutomationScreen(props: AutomationScreenProps): JSX.Element {
                     />
                     <span>{automation.enabled ? t("home.automation.enabled") : t("home.automation.disabled")}</span>
                   </label>
+                  <button
+                    type="button"
+                    className="automation-secondary-button"
+                    onClick={() => void props.onRunAutomation(automation.id)}
+                  >
+                    {t("home.automation.runNow")}
+                  </button>
                   <button
                     type="button"
                     className="automation-secondary-button"

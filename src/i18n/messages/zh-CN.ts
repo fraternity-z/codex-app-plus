@@ -625,6 +625,7 @@ export const zhCN = {
       existingTitle: "已创建",
       enabled: "已启用",
       disabled: "已停用",
+      runNow: "立即运行",
       delete: "删除",
       nextRun: "下次运行：{time}",
       sections: {
