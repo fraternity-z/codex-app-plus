@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 
 describe("MarkdownRenderer", () => {
@@ -52,5 +52,22 @@ describe("MarkdownRenderer", () => {
 
     expect(container.querySelector(".katex")).toBeNull();
     expect(container.querySelector("code")?.textContent).toContain("\\[ x = 1 \\]");
+  });
+
+  it("renders fenced code blocks with a language label, highlighting, and copy action", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    const { container } = render(<MarkdownRenderer markdown={["```css", "padding: 12px 5px 18px;", "```"].join("\n")} />);
+
+    expect(container.querySelector(".home-chat-code-block-language")?.textContent).toBe("css");
+    expect(container.querySelector(".home-chat-code-block-code .hljs-attribute")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy code" }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith("padding: 12px 5px 18px;"));
   });
 });

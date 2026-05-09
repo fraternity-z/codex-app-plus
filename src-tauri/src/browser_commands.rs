@@ -1,14 +1,15 @@
 use tauri::AppHandle;
 
 use crate::browser::{
-    add_browser_use_origin, clear_browser_browsing_data, hide_browser_sidebar,
-    open_browser_sidebar, open_browser_window, read_browser_use_settings,
+    add_browser_use_origin, clear_browser_browsing_data, clear_browser_browsing_data_by_kind,
+    hide_browser_sidebar, open_browser_sidebar, open_browser_window, read_browser_use_settings,
     remove_browser_use_origin, update_browser_sidebar_bounds, write_browser_use_approval_mode,
 };
 use crate::commands::{run_blocking, to_result};
 use crate::models::{
-    BrowserOpenInput, BrowserSidebarBoundsInput, BrowserSidebarOpenInput,
-    BrowserUseApprovalModeInput, BrowserUseOriginInput, BrowserUseSettingsOutput,
+    BrowserBrowsingDataKindInput, BrowserOpenInput, BrowserSidebarBoundsInput,
+    BrowserSidebarOpenInput, BrowserUseApprovalModeInput, BrowserUseOriginInput,
+    BrowserUseSettingsOutput,
 };
 
 #[tauri::command]
@@ -40,6 +41,14 @@ pub fn app_browser_sidebar_hide(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub fn app_browser_clear_browsing_data(app: AppHandle) -> Result<(), String> {
     to_result(clear_browser_browsing_data(app))
+}
+
+#[tauri::command]
+pub fn app_browser_clear_browsing_data_by_kind(
+    app: AppHandle,
+    input: BrowserBrowsingDataKindInput,
+) -> Result<(), String> {
+    to_result(clear_browser_browsing_data_by_kind(app, input))
 }
 
 #[tauri::command]

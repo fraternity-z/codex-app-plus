@@ -345,8 +345,13 @@ export interface BrowserSidebarOpenInput extends BrowserSidebarBoundsInput {
   readonly url?: string | null;
 }
 
+export type BrowserBrowsingDataKind = "cookies" | "siteData" | "cache";
 export type BrowserUseApprovalMode = "alwaysAsk" | "neverAsk";
 export type BrowserUseOriginKind = "allowed" | "denied";
+
+export interface BrowserBrowsingDataKindInput {
+  readonly kind: BrowserBrowsingDataKind;
+}
 
 export interface BrowserUseSettingsOutput {
   readonly approvalMode: BrowserUseApprovalMode;

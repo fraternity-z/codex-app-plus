@@ -133,24 +133,57 @@
 }
 
 .browser-use-settings-page {
-  gap: 18px;
+  width: min(100%, 840px);
+}
+
+.browser-use-page-title {
+  margin: 0;
+}
+
+.browser-use-page-title + .browser-use-settings-section {
+  margin-top: 68px;
+}
+
+.browser-use-settings-section + .browser-use-settings-section {
+  margin-top: 42px;
+}
+
+.browser-use-settings-section + .browser-use-domain-block,
+.browser-use-domain-block + .browser-use-domain-block {
+  margin-top: 42px;
 }
 
 .browser-use-section-label {
-  margin: 22px 0 -10px;
+  margin: 0 0 14px;
   color: var(--text-main);
-  font-size: var(--app-ui-font-size-base);
+  font-size: var(--app-ui-font-size-lg);
+  line-height: 1.45;
   font-weight: 650;
 }
 
-.browser-use-plugin-card .settings-row {
-  min-height: 72px;
+.browser-use-settings-page .settings-card {
+  margin-top: 0;
+  border-radius: 12px;
+  border-color: var(--border-light);
+}
+
+.browser-use-plugin-card .settings-row,
+.browser-use-data-card .settings-row,
+.browser-use-permissions-card .settings-row {
+  min-height: 78px;
+  padding: 14px 16px;
+  gap: 20px;
+}
+
+.browser-use-settings-page .settings-row-copy,
+.browser-use-plugin-copy > div {
+  min-width: 0;
 }
 
 .browser-use-plugin-copy {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -158,28 +191,31 @@
   display: block;
   color: var(--text-main);
   font-weight: 650;
+  font-size: var(--app-ui-font-size-base);
+  line-height: 1.45;
 }
 
 .browser-use-plugin-copy p {
   margin: 4px 0 0;
   color: var(--text-muted);
-  line-height: 1.5;
+  font-size: var(--app-ui-font-size-base);
+  line-height: 1.45;
 }
 
 .browser-use-plugin-icon {
   flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #0f3b77, #1a66d6);
+  background: linear-gradient(135deg, #04215d 0%, #0648a7 58%, #0b6bff 100%);
   color: #ffffff;
 }
 
 .browser-use-plugin-icon svg {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   fill: currentColor;
 }
 
@@ -189,18 +225,137 @@
 
 .browser-use-enabled-mark {
   color: var(--text-subtle);
-  font-size: var(--app-ui-font-size-2xl);
+  font-size: var(--app-ui-font-size-3xl);
+  line-height: 1;
+}
+
+.browser-use-settings-page .settings-row-control {
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.browser-use-settings-page .settings-config-card .settings-row-heading {
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-base);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.browser-use-settings-page .settings-config-card .settings-row-meta,
+.browser-use-settings-page .settings-row p {
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-base);
+  line-height: 1.45;
+}
+
+.browser-use-clear-button {
+  min-width: 166px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  border-radius: 12px;
+  border-color: transparent;
+  background: var(--surface-panel-soft);
+}
+
+.browser-use-clear-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.browser-use-data-toggle-button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.browser-use-data-toggle-button:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+.browser-use-data-toggle-button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 1px;
+}
+
+.browser-use-data-toggle-caret {
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+
+.browser-use-data-toggle-button[aria-expanded="true"] .browser-use-data-toggle-caret {
+  transform: rotate(270deg);
+}
+
+.browser-use-data-detail-list {
+  border-top: 1px solid var(--border-light);
+}
+
+.browser-use-data-detail-row {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 30px 0 18px;
+  border-top: 1px solid var(--border-light);
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-base);
+}
+
+.browser-use-data-detail-row:first-child {
+  border-top: 0;
+}
+
+.browser-use-data-detail-row button {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-base);
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0.78;
+}
+
+.browser-use-data-detail-row button:disabled {
+  cursor: not-allowed;
+  color: var(--text-muted);
+}
+
+.browser-use-data-detail-row button:hover:not(:disabled) {
+  color: var(--text-main);
+}
+
+.browser-use-permissions-card .settings-select-trigger {
+  width: 300px;
+  height: 34px;
+  border-radius: 12px;
+  background: var(--surface-panel-soft);
 }
 
 .browser-use-domain-block {
-  margin-top: 20px;
+  margin-top: 0;
 }
 
 .browser-use-domain-heading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
-  gap: 18px;
-  align-items: end;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
   margin-bottom: 8px;
 }
 
@@ -208,19 +363,64 @@
   display: block;
   color: var(--text-main);
   font-weight: 650;
+  font-size: var(--app-ui-font-size-lg);
+  line-height: 1.45;
 }
 
 .browser-use-domain-heading p {
-  margin: 5px 0 0;
+  margin: 4px 0 0;
   color: var(--text-muted);
-  font-size: var(--app-ui-font-size-md);
+  font-size: var(--app-ui-font-size-base);
   line-height: 1.45;
+}
+
+.browser-use-domain-add-button {
+  min-width: 82px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--surface-panel-soft);
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  font-size: var(--app-ui-font-size-base);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.browser-use-domain-add-button:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.browser-use-domain-add-button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 1px;
+}
+
+.browser-use-domain-add-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+.browser-use-domain-add-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
 }
 
 .browser-use-domain-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
+  margin: 10px 0 8px;
+  padding: 10px;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--surface-panel);
 }
 
 .browser-use-empty-domain-list,
@@ -231,8 +431,12 @@
 }
 
 .browser-use-empty-domain-list {
-  padding: 14px 18px;
+  min-height: 52px;
+  display: grid;
+  place-items: center;
+  padding: 0 18px;
   color: var(--text-muted);
+  font-size: var(--app-ui-font-size-base);
   text-align: center;
 }
 
@@ -244,7 +448,7 @@
 }
 
 .browser-use-domain-list li {
-  min-height: 48px;
+  min-height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -284,7 +488,47 @@
 
   .browser-primary-action,
   .browser-secondary-action,
+  .browser-use-clear-button,
+  .browser-use-domain-add-button,
   .browser-use-domain-form button {
+    width: 100%;
+  }
+
+  .browser-use-clear-controls {
+    width: 100%;
+  }
+
+  .browser-use-data-toggle-button {
+    flex: 0 0 34px;
+  }
+
+  .browser-use-data-detail-row {
+    padding: 0 18px;
+  }
+
+  .browser-use-page-title + .browser-use-settings-section {
+    margin-top: 42px;
+  }
+
+  .browser-use-settings-section + .browser-use-settings-section,
+  .browser-use-settings-section + .browser-use-domain-block,
+  .browser-use-domain-block + .browser-use-domain-block {
+    margin-top: 32px;
+  }
+
+  .browser-use-domain-heading {
+    align-items: stretch;
+  }
+
+  .browser-use-plugin-card .settings-row,
+  .browser-use-data-card .settings-row,
+  .browser-use-permissions-card .settings-row {
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .browser-use-settings-page .settings-row-control,
+  .browser-use-permissions-card .settings-select-trigger {
     width: 100%;
   }
 }

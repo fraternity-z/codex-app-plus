@@ -5,6 +5,7 @@ import type {
   BrowserOpenInput,
   BrowserSidebarBoundsInput,
   BrowserSidebarOpenInput,
+  BrowserBrowsingDataKindInput,
   BrowserUseApprovalModeInput,
   BrowserUseOriginInput,
   BrowserUseSettingsOutput,
@@ -119,6 +120,7 @@ export interface HostBridge {
     updateBrowserSidebarBounds(input: BrowserSidebarBoundsInput): Promise<void>;
     hideBrowserSidebar(): Promise<void>;
     clearBrowserBrowsingData(): Promise<void>;
+    clearBrowserBrowsingDataByKind(input: BrowserBrowsingDataKindInput): Promise<void>;
     readBrowserUseSettings(): Promise<BrowserUseSettingsOutput>;
     writeBrowserUseApprovalMode(
       input: BrowserUseApprovalModeInput

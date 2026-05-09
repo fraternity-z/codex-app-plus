@@ -564,7 +564,7 @@
 .home-chat-markdown code {
   padding: 1px 5px;
   border-radius: 7px;
-  background: var(--code-inline-bg);
+  background: var(--home-soft-surface);
   color: var(--home-text);
   font-family: var(--app-code-font-family);
   font-size: calc(var(--app-code-font-size) - 1px);
@@ -582,6 +582,120 @@
   padding: 0;
   background: transparent;
   border-radius: 0;
+}
+
+.home-chat-code-block {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--home-border) 88%, transparent);
+  border-radius: 10px;
+  background: var(--home-soft-surface);
+}
+
+.home-chat-code-block-header {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px 0;
+}
+
+.home-chat-code-block-language {
+  color: var(--home-text-muted);
+  font-family: var(--app-code-font-family);
+  font-size: var(--app-ui-font-size-caption);
+  line-height: 1;
+}
+
+.home-chat-code-block-copy {
+  width: 28px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--home-text-muted);
+  cursor: pointer;
+}
+
+.home-chat-code-block-copy:hover {
+  background: var(--surface-hover);
+  color: var(--home-text);
+}
+
+.home-chat-code-block-copy-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+  background-color: currentColor;
+  -webkit-mask: url("../../assets/icons/copy.svg") no-repeat center / contain;
+  mask: url("../../assets/icons/copy.svg") no-repeat center / contain;
+}
+
+.home-chat-markdown pre.home-chat-code-block-pre {
+  margin: 0;
+  overflow: auto;
+  padding: 12px 12px 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.home-chat-markdown pre.home-chat-code-block-pre code.home-chat-code-block-code {
+  display: block;
+  min-width: max-content;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--app-code-style-text);
+  font-family: var(--app-code-font-family);
+  font-size: var(--app-code-font-size);
+  line-height: 1.65;
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.home-chat-code-block-code .hljs-comment,
+.home-chat-code-block-code .hljs-quote {
+  color: var(--app-code-style-comment);
+}
+
+.home-chat-code-block-code .hljs-keyword,
+.home-chat-code-block-code .hljs-selector-tag,
+.home-chat-code-block-code .hljs-literal,
+.home-chat-code-block-code .hljs-tag,
+.home-chat-code-block-code .hljs-name,
+.home-chat-code-block-code .hljs-selector-class,
+.home-chat-code-block-code .hljs-selector-id {
+  color: var(--app-code-style-keyword);
+}
+
+.home-chat-code-block-code .hljs-string,
+.home-chat-code-block-code .hljs-regexp,
+.home-chat-code-block-code .hljs-attribute {
+  color: var(--app-code-style-string);
+}
+
+.home-chat-code-block-code .hljs-number,
+.home-chat-code-block-code .hljs-attr,
+.home-chat-code-block-code .hljs-variable,
+.home-chat-code-block-code .hljs-template-variable {
+  color: var(--app-code-style-number);
+}
+
+.home-chat-code-block-code .hljs-title,
+.home-chat-code-block-code .hljs-title.function_,
+.home-chat-code-block-code .hljs-built_in,
+.home-chat-code-block-code .hljs-property,
+.home-chat-code-block-code .hljs-title.class_ {
+  color: var(--app-code-style-title);
+}
+
+.home-chat-code-block-code .hljs-punctuation {
+  color: var(--app-code-style-punctuation);
 }
 
 .home-chat-placeholder {

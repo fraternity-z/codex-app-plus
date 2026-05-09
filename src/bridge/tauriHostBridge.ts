@@ -8,6 +8,7 @@ import type {
   BrowserOpenInput,
   BrowserSidebarBoundsInput,
   BrowserSidebarOpenInput,
+  BrowserBrowsingDataKindInput,
   BrowserUseApprovalModeInput,
   BrowserUseOriginInput,
   BrowserUseSettingsOutput,
@@ -158,6 +159,11 @@ export function createTauriHostBridge(): HostBridge {
       hideBrowserSidebar: () => invokeCommand("app_browser_sidebar_hide"),
       clearBrowserBrowsingData: () =>
         invokeCommand("app_browser_clear_browsing_data"),
+      clearBrowserBrowsingDataByKind: (input: BrowserBrowsingDataKindInput) =>
+        invokeWithInput<BrowserBrowsingDataKindInput>(
+          "app_browser_clear_browsing_data_by_kind",
+          input
+        ),
       readBrowserUseSettings: () =>
         invokeCommand<BrowserUseSettingsOutput>("app_browser_use_settings_read"),
       writeBrowserUseApprovalMode: (input: BrowserUseApprovalModeInput) =>

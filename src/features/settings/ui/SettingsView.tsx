@@ -13,6 +13,7 @@ import type {
   UpdateProxySettingsOutput,
   UpdateGlobalAgentInstructionsInput,
   BrowserUseApprovalMode,
+  BrowserBrowsingDataKind,
   BrowserUseOriginKind,
   BrowserUseSettingsOutput,
   CustomPetsOutput,
@@ -117,6 +118,9 @@ export interface SettingsViewProps {
     input: { readonly kind: BrowserUseOriginKind; readonly origin: string }
   ) => Promise<BrowserUseSettingsOutput>;
   clearBrowserBrowsingData: () => Promise<void>;
+  clearBrowserBrowsingDataByKind: (
+    input: { readonly kind: BrowserBrowsingDataKind }
+  ) => Promise<void>;
   refreshMcpData: () => Promise<McpRefreshResult>;
   listArchivedThreads: () => Promise<ReadonlyArray<import("../../../domain/types").ThreadSummary>>;
   unarchiveThread: (threadId: string) => Promise<void>;
@@ -327,6 +331,7 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
         addBrowserUseOrigin={props.addBrowserUseOrigin}
         removeBrowserUseOrigin={props.removeBrowserUseOrigin}
         clearBrowserBrowsingData={props.clearBrowserBrowsingData}
+        clearBrowserBrowsingDataByKind={props.clearBrowserBrowsingDataByKind}
       />
     );
   }

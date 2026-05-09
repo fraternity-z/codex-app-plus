@@ -638,6 +638,20 @@ pub enum BrowserUseOriginKind {
     Denied,
 }
 
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum BrowserBrowsingDataKind {
+    Cookies,
+    SiteData,
+    Cache,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BrowserBrowsingDataKindInput {
+    pub kind: BrowserBrowsingDataKind,
+}
+
 #[derive(Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BrowserUseSettingsOutput {

@@ -112,6 +112,7 @@ function createHostBridge(): HostBridge {
       updateBrowserSidebarBounds: vi.fn().mockResolvedValue(undefined),
       hideBrowserSidebar: vi.fn().mockResolvedValue(undefined),
       clearBrowserBrowsingData: vi.fn().mockResolvedValue(undefined),
+      clearBrowserBrowsingDataByKind: vi.fn().mockResolvedValue(undefined),
       readBrowserUseSettings: vi.fn().mockResolvedValue({
         approvalMode: "alwaysAsk",
         allowedOrigins: [],

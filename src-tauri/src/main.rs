@@ -44,8 +44,8 @@ mod workspace_state;
 mod wsl_support;
 
 use browser_commands::{
-    app_browser_clear_browsing_data, app_browser_open, app_browser_sidebar_hide,
-    app_browser_sidebar_open, app_browser_sidebar_update_bounds,
+    app_browser_clear_browsing_data, app_browser_clear_browsing_data_by_kind, app_browser_open,
+    app_browser_sidebar_hide, app_browser_sidebar_open, app_browser_sidebar_update_bounds,
     app_browser_use_approval_mode_write, app_browser_use_origin_add, app_browser_use_origin_remove,
     app_browser_use_settings_read,
 };
@@ -137,6 +137,7 @@ fn main() {
             app_browser_sidebar_update_bounds,
             app_browser_sidebar_hide,
             app_browser_clear_browsing_data,
+            app_browser_clear_browsing_data_by_kind,
             app_browser_use_settings_read,
             app_browser_use_approval_mode_write,
             app_browser_use_origin_add,

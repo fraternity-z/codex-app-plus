@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
+  BrowserBrowsingDataKind,
   BrowserUseApprovalMode,
   BrowserUseOriginKind,
   BrowserUseSettingsOutput,
 } from "../../../bridge/types";
 import { useI18n } from "../../../i18n";
+import { OfficialChevronRightIcon, OfficialPlusIcon } from "../../shared/ui/officialIcons";
 import { SettingsSelectRow, type SettingsSelectOption } from "./SettingsSelectRow";
 
 interface BrowserUseSettingsSectionProps {
@@ -19,6 +21,9 @@ interface BrowserUseSettingsSectionProps {
     input: { readonly kind: BrowserUseOriginKind; readonly origin: string },
   ) => Promise<BrowserUseSettingsOutput>;
   readonly clearBrowserBrowsingData: () => Promise<void>;
+  readonly clearBrowserBrowsingDataByKind: (
+    input: { readonly kind: BrowserBrowsingDataKind },
+  ) => Promise<void>;
 }
 
 function toErrorMessage(error: unknown): string {
@@ -43,8 +48,10 @@ function OriginList(props: {
   readonly kind: BrowserUseOriginKind;
   readonly origins: ReadonlyArray<string>;
   readonly draft: string;
+  readonly adding: boolean;
   readonly pending: boolean;
   readonly onDraftChange: (value: string) => void;
+  readonly onStartAdd: (kind: BrowserUseOriginKind) => void;
   readonly onAdd: (kind: BrowserUseOriginKind) => void;
   readonly onRemove: (kind: BrowserUseOriginKind, origin: string) => void;
 }): JSX.Element {
@@ -56,6 +63,17 @@ function OriginList(props: {
           <strong>{props.title}</strong>
           <p>{props.description}</p>
         </div>
+        <button
+          type="button"
+          className="browser-use-domain-add-button"
+          disabled={props.pending}
+          onClick={() => props.onStartAdd(props.kind)}
+        >
+          <OfficialPlusIcon className="browser-use-domain-add-icon" />
+          <span>{t("settings.browserUse.add")}</span>
+        </button>
+      </div>
+      {props.adding ? (
         <form
           className="browser-use-domain-form"
           onSubmit={(event) => {
@@ -68,13 +86,14 @@ function OriginList(props: {
             value={props.draft}
             placeholder={t("settings.browserUse.originPlaceholder")}
             disabled={props.pending}
+            autoFocus
             onChange={(event) => props.onDraftChange(event.currentTarget.value)}
           />
           <button type="submit" disabled={props.pending || props.draft.trim().length === 0}>
             {t("settings.browserUse.add")}
           </button>
         </form>
-      </div>
+      ) : null}
       {props.origins.length === 0 ? (
         <div className="browser-use-empty-domain-list">{props.emptyText}</div>
       ) : (
@@ -108,6 +127,8 @@ export function BrowserUseSettingsSection(
     readonly tone: "error" | "success";
     readonly message: string;
   } | null>(null);
+  const [browsingDataExpanded, setBrowsingDataExpanded] = useState(false);
+  const [activeOriginForm, setActiveOriginForm] = useState<BrowserUseOriginKind | null>(null);
   const [allowedDraft, setAllowedDraft] = useState("");
   const [deniedDraft, setDeniedDraft] = useState("");
 
@@ -181,6 +202,7 @@ export function BrowserUseSettingsSection(
       } else {
         setDeniedDraft("");
       }
+      setActiveOriginForm(null);
       setFeedback({ tone: "success", message: t("settings.browserUse.saved") });
     } catch (error) {
       setFeedback({
@@ -228,65 +250,139 @@ export function BrowserUseSettingsSection(
     }
   }, [props, t]);
 
+  const clearBrowsingDataByKind = useCallback(async (kind: BrowserBrowsingDataKind) => {
+    setPending(true);
+    setFeedback(null);
+    try {
+      await props.clearBrowserBrowsingDataByKind({ kind });
+      setFeedback({ tone: "success", message: t("settings.browserUse.cookiesCleared") });
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        message: t("settings.browserUse.clearFailed", { error: toErrorMessage(error) }),
+      });
+    } finally {
+      setPending(false);
+    }
+  }, [props, t]);
+
   const currentSettings = settings ?? {
     approvalMode: "alwaysAsk" as const,
     allowedOrigins: [],
     deniedOrigins: [],
   };
+  const browsingDataItems = [
+    {
+      kind: "cookies",
+      label: t("settings.browserUse.cookiesDataLabel"),
+      action: t("settings.browserUse.clearCookies"),
+    },
+    {
+      kind: "siteData",
+      label: t("settings.browserUse.websiteDataLabel"),
+      action: t("settings.browserUse.clearWebsiteData"),
+    },
+    {
+      kind: "cache",
+      label: t("settings.browserUse.cachedFilesLabel"),
+      action: t("settings.browserUse.clearCachedFiles"),
+    },
+  ] satisfies ReadonlyArray<{
+    readonly kind: BrowserBrowsingDataKind;
+    readonly label: string;
+    readonly action: string;
+  }>;
 
   return (
     <div className="settings-panel-group browser-use-settings-page">
       <section className="settings-page-section">
-        <h2 className="settings-section-title">{t("settings.browserUse.title")}</h2>
+        <h1 className="settings-page-title browser-use-page-title">{t("settings.browserUse.title")}</h1>
 
-        <div className="browser-use-section-label">{t("settings.browserUse.pluginSection")}</div>
-        <section className="settings-card browser-use-plugin-card">
-          <div className="settings-row">
-            <div className="browser-use-plugin-copy">
-              <BrowserUsePluginIcon />
-              <div>
-                <strong>Browser Use</strong>
-                <p>{t("settings.browserUse.pluginDescription")}</p>
+        <section className="browser-use-settings-section">
+          <div className="browser-use-section-label">{t("settings.browserUse.pluginSection")}</div>
+          <section className="settings-card browser-use-plugin-card">
+            <div className="settings-row">
+              <div className="browser-use-plugin-copy">
+                <BrowserUsePluginIcon />
+                <div>
+                  <strong>Browser Use</strong>
+                  <p>{t("settings.browserUse.pluginDescription")}</p>
+                </div>
+              </div>
+              <div className="settings-row-control">
+                <span className="browser-use-enabled-mark" aria-label={t("settings.browserUse.enabled")}>
+                  ✓
+                </span>
               </div>
             </div>
-            <div className="settings-row-control">
-              <span className="browser-use-enabled-mark" aria-label={t("settings.browserUse.enabled")}>
-                ✓
-              </span>
-            </div>
-          </div>
+          </section>
         </section>
 
-        <div className="browser-use-section-label">{t("settings.browserUse.browsingDataSection")}</div>
-        <section className="settings-card settings-config-card">
-          <div className="settings-row">
-            <div className="settings-row-copy">
-              <div className="settings-row-heading">{t("settings.browserUse.cookiesLabel")}</div>
-              <p className="settings-row-meta">{t("settings.browserUse.cookiesDescription")}</p>
+        <section className="browser-use-settings-section">
+          <div className="browser-use-section-label">{t("settings.browserUse.browsingDataSection")}</div>
+          <section className="settings-card settings-config-card browser-use-data-card">
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <div className="settings-row-heading">{t("settings.browserUse.cookiesLabel")}</div>
+                <p className="settings-row-meta">{t("settings.browserUse.cookiesDescription")}</p>
+              </div>
+              <div className="settings-row-control">
+                <div className="browser-use-clear-controls">
+                  <button
+                    type="button"
+                    className="settings-action-btn settings-action-btn-sm browser-use-clear-button"
+                    disabled={pending}
+                    onClick={() => void clearBrowsingData()}
+                  >
+                    {t("settings.browserUse.clearAllBrowsingData")}
+                  </button>
+                  <button
+                    type="button"
+                    className="browser-use-data-toggle-button"
+                    aria-expanded={browsingDataExpanded}
+                    aria-label={
+                      browsingDataExpanded
+                        ? t("settings.browserUse.collapseBrowsingData")
+                        : t("settings.browserUse.expandBrowsingData")
+                    }
+                    onClick={() => setBrowsingDataExpanded((expanded) => !expanded)}
+                  >
+                    <OfficialChevronRightIcon className="browser-use-data-toggle-caret" />
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="settings-row-control">
-              <button
-                type="button"
-                className="settings-action-btn settings-action-btn-sm"
-                disabled={pending}
-                onClick={() => void clearBrowsingData()}
-              >
-                {t("settings.browserUse.clearCookies")}
-              </button>
-            </div>
-          </div>
+            {browsingDataExpanded ? (
+              <div className="browser-use-data-detail-list">
+                {browsingDataItems.map((item) => (
+                  <div className="browser-use-data-detail-row" key={item.label}>
+                    <span>{item.label}</span>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => void clearBrowsingDataByKind(item.kind)}
+                    >
+                      {item.action}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </section>
         </section>
 
-        <div className="browser-use-section-label">{t("settings.browserUse.permissionsSection")}</div>
-        <section className="settings-card">
-          <SettingsSelectRow
-            label={t("settings.browserUse.approvalLabel")}
-            description={t("settings.browserUse.approvalDescription")}
-            value={currentSettings.approvalMode}
-            options={approvalOptions}
-            disabled={loading || pending}
-            onChange={(approvalMode) => void changeApprovalMode(approvalMode)}
-          />
+        <section className="browser-use-settings-section">
+          <div className="browser-use-section-label">{t("settings.browserUse.permissionsSection")}</div>
+          <section className="settings-card browser-use-permissions-card">
+            <SettingsSelectRow
+              label={t("settings.browserUse.approvalLabel")}
+              description={t("settings.browserUse.approvalDescription")}
+              value={currentSettings.approvalMode}
+              options={approvalOptions}
+              disabled={loading || pending}
+              onChange={(approvalMode) => void changeApprovalMode(approvalMode)}
+            />
+          </section>
         </section>
 
         <OriginList
@@ -296,8 +392,10 @@ export function BrowserUseSettingsSection(
           kind="denied"
           origins={currentSettings.deniedOrigins}
           draft={deniedDraft}
+          adding={activeOriginForm === "denied"}
           pending={loading || pending}
           onDraftChange={setDeniedDraft}
+          onStartAdd={setActiveOriginForm}
           onAdd={(kind) => void addOrigin(kind)}
           onRemove={(kind, origin) => void removeOrigin(kind, origin)}
         />
@@ -309,8 +407,10 @@ export function BrowserUseSettingsSection(
           kind="allowed"
           origins={currentSettings.allowedOrigins}
           draft={allowedDraft}
+          adding={activeOriginForm === "allowed"}
           pending={loading || pending}
           onDraftChange={setAllowedDraft}
+          onStartAdd={setActiveOriginForm}
           onAdd={(kind) => void addOrigin(kind)}
           onRemove={(kind, origin) => void removeOrigin(kind, origin)}
         />

@@ -263,6 +263,8 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
       props.hostBridge.app.removeBrowserUseOrigin(input),
     clearBrowserBrowsingData: () =>
       props.hostBridge.app.clearBrowserBrowsingData(),
+    clearBrowserBrowsingDataByKind: (input) =>
+      props.hostBridge.app.clearBrowserBrowsingDataByKind(input),
     refreshMcpData: props.controller.refreshMcpData,
     listArchivedThreads: props.controller.listArchivedThreads,
     unarchiveThread: props.controller.unarchiveThread,

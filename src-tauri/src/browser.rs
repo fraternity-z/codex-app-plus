@@ -8,7 +8,8 @@ use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, Runtime, Url, Webv
 
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    BrowserOpenInput, BrowserSidebarBoundsInput, BrowserSidebarOpenInput, BrowserUseApprovalMode,
+    BrowserBrowsingDataKind, BrowserBrowsingDataKindInput, BrowserOpenInput,
+    BrowserSidebarBoundsInput, BrowserSidebarOpenInput, BrowserUseApprovalMode,
     BrowserUseApprovalModeInput, BrowserUseOriginInput, BrowserUseOriginKind,
     BrowserUseSettingsOutput,
 };
@@ -178,6 +179,23 @@ pub fn clear_browser_browsing_data(app: AppHandle) -> AppResult<()> {
     remove_browser_data_directory(&root, &data_directory)
 }
 
+pub fn clear_browser_browsing_data_by_kind(
+    app: AppHandle,
+    input: BrowserBrowsingDataKindInput,
+) -> AppResult<()> {
+    if app.get_webview(BROWSER_SIDEBAR_LABEL).is_some()
+        || app.get_webview_window(BROWSER_WINDOW_LABEL).is_some()
+    {
+        return Err(AppError::InvalidInput(
+            "分项清理需要先关闭浏览器窗口或侧栏；也可以使用清除所有浏览数据".to_string(),
+        ));
+    }
+
+    let root = browser_root()?;
+    let data_directory = browser_data_directory()?;
+    remove_browser_data_paths(&root, &data_directory, browser_data_paths(input.kind))
+}
+
 pub fn read_browser_use_settings() -> AppResult<BrowserUseSettingsOutput> {
     let path = browser_config_path()?;
     let config = read_config(&path)?;
@@ -309,6 +327,100 @@ fn remove_browser_data_directory(root: &Path, data_directory: &Path) -> AppResul
 
     fs::remove_dir_all(data_directory)?;
     Ok(())
+}
+
+fn remove_browser_data_paths(
+    root: &Path,
+    data_directory: &Path,
+    relative_paths: &[&str],
+) -> AppResult<()> {
+    if !data_directory.exists() {
+        return Ok(());
+    }
+    if !root.exists() {
+        return Ok(());
+    }
+
+    let root = root.canonicalize()?;
+    let data_directory = data_directory.canonicalize()?;
+    if !data_directory.starts_with(&root) {
+        return Err(AppError::InvalidInput(
+            "拒绝清理浏览器数据目录之外的路径".to_string(),
+        ));
+    }
+
+    for relative_path in relative_paths {
+        remove_browser_data_path(&root, &data_directory.join(relative_path))?;
+    }
+    Ok(())
+}
+
+fn remove_browser_data_path(root: &Path, path: &Path) -> AppResult<()> {
+    if !path.exists() {
+        return Ok(());
+    }
+
+    let path = path.canonicalize()?;
+    if !path.starts_with(root) {
+        return Err(AppError::InvalidInput(
+            "拒绝清理浏览器数据目录之外的路径".to_string(),
+        ));
+    }
+    if path.is_dir() {
+        fs::remove_dir_all(path)?;
+    } else {
+        fs::remove_file(path)?;
+    }
+    Ok(())
+}
+
+fn browser_data_paths(kind: BrowserBrowsingDataKind) -> &'static [&'static str] {
+    match kind {
+        BrowserBrowsingDataKind::Cookies => &[
+            "Cookies",
+            "Cookies-journal",
+            "Network/Cookies",
+            "Network/Cookies-journal",
+            "Default/Cookies",
+            "Default/Cookies-journal",
+            "Default/Network/Cookies",
+            "Default/Network/Cookies-journal",
+        ],
+        BrowserBrowsingDataKind::SiteData => &[
+            "Local Storage",
+            "Session Storage",
+            "IndexedDB",
+            "File System",
+            "databases",
+            "WebStorage",
+            "Service Worker",
+            "blob_storage",
+            "Storage",
+            "Default/Local Storage",
+            "Default/Session Storage",
+            "Default/IndexedDB",
+            "Default/File System",
+            "Default/databases",
+            "Default/WebStorage",
+            "Default/Service Worker",
+            "Default/blob_storage",
+            "Default/Storage",
+        ],
+        BrowserBrowsingDataKind::Cache => &[
+            "Cache",
+            "Code Cache",
+            "GPUCache",
+            "DawnCache",
+            "GrShaderCache",
+            "ShaderCache",
+            "Default/Cache",
+            "Default/Code Cache",
+            "Default/GPUCache",
+            "Default/DawnCache",
+            "Default/GrShaderCache",
+            "Default/ShaderCache",
+        ],
+    }
 }
 
 fn normalize_browser_url(value: Option<&str>) -> AppResult<Url> {

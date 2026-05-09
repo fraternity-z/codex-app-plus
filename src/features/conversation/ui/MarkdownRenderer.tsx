@@ -1,10 +1,11 @@
-import { memo, useCallback, useMemo } from "react";
-import type { ComponentProps } from "react";
+import { Children, isValidElement, memo, useCallback, useMemo } from "react";
+import type { ComponentProps, ReactElement, ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import { highlightCodeLine } from "../../git/ui/diffCodeHighlight";
 import type { ParsedFileLocation } from "../../../utils/fileLinks";
 import {
   describeFileTarget,
@@ -39,6 +40,46 @@ const MARKDOWN_REHYPE_PLUGINS = [[rehypeKatex, { strict: "ignore" }]] as unknown
 const DISPLAY_MATH_RE = /\\\[([\s\S]+?)\\\]/g;
 const INLINE_MATH_RE = /\\\(([\s\S]+?)\\\)/g;
 const MARKDOWN_CODE_SEGMENT_RE = /(```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]*`)/g;
+const CODE_LANGUAGE_CLASS_RE = /(?:^|\s)language-([^\s]+)/;
+
+const CODE_BLOCK_LANGUAGE_EXTENSIONS: Readonly<Record<string, string>> = Object.freeze({
+  bash: "sh",
+  css: "css",
+  html: "html",
+  javascript: "js",
+  js: "js",
+  json: "json",
+  jsx: "jsx",
+  less: "less",
+  markdown: "md",
+  md: "md",
+  mdx: "mdx",
+  py: "py",
+  python: "py",
+  rs: "rs",
+  rust: "rs",
+  scss: "scss",
+  sh: "sh",
+  shell: "sh",
+  svg: "svg",
+  ts: "ts",
+  tsx: "tsx",
+  typescript: "ts",
+  xml: "xml",
+  zsh: "sh",
+});
+
+type CodeElement = ReactElement<{
+  readonly children?: ReactNode;
+  readonly className?: string;
+}>;
+
+type PositionedNode = {
+  readonly position?: {
+    readonly start: { readonly line: number };
+    readonly end: { readonly line: number };
+  };
+};
 
 function normalizeMathDelimiters(markdown: string): string {
   if (!markdown.includes("\\[") && !markdown.includes("\\(")) {
@@ -56,6 +97,53 @@ function normalizeMathDelimiters(markdown: string): string {
         .replace(INLINE_MATH_RE, (_match, expression) => `$${expression.trim()}$`);
     })
     .join("");
+}
+
+function isBlockCodeNode(node: PositionedNode | undefined): boolean {
+  return node?.position !== undefined && node.position.start.line !== node.position.end.line;
+}
+
+function isCodeElement(node: ReactNode): node is CodeElement {
+  return isValidElement<{ readonly children?: ReactNode; readonly className?: string }>(node);
+}
+
+function getOnlyCodeElement(children: ReactNode): CodeElement | null {
+  const childArray = Children.toArray(children).filter(isCodeElement);
+  if (childArray.length !== 1) {
+    return null;
+  }
+  return childArray[0];
+}
+
+function getPlainTextFromReactNode(node: ReactNode): string {
+  return Children.toArray(node)
+    .map((child) => {
+      if (typeof child === "string" || typeof child === "number") {
+        return String(child);
+      }
+      if (isValidElement<{ readonly children?: ReactNode }>(child)) {
+        return getPlainTextFromReactNode(child.props.children);
+      }
+      return "";
+    })
+    .join("");
+}
+
+function normalizeCodeBlockText(text: string): string {
+  return text.endsWith("\n") ? text.slice(0, -1) : text;
+}
+
+function getCodeBlockLanguage(className: string | undefined): string | null {
+  const match = className?.match(CODE_LANGUAGE_CLASS_RE);
+  return match?.[1]?.toLowerCase() ?? null;
+}
+
+function getCodeBlockHighlightPath(language: string | null): string | undefined {
+  if (language === null) {
+    return undefined;
+  }
+  const extension = CODE_BLOCK_LANGUAGE_EXTENSIONS[language];
+  return extension === undefined ? undefined : `snippet.${extension}`;
 }
 
 interface MarkdownRendererProps {
@@ -99,6 +187,40 @@ function FileReferenceLink({
         <span className="message-file-link-path">{parentPath}</span>
       ) : null}
     </a>
+  );
+}
+
+function MarkdownCodeBlock(props: { readonly children: ReactNode; readonly className?: string }): JSX.Element {
+  const language = getCodeBlockLanguage(props.className);
+  const codeText = useMemo(() => normalizeCodeBlockText(getPlainTextFromReactNode(props.children)), [props.children]);
+  const highlightedHtml = useMemo(
+    () => highlightCodeLine(codeText, getCodeBlockHighlightPath(language)),
+    [codeText, language],
+  );
+  const codeClassName = props.className === undefined
+    ? "home-chat-code-block-code"
+    : `home-chat-code-block-code ${props.className}`;
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard?.writeText(codeText);
+    } catch {
+      // Clipboard writes may be unavailable in restricted webviews.
+    }
+  }, [codeText]);
+
+  return (
+    <div className="home-chat-code-block">
+      <div className="home-chat-code-block-header">
+        {language === null ? <span aria-hidden="true" /> : <span className="home-chat-code-block-language">{language}</span>}
+        <button type="button" className="home-chat-code-block-copy" aria-label="Copy code" title="Copy code" onClick={handleCopy}>
+          <span className="home-chat-code-block-copy-icon" aria-hidden="true" />
+        </button>
+      </div>
+      <pre className="home-chat-code-block-pre">
+        <code className={codeClassName} dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
+      </pre>
+    </div>
   );
 }
 
@@ -220,8 +342,8 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(props: MarkdownRe
           </a>
         );
       },
-      code: ({ className: codeClassName, children }) => {
-        if (codeClassName) {
+      code: ({ node, className: codeClassName, children }) => {
+        if (codeClassName || isBlockCodeNode(node)) {
           return <code className={codeClassName}>{children}</code>;
         }
         if (!canOpenFileLinks) {
@@ -243,6 +365,13 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(props: MarkdownRe
             onContextMenu={handleFileLinkContextMenu}
           />
         );
+      },
+      pre: ({ children }) => {
+        const codeElement = getOnlyCodeElement(children);
+        if (codeElement === null) {
+          return <pre>{children}</pre>;
+        }
+        return <MarkdownCodeBlock className={codeElement.props.className}>{codeElement.props.children}</MarkdownCodeBlock>;
       },
     };
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import { INITIAL_APP_UPDATE_STATE } from "../../../domain/appUpdate";
@@ -142,6 +142,7 @@ function createBaseProps(
       deniedOrigins: [],
     }),
     clearBrowserBrowsingData: vi.fn().mockResolvedValue(undefined),
+    clearBrowserBrowsingDataByKind: vi.fn().mockResolvedValue(undefined),
     refreshMcpData: vi.fn(),
     listArchivedThreads: vi.fn().mockResolvedValue([]),
     unarchiveThread: vi.fn().mockResolvedValue(undefined),
@@ -256,7 +257,50 @@ describe("SettingsView", () => {
 
     expect(screen.getByRole("heading", { name: "浏览器使用" })).toBeInTheDocument();
     expect(await screen.findByText("Browser Use")).toBeInTheDocument();
-    expect(screen.getByText("清除 Cookie")).toBeInTheDocument();
+    expect(screen.getByText("清除所有浏览数据")).toBeInTheDocument();
+  });
+
+  it("expands browser use browsing data cleanup details separately from the clear all button", async () => {
+    const clearBrowserBrowsingDataByKind = vi.fn().mockResolvedValue(undefined);
+    render(<SettingsView {...createBaseProps({
+      section: "browserUse",
+      clearBrowserBrowsingDataByKind,
+    })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(await screen.findByText("Browser Use")).toBeInTheDocument();
+    expect(screen.queryByText("删除 Cookie")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "展开浏览数据清理项" }));
+
+    expect(screen.getByRole("button", { name: "清除所有浏览数据" })).toBeInTheDocument();
+    expect(screen.getByText("Cookie")).toBeInTheDocument();
+    expect(screen.getByText("删除 Cookie")).toBeInTheDocument();
+    expect(screen.getByText("网站数据")).toBeInTheDocument();
+    expect(screen.getByText("删除网站数据")).toBeInTheDocument();
+    expect(screen.getByText("缓存的图片和文件")).toBeInTheDocument();
+    expect(screen.getByText("删除缓存的图片和文件")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "删除 Cookie" }));
+
+    expect(clearBrowserBrowsingDataByKind).toHaveBeenCalledWith({ kind: "cookies" });
+  });
+
+  it("keeps browser use domain forms collapsed until adding a domain", async () => {
+    render(<SettingsView {...createBaseProps({ section: "browserUse" })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.queryByPlaceholderText("example.com")).toBeNull();
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: "添加" })[0]).not.toBeDisabled();
+    });
+
+    fireEvent.click(screen.getAllByRole("button", { name: "添加" })[0]!);
+
+    expect(screen.getByPlaceholderText("example.com")).toBeInTheDocument();
   });
 
   it("keeps the settings sidebar visible while adding an MCP server", async () => {
