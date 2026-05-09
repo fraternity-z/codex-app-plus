@@ -814,6 +814,7 @@ export const zhCN = {
     composer: {
       local: "本地",
       defaultPermission: "默认权限",
+      autoReviewPermission: "自动审查",
       fullPermission: "完全访问权限",
       addFilesAndPhotos: "添加文件和图片",
       chooseBranch: "选择分支",

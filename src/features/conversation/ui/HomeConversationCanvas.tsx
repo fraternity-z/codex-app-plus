@@ -25,6 +25,7 @@ import { HomeTurnThinkingIndicator } from "./HomeTurnThinkingIndicator";
 const INITIAL_VIEWPORT_HEIGHT = 720;
 const GROUP_ESTIMATED_HEIGHT = 260;
 const GROUP_OVERSCAN = 6;
+const AUTO_FOLLOW_BOTTOM_THRESHOLD_PX = 120;
 
 interface HomeConversationCanvasProps {
   readonly activities: ReadonlyArray<TimelineEntry>;
@@ -73,6 +74,8 @@ function useMeasuredRenderGroups(groups: ReadonlyArray<RenderGroup>) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const nodeByKeyRef = useRef(new Map<string, HTMLDivElement>());
   const observerByKeyRef = useRef(new Map<string, ResizeObserver>());
+  const pendingMeasureKeysRef = useRef(new Set<string>());
+  const measureFrameRef = useRef<number | null>(null);
   const rowVirtualizer = useVirtualizer({
     count: groups.length,
     getItemKey: (index) => groups[index]?.key ?? String(index),
@@ -82,29 +85,62 @@ function useMeasuredRenderGroups(groups: ReadonlyArray<RenderGroup>) {
     overscan: GROUP_OVERSCAN,
   });
 
+  const flushPendingMeasurements = useCallback(() => {
+    measureFrameRef.current = null;
+    if (pendingMeasureKeysRef.current.size === 0) {
+      return;
+    }
+    const pendingKeys = [...pendingMeasureKeysRef.current];
+    pendingMeasureKeysRef.current.clear();
+    for (const key of pendingKeys) {
+      const node = nodeByKeyRef.current.get(key);
+      if (node !== undefined) {
+        rowVirtualizer.measureElement(node);
+      }
+    }
+  }, [rowVirtualizer]);
+
+  const scheduleMeasurement = useCallback((key: string) => {
+    pendingMeasureKeysRef.current.add(key);
+    if (measureFrameRef.current !== null) {
+      return;
+    }
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+      measureFrameRef.current = window.requestAnimationFrame(flushPendingMeasurements);
+      return;
+    }
+    flushPendingMeasurements();
+  }, [flushPendingMeasurements]);
+
   const setGroupRef = useCallback((key: string, node: HTMLDivElement | null) => {
     const previousNode = nodeByKeyRef.current.get(key) ?? null;
     if (previousNode !== null && previousNode !== node) {
       observerByKeyRef.current.get(key)?.disconnect();
       observerByKeyRef.current.delete(key);
       nodeByKeyRef.current.delete(key);
+      pendingMeasureKeysRef.current.delete(key);
     }
     if (node === null) {
       return;
     }
     nodeByKeyRef.current.set(key, node);
-    rowVirtualizer.measureElement(node);
+    scheduleMeasurement(key);
     if (observerByKeyRef.current.has(key)) {
       return;
     }
     const observer = new ResizeObserver(() => {
-      rowVirtualizer.measureElement(node);
+      scheduleMeasurement(key);
     });
     observer.observe(node);
     observerByKeyRef.current.set(key, observer);
-  }, [rowVirtualizer]);
+  }, [scheduleMeasurement]);
 
   useEffect(() => () => {
+    if (measureFrameRef.current !== null && typeof window !== "undefined" && typeof window.cancelAnimationFrame === "function") {
+      window.cancelAnimationFrame(measureFrameRef.current);
+    }
+    measureFrameRef.current = null;
+    pendingMeasureKeysRef.current.clear();
     for (const observer of observerByKeyRef.current.values()) {
       observer.disconnect();
     }
@@ -113,6 +149,11 @@ function useMeasuredRenderGroups(groups: ReadonlyArray<RenderGroup>) {
   }, []);
 
   return { rowVirtualizer, scrollRef, setGroupRef };
+}
+
+function isNearScrollBottom(element: HTMLElement): boolean {
+  const distanceToBottom = element.scrollHeight - element.clientHeight - element.scrollTop;
+  return distanceToBottom <= AUTO_FOLLOW_BOTTOM_THRESHOLD_PX;
 }
 
 export function HomeConversationCanvas(
@@ -132,8 +173,17 @@ export function HomeConversationCanvas(
   const { rowVirtualizer, scrollRef, setGroupRef } = useMeasuredRenderGroups(
     renderGroups,
   );
+  const shouldAutoFollowRef = useRef(true);
   const copyTimeoutRef = useRef<number | null>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+
+  const updateAutoFollowState = useCallback(() => {
+    const element = scrollRef.current;
+    if (element === null) {
+      return;
+    }
+    shouldAutoFollowRef.current = isNearScrollBottom(element);
+  }, [scrollRef]);
 
   const handleCopyText = useCallback(async (copyId: string, text: string) => {
     try {
@@ -165,17 +215,25 @@ export function HomeConversationCanvas(
   }, []);
 
   useEffect(() => {
+    shouldAutoFollowRef.current = true;
+  }, [props.selectedThread?.id]);
+
+  useEffect(() => {
     const element = scrollRef.current;
     if (element === null || renderGroups.length === 0) {
       return;
     }
+    if (!shouldAutoFollowRef.current) {
+      return;
+    }
     rowVirtualizer.scrollToIndex(renderGroups.length - 1, { align: "end" });
     element.scrollTop = element.scrollHeight;
-  }, [renderGroups.length, rowVirtualizer, scrollKey]);
+    updateAutoFollowState();
+  }, [renderGroups.length, rowVirtualizer, scrollKey, updateAutoFollowState]);
 
   return (
     <main className="home-conversation" aria-label="会话内容">
-      <div ref={scrollRef} className="home-conversation-scroll">
+      <div ref={scrollRef} className="home-conversation-scroll" onScroll={updateAutoFollowState}>
         {renderGroups.length === 0 ? (
           <div className="home-conversation-thread">
             <ConversationPlaceholder placeholder={props.placeholder} />

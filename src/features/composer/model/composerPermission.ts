@@ -1,10 +1,11 @@
 import type { AskForApproval } from "../../../protocol/generated/v2/AskForApproval";
+import type { ApprovalsReviewer } from "../../../protocol/generated/v2/ApprovalsReviewer";
 import type { SandboxMode } from "../../../protocol/generated/v2/SandboxMode";
 import type { SandboxPolicy } from "../../../protocol/generated/v2/SandboxPolicy";
 import type { ThreadStartParams } from "../../../protocol/generated/v2/ThreadStartParams";
 import type { TurnStartParams } from "../../../protocol/generated/v2/TurnStartParams";
 
-export type ComposerPermissionLevel = "default" | "full";
+export type ComposerPermissionLevel = "default" | "autoReview" | "full";
 export type ComposerApprovalPolicy = Extract<AskForApproval, "untrusted" | "on-failure" | "on-request" | "never">;
 
 export interface ComposerPermissionSettings {
@@ -17,6 +18,10 @@ export interface ComposerPermissionSettings {
 export const DEFAULT_COMPOSER_PERMISSION_LEVEL: ComposerPermissionLevel = "default";
 export const DEFAULT_COMPOSER_DEFAULT_APPROVAL_POLICY: ComposerApprovalPolicy = "on-request";
 export const DEFAULT_COMPOSER_DEFAULT_SANDBOX_MODE: SandboxMode = "workspace-write";
+export const DEFAULT_COMPOSER_AUTO_REVIEW_APPROVAL_POLICY: ComposerApprovalPolicy = "on-request";
+export const DEFAULT_COMPOSER_AUTO_REVIEW_SANDBOX_MODE: SandboxMode = "workspace-write";
+export const DEFAULT_COMPOSER_AUTO_REVIEW_APPROVALS_REVIEWER: ApprovalsReviewer = "auto_review";
+export const DEFAULT_COMPOSER_USER_APPROVALS_REVIEWER: ApprovalsReviewer = "user";
 export const DEFAULT_COMPOSER_FULL_APPROVAL_POLICY: ComposerApprovalPolicy = "never";
 export const DEFAULT_COMPOSER_FULL_SANDBOX_MODE: SandboxMode = "danger-full-access";
 export const DEFAULT_COMPOSER_PERMISSION_SETTINGS = Object.freeze<ComposerPermissionSettings>({
@@ -26,11 +31,11 @@ export const DEFAULT_COMPOSER_PERMISSION_SETTINGS = Object.freeze<ComposerPermis
   fullSandboxMode: DEFAULT_COMPOSER_FULL_SANDBOX_MODE
 });
 
-type ThreadPermissionOverrides = Pick<ThreadStartParams, "approvalPolicy" | "sandbox">;
-type TurnPermissionOverrides = Pick<TurnStartParams, "approvalPolicy" | "sandboxPolicy">;
+type ThreadPermissionOverrides = Pick<ThreadStartParams, "approvalPolicy" | "approvalsReviewer" | "sandbox">;
+type TurnPermissionOverrides = Pick<TurnStartParams, "approvalPolicy" | "approvalsReviewer" | "sandboxPolicy">;
 
 export function isComposerPermissionLevel(value: unknown): value is ComposerPermissionLevel {
-  return value === "default" || value === "full";
+  return value === "default" || value === "autoReview" || value === "full";
 }
 
 export function isComposerApprovalPolicy(value: unknown): value is ComposerApprovalPolicy {
@@ -67,16 +72,30 @@ function createSandboxPolicy(mode: SandboxMode): SandboxPolicy {
 function resolveComposerPermissionValues(
   level: ComposerPermissionLevel,
   settings: ComposerPermissionSettings
-): { readonly approvalPolicy: ComposerApprovalPolicy; readonly sandboxMode: SandboxMode } {
-  return level === "full"
-    ? {
+): {
+  readonly approvalPolicy: ComposerApprovalPolicy;
+  readonly approvalsReviewer: ApprovalsReviewer;
+  readonly sandboxMode: SandboxMode;
+} {
+  if (level === "full") {
+    return {
       approvalPolicy: DEFAULT_COMPOSER_FULL_APPROVAL_POLICY,
+      approvalsReviewer: DEFAULT_COMPOSER_USER_APPROVALS_REVIEWER,
       sandboxMode: DEFAULT_COMPOSER_FULL_SANDBOX_MODE
-    }
-    : {
-      approvalPolicy: settings.defaultApprovalPolicy,
-      sandboxMode: settings.defaultSandboxMode
     };
+  }
+  if (level === "autoReview") {
+    return {
+      approvalPolicy: DEFAULT_COMPOSER_AUTO_REVIEW_APPROVAL_POLICY,
+      approvalsReviewer: DEFAULT_COMPOSER_AUTO_REVIEW_APPROVALS_REVIEWER,
+      sandboxMode: DEFAULT_COMPOSER_AUTO_REVIEW_SANDBOX_MODE
+    };
+  }
+  return {
+    approvalPolicy: settings.defaultApprovalPolicy,
+    approvalsReviewer: DEFAULT_COMPOSER_USER_APPROVALS_REVIEWER,
+    sandboxMode: settings.defaultSandboxMode
+  };
 }
 
 export function createThreadPermissionOverrides(
@@ -84,7 +103,11 @@ export function createThreadPermissionOverrides(
   settings: ComposerPermissionSettings = DEFAULT_COMPOSER_PERMISSION_SETTINGS
 ): ThreadPermissionOverrides {
   const values = resolveComposerPermissionValues(level, settings);
-  return { approvalPolicy: values.approvalPolicy, sandbox: values.sandboxMode };
+  return {
+    approvalPolicy: values.approvalPolicy,
+    approvalsReviewer: values.approvalsReviewer,
+    sandbox: values.sandboxMode
+  };
 }
 
 export function createTurnPermissionOverrides(
@@ -94,6 +117,7 @@ export function createTurnPermissionOverrides(
   const values = resolveComposerPermissionValues(level, settings);
   return {
     approvalPolicy: values.approvalPolicy,
+    approvalsReviewer: values.approvalsReviewer,
     sandboxPolicy: createSandboxPolicy(values.sandboxMode)
   };
 }

@@ -146,6 +146,23 @@ describe("useAppPreferences", () => {
     expect(second.result.current.selectedPetId).toBe("dewey");
   });
 
+  it("persists auto-review composer permission level", async () => {
+    const first = renderHook(() => useAppPreferences());
+
+    act(() => {
+      first.result.current.setComposerPermissionLevel("autoReview");
+    });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem(APP_PREFERENCES_STORAGE_KEY)).not.toBeNull();
+    });
+
+    first.unmount();
+    const second = renderHook(() => useAppPreferences());
+
+    expect(second.result.current.composerPermissionLevel).toBe("autoReview");
+  });
+
   it("migrates the legacy default Chinese language to auto detection", () => {
     window.localStorage.setItem(
       APP_PREFERENCES_STORAGE_KEY,

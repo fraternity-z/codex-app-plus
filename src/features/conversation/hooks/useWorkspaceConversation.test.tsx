@@ -1190,6 +1190,42 @@ describe("useWorkspaceConversation", () => {
     expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/start", params: expect.objectContaining({ approvalPolicy: "never", sandboxPolicy: { type: "dangerFullAccess" } }) }));
   });
 
+  it("uses selected auto-review permission mapping for new threads and turns", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/start") {
+        return createThreadStartResponse();
+      }
+      if (input.method === "turn/start") {
+        return { requestId: "request-2", result: { turn: createTurn() } };
+      }
+      throw new Error(`unexpected method: ${input.method}`);
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    await act(async () => {
+      await result.current.conversation.createThread();
+      await result.current.conversation.sendTurn({ ...createSendOptions("auto-review turn"), permissionLevel: "autoReview" });
+    });
+
+    expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      method: "thread/start",
+      params: expect.objectContaining({
+        approvalPolicy: "on-request",
+        approvalsReviewer: "auto_review",
+        sandbox: "workspace-write",
+      }),
+    }));
+    expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      method: "turn/start",
+      params: expect.objectContaining({
+        approvalPolicy: "on-request",
+        approvalsReviewer: "auto_review",
+        sandboxPolicy: expect.objectContaining({ type: "workspaceWrite", networkAccess: false }),
+      }),
+    }));
+  });
+
   it("uses configured access-mode mappings for new threads and turns", async () => {
     const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
       if (input.method === "thread/start") {

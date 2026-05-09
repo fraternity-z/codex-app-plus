@@ -140,6 +140,17 @@ describe("HomeComposer permission", () => {
     await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({ permissionLevel: "full" })));
   });
 
+  it("submits with auto-review permission level", async () => {
+    const onSendTurn = vi.fn().mockResolvedValue(undefined);
+    render(<ComposerHarness initialPermissionLevel="default" onSendTurn={onSendTurn} />, { wrapper: createI18nWrapper("en-US") });
+
+    fireEvent.click(screen.getByRole("button", { name: permissionLabel("default") }));
+    fireEvent.click(screen.getByRole("menuitem", { name: permissionLabel("autoReview") }));
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({ permissionLevel: "autoReview" })));
+  });
+
   it("switches back to default permission before submit", async () => {
     const onSendTurn = vi.fn().mockResolvedValue(undefined);
     render(<ComposerHarness initialPermissionLevel="full" onSendTurn={onSendTurn} />, { wrapper: createI18nWrapper("en-US") });

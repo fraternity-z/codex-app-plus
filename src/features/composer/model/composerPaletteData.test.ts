@@ -3,6 +3,37 @@ import { DEFAULT_COMPOSER_SLASH_CAPABILITIES } from "./composerSlashCommandCatal
 import { createPaletteItems } from "./composerPaletteData";
 
 describe("composerPaletteData", () => {
+  it("builds permission items with auto-review", () => {
+    expect(createPaletteItems(
+      "slash-permissions",
+      null,
+      [],
+      null,
+      "autoReview",
+      null,
+      null,
+      {
+        slashContext: {
+          hasThread: true,
+          hasWorkspace: true,
+          realtimeActive: false,
+          taskRunning: false,
+          capabilities: DEFAULT_COMPOSER_SLASH_CAPABILITIES,
+        },
+        customPrompts: [],
+        collaborationItems: [],
+        resumeItems: [],
+        skills: [],
+        skillsLoading: false,
+        skillsError: null,
+      },
+    )).toEqual([
+      expect.objectContaining({ key: "default", meta: null }),
+      expect.objectContaining({ key: "autoReview", meta: "Current" }),
+      expect.objectContaining({ key: "full", meta: null }),
+    ]);
+  });
+
   it("builds mention items with absolute file paths", () => {
     const items = createPaletteItems(
       "mention",

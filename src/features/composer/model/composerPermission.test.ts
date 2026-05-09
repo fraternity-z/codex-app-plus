@@ -15,6 +15,7 @@ describe("composerPermission", () => {
 
   it("recognizes supported permission levels", () => {
     expect(isComposerPermissionLevel("default")).toBe(true);
+    expect(isComposerPermissionLevel("autoReview")).toBe(true);
     expect(isComposerPermissionLevel("full")).toBe(true);
     expect(isComposerPermissionLevel("other")).toBe(false);
   });
@@ -30,6 +31,15 @@ describe("composerPermission", () => {
   it("maps default thread permissions to workspace-write with approval", () => {
     expect(createThreadPermissionOverrides("default", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({
       approvalPolicy: "on-request",
+      approvalsReviewer: "user",
+      sandbox: "workspace-write"
+    });
+  });
+
+  it("maps auto-review thread permissions to workspace-write with auto reviewer", () => {
+    expect(createThreadPermissionOverrides("autoReview", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({
+      approvalPolicy: "on-request",
+      approvalsReviewer: "auto_review",
       sandbox: "workspace-write"
     });
   });
@@ -37,6 +47,7 @@ describe("composerPermission", () => {
   it("maps full thread permissions to danger-full-access without approval", () => {
     expect(createThreadPermissionOverrides("full", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({
       approvalPolicy: "never",
+      approvalsReviewer: "user",
       sandbox: "danger-full-access"
     });
   });
@@ -44,6 +55,7 @@ describe("composerPermission", () => {
   it("maps default turn permissions to workspace-write sandbox policy", () => {
     expect(createTurnPermissionOverrides("default", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({
       approvalPolicy: "on-request",
+      approvalsReviewer: "user",
       sandboxPolicy: {
         type: "workspaceWrite",
         writableRoots: [],
@@ -57,7 +69,22 @@ describe("composerPermission", () => {
   it("maps full turn permissions to danger-full-access sandbox policy", () => {
     expect(createTurnPermissionOverrides("full", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({
       approvalPolicy: "never",
+      approvalsReviewer: "user",
       sandboxPolicy: { type: "dangerFullAccess" }
+    });
+  });
+
+  it("maps auto-review turn permissions to workspace-write sandbox policy", () => {
+    expect(createTurnPermissionOverrides("autoReview", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({
+      approvalPolicy: "on-request",
+      approvalsReviewer: "auto_review",
+      sandboxPolicy: {
+        type: "workspaceWrite",
+        writableRoots: [],
+        networkAccess: false,
+        excludeTmpdirEnvVar: false,
+        excludeSlashTmp: false
+      }
     });
   });
 
@@ -69,6 +96,7 @@ describe("composerPermission", () => {
       fullSandboxMode: "danger-full-access"
     })).toEqual({
       approvalPolicy: "on-failure",
+      approvalsReviewer: "user",
       sandbox: "read-only"
     });
     expect(createTurnPermissionOverrides("default", {
@@ -78,6 +106,7 @@ describe("composerPermission", () => {
       fullSandboxMode: "danger-full-access"
     })).toEqual({
       approvalPolicy: "on-failure",
+      approvalsReviewer: "user",
       sandboxPolicy: {
         type: "readOnly",
         networkAccess: false
@@ -93,6 +122,7 @@ describe("composerPermission", () => {
       fullSandboxMode: "workspace-write"
     })).toEqual({
       approvalPolicy: "never",
+      approvalsReviewer: "user",
       sandbox: "danger-full-access"
     });
     expect(createTurnPermissionOverrides("full", {
@@ -102,6 +132,7 @@ describe("composerPermission", () => {
       fullSandboxMode: "workspace-write"
     })).toEqual({
       approvalPolicy: "never",
+      approvalsReviewer: "user",
       sandboxPolicy: { type: "dangerFullAccess" }
     });
   });

@@ -168,6 +168,13 @@ function createPermissionItems(
       meta: permissionLevel === "default" ? "Current" : null,
     },
     {
+      key: "autoReview",
+      label: "Auto-review",
+      description: "Use workspace-write with model-reviewed approvals.",
+      disabled: false,
+      meta: permissionLevel === "autoReview" ? "Current" : null,
+    },
+    {
       key: "full",
       label: "Full permissions",
       description: "Use never approvals.",

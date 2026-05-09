@@ -815,6 +815,7 @@ export const enUS = {
     composer: {
       local: "Local",
       defaultPermission: "Default permission",
+      autoReviewPermission: "Auto-review",
       fullPermission: "Full access",
       addFilesAndPhotos: "Add files and photos",
       chooseBranch: "Choose branch",

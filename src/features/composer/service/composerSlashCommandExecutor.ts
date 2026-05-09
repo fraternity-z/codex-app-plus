@@ -107,18 +107,51 @@ export async function applySlashPermissionLevel(
   deps: SlashExecutionDependencies,
 ): Promise<void> {
   const writeTarget = readUserConfigWriteTarget(configSnapshot);
-  const approvalPolicy = level === "full" ? "never" : "on-request";
-  await deps.composerCommandBridge.request("config/value/write", {
-    keyPath: "approval_policy",
-    value: approvalPolicy,
-    mergeStrategy: "replace",
+  const permissionConfig = resolvePermissionConfig(level);
+  await deps.composerCommandBridge.request("config/batchWrite", {
+    edits: [
+      { keyPath: "approval_policy", value: permissionConfig.approvalPolicy, mergeStrategy: "replace" },
+      { keyPath: "sandbox_mode", value: permissionConfig.sandboxMode, mergeStrategy: "replace" },
+      { keyPath: "approvals_reviewer", value: permissionConfig.approvalsReviewer, mergeStrategy: "replace" },
+    ],
     filePath: writeTarget.filePath,
     expectedVersion: writeTarget.expectedVersion,
   });
   deps.onSelectPermissionLevel(level);
   await refreshSlashConfig(deps.composerCommandBridge, deps.dispatch);
-  pushBanner(deps.dispatch, "info", "已更新审批策略", `当前默认审批策略：${approvalPolicy}`);
+  pushBanner(deps.dispatch, "info", "已更新权限", `当前权限：${permissionConfig.label}`);
 }
+
+function resolvePermissionConfig(level: ComposerPermissionLevel): {
+  readonly approvalPolicy: string;
+  readonly approvalsReviewer: string;
+  readonly sandboxMode: string;
+  readonly label: string;
+} {
+  if (level === "full") {
+    return {
+      approvalPolicy: "never",
+      approvalsReviewer: "user",
+      sandboxMode: "danger-full-access",
+      label: "Full access",
+    };
+  }
+  if (level === "autoReview") {
+    return {
+      approvalPolicy: "on-request",
+      approvalsReviewer: "auto_review",
+      sandboxMode: "workspace-write",
+      label: "Auto-review",
+    };
+  }
+  return {
+    approvalPolicy: "on-request",
+    approvalsReviewer: "user",
+    sandboxMode: "workspace-write",
+    label: "Default",
+  };
+}
+
 export async function applySlashPersonality(
   personality: string,
   configSnapshot: ConfigReadResponse | null,

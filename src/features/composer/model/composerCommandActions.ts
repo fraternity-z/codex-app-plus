@@ -66,5 +66,11 @@ export async function executeSlashCommand(
 }
 
 export function toPermissionLevel(value: string): ComposerPermissionLevel {
-  return value === "full" ? "full" : "default";
+  if (value === "full") {
+    return "full";
+  }
+  if (value === "autoReview") {
+    return "autoReview";
+  }
+  return "default";
 }

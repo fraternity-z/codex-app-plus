@@ -10,14 +10,28 @@ interface PermissionOption {
   readonly icon: string;
 }
 
+type PermissionLabelKey =
+  | "home.composer.defaultPermission"
+  | "home.composer.autoReviewPermission"
+  | "home.composer.fullPermission";
+
 export function permissionLabel(
   level: PermissionLevel,
-  t?: (key: "home.composer.defaultPermission" | "home.composer.fullPermission") => string,
+  t?: (key: PermissionLabelKey) => string,
 ): string {
   if (t) {
-    return level === "full" ? t("home.composer.fullPermission") : t("home.composer.defaultPermission");
+    if (level === "full") {
+      return t("home.composer.fullPermission");
+    }
+    if (level === "autoReview") {
+      return t("home.composer.autoReviewPermission");
+    }
+    return t("home.composer.defaultPermission");
   }
-  return level === "full" ? "Full access" : "Default permission";
+  if (level === "full") {
+    return "Full access";
+  }
+  return level === "autoReview" ? "Auto-review" : "Default permission";
 }
 
 export function WorkspacePopover(props: {
@@ -95,6 +109,7 @@ export function PermissionsPopover(props: {
   const { selected, onSelect } = props;
   const permissionOptions: ReadonlyArray<PermissionOption> = [
     { key: "default", label: t("home.composer.defaultPermission"), icon: "\u25cb" },
+    { key: "autoReview", label: t("home.composer.autoReviewPermission"), icon: "\u2726" },
     { key: "full", label: t("home.composer.fullPermission"), icon: "!" }
   ];
 

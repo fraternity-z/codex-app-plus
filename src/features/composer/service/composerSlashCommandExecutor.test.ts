@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import type { AppAction } from "../../../domain/types";
 import type { CollaborationPreset } from "../../../domain/timeline";
 import type { ServiceTier } from "../../../protocol/ServiceTier";
+import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import type { ComposerCommandBridge } from "./composerCommandBridge";
 import {
+  applySlashPermissionLevel,
   executeDirectSlashCommand,
   type SlashExecutionContext,
   type SlashExecutionDependencies,
@@ -43,6 +45,19 @@ function createDeps(request: ReturnType<typeof vi.fn>): SlashExecutionDependenci
   };
 }
 
+function createConfigSnapshot(): ConfigReadResponse {
+  return {
+    config: {} as ConfigReadResponse["config"],
+    origins: {},
+    layers: [{
+      name: { type: "user", file: "C:/Users/dev/.codex/config.toml" },
+      version: "u1",
+      config: {},
+      disabledReason: null,
+    }],
+  };
+}
+
 describe("composerSlashCommandExecutor", () => {
   it("rejects /init from the direct executor path", async () => {
     const deps = createDeps(vi.fn().mockResolvedValue({}));
@@ -60,6 +75,29 @@ describe("composerSlashCommandExecutor", () => {
 
     expect(deps.onSelectServiceTier).toHaveBeenNthCalledWith(1, "fast");
     expect(deps.onSelectServiceTier).toHaveBeenNthCalledWith(2, null);
+  });
+
+  it("writes auto-review permission config through a batch write", async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === "config/read") {
+        return createConfigSnapshot();
+      }
+      return {};
+    });
+    const deps = createDeps(request);
+
+    await applySlashPermissionLevel("autoReview", createConfigSnapshot(), deps);
+
+    expect(request).toHaveBeenCalledWith("config/batchWrite", {
+      edits: [
+        { keyPath: "approval_policy", value: "on-request", mergeStrategy: "replace" },
+        { keyPath: "sandbox_mode", value: "workspace-write", mergeStrategy: "replace" },
+        { keyPath: "approvals_reviewer", value: "auto_review", mergeStrategy: "replace" },
+      ],
+      filePath: "C:/Users/dev/.codex/config.toml",
+      expectedVersion: "u1",
+    });
+    expect(deps.onSelectPermissionLevel).toHaveBeenCalledWith("autoReview");
   });
 
   it("routes /review inline arguments to the custom review target", async () => {

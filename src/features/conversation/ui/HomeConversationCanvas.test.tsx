@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ThreadDetailLevel } from "../../settings/hooks/useAppPreferences";
 import type { ConversationState, ConversationTurnState } from "../../../domain/conversation";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
@@ -13,8 +13,10 @@ import type { Turn } from "../../../protocol/generated/v2/Turn";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
 import { HomeConversationCanvas } from "./HomeConversationCanvas";
 
-const { mockedUseVirtualizer } = vi.hoisted(() => ({
+const { mockedUseVirtualizer, mockMeasureElement, mockScrollToIndex } = vi.hoisted(() => ({
   mockedUseVirtualizer: vi.fn(),
+  mockMeasureElement: vi.fn(),
+  mockScrollToIndex: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-virtual", () => ({
@@ -27,8 +29,8 @@ mockedUseVirtualizer.mockImplementation(({ count }: { readonly count: number }) 
     index,
     start: index * 280,
   })),
-  measureElement: () => undefined,
-  scrollToIndex: () => undefined,
+  measureElement: mockMeasureElement,
+  scrollToIndex: mockScrollToIndex,
 }));
 
 const TOKEN_USAGE: ThreadTokenUsage = {
@@ -53,7 +55,7 @@ function createThread(status: ThreadSummary["status"]): ThreadSummary {
   };
 }
 
-function renderCanvas(
+function createCanvasElement(
   activities: ReadonlyArray<TimelineEntry>,
   options?: {
     readonly status?: ThreadSummary["status"];
@@ -64,7 +66,7 @@ function renderCanvas(
     readonly onEditUserMessage?: ComponentProps<typeof HomeConversationCanvas>["onEditUserMessage"];
   },
 ) {
-  return render(
+  return (
     <HomeConversationCanvas
       activities={activities}
       selectedThread={createThread(options?.status ?? "idle")}
@@ -81,7 +83,16 @@ function renderCanvas(
       onRetryConnection={vi.fn().mockResolvedValue(undefined)}
       canEditMessages={options?.canEditMessages}
       onEditUserMessage={options?.onEditUserMessage}
-    />,
+    />
+  );
+}
+
+function renderCanvas(
+  activities: ReadonlyArray<TimelineEntry>,
+  options?: Parameters<typeof createCanvasElement>[1],
+) {
+  return render(
+    createCanvasElement(activities, options),
     { wrapper: createI18nWrapper("zh-CN") },
   );
 }
@@ -352,6 +363,16 @@ function createCollabAgentEntry(
 }
 
 describe("HomeConversationCanvas", () => {
+  beforeEach(() => {
+    mockMeasureElement.mockClear();
+    mockScrollToIndex.mockClear();
+    mockedUseVirtualizer.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("renders a single bottom thinking indicator immediately after user input", () => {
     const { container } = renderCanvas([USER_MESSAGE], { activeTurnId: "turn-1" });
 
@@ -720,5 +741,71 @@ describe("HomeConversationCanvas", () => {
     renderCanvas(mapConversationToTimelineEntries(nextConversation, []));
 
     expect(screen.getByText("assistant reply", { exact: false })).toBeInTheDocument();
+  });
+
+  it("batches row measurement into a single animation frame", () => {
+    const frameCallbacks: FrameRequestCallback[] = [];
+    const requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
+      frameCallbacks.push(callback);
+      return frameCallbacks.length;
+    });
+    vi.stubGlobal("requestAnimationFrame", requestAnimationFrame);
+    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {}
+      disconnect() {}
+    });
+
+    renderCanvas([
+      USER_MESSAGE,
+      ASSISTANT_MESSAGE,
+      { ...USER_MESSAGE, id: "user-2", turnId: "turn-2", itemId: "item-user-2" },
+      { ...ASSISTANT_MESSAGE, id: "assistant-2", turnId: "turn-2", itemId: "item-assistant-2" },
+    ]);
+
+    expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
+    expect(mockMeasureElement).not.toHaveBeenCalled();
+
+    frameCallbacks[0]?.(performance.now());
+
+    expect(mockMeasureElement).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not force-scroll streaming updates when the user is away from the bottom", () => {
+    const { container, rerender } = renderCanvas([USER_MESSAGE, ASSISTANT_MESSAGE]);
+    const scrollElement = container.querySelector(".home-conversation-scroll") as HTMLDivElement;
+    Object.defineProperties(scrollElement, {
+      clientHeight: { configurable: true, value: 400 },
+      scrollHeight: { configurable: true, value: 1_000 },
+    });
+    scrollElement.scrollTop = 200;
+    fireEvent.scroll(scrollElement);
+    mockScrollToIndex.mockClear();
+
+    rerender(createCanvasElement([
+      USER_MESSAGE,
+      { ...ASSISTANT_MESSAGE, text: "已经完成。继续输出更多内容。" },
+    ]));
+
+    expect(mockScrollToIndex).not.toHaveBeenCalled();
+  });
+
+  it("continues following streaming updates when the user is near the bottom", () => {
+    const { container, rerender } = renderCanvas([USER_MESSAGE, ASSISTANT_MESSAGE]);
+    const scrollElement = container.querySelector(".home-conversation-scroll") as HTMLDivElement;
+    Object.defineProperties(scrollElement, {
+      clientHeight: { configurable: true, value: 400 },
+      scrollHeight: { configurable: true, value: 1_000 },
+    });
+    scrollElement.scrollTop = 520;
+    fireEvent.scroll(scrollElement);
+    mockScrollToIndex.mockClear();
+
+    rerender(createCanvasElement([
+      USER_MESSAGE,
+      { ...ASSISTANT_MESSAGE, text: "已经完成。继续输出更多内容。" },
+    ]));
+
+    expect(mockScrollToIndex).toHaveBeenCalledWith(0, { align: "end" });
   });
 });
