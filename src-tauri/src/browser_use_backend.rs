@@ -3,6 +3,14 @@ pub fn start(app: tauri::AppHandle) {
     imp::start(app);
 }
 
+#[cfg(target_os = "windows")]
+pub fn iab_pipe_name() -> Option<&'static str> {
+    imp::iab_pipe_name()
+}
+
+#[cfg(target_os = "windows")]
+pub const IAB_PIPE_ENV: &str = imp::IAB_PIPE_ENV;
+
 #[cfg(not(target_os = "windows"))]
 pub fn start(_app: tauri::AppHandle) {}
 
@@ -32,7 +40,8 @@ mod imp {
     use crate::error::{AppError, AppResult};
     use crate::events::emit_browser_sidebar_open_requested;
 
-    const PIPE_NAME: &str = r"\\.\pipe\codex-browser-use-iab";
+    pub const IAB_PIPE_ENV: &str = "CODEX_BROWSER_USE_IAB_PIPE";
+    const PIPE_PREFIX: &str = r"\\.\pipe\codex-browser-use-iab";
     const TAB_ID: u64 = 1;
     const MAX_FRAME_BYTES: usize = 64 * 1024 * 1024;
     const CDP_RESPONSE_TIMEOUT: Duration = Duration::from_secs(30);
@@ -50,14 +59,15 @@ mod imp {
         "Runtime.exceptionThrown",
     ];
 
-    static STARTED: OnceLock<()> = OnceLock::new();
+    static STARTED_PIPE_NAME: OnceLock<String> = OnceLock::new();
 
     pub fn start(app: AppHandle) {
-        if STARTED.set(()).is_err() {
+        let pipe_name = pipe_name_for_process(std::process::id());
+        if STARTED_PIPE_NAME.set(pipe_name.clone()).is_err() {
             return;
         }
 
-        let backend = Arc::new(BrowserUseBackend::new(app));
+        let backend = Arc::new(BrowserUseBackend::new(app, pipe_name));
         tauri::async_runtime::spawn(async move {
             if let Err(error) = backend.run().await {
                 eprintln!("browser-use IAB backend stopped: {error}");
@@ -65,8 +75,17 @@ mod imp {
         });
     }
 
+    pub fn iab_pipe_name() -> Option<&'static str> {
+        STARTED_PIPE_NAME.get().map(String::as_str)
+    }
+
+    fn pipe_name_for_process(process_id: u32) -> String {
+        format!("{PIPE_PREFIX}-{process_id}")
+    }
+
     struct BrowserUseBackend {
         app: AppHandle,
+        pipe_name: String,
         next_connection_id: AtomicU64,
         connections: Mutex<Vec<ConnectionSender>>,
         session_claims: Mutex<HashMap<String, u64>>,
@@ -86,9 +105,10 @@ mod imp {
     }
 
     impl BrowserUseBackend {
-        fn new(app: AppHandle) -> Self {
+        fn new(app: AppHandle, pipe_name: String) -> Self {
             Self {
                 app,
+                pipe_name,
                 next_connection_id: AtomicU64::new(1),
                 connections: Mutex::new(Vec::new()),
                 session_claims: Mutex::new(HashMap::new()),
@@ -99,12 +119,12 @@ mod imp {
         async fn run(self: Arc<Self>) -> io::Result<()> {
             let mut server = ServerOptions::new()
                 .first_pipe_instance(true)
-                .create(PIPE_NAME)?;
+                .create(&self.pipe_name)?;
 
             loop {
                 server.connect().await?;
                 let connected = server;
-                server = ServerOptions::new().create(PIPE_NAME)?;
+                server = ServerOptions::new().create(&self.pipe_name)?;
 
                 let backend = self.clone();
                 tauri::async_runtime::spawn(async move {
@@ -600,8 +620,16 @@ mod imp {
 
     #[cfg(test)]
     mod tests {
-        use super::{encode_framed_message, rpc_result};
+        use super::{encode_framed_message, pipe_name_for_process, rpc_result};
         use serde_json::{json, Value};
+
+        #[test]
+        fn process_pipe_name_keeps_browser_use_discovery_prefix() {
+            let name = pipe_name_for_process(42);
+
+            assert_eq!(name, r"\\.\pipe\codex-browser-use-iab-42");
+            assert!(name.starts_with(r"\\.\pipe\codex-browser-use"));
+        }
 
         #[test]
         fn encodes_native_endian_length_prefixed_json() {

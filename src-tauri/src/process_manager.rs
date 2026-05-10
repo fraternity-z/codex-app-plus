@@ -18,8 +18,8 @@ use crate::codex_cli::CodexCli;
 use crate::error::{AppError, AppResult};
 use crate::events::emit_connection_changed;
 use crate::models::{
-    AppServerStartInput, JsonRpcErrorBody, RpcCancelInput, RpcNotifyInput, RpcRequestInput,
-    RpcRequestOutput, ServerRequestResolveInput,
+    AgentEnvironment, AppServerStartInput, JsonRpcErrorBody, RpcCancelInput, RpcNotifyInput,
+    RpcRequestInput, RpcRequestOutput, ServerRequestResolveInput,
 };
 use crate::process_supervisor::ProcessSupervisor;
 use crate::rpc_transport::{
@@ -222,7 +222,8 @@ async fn spawn_runtime(
     bundled_computer_use::ensure_registered(&app, agent_environment)?;
     bundled_browser_use::ensure_registered(&app, agent_environment)?;
 
-    let cli = CodexCli::resolve(Some(&app), &input)?;
+    let mut cli = CodexCli::resolve(Some(&app), &input)?;
+    configure_browser_use_iab_environment(agent_environment, &mut cli);
     let _version = cli.detect_version().await?;
     let supervisor = ProcessSupervisor::new("app-server")?;
     let stderr_log = AppServerStderrLog::new();
@@ -267,6 +268,24 @@ async fn terminate_tokio_child(child: &mut Child) {
     }
     let _ = child.kill().await;
     let _ = child.wait().await;
+}
+
+fn configure_browser_use_iab_environment(agent_environment: AgentEnvironment, cli: &mut CodexCli) {
+    #[cfg(target_os = "windows")]
+    if agent_environment == AgentEnvironment::WindowsNative {
+        if let Some(pipe_name) = crate::browser_use_backend::iab_pipe_name() {
+            cli.environment.push((
+                crate::browser_use_backend::IAB_PIPE_ENV.to_string(),
+                Some(pipe_name.to_string()),
+            ));
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = agent_environment;
+        let _ = cli;
+    }
 }
 
 fn spawn_wait_task(

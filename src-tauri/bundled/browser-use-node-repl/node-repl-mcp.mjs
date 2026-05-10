@@ -12,6 +12,12 @@ const SERVER_INFO = {
   version: "0.1.0",
 };
 
+const BROWSER_USE_IAB_PIPE_ENV = "CODEX_BROWSER_USE_IAB_PIPE";
+const WINDOWS_BROWSER_USE_PIPE_PREFIX = "\\\\.\\pipe\\codex-browser-use";
+const WINDOWS_LEGACY_IAB_PIPE = "\\\\.\\pipe\\codex-browser-use-iab";
+const POSIX_BROWSER_USE_PIPE_PREFIX = "/tmp/codex-browser-use";
+const POSIX_LEGACY_IAB_PIPE = "/tmp/codex-browser-use-iab.sock";
+
 const JS_TOOL = {
   name: "js",
   description:
@@ -268,7 +274,14 @@ function createNodeReplBridge(state) {
     nativePipe: {
       createConnection: (pipePath) =>
         new Promise((resolve, reject) => {
-          const socket = net.createConnection(pipePath);
+          let scopedPipePath;
+          try {
+            scopedPipePath = resolveNativePipePath(pipePath);
+          } catch (error) {
+            reject(error);
+            return;
+          }
+          const socket = net.createConnection(scopedPipePath);
           const onError = (error) => {
             socket.off("connect", onConnect);
             reject(error);
@@ -303,6 +316,41 @@ function createNodeReplBridge(state) {
     },
     createElicitation: handleBrowserUseElicitation,
   };
+}
+
+function resolveNativePipePath(pipePath) {
+  const iabPipePath = browserUseIabPipePath();
+  if (iabPipePath === null) {
+    return pipePath;
+  }
+  if (pipePath === iabPipePath) {
+    return pipePath;
+  }
+  if (isLegacyBrowserUseIabPipePath(pipePath)) {
+    return iabPipePath;
+  }
+  if (isBrowserUsePipePath(pipePath)) {
+    const error = new Error("Browser Use native pipe is scoped to this Codex app instance.");
+    error.code = "EACCES";
+    throw error;
+  }
+  return pipePath;
+}
+
+function browserUseIabPipePath() {
+  const value = process.env[BROWSER_USE_IAB_PIPE_ENV];
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function isLegacyBrowserUseIabPipePath(pipePath) {
+  return pipePath === WINDOWS_LEGACY_IAB_PIPE || pipePath === POSIX_LEGACY_IAB_PIPE;
+}
+
+function isBrowserUsePipePath(pipePath) {
+  return (
+    pipePath.startsWith(WINDOWS_BROWSER_USE_PIPE_PREFIX) ||
+    pipePath.startsWith(POSIX_BROWSER_USE_PIPE_PREFIX)
+  );
 }
 
 function createBrowserUseFetch() {
