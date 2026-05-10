@@ -276,28 +276,29 @@ function isLikelyFileHref(
   if (/[?#]/.test(pathOnly)) {
     return false;
   }
+  const hasFileName = hasLikelyFileName(pathOnly);
   if (/^[A-Za-z]:[\\/]/.test(pathOnly) || pathOnly.startsWith("\\\\")) {
-    return true;
+    return hasFileName;
   }
   if (pathOnly.startsWith("/")) {
-    if (parsedLocation.line !== null) {
-      return true;
+    if (!hasFileName) {
+      return false;
     }
-    if (hasLikelyFileName(pathOnly)) {
+    if (parsedLocation.line !== null) {
       return true;
     }
     return hasLikelyLocalAbsolutePrefix(pathOnly) && pathSegmentCount(pathOnly) >= 3;
   }
   if (parsedLocation.line !== null) {
-    return true;
+    return hasFileName;
   }
   if (pathOnly.startsWith("~/")) {
-    return true;
+    return hasFileName;
   }
   if (pathOnly.startsWith("./") || pathOnly.startsWith("../")) {
-    return parsedLocation.line !== null || hasLikelyFileName(pathOnly);
+    return hasFileName;
   }
-  if (hasLikelyFileName(pathOnly)) {
+  if (hasFileName) {
     return pathSegmentCount(pathOnly) >= 3;
   }
   return false;
@@ -314,7 +315,11 @@ export function parseInlineFileTarget(value: string): ParsedFileLocation | null 
   if (!isPathCandidate(normalizedPath, "", "")) {
     return null;
   }
-  return parseFileLocation(normalizedPath);
+  const parsedLocation = parseFileLocation(normalizedPath);
+  if (!hasLikelyFileName(parsedLocation.path)) {
+    return null;
+  }
+  return parsedLocation;
 }
 
 export function formatParsedFileLocation(target: ParsedFileLocation) {
@@ -419,7 +424,7 @@ export function resolveMessageFileHref(
 ): ParsedFileLocation | null {
   const fileUrlTarget = parseFileUrlLocation(url);
   if (fileUrlTarget) {
-    return fileUrlTarget;
+    return hasLikelyFileName(fileUrlTarget.path) ? fileUrlTarget : null;
   }
 
   const rawCandidates = [url, safeDecodeURIComponent(url)].filter(

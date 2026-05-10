@@ -9,7 +9,6 @@ import { highlightCodeLine } from "../../git/ui/diffCodeHighlight";
 import type { ParsedFileLocation } from "../../../utils/fileLinks";
 import {
   describeFileTarget,
-  formatParsedFileLocation,
   isFileLinkUrl,
   parseFileLinkUrl,
   parseInlineFileTarget,
@@ -181,8 +180,10 @@ function FileReferenceLink({
       onClick={(event) => onClick(event, rawPath)}
       onContextMenu={(event) => onContextMenu(event, rawPath)}
     >
-      <span className="message-file-link-name">{fileName}</span>
-      {lineLabel ? <span className="message-file-link-line">L{lineLabel}</span> : null}
+      <span className="message-file-link-label">
+        <span className="message-file-link-name">{fileName}</span>
+        {lineLabel ? <span className="message-file-link-line"> (line {lineLabel})</span> : null}
+      </span>
       {showFilePath && parentPath ? (
         <span className="message-file-link-path">{parentPath}</span>
       ) : null}
@@ -293,21 +294,15 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(props: MarkdownRe
 
         const hrefFilePath = canOpenFileLinks ? resolveHrefFilePath(url) : null;
         if (hrefFilePath) {
-          const formattedHrefFilePath = formatParsedFileLocation(hrefFilePath);
-          const clickHandler = (event: React.MouseEvent) =>
-            handleFileLinkClick(event, hrefFilePath);
-          const contextMenuHandler = onOpenFileLinkMenu
-            ? (event: React.MouseEvent) => handleFileLinkContextMenu(event, hrefFilePath)
-            : undefined;
           return (
-            <a
+            <FileReferenceLink
               href={href ?? toFileLink(hrefFilePath)}
-              title={formattedHrefFilePath}
-              onClick={clickHandler}
-              onContextMenu={contextMenuHandler}
-            >
-              {children}
-            </a>
+              rawPath={hrefFilePath}
+              showFilePath={false}
+              workspacePath={workspacePath}
+              onClick={handleFileLinkClick}
+              onContextMenu={handleFileLinkContextMenu}
+            />
           );
         }
 
@@ -320,11 +315,7 @@ export const MarkdownRenderer = memo(function MarkdownRenderer(props: MarkdownRe
           if (url.startsWith("#")) {
             return <a href={href}>{children}</a>;
           }
-          return (
-            <a href={href} onClick={handleLocalLinkClick}>
-              {children}
-            </a>
-          );
+          return <strong className="message-local-reference">{children}</strong>;
         }
 
         return (

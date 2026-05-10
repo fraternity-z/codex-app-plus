@@ -27,4 +27,16 @@ describe("messageFileLinks", () => {
       "/workspace/src/App.tsx:33",
     );
   });
+
+  it("preserves line numbers for relative workspace hrefs", () => {
+    expect(formatResolvedTarget(resolveMessageFileHref("src/pages/DesignStructurePage.tsx:219"))).toBe(
+      "src/pages/DesignStructurePage.tsx:219",
+    );
+  });
+
+  it("does not resolve extensionless paths as file hrefs", () => {
+    expect(resolveMessageFileHref("E:/code/codex-browser-use-iab")).toBeNull();
+    expect(resolveMessageFileHref("/workspace/codex-browser-use-iab")).toBeNull();
+    expect(resolveMessageFileHref("file:///workspace/codex-browser-use-iab")).toBeNull();
+  });
 });

@@ -70,4 +70,41 @@ describe("MarkdownRenderer", () => {
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("padding: 12px 5px 18px;"));
   });
+
+  it("renders openable file references with line labels", () => {
+    const onOpenFileLink = vi.fn();
+    const markdown = [
+      "Video source: public/structure-tour.webm",
+      "Content page: src/contentPages.ts:92",
+      "Component: [custom label](src/pages/DesignStructurePage.tsx:219)",
+      "Styles: src/styles/DesignStructurePage.css:684",
+    ].join("\n");
+
+    render(<MarkdownRenderer markdown={markdown} onOpenFileLink={onOpenFileLink} />);
+
+    const videoLink = screen.getByRole("link", { name: "structure-tour.webm" });
+    const tsLink = screen.getByRole("link", { name: "contentPages.ts (line 92)" });
+    const componentLink = screen.getByRole("link", { name: "DesignStructurePage.tsx (line 219)" });
+    const cssLink = screen.getByRole("link", { name: "DesignStructurePage.css (line 684)" });
+
+    expect(videoLink.querySelector(".message-file-link-icon")).toBeNull();
+    expect(tsLink.querySelector(".message-file-link-icon")).toBeNull();
+    expect(componentLink.querySelector(".message-file-link-icon")).toBeNull();
+    expect(cssLink.querySelector(".message-file-link-icon")).toBeNull();
+
+    fireEvent.click(componentLink);
+
+    expect(onOpenFileLink).toHaveBeenCalledWith({
+      path: "src/pages/DesignStructurePage.tsx",
+      line: 219,
+      column: null,
+    });
+  });
+
+  it("renders extensionless local references as emphasis instead of links", () => {
+    render(<MarkdownRenderer markdown={"Use [codex-browser-use-iab](codex-browser-use-iab), then continue."} onOpenFileLink={vi.fn()} />);
+
+    expect(screen.queryByRole("link", { name: "codex-browser-use-iab" })).toBeNull();
+    expect(screen.getByText("codex-browser-use-iab")).toHaveClass("message-local-reference");
+  });
 });

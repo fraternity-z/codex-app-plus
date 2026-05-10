@@ -10,7 +10,7 @@ const FILE_LOCATION_HASH_PATTERN = /^(.*?)#L(\d+)(?:C(\d+))?$/i;
 const FILE_URL_LOCATION_HASH_PATTERN = /^#L(\d+)(?:C(\d+))?$/i;
 
 export const FILE_LINK_SUFFIX_SOURCE =
-  "(?:(?::\\\\d+(?::\\\\d+)?|:\\\\d+-\\\\d+)|(?:#L\\\\d+(?:C\\\\d+)?))?";
+  "(?:(?::\\d+(?::\\d+)?|:\\d+-\\d+)|(?:#L\\d+(?:C\\d+)?))?";
 
 function parsePositiveInteger(value?: string) {
   if (!value) {

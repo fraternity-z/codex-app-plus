@@ -524,6 +524,11 @@
   text-decoration: underline;
 }
 
+.message-local-reference {
+  color: color-mix(in srgb, var(--home-link) 55%, var(--home-text));
+  font-weight: 600;
+}
+
 .home-chat-markdown blockquote {
   margin-left: 0;
   padding-left: 14px;
@@ -759,24 +764,28 @@
 /* File link styles */
 .message-file-link {
   color: var(--home-link);
+  font-weight: 600;
+  line-height: inherit;
   text-decoration: none;
   cursor: pointer;
-  border-bottom: 1px solid transparent;
-  transition: border-bottom-color 0.15s;
+  transition: color 0.15s;
 }
 
-.message-file-link:hover {
-  border-bottom-color: var(--home-link);
+.home-chat-markdown a.message-file-link:hover {
+  color: color-mix(in srgb, var(--home-link) 78%, white);
+  text-decoration: none;
+}
+
+.message-file-link-label {
+  min-width: 0;
 }
 
 .message-file-link-name {
-  font-weight: 500;
+  font-weight: inherit;
 }
 
 .message-file-link-line {
-  opacity: 0.7;
-  margin-left: 2px;
-  font-size: 0.85em;
+  font-weight: inherit;
 }
 
 .message-file-link-path {
