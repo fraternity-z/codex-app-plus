@@ -257,6 +257,31 @@ describe("WorkspaceDiffSidebar", () => {
     expect(screen.queryByText((_, node) => node?.textContent === "console.log('new')")).not.toBeInTheDocument();
   });
 
+  it("toggles a diff card from the file header without hijacking action buttons", async () => {
+    const stagePaths = vi.fn().mockResolvedValue(undefined);
+    renderSidebar(
+      createController({
+        stagePaths,
+        status: createStatus({ unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }] }),
+      }),
+      createHostBridge(vi.fn().mockResolvedValue([createViewerDiff()])),
+    );
+
+    await screen.findByRole("button", { name: "折叠 src/App.tsx" });
+
+    fireEvent.click(screen.getByText("src/App.tsx"));
+
+    expect(screen.getByRole("button", { name: "展开 src/App.tsx" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("src/App.tsx"));
+    expect(screen.getByRole("button", { name: "折叠 src/App.tsx" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "暂存 src/App.tsx" }));
+
+    expect(stagePaths).toHaveBeenCalledWith(["src/App.tsx"]);
+    expect(screen.getByRole("button", { name: "折叠 src/App.tsx" })).toBeInTheDocument();
+  });
+
   it("renders aggregated change counts in header", async () => {
     renderSidebar(
       createController({ status: createStatus({ unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }] }) }),

@@ -50,11 +50,6 @@ function getSecondaryActionLabel(item: GitWorkspaceDiffOutput): string | null {
   return "还原";
 }
 
-function getStatusLabel(item: GitWorkspaceDiffOutput): string {
-  const status = item.status.trim();
-  return status.length > 0 ? status : "变更";
-}
-
 async function handleSecondaryAction(
   item: GitWorkspaceDiffOutput,
   onDiscardPaths: WorkspaceDiffViewerCardProps["onDiscardPaths"],
@@ -80,13 +75,13 @@ function handlePrimaryAction(
 function DiffMeta(props: {
   readonly item: GitWorkspaceDiffOutput;
   readonly showSectionLabel: boolean;
-}): JSX.Element {
+}): JSX.Element | null {
+  if (!props.showSectionLabel) {
+    return null;
+  }
   return (
     <div className="workspace-diff-file-meta">
-      {props.showSectionLabel ? (
-        <span className="workspace-diff-file-badge">{SECTION_LABELS[props.item.section]}</span>
-      ) : null}
-      <span className="workspace-diff-file-badge workspace-diff-file-badge-status">{getStatusLabel(props.item)}</span>
+      <span className="workspace-diff-file-badge">{SECTION_LABELS[props.item.section]}</span>
     </div>
   );
 }
@@ -176,7 +171,6 @@ function CollapseTrigger(props: {
   readonly expanded: boolean;
   readonly item: GitWorkspaceDiffOutput;
   readonly onToggleExpanded: (key: string) => void;
-  readonly showSectionLabel: boolean;
 }): JSX.Element {
   const title = getItemTitle(props.item);
   const ChevronIcon = props.expanded ? GitChevronUpIcon : GitChevronDownIcon;
@@ -191,10 +185,6 @@ function CollapseTrigger(props: {
       <span className="workspace-diff-file-chevron-wrap" aria-hidden="true">
         <ChevronIcon className="workspace-diff-file-chevron" />
       </span>
-      <span className="workspace-diff-file-title-wrap">
-        <span className="workspace-diff-file-title" title={title}>{title}</span>
-        <DiffMeta item={props.item} showSectionLabel={props.showSectionLabel} />
-      </span>
     </button>
   );
 }
@@ -204,6 +194,7 @@ export const WorkspaceDiffViewerCard = memo(function WorkspaceDiffViewerCard(
 ): JSX.Element {
   const diffLoaded = props.item.diffLoaded === true || props.item.diff.length > 0;
   const hasDiffError = props.item.diffError !== undefined && props.item.diffError !== null;
+  const toggleExpanded = () => props.onToggleExpanded(props.diffKey);
   useEffect(() => {
     if (!props.expanded || diffLoaded || props.item.diffLoading === true || hasDiffError) {
       return;
@@ -213,16 +204,29 @@ export const WorkspaceDiffViewerCard = memo(function WorkspaceDiffViewerCard(
 
   return (
     <article className="workspace-diff-file-card" data-diff-path={props.item.path}>
-      <header className="workspace-diff-file-header">
+      <header
+        className="workspace-diff-file-header"
+        onClick={(event) => {
+          if (event.target instanceof HTMLElement && event.target.closest("button") !== null) {
+            return;
+          }
+          toggleExpanded();
+        }}
+      >
+        <div className="workspace-diff-file-title-wrap">
+          <span className="workspace-diff-file-title" title={getItemTitle(props.item)}>
+            {getItemTitle(props.item)}
+          </span>
+          <DiffSummary item={props.item} />
+          <DiffMeta item={props.item} showSectionLabel={props.showSectionLabel} />
+        </div>
+        <FileActions {...props} />
         <CollapseTrigger
           diffKey={props.diffKey}
           expanded={props.expanded}
           item={props.item}
           onToggleExpanded={props.onToggleExpanded}
-          showSectionLabel={props.showSectionLabel}
         />
-        <DiffSummary item={props.item} />
-        <FileActions {...props} />
       </header>
       <FileBody
         diff={props.item.diff}

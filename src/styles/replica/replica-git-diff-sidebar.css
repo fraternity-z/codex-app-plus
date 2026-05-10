@@ -736,12 +736,12 @@
 .workspace-diff-compact-row {
   width: 100%;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border: 1px solid transparent;
-  border-radius: 10px;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-main);
   cursor: pointer;
@@ -754,23 +754,7 @@
 }
 
 .workspace-diff-compact-row-active {
-  background: var(--surface-active, #eef3ff);
-  border-color: var(--accent-color, #3370ff);
-}
-
-.workspace-diff-compact-status {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 6px;
-  background: var(--surface-panel-soft);
-  color: var(--text-soft);
-  font-size: 11px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  background: var(--surface-hover);
 }
 
 .workspace-diff-compact-title {
@@ -783,20 +767,21 @@
 }
 
 .workspace-diff-compact-summary {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--surface-panel-soft);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--text-soft);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
 .workspace-diff-sidebar-expanded .workspace-diff-sidebar-content-stream {
-  padding: 10px 12px 16px;
-  gap: 10px;
+  padding: 8px 10px 16px;
+  gap: 0;
 }
 
 /* Conversation preview (main area, covers conversation canvas when expanded) */
@@ -982,7 +967,6 @@ html[data-theme="dark"] .workspace-diff-compact-row:hover {
 
 html[data-theme="dark"] .workspace-diff-compact-row-active {
   background: rgba(63, 128, 255, 0.16);
-  border-color: var(--accent-color, #4c8dff);
 }
 
 html[data-theme="dark"] .workspace-diff-conversation-preview {

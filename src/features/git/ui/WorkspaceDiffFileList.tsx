@@ -20,11 +20,6 @@ function getItemTitle(item: GitWorkspaceDiffOutput): string {
   return item.originalPath === null ? item.displayPath : `${item.originalPath} → ${item.displayPath}`;
 }
 
-function getStatusLabel(item: GitWorkspaceDiffOutput): string {
-  const status = item.status.trim();
-  return status.length > 0 ? status : "变更";
-}
-
 interface SectionGroup {
   readonly section: GitWorkspaceDiffSection;
   readonly items: ReadonlyArray<GitWorkspaceDiffOutput>;
@@ -81,7 +76,6 @@ export function WorkspaceDiffFileList(props: WorkspaceDiffFileListProps): JSX.El
                     title={title}
                     onClick={() => props.onSelect(item.path)}
                   >
-                    <span className="workspace-diff-compact-status">{getStatusLabel(item)}</span>
                     <span className="workspace-diff-compact-title">{title}</span>
                     <span
                       className="workspace-diff-compact-summary"
