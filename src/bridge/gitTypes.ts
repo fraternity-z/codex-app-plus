@@ -18,7 +18,7 @@ export interface GitDiffInput extends GitRepoInput {
   readonly ignoreWhitespaceChanges?: boolean;
 }
 
-export type GitWorkspaceDiffScope = "unstaged" | "staged" | "all";
+export type GitWorkspaceDiffScope = "unstaged" | "staged";
 
 export interface GitWorkspaceDiffsInput extends GitRepoInput {
   readonly scope: GitWorkspaceDiffScope;

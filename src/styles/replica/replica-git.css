@@ -778,13 +778,13 @@
 
 .workspace-diff-scope-trigger {
   min-width: 0;
-  height: 32px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
   border: 0;
-  border-radius: 999px;
-  padding: 0 10px 0 12px;
+  border-radius: 12px;
+  padding: 0 9px 0 12px;
   background: #efefef;
   color: #232323;
   cursor: pointer;
@@ -802,9 +802,14 @@
 }
 
 .workspace-diff-scope-count {
+  min-width: 22px;
+  height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #dedede;
   color: #5f5f5f;
   font-size: 12px;
   font-weight: 650;
@@ -839,10 +844,10 @@
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  min-width: 220px;
-  padding: 6px;
+  min-width: 252px;
+  padding: 8px;
   border: 1px solid #dddddd;
-  border-radius: 12px;
+  border-radius: 16px;
   background: #ffffff;
   box-shadow: 0 18px 32px rgba(0, 0, 0, 0.12);
   z-index: 10;
@@ -850,14 +855,14 @@
 
 .workspace-diff-scope-option {
   width: 100%;
-  min-height: 34px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   border: 0;
-  border-radius: 8px;
-  padding: 0 8px;
+  border-radius: 10px;
+  padding: 0 10px 0 12px;
   background: transparent;
   color: #232323;
   cursor: pointer;
@@ -1062,6 +1067,12 @@ html[data-theme="dark"] .git-push-confirm-text,
 html[data-theme="dark"] .workspace-diff-sidebar-subtitle,
 html[data-theme="dark"] .workspace-diff-scope-count,
 html[data-theme="dark"] .workspace-diff-scope-chevron {
+  color: var(--text-muted);
+}
+
+html[data-theme="dark"] .workspace-diff-scope-count,
+html[data-theme="dark"] .workspace-diff-scope-option-count {
+  background: var(--surface-panel-muted);
   color: var(--text-muted);
 }
 

@@ -185,8 +185,39 @@ describe("WorkspaceDiffSidebar", () => {
       createHostBridge(vi.fn().mockResolvedValue([createViewerDiff()])),
     );
 
-    expect(screen.getByRole("button", { name: "选择差异分组" })).toHaveTextContent("未暂存");
-    expect(screen.getByRole("button", { name: "选择差异分组" })).toHaveTextContent("1");
+    const trigger = screen.getByRole("button", { name: "选择差异分组" });
+    expect(trigger).toHaveTextContent("未暂存");
+    expect(trigger).toHaveTextContent("1");
+
+    fireEvent.click(trigger);
+
+    const menu = screen.getByRole("menu", { name: "差异分组" });
+    expect(within(menu).queryByText("全部变更")).toBeNull();
+    expect(within(menu).getByRole("menuitemradio", { name: /未暂存/ })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitemradio", { name: "已暂存" })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitemradio", { name: "分支" })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitemradio", { name: "上轮对话" })).toBeInTheDocument();
+  });
+
+  it("does not request workspace git diffs for non-workspace groups", async () => {
+    const getWorkspaceDiffs = vi.fn().mockResolvedValue([createViewerDiff()]);
+    renderSidebar(
+      createController({ status: createStatus({ unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }] }) }),
+      createHostBridge(getWorkspaceDiffs),
+    );
+
+    await waitFor(() => expect(getWorkspaceDiffs).toHaveBeenCalledWith({
+      repoPath: "E:/code/project",
+      scope: "unstaged",
+      ignoreWhitespaceChanges: false,
+    }));
+    getWorkspaceDiffs.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "选择差异分组" }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "分支" }));
+
+    expect(screen.getByRole("button", { name: "选择差异分组" })).toHaveTextContent("分支");
+    expect(getWorkspaceDiffs).not.toHaveBeenCalled();
   });
 
   it("forces unified diff in the collapsed sidebar and hides the split toggle", async () => {

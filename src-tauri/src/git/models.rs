@@ -37,16 +37,15 @@ pub struct GitDiffInput {
 pub enum GitWorkspaceDiffScope {
     Unstaged,
     Staged,
-    All,
 }
 
 impl GitWorkspaceDiffScope {
     pub fn includes_staged(self) -> bool {
-        matches!(self, Self::Staged | Self::All)
+        matches!(self, Self::Staged)
     }
 
     pub fn includes_unstaged(self) -> bool {
-        matches!(self, Self::Unstaged | Self::All)
+        matches!(self, Self::Unstaged)
     }
 }
 

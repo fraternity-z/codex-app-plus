@@ -2,8 +2,8 @@ import type { GitStatusEntry } from "../../../bridge/types";
 import { GitChangeSection } from "./GitChangeSection";
 import type { WorkspaceGitController } from "../model/types";
 
-export type GitChangeScope = "all" | "unstaged" | "staged";
-export type GitChangeSectionMode = Exclude<GitChangeScope, "all">;
+export type GitChangeSectionMode = "unstaged" | "staged";
+export type GitChangeScope = GitChangeSectionMode | "branch" | "lastConversation";
 export type GitChangeEntryMode = "unstaged" | "staged" | "untracked";
 
 export interface GitChangeScopeOption {
@@ -28,7 +28,7 @@ interface GitChangeBrowserProps {
   readonly controller: WorkspaceGitController;
   readonly busy: boolean;
   readonly selectedDiffKey: string | null;
-  readonly scope: GitChangeScope;
+  readonly scope?: GitChangeSectionMode;
 }
 
 const CHANGE_SECTIONS = [
@@ -55,14 +55,14 @@ function getEntries(controller: WorkspaceGitController, mode: GitChangeSectionMo
   ];
 }
 
-function getVisibleSections(scope: GitChangeScope) {
-  if (scope === "all") {
+function getVisibleSections(scope?: GitChangeSectionMode) {
+  if (scope === undefined) {
     return CHANGE_SECTIONS;
   }
   return CHANGE_SECTIONS.filter((section) => section.mode === scope);
 }
 
-export function getVisibleGitChangeSections(controller: WorkspaceGitController, scope: GitChangeScope): ReadonlyArray<GitChangeSectionData> {
+export function getVisibleGitChangeSections(controller: WorkspaceGitController, scope: GitChangeSectionMode): ReadonlyArray<GitChangeSectionData> {
   return getVisibleSections(scope).map((section) => ({
     label: section.label,
     mode: section.mode,
@@ -79,11 +79,6 @@ export function getGitChangeScopeOptions(controller: WorkspaceGitController): Re
   const unstagedCount = status.unstaged.length + status.untracked.length + status.conflicted.length;
   return [
     {
-      scope: "all",
-      label: "全部变更",
-      count: status.staged.length + unstagedCount
-    },
-    {
       scope: "unstaged",
       label: "未暂存",
       count: unstagedCount
@@ -92,13 +87,23 @@ export function getGitChangeScopeOptions(controller: WorkspaceGitController): Re
       scope: "staged",
       label: "已暂存",
       count: status.staged.length
+    },
+    {
+      scope: "branch",
+      label: "分支",
+      count: 0
+    },
+    {
+      scope: "lastConversation",
+      label: "上轮对话",
+      count: 0
     }
   ];
 }
 
 export function getDefaultGitChangeScope(controller: WorkspaceGitController): GitChangeScope {
   const options = getGitChangeScopeOptions(controller);
-  const preferred = options.find((option) => option.scope !== "all" && option.count > 0);
+  const preferred = options.find((option) => option.count > 0);
   return preferred?.scope ?? "unstaged";
 }
 

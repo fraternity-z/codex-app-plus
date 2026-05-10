@@ -40,7 +40,7 @@ export function WorkspaceDiffScopeSelector(props: WorkspaceDiffScopeSelectorProp
     <div className={open ? "workspace-diff-scope workspace-diff-scope-open" : "workspace-diff-scope"} ref={containerRef}>
       <button type="button" className="workspace-diff-scope-trigger" aria-haspopup="menu" aria-expanded={open} aria-label="选择差异分组" onClick={() => setOpen((value) => !value)}>
         <span className="workspace-diff-scope-label">{selectedOption.label}</span>
-        <span className="workspace-diff-scope-count">{selectedOption.count}</span>
+        {selectedOption.count > 0 ? <span className="workspace-diff-scope-count">{selectedOption.count}</span> : null}
         <ChevronIcon className="workspace-diff-scope-chevron" />
       </button>
       {open ? (
@@ -59,7 +59,7 @@ export function WorkspaceDiffScopeSelector(props: WorkspaceDiffScopeSelectorProp
             >
               <div className="workspace-diff-scope-option-main">
                 <span className="workspace-diff-scope-option-label">{option.label}</span>
-                <span className="workspace-diff-scope-option-count">{option.count}</span>
+                {option.count > 0 ? <span className="workspace-diff-scope-option-count">{option.count}</span> : null}
               </div>
               {option.scope === props.selectedScope ? <CheckIcon className="workspace-diff-scope-check" /> : null}
             </button>

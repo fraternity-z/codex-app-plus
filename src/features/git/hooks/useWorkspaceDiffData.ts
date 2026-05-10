@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { parseUnifiedDiff } from "../model/diffPreviewModel";
-import { getVisibleGitChangeSections, type GitChangeScope, type GitChangeSectionData } from "../ui/GitChangeBrowser";
+import { getVisibleGitChangeSections, type GitChangeSectionData, type GitChangeSectionMode } from "../ui/GitChangeBrowser";
 import { createGitDiffKey } from "../model/gitDiffKey";
 import type { WorkspaceGitController } from "../model/types";
 
@@ -18,7 +18,7 @@ const EMPTY_SUMMARY: WorkspaceDiffSummary = Object.freeze({
   pending: false
 });
 
-function getVisibleSections(controller: WorkspaceGitController, scope: GitChangeScope): ReadonlyArray<GitChangeSectionData> {
+function getVisibleSections(controller: WorkspaceGitController, scope: GitChangeSectionMode): ReadonlyArray<GitChangeSectionData> {
   return getVisibleGitChangeSections(controller, scope).filter((section) => section.entries.length > 0);
 }
 
@@ -79,7 +79,7 @@ function getNextDiffTarget(
   return null;
 }
 
-export function useWorkspaceDiffData(controller: WorkspaceGitController, scope: GitChangeScope, enabled: boolean) {
+export function useWorkspaceDiffData(controller: WorkspaceGitController, scope: GitChangeSectionMode, enabled: boolean) {
   const sections = useMemo(() => getVisibleSections(controller, scope), [controller.status, scope]);
   const nextDiffTarget = useMemo(
     () => getNextDiffTarget(controller, sections, enabled),

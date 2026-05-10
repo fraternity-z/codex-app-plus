@@ -110,7 +110,7 @@ function useDiffScope(open: boolean, controller: WorkspaceGitController): [GitCh
     setScope((currentScope) => {
       const options = getGitChangeScopeOptions(controller);
       const currentOption = options.find((option) => option.scope === currentScope);
-      if (currentOption !== undefined && (currentOption.count > 0 || currentOption.scope === "all")) {
+      if (currentOption !== undefined) {
         return currentScope;
       }
       return getDefaultGitChangeScope(controller);
@@ -747,7 +747,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
             items={diffViewer.items}
             onSelect={handleSelectFile}
             selectedDiffPath={selectedDiffPath}
-            showSectionLabel={scope === "all"}
+            showSectionLabel={false}
           />
         ) : (
           <WorkspaceDiffViewer
@@ -759,7 +759,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
             onLoadDiff={diffViewer.loadDiff}
             onStagePaths={props.controller.stagePaths}
             onUnstagePaths={props.controller.unstagePaths}
-            showSectionLabel={scope === "all"}
+            showSectionLabel={false}
             viewStyle={effectiveDiffStyle}
           />
         )}

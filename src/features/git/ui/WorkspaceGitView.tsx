@@ -170,7 +170,7 @@ export function WorkspaceGitView(props: WorkspaceGitViewProps): JSX.Element {
         <GitOverviewCard selectedRootName={props.selectedRootName} controller={props.controller} busy={busy} branchTitle={branchTitle} canPull={canPull} canPush={canPush} onRequestPush={props.onRequestPush} />
         <div className="git-columns">
           <div className="git-column git-column-left">
-            <GitChangeBrowser controller={props.controller} busy={busy} selectedDiffKey={selectedDiffKey} scope="all" />
+            <GitChangeBrowser controller={props.controller} busy={busy} selectedDiffKey={selectedDiffKey} />
           </div>
           <div className="git-column git-column-right">
             <GitBranchCard controller={props.controller} busy={busy} />

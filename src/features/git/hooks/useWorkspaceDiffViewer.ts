@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   GitStatusOutput,
   GitWorkspaceDiffOutput,
+  GitWorkspaceDiffScope,
   HostBridge,
 } from "../../../bridge/types";
 import { createGitDiffKey } from "../model/gitDiffKey";
@@ -27,8 +28,13 @@ function shouldStartLoading(
   enabled: boolean,
   repoPath: string | null,
   status: GitStatusOutput | null,
+  scope: GitChangeScope,
 ): boolean {
-  return enabled && repoPath !== null && status !== null && status.isRepository;
+  return enabled && repoPath !== null && status !== null && status.isRepository && isWorkspaceDiffScope(scope);
+}
+
+function isWorkspaceDiffScope(scope: GitChangeScope): scope is GitWorkspaceDiffScope {
+  return scope === "unstaged" || scope === "staged";
 }
 
 function createStatusSignature(status: GitStatusOutput | null): string {
@@ -69,14 +75,14 @@ function toErrorMessage(error: unknown): string {
 export function useWorkspaceDiffViewer(options: UseWorkspaceDiffViewerOptions) {
   const { enabled, hostBridge, ignoreWhitespaceChanges = false, repoPath, scope, status } = options;
   const [items, setItems] = useState<ReadonlyArray<GitWorkspaceDiffOutput>>([]);
-  const [loading, setLoading] = useState(() => shouldStartLoading(enabled, repoPath, status));
+  const [loading, setLoading] = useState(() => shouldStartLoading(enabled, repoPath, status, scope));
   const [error, setError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
   const loadingDiffKeysRef = useRef(new Set<string>());
   const statusSignature = useMemo(() => createStatusSignature(status), [status]);
 
   const refresh = useCallback(async () => {
-    if (!enabled || repoPath === null || status === null || !status.isRepository) {
+    if (!enabled || repoPath === null || status === null || !status.isRepository || !isWorkspaceDiffScope(scope)) {
       setItems([]);
       setError(null);
       setLoading(false);

@@ -18,9 +18,9 @@
 }
 
 .workspace-diff-sidebar-title-wrap .workspace-diff-scope-trigger {
-  height: 28px;
-  padding: 0 9px 0 11px;
-  border-radius: 10px;
+  height: 34px;
+  padding: 0 9px 0 12px;
+  border-radius: 12px;
   background: var(--surface-panel-muted);
   font-weight: 700;
 }
