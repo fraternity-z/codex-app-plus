@@ -778,13 +778,13 @@
 
 .workspace-diff-scope-trigger {
   min-width: 0;
-  height: 36px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   border: 0;
   border-radius: 999px;
-  padding: 0 12px 0 14px;
+  padding: 0 10px 0 12px;
   background: #efefef;
   color: #232323;
   cursor: pointer;
@@ -801,18 +801,27 @@
   line-height: 1;
 }
 
-.workspace-diff-scope-count,
-.workspace-diff-scope-option-count {
-  min-width: 24px;
-  height: 22px;
+.workspace-diff-scope-count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 7px;
+  color: #5f5f5f;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.workspace-diff-scope-option-count {
+  min-width: 22px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
   border-radius: 999px;
   background: #dedede;
   color: #4b4b4b;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1;
 }
 
@@ -828,12 +837,12 @@
 
 .workspace-diff-scope-menu {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 6px);
   left: 0;
-  min-width: 240px;
-  padding: 8px;
+  min-width: 220px;
+  padding: 6px;
   border: 1px solid #dddddd;
-  border-radius: 18px;
+  border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 18px 32px rgba(0, 0, 0, 0.12);
   z-index: 10;
@@ -841,14 +850,14 @@
 
 .workspace-diff-scope-option {
   width: 100%;
-  min-height: 42px;
+  min-height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   border: 0;
-  border-radius: 12px;
-  padding: 0 10px;
+  border-radius: 8px;
+  padding: 0 8px;
   background: transparent;
   color: #232323;
   cursor: pointer;
@@ -863,7 +872,7 @@
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
 }
 
 .workspace-diff-scope-option[aria-checked="true"] .workspace-diff-scope-option-label {
@@ -1004,7 +1013,6 @@ html[data-theme="dark"] .git-commit-dialog-followups,
 html[data-theme="dark"] .git-inline-btn,
 html[data-theme="dark"] .git-badge,
 html[data-theme="dark"] .workspace-diff-scope-trigger,
-html[data-theme="dark"] .workspace-diff-scope-count,
 html[data-theme="dark"] .workspace-diff-sidebar-close:hover,
 html[data-theme="dark"] .workspace-diff-scope-option:hover {
   background: var(--surface-panel-soft);
@@ -1052,6 +1060,7 @@ html[data-theme="dark"] .git-commit-dialog-muted,
 html[data-theme="dark"] .git-commit-dialog-meta-icon,
 html[data-theme="dark"] .git-push-confirm-text,
 html[data-theme="dark"] .workspace-diff-sidebar-subtitle,
+html[data-theme="dark"] .workspace-diff-scope-count,
 html[data-theme="dark"] .workspace-diff-scope-chevron {
   color: var(--text-muted);
 }

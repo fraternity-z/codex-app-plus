@@ -1,6 +1,6 @@
 .toolbar-app-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: block;
   object-fit: contain;
   background: transparent;
@@ -19,7 +19,7 @@
   align-items: stretch;
   flex-shrink: 0;
   border: 1px solid var(--border-light);
-  border-radius: 12px;
+  border-radius: 9px;
   background: var(--surface-panel);
   box-shadow: var(--shadow-sm);
 }
@@ -40,9 +40,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 11px 0 0 11px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 8px 0 0 8px;
   white-space: nowrap;
 }
 
@@ -54,12 +54,12 @@
 }
 
 .toolbar-split-trigger {
-  width: 32px;
+  width: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-left: 1px solid var(--border-light);
-  border-radius: 0 11px 11px 0;
+  border-radius: 0 8px 8px 0;
   padding: 0;
 }
 
@@ -187,11 +187,11 @@
 }
 
 .toolbar-icon-btn {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   border: 0;
   padding: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
@@ -221,8 +221,8 @@
 }
 
 .toolbar-terminal-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: block;
 }
 

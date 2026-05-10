@@ -163,7 +163,6 @@ export function WorkspaceOpenButton(props: WorkspaceOpenButtonProps): JSX.Elemen
         onClick={() => void openSelectedWorkspace()}
       >
         {selectedOption.renderIcon("toolbar-app-icon")}
-        <span className="toolbar-split-main-text">{t("home.toolbar.open")}</span>
       </button>
       <button
         type="button"

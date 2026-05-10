@@ -18,9 +18,9 @@
 }
 
 .workspace-diff-sidebar-title-wrap .workspace-diff-scope-trigger {
-  height: 38px;
-  padding: 0 12px;
-  border-radius: 12px;
+  height: 28px;
+  padding: 0 9px 0 11px;
+  border-radius: 10px;
   background: var(--surface-panel-muted);
   font-weight: 700;
 }
@@ -30,13 +30,7 @@
 }
 
 .workspace-diff-sidebar-title-wrap .workspace-diff-scope-label {
-  font-size: 16px;
-}
-
-.workspace-diff-sidebar-title-wrap .workspace-diff-scope-count {
-  background: var(--surface-panel);
-  color: var(--text-soft);
-  font-weight: 600;
+  font-size: var(--app-ui-font-size-md);
 }
 
 .workspace-diff-sidebar-content-stream {

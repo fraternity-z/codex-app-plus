@@ -8,9 +8,9 @@
   width: var(--replica-diff-sidebar-width);
   height: auto;
   max-height: none;
-  border-top: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
+  border-left: 1px solid var(--border-light);
   overflow: hidden;
 }
 
@@ -48,13 +48,14 @@
 }
 
 .workspace-side-panel-header {
-  min-height: 52px;
+  min-height: var(--replica-top-toolbar-height);
   height: auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 8px 18px;
+  padding: 3px 10px;
+  border-bottom: 0;
 }
 
 .workspace-side-panel-tabs {
@@ -79,7 +80,7 @@
 .workspace-side-panel-tab,
 .workspace-side-panel-add {
   min-width: 30px;
-  height: 30px;
+  height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -129,7 +130,7 @@
 
 .workspace-side-panel-tab-close {
   width: 26px;
-  height: 32px;
+  height: 28px;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -213,12 +214,12 @@
 
 .workspace-diff-sidebar-review-controls {
   flex: 0 0 auto;
-  min-height: 58px;
+  min-height: var(--replica-top-toolbar-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 9px 12px;
+  gap: 8px;
+  padding: 3px 10px;
   border-bottom: 1px solid var(--border-light);
   background: var(--surface-panel);
 }

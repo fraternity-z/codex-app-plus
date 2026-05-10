@@ -4,16 +4,16 @@
 }
 
 .workspace-diff-sidebar-header {
-  min-height: 72px;
+  min-height: var(--replica-top-toolbar-height);
   height: auto;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 12px 16px;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 10px;
 }
 
 .workspace-diff-sidebar-title-wrap {
-  flex-wrap: wrap;
-  row-gap: 8px;
+  flex-wrap: nowrap;
+  row-gap: 4px;
 }
 
 .workspace-diff-sidebar-title-wrap .workspace-diff-scope {
@@ -33,10 +33,10 @@
 .workspace-diff-sidebar-summary {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  min-height: 36px;
-  padding: 0 4px;
-  font-size: 13px;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 2px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
