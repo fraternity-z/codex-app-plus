@@ -267,67 +267,89 @@
 }
 
 .workspace-diff-code-content .hljs-comment,
+.workspace-file-code-content .hljs-comment,
 .workspace-diff-raw-content .hljs-comment,
 .workspace-diff-code-content .hljs-quote,
+.workspace-file-code-content .hljs-quote,
 .workspace-diff-raw-content .hljs-quote {
   color: var(--app-code-style-comment);
   font-style: italic;
 }
 
 .workspace-diff-code-content .hljs-keyword,
+.workspace-file-code-content .hljs-keyword,
 .workspace-diff-raw-content .hljs-keyword,
 .workspace-diff-code-content .hljs-selector-tag,
+.workspace-file-code-content .hljs-selector-tag,
 .workspace-diff-raw-content .hljs-selector-tag,
 .workspace-diff-code-content .hljs-literal,
+.workspace-file-code-content .hljs-literal,
 .workspace-diff-raw-content .hljs-literal {
   color: var(--app-code-style-keyword);
 }
 
 .workspace-diff-code-content .hljs-string,
+.workspace-file-code-content .hljs-string,
 .workspace-diff-raw-content .hljs-string,
 .workspace-diff-code-content .hljs-regexp,
+.workspace-file-code-content .hljs-regexp,
 .workspace-diff-raw-content .hljs-regexp,
 .workspace-diff-code-content .hljs-attribute,
+.workspace-file-code-content .hljs-attribute,
 .workspace-diff-raw-content .hljs-attribute {
   color: var(--app-code-style-string);
 }
 
 .workspace-diff-code-content .hljs-number,
+.workspace-file-code-content .hljs-number,
 .workspace-diff-raw-content .hljs-number,
 .workspace-diff-code-content .hljs-attr,
+.workspace-file-code-content .hljs-attr,
 .workspace-diff-raw-content .hljs-attr,
 .workspace-diff-code-content .hljs-variable,
+.workspace-file-code-content .hljs-variable,
 .workspace-diff-raw-content .hljs-variable,
 .workspace-diff-code-content .hljs-template-variable,
+.workspace-file-code-content .hljs-template-variable,
 .workspace-diff-raw-content .hljs-template-variable {
   color: var(--app-code-style-number);
 }
 
 .workspace-diff-code-content .hljs-title,
+.workspace-file-code-content .hljs-title,
 .workspace-diff-raw-content .hljs-title,
 .workspace-diff-code-content .hljs-title.function_,
+.workspace-file-code-content .hljs-title.function_,
 .workspace-diff-raw-content .hljs-title.function_,
 .workspace-diff-code-content .hljs-built_in,
+.workspace-file-code-content .hljs-built_in,
 .workspace-diff-raw-content .hljs-built_in,
 .workspace-diff-code-content .hljs-property,
+.workspace-file-code-content .hljs-property,
 .workspace-diff-raw-content .hljs-property,
 .workspace-diff-code-content .hljs-title.class_,
+.workspace-file-code-content .hljs-title.class_,
 .workspace-diff-raw-content .hljs-title.class_ {
   color: var(--app-code-style-title);
 }
 
 .workspace-diff-code-content .hljs-tag,
+.workspace-file-code-content .hljs-tag,
 .workspace-diff-raw-content .hljs-tag,
 .workspace-diff-code-content .hljs-name,
+.workspace-file-code-content .hljs-name,
 .workspace-diff-raw-content .hljs-name,
 .workspace-diff-code-content .hljs-selector-class,
+.workspace-file-code-content .hljs-selector-class,
 .workspace-diff-raw-content .hljs-selector-class,
 .workspace-diff-code-content .hljs-selector-id,
+.workspace-file-code-content .hljs-selector-id,
 .workspace-diff-raw-content .hljs-selector-id {
   color: var(--app-code-style-keyword);
 }
 
 .workspace-diff-code-content .hljs-punctuation,
+.workspace-file-code-content .hljs-punctuation,
 .workspace-diff-raw-content .hljs-punctuation {
   color: var(--app-code-style-punctuation);
 }

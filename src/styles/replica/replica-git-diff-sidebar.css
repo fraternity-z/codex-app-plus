@@ -426,6 +426,303 @@
   pointer-events: none;
 }
 
+.workspace-file-viewer {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--surface-panel);
+}
+
+.workspace-file-viewer-toolbar {
+  min-width: 0;
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-light);
+  padding: 0 12px 0 16px;
+  background: var(--surface-panel);
+}
+
+.workspace-file-viewer-breadcrumb {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.workspace-file-viewer-breadcrumb-group {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+}
+
+.workspace-file-viewer-breadcrumb-item {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.workspace-file-viewer-breadcrumb-group:last-child {
+  flex: 1 1 auto;
+}
+
+.workspace-file-viewer-breadcrumb-group:last-child .workspace-file-viewer-breadcrumb-item {
+  color: var(--text-main);
+  font-weight: 650;
+}
+
+.workspace-file-viewer-breadcrumb-separator {
+  flex: 0 0 auto;
+  margin: 0 8px;
+  color: var(--text-subtle);
+  font-size: 17px;
+  line-height: 18px;
+}
+
+.workspace-file-viewer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.workspace-file-viewer-icon-button {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0;
+}
+
+.workspace-file-viewer-icon-button:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+.workspace-file-viewer-action-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.workspace-file-viewer-icon-button:first-child .workspace-file-viewer-action-icon {
+  fill: currentColor;
+  stroke: none;
+}
+
+.workspace-file-viewer-status {
+  padding: 18px 14px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.workspace-file-viewer-error {
+  color: var(--error-fg);
+}
+
+.workspace-file-viewer-scroll {
+  min-height: 0;
+  overflow: auto;
+  background: var(--surface-canvas);
+}
+
+.workspace-file-code-table {
+  min-width: max-content;
+  padding: 8px 0 18px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 22px;
+}
+
+.workspace-file-line-block {
+  min-width: max-content;
+}
+
+.workspace-file-code-row {
+  display: grid;
+  grid-template-columns: 46px 24px minmax(420px, max-content);
+  align-items: start;
+  min-height: 22px;
+  padding: 0 12px 0 0;
+  color: var(--text-main);
+}
+
+.workspace-file-line-block:hover .workspace-file-code-row {
+  background: var(--surface-hover);
+}
+
+.workspace-file-line-number {
+  color: var(--text-subtle);
+  text-align: right;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.workspace-file-line-action-slot {
+  display: inline-flex;
+  justify-content: center;
+}
+
+.workspace-file-line-comment-button {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--surface-panel);
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 16px;
+  opacity: 0;
+  transform: translateX(-3px);
+  transition: opacity 0.12s ease, transform 0.12s ease, background-color 0.12s ease;
+}
+
+.workspace-file-line-block:hover .workspace-file-line-comment-button,
+.workspace-file-line-comment-button:focus-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.workspace-file-line-comment-button:hover {
+  background: var(--surface-panel-soft);
+}
+
+.workspace-file-code-content {
+  color: var(--app-code-style-text);
+  white-space: pre;
+}
+
+.workspace-file-local-comment-editor,
+.workspace-file-local-comment-card {
+  width: calc(100% - 66px);
+  min-width: 360px;
+  max-width: 650px;
+  margin: 6px 12px 8px 54px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--surface-panel);
+  box-shadow: 0 6px 16px color-mix(in srgb, #000 7%, transparent);
+}
+
+.workspace-file-local-comment-editor-header,
+.workspace-file-local-comment-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-light);
+  padding: 10px 12px;
+}
+
+.workspace-file-local-comment-editor-header strong,
+.workspace-file-local-comment-card-header strong {
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.workspace-file-local-comment-editor-header span,
+.workspace-file-local-comment-card-header span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.workspace-file-local-comment-input {
+  width: 100%;
+  min-height: 74px;
+  border: 0;
+  outline: 0;
+  resize: vertical;
+  background: transparent;
+  color: var(--text-main);
+  padding: 12px;
+  font: inherit;
+  line-height: 1.45;
+}
+
+.workspace-file-local-comment-input::placeholder {
+  color: var(--text-subtle);
+}
+
+.workspace-file-local-comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.workspace-file-local-comment-cancel,
+.workspace-file-local-comment-save,
+.workspace-file-local-comment-delete {
+  min-height: 30px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 11px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.workspace-file-local-comment-cancel {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.workspace-file-local-comment-save {
+  background: var(--text-main);
+  color: var(--text-inverse);
+}
+
+.workspace-file-local-comment-save:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.workspace-file-local-comment-card {
+  padding-bottom: 10px;
+}
+
+.workspace-file-local-comment-card p {
+  margin: 0;
+  padding: 12px;
+  color: var(--text-main);
+  font-family: var(--font-sans, inherit);
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.workspace-file-local-comment-delete {
+  margin-left: 12px;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.workspace-file-local-comment-delete:hover,
+.workspace-file-local-comment-cancel:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
 /* Compact file-list view (expanded mode) */
 .workspace-diff-compact-list {
   list-style: none;

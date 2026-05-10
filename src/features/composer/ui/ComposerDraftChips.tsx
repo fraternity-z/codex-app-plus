@@ -25,7 +25,9 @@ export function ComposerDraftChips(props: ComposerDraftChipsProps): JSX.Element 
         <AttachmentClip
           key={attachment.id}
           label={getAttachmentLabel(attachment)}
-          tone={attachment.kind}
+          title={resolveAttachmentTitle(attachment)}
+          tone={attachment.kind === "image" ? "image" : "file"}
+          className={attachment.kind === "localComment" ? "attachment-clip-local-comment" : undefined}
           previewImageSrc={resolveAttachmentPreviewSource(attachment)}
           previewDialogLabel={t("home.conversation.generatedImage.previewDialog")}
           previewAlt={t("home.conversation.generatedImage.alt")}
@@ -55,4 +57,11 @@ function resolveAttachmentPreviewSource(attachment: ComposerAttachment): string 
   }
 
   return attachment.value;
+}
+
+function resolveAttachmentTitle(attachment: ComposerAttachment): string | undefined {
+  if (attachment.kind !== "localComment") {
+    return undefined;
+  }
+  return `${attachment.value}:L${attachment.line}\n${attachment.comment}`;
 }

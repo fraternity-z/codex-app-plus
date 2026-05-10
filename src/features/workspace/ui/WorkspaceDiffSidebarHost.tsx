@@ -3,6 +3,7 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 import type { GitWorkspaceDiffOutput, HostBridge } from "../../../bridge/types";
 import type { WorkspaceGitController } from "../../git/model/types";
 import type { DiffViewStyle } from "../../git/hooks/useDiffSidebarLayout";
+import type { CreateLocalCodeCommentInput, LocalCodeComment } from "../model/localCodeComments";
 
 const LazyWorkspaceDiffSidebar = lazy(async () => {
   const module = await import("../../git/ui/WorkspaceDiffSidebar");
@@ -23,6 +24,9 @@ interface WorkspaceDiffSidebarHostProps {
   readonly onSelectDiffPath?: (path: string | null) => void;
   readonly onDiffItemsChange?: (items: ReadonlyArray<GitWorkspaceDiffOutput>) => void;
   readonly browserOpenRequest?: { readonly id: number; readonly url: string | null } | null;
+  readonly localCodeComments?: ReadonlyArray<LocalCodeComment>;
+  readonly onCreateLocalCodeComment?: (input: CreateLocalCodeCommentInput) => void;
+  readonly onDeleteLocalCodeComment?: (commentId: string) => void;
   readonly onResizeStart?: (event: ReactMouseEvent) => void;
   readonly canResize?: boolean;
   readonly isResizing?: boolean;
@@ -50,6 +54,9 @@ export function WorkspaceDiffSidebarHost(props: WorkspaceDiffSidebarHostProps): 
         onSelectDiffPath={props.onSelectDiffPath}
         onDiffItemsChange={props.onDiffItemsChange}
         browserOpenRequest={props.browserOpenRequest}
+        localCodeComments={props.localCodeComments}
+        onCreateLocalCodeComment={props.onCreateLocalCodeComment}
+        onDeleteLocalCodeComment={props.onDeleteLocalCodeComment}
         onResizeStart={props.onResizeStart}
         canResize={props.canResize}
         isResizing={props.isResizing}

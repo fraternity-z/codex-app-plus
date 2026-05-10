@@ -20,7 +20,7 @@ import {
 } from "../model/composerCloudHandoff";
 import type { SendTurnOptions } from "../../conversation/hooks/useWorkspaceConversation";
 import { useComposerSelection } from "../hooks/useComposerSelection";
-import type { CollaborationPreset, ComposerEnterBehavior, FollowUpMode, QueuedFollowUp } from "../../../domain/timeline";
+import type { CollaborationPreset, ComposerAttachment, ComposerEnterBehavior, FollowUpMode, QueuedFollowUp } from "../../../domain/timeline";
 import { ComposerAttachmentMenu } from "./ComposerAttachmentMenu";
 import { ComposerCommandPalette } from "./ComposerCommandPalette";
 import { ComposerDraftChips } from "./ComposerDraftChips";
@@ -65,6 +65,7 @@ export interface HomeComposerProps {
   readonly defaultServiceTier?: ComposerSelection["serviceTier"];
   readonly selectedRootPath: string | null;
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
+  readonly localCodeCommentAttachments?: ReadonlyArray<ComposerAttachment>;
   readonly followUpQueueMode: FollowUpMode;
   readonly composerEnterBehavior: ComposerEnterBehavior;
   readonly permissionLevel: ComposerPermissionLevel;
@@ -92,6 +93,8 @@ export interface HomeComposerProps {
   readonly onPromoteQueuedFollowUp: (followUpId: string) => Promise<void>;
   readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
   readonly onClearQueuedFollowUps: () => void;
+  readonly onRemoveLocalCodeCommentAttachment?: (attachmentId: string) => void;
+  readonly onClearLocalCodeCommentAttachments?: () => void;
 }
 
 export function HomeComposer(props: HomeComposerProps): JSX.Element {
@@ -125,6 +128,26 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     selectedThreadId: props.selectedThreadId,
     onInsertFilePaths: appendWorkspaceFilePaths,
   });
+  const localCodeCommentAttachments = props.localCodeCommentAttachments ?? [];
+  const localCodeCommentAttachmentIds = useMemo(
+    () => new Set(localCodeCommentAttachments.map((attachment) => attachment.id)),
+    [localCodeCommentAttachments],
+  );
+  const allAttachments = useMemo(
+    () => [...attachments, ...localCodeCommentAttachments],
+    [attachments, localCodeCommentAttachments],
+  );
+  const clearDraftAttachments = useCallback(() => {
+    clearAttachments();
+    props.onClearLocalCodeCommentAttachments?.();
+  }, [clearAttachments, props]);
+  const removeDraftAttachment = useCallback((attachmentId: string) => {
+    if (localCodeCommentAttachmentIds.has(attachmentId)) {
+      props.onRemoveLocalCodeCommentAttachment?.(attachmentId);
+      return;
+    }
+    removeAttachment(attachmentId);
+  }, [localCodeCommentAttachmentIds, props, removeAttachment]);
   const composerSelection = useComposerSelection(props.models, props.defaultModel, props.defaultEffort, defaultServiceTier);
   const { handleSelectModel, handleSelectEffort, handleSelectServiceTier } = useComposerSelectionPersistence({ models: props.models, defaultModel: props.defaultModel, defaultEffort: props.defaultEffort, defaultServiceTier, selectedModel: composerSelection.selectedModel, selectedEffort: composerSelection.selectedEffort, selectedServiceTier: composerSelection.selectedServiceTier, replaceSelection: composerSelection.replaceSelection, persistSelection: props.onPersistComposerSelection });
   const commandPalette = useComposerCommandPalette({
@@ -153,7 +176,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
   });
   const appServerReady = props.appServerReady !== false;
   const interactionDisabled = props.busy || sendPending || multiAgentPending || codexCloudPending;
-  const hasDraftToSend = hasDraftContent(composerBodyText, attachments.length > 0 || fileReferencePaths.length > 0);
+  const hasDraftToSend = hasDraftContent(composerBodyText, allAttachments.length > 0 || fileReferencePaths.length > 0);
   const canSend = appServerReady
     && !interactionDisabled
     && hasDraftToSend;
@@ -196,9 +219,9 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
         : null;
 
   const { handlePromoteQueuedFollowUp, submit } = useHomeComposerActions({
-    attachments,
+    attachments: allAttachments,
     canSend,
-    clearAttachments,
+    clearAttachments: clearDraftAttachments,
     collaborationPreset: props.collaborationPreset,
     composerSelection,
     dismissPalette: commandPalette.dismiss,
@@ -262,7 +285,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
         pushBanner({ level: "error", title: t("home.composer.codexCloudWorkspaceRequired") });
         return;
       }
-      if (attachments.length > 0) {
+      if (allAttachments.length > 0) {
         pushBanner({ level: "error", title: t("home.composer.codexCloudAttachmentsUnsupported") });
         return;
       }
@@ -306,7 +329,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
       }
     })();
   }, [
-    attachments,
+    allAttachments,
     codexCloudEnvironmentId,
     codexCloudPending,
     commandPalette,
@@ -357,10 +380,10 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
           {multiAgentPending ? <ComposerReloadOverlay /> : null}
           {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label={t("home.composer.closeAttachmentMenu")} onClick={() => setMenuOpen(false)} /> : null}
           {commandPalette.open ? <ComposerCommandPalette open={true} title={commandPalette.title} items={commandPalette.items} selectedIndex={commandPalette.selectedIndex} onSelectItem={commandPalette.onSelectItem} onHoverItem={commandPalette.onHoverItem} /> : null}
-          <ComposerDraftChips attachments={attachments} filePaths={fileReferencePaths} onRemoveAttachment={removeAttachment} onRemoveFilePath={removeFileReference} />
+          <ComposerDraftChips attachments={allAttachments} filePaths={fileReferencePaths} onRemoveAttachment={removeDraftAttachment} onRemoveFilePath={removeFileReference} />
           <div className="composer-input-wrap">
             {skillBadgeMatch !== null ? <ComposerSkillBadgeOverlay text={composerBodyText} match={skillBadgeMatch} textareaRef={commandPalette.textareaRef} /> : null}
-            <textarea ref={commandPalette.textareaRef} rows={1} className={skillBadgeMatch !== null ? "composer-input composer-input-has-badge" : "composer-input"} placeholder={getComposerPlaceholder(props.selectedRootPath)} value={composerBodyText} disabled={interactionDisabled} onPaste={(event) => void handlePaste(event)} onSelect={commandPalette.syncFromTextareaSelection} onKeyDown={(event) => handleInputKeyDown(event, props, attachments.length > 0 || fileReferencePaths.length > 0, commandPalette.handleKeyDown, submit)} onChange={(event) => handleInputChange(event.currentTarget.value, event.currentTarget.selectionStart, updateComposerBodyText, commandPalette.syncFromTextInput)} />
+            <textarea ref={commandPalette.textareaRef} rows={1} className={skillBadgeMatch !== null ? "composer-input composer-input-has-badge" : "composer-input"} placeholder={getComposerPlaceholder(props.selectedRootPath)} value={composerBodyText} disabled={interactionDisabled} onPaste={(event) => void handlePaste(event)} onSelect={commandPalette.syncFromTextareaSelection} onKeyDown={(event) => handleInputKeyDown(event, props, allAttachments.length > 0 || fileReferencePaths.length > 0, commandPalette.handleKeyDown, submit)} onChange={(event) => handleInputChange(event.currentTarget.value, event.currentTarget.selectionStart, updateComposerBodyText, commandPalette.syncFromTextInput)} />
           </div>
           <div className={dictation.listening ? "composer-bar composer-bar-dictating" : "composer-bar"}>
             {dictation.listening ? (

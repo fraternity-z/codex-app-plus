@@ -20,6 +20,7 @@ import type {
 } from "../../../domain/types";
 import type {
   CollaborationPreset,
+  ComposerAttachment,
   ComposerEnterBehavior,
   ConversationMessage,
   FollowUpMode,
@@ -69,6 +70,7 @@ export interface HomeViewMainContentProps {
   readonly account: AccountSummary | null;
   readonly rateLimitSummary: string | null;
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
+  readonly localCodeCommentAttachments?: ReadonlyArray<ComposerAttachment>;
   readonly collaborationPreset: CollaborationPreset;
   readonly models: ReadonlyArray<ComposerModelOption>;
   readonly defaultModel: string | null;
@@ -115,6 +117,8 @@ export interface HomeViewMainContentProps {
   readonly onPromoteQueuedFollowUp: (followUpId: string) => Promise<void>;
   readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
   readonly onClearQueuedFollowUps: () => void;
+  readonly onRemoveLocalCodeCommentAttachment?: (attachmentId: string) => void;
+  readonly onClearLocalCodeCommentAttachments?: () => void;
   readonly onCreateThread: () => Promise<void>;
   readonly onTogglePetAwake: () => void;
   readonly onToggleDiff: () => void;
@@ -172,7 +176,6 @@ interface HomeToolbarSectionProps {
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
   readonly onToggleDiff: () => void;
   readonly onToggleTerminal: () => void;
-  readonly selectedRootName: string;
   readonly selectedRootPath: string | null;
   readonly selectedThreadTitle: string | null;
   readonly terminalOpen: boolean;
@@ -191,7 +194,6 @@ const HomeToolbarSection = memo(function HomeToolbarSection(
         gitController={props.gitController}
         launchState={props.launchState}
         workspaceOpener={props.workspaceOpener}
-        selectedRootName={props.selectedRootName}
         selectedRootPath={props.selectedRootPath}
         selectedThreadTitle={props.selectedThreadTitle}
         terminalOpen={props.terminalOpen}
@@ -304,6 +306,7 @@ interface HomeComposerSectionProps {
   readonly multiAgentAvailable?: boolean;
   readonly multiAgentEnabled?: boolean;
   readonly onClearQueuedFollowUps: () => void;
+  readonly localCodeCommentAttachments?: ReadonlyArray<ComposerAttachment>;
   readonly onCreateThread: () => Promise<void>;
   readonly onInputChange: (text: string) => void;
   readonly onInterruptTurn: () => Promise<void>;
@@ -312,6 +315,8 @@ interface HomeComposerSectionProps {
   readonly onPersistComposerSelection: (selection: ComposerSelection) => Promise<void>;
   readonly onPromoteQueuedFollowUp: (followUpId: string) => Promise<void>;
   readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
+  readonly onRemoveLocalCodeCommentAttachment?: (attachmentId: string) => void;
+  readonly onClearLocalCodeCommentAttachments?: () => void;
   readonly onSelectCollaborationPreset: (preset: CollaborationPreset) => void;
   readonly onSelectComposerPermissionLevel: (level: ComposerPermissionLevel) => void;
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
@@ -345,6 +350,7 @@ const HomeComposerSection = memo(function HomeComposerSection(
       defaultServiceTier={props.defaultServiceTier ?? null}
       selectedRootPath={props.selectedRootPath}
       queuedFollowUps={props.queuedFollowUps}
+      localCodeCommentAttachments={props.localCodeCommentAttachments}
       followUpQueueMode={props.followUpQueueMode}
       composerEnterBehavior={props.composerEnterBehavior}
       permissionLevel={props.composerPermissionLevel}
@@ -372,6 +378,8 @@ const HomeComposerSection = memo(function HomeComposerSection(
       onPromoteQueuedFollowUp={props.onPromoteQueuedFollowUp}
       onRemoveQueuedFollowUp={props.onRemoveQueuedFollowUp}
       onClearQueuedFollowUps={props.onClearQueuedFollowUps}
+      onRemoveLocalCodeCommentAttachment={props.onRemoveLocalCodeCommentAttachment}
+      onClearLocalCodeCommentAttachments={props.onClearLocalCodeCommentAttachments}
     />
   );
 });
@@ -486,7 +494,6 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
         gitController={props.gitController}
         launchState={props.launchState}
         workspaceOpener={props.workspaceOpener}
-        selectedRootName={props.selectedRootName}
         selectedRootPath={props.selectedRootPath}
         selectedThreadTitle={props.selectedThread?.title ?? null}
         terminalOpen={props.terminalOpen}
@@ -576,7 +583,9 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           models={props.models}
           multiAgentAvailable={props.multiAgentAvailable ?? false}
           multiAgentEnabled={props.multiAgentEnabled ?? false}
+          localCodeCommentAttachments={props.localCodeCommentAttachments}
           onClearQueuedFollowUps={props.onClearQueuedFollowUps}
+          onClearLocalCodeCommentAttachments={props.onClearLocalCodeCommentAttachments}
           onCreateThread={props.onCreateThread}
           onInputChange={props.onInputChange}
           onInterruptTurn={props.onInterruptTurn}
@@ -585,6 +594,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           onPersistComposerSelection={props.onPersistComposerSelection}
           onPromoteQueuedFollowUp={props.onPromoteQueuedFollowUp}
           onRemoveQueuedFollowUp={props.onRemoveQueuedFollowUp}
+          onRemoveLocalCodeCommentAttachment={props.onRemoveLocalCodeCommentAttachment}
           onSelectCollaborationPreset={props.onSelectCollaborationPreset}
           onSelectComposerPermissionLevel={props.onSelectComposerPermissionLevel}
           onSendTurn={props.onSendTurn}

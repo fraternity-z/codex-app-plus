@@ -12,7 +12,6 @@ const MAX_TOOLBAR_TITLE_LENGTH = 24;
 interface HomeMainToolbarProps {
   readonly hostBridge: HostBridge;
   readonly conversationActive: boolean;
-  readonly selectedRootName: string;
   readonly selectedRootPath: string | null;
   readonly selectedThreadTitle: string | null;
   readonly terminalOpen: boolean;
@@ -75,11 +74,6 @@ export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
   const { t } = useI18n();
   const title = resolveTitle(props, t("home.toolbar.conversation"));
   const displayTitle = title === null ? null : truncateToolbarTitle(title);
-  const subtitle = props.conversationActive && props.selectedRootPath !== null
-    ? props.workspaceSwitching
-      ? `${props.selectedRootName} · ${t("home.toolbar.switching")}`
-      : props.selectedRootName
-    : null;
   const terminalLabel = props.terminalOpen ? t("home.toolbar.hideTerminal") : t("home.toolbar.showTerminal");
   const diffLabel = props.diffOpen ? t("home.toolbar.hideDiffSidebar") : t("home.toolbar.showDiffSidebar");
   const toolbarClassName = props.conversationActive ? "main-toolbar main-toolbar-conversation" : "main-toolbar";
@@ -89,7 +83,6 @@ export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
     <header className={toolbarClassName}>
       <div className="toolbar-heading">
         {title === null ? null : <h1 className={titleClassName} title={title}>{displayTitle}</h1>}
-        {subtitle === null ? null : <p className="toolbar-subtitle">{subtitle}</p>}
       </div>
       <div className="toolbar-actions">
         {props.launchState === null || props.launchState === undefined ? null : (

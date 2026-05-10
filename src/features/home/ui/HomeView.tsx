@@ -28,6 +28,7 @@ import type {
 import type { RateLimitSnapshot } from "../../../protocol/generated/v2/RateLimitSnapshot";
 import type {
   CollaborationPreset,
+  ComposerAttachment,
   ComposerEnterBehavior,
   FollowUpMode,
   QueuedFollowUp,
@@ -43,6 +44,13 @@ import { TerminalDock } from "../../terminal/ui/TerminalDock";
 import { TerminalPanel } from "../../terminal/ui/TerminalPanel";
 import { WorkspaceDiffSidebarHost } from "../../workspace/ui/WorkspaceDiffSidebarHost";
 import type { UpdateWorkspaceLaunchScriptsInput } from "../../workspace/hooks/useWorkspaceRoots";
+import {
+  createLocalCodeComment,
+  createLocalCodeCommentAttachment,
+  readLocalCodeComments,
+  writeLocalCodeComments,
+  type CreateLocalCodeCommentInput,
+} from "../../workspace/model/localCodeComments";
 import { extractConnectionRetryInfo } from "../model/homeConnectionRetry";
 import { HomeSidebar, type HomeNavItem } from "./HomeSidebar";
 import { HomeViewMainContent } from "./HomeViewMainContent";
@@ -158,6 +166,8 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
   const uiState = useHomeViewUiState(props.selectedRootPath, props.sidebarCollapsed ?? false);
   const diffLayout = useDiffSidebarLayout();
   const [diffItems, setDiffItems] = useState<ReadonlyArray<GitWorkspaceDiffOutput>>([]);
+  const [localCodeComments, setLocalCodeComments] = useState(readLocalCodeComments);
+  const [draftLocalCodeCommentIds, setDraftLocalCodeCommentIds] = useState<ReadonlyArray<string>>([]);
   const [browserOpenRequest, setBrowserOpenRequest] = useState<{
     readonly id: number;
     readonly url: string | null;
@@ -204,6 +214,51 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
     terminalController,
     updateWorkspaceLaunchScripts: props.onUpdateWorkspaceLaunchScripts,
   });
+
+  useEffect(() => {
+    writeLocalCodeComments(localCodeComments);
+  }, [localCodeComments]);
+
+  useEffect(() => {
+    if (draftLocalCodeCommentIds.length === 0) {
+      return;
+    }
+    const visibleCommentIds = new Set(localCodeComments.map((comment) => comment.id));
+    setDraftLocalCodeCommentIds((current) => current.filter((commentId) => visibleCommentIds.has(commentId)));
+  }, [draftLocalCodeCommentIds.length, localCodeComments]);
+
+  useEffect(() => {
+    setDraftLocalCodeCommentIds([]);
+  }, [props.selectedRootPath, props.selectedThreadId]);
+
+  const draftLocalCodeCommentAttachments = useMemo<ReadonlyArray<ComposerAttachment>>(() => {
+    if (draftLocalCodeCommentIds.length === 0) {
+      return [];
+    }
+    const selectedIds = new Set(draftLocalCodeCommentIds);
+    return localCodeComments
+      .filter((comment) => selectedIds.has(comment.id))
+      .map(createLocalCodeCommentAttachment);
+  }, [draftLocalCodeCommentIds, localCodeComments]);
+
+  const handleCreateLocalCodeComment = useCallback((input: CreateLocalCodeCommentInput) => {
+    const comment = createLocalCodeComment(input);
+    setLocalCodeComments((current) => [...current, comment]);
+    setDraftLocalCodeCommentIds((current) => [...current.filter((commentId) => commentId !== comment.id), comment.id]);
+  }, []);
+
+  const handleDeleteLocalCodeComment = useCallback((commentId: string) => {
+    setLocalCodeComments((current) => current.filter((comment) => comment.id !== commentId));
+    setDraftLocalCodeCommentIds((current) => current.filter((id) => id !== commentId));
+  }, []);
+
+  const handleRemoveLocalCodeCommentAttachment = useCallback((attachmentId: string) => {
+    setDraftLocalCodeCommentIds((current) => current.filter((id) => id !== attachmentId));
+  }, []);
+
+  const handleClearLocalCodeCommentAttachments = useCallback(() => {
+    setDraftLocalCodeCommentIds([]);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -267,7 +322,12 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
     >
       <HomeSidebar {...sidebarProps} />
       {mainContentOverride === null ? (
-        <HomeViewMainContent {...contentProps} />
+        <HomeViewMainContent
+          {...contentProps}
+          localCodeCommentAttachments={draftLocalCodeCommentAttachments}
+          onRemoveLocalCodeCommentAttachment={handleRemoveLocalCodeCommentAttachment}
+          onClearLocalCodeCommentAttachments={handleClearLocalCodeCommentAttachments}
+        />
       ) : (
         <main className="replica-main replica-main-embedded-screen">
           {mainContentOverride}
@@ -293,6 +353,9 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
           onSelectDiffPath={diffLayout.setSelectedDiffPath}
           onDiffItemsChange={setDiffItems}
           browserOpenRequest={browserOpenRequest}
+          localCodeComments={localCodeComments}
+          onCreateLocalCodeComment={handleCreateLocalCodeComment}
+          onDeleteLocalCodeComment={handleDeleteLocalCodeComment}
           onResizeStart={diffLayout.startResize}
           canResize={!diffLayout.expanded}
           isResizing={diffLayout.isResizing}

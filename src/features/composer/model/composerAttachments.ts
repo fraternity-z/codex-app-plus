@@ -55,7 +55,13 @@ export function buildComposerUserInputs(
 ): Array<UserInput> {
   const inputs: Array<UserInput> = [];
   const fileReferenceDraft = parseComposerFileReferenceDraft(text);
-  const trimmedText = expandComposerFileReferenceDraft(text).trim();
+  const commentTextParts = attachments
+    .filter((attachment) => attachment.kind === "localComment")
+    .map((attachment) => formatLocalCodeCommentForPrompt(attachment, agentEnvironment));
+  const trimmedText = [
+    expandComposerFileReferenceDraft(text).trim(),
+    ...commentTextParts,
+  ].filter((part) => part.length > 0).join("\n\n");
   const mentionPaths = new Set<string>();
 
   if (trimmedText.length > 0) {
@@ -69,6 +75,19 @@ export function buildComposerUserInputs(
     }
     if (attachment.source === "dataUrl") {
       inputs.push({ type: "image", url: attachment.value });
+      continue;
+    }
+    if (attachment.kind === "localComment") {
+      const commentPath = resolveAttachmentInputPath(attachment.value, agentEnvironment);
+      if (mentionPaths.has(commentPath)) {
+        continue;
+      }
+      mentionPaths.add(commentPath);
+      inputs.push({
+        type: "mention",
+        name: getBaseName(commentPath),
+        path: commentPath,
+      });
       continue;
     }
     const attachmentPath = resolveAttachmentInputPath(attachment.value, agentEnvironment);
@@ -187,6 +206,9 @@ export function getAttachmentLabel(
   if (attachment.kind === "image") {
     return attachment.name ?? CLIPBOARD_IMAGE_BASENAME;
   }
+  if (attachment.kind === "localComment") {
+    return attachment.name;
+  }
   return attachment.name ?? NAMELESS_PATH_LABEL;
 }
 
@@ -211,6 +233,21 @@ function createComposerAttachmentFromPath(path: string): ComposerAttachment {
 
 function createComposerAttachmentId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function formatLocalCodeCommentForPrompt(
+  attachment: Extract<ComposerAttachment, { readonly kind: "localComment" }>,
+  agentEnvironment: AgentEnvironment,
+): string {
+  const path = resolveAttachmentInputPath(attachment.value, agentEnvironment);
+  const lineText = attachment.lineText.trim();
+  return [
+    "本地评论",
+    `文件: ${path}`,
+    `行: ${attachment.line}`,
+    lineText.length > 0 ? `代码: ${lineText}` : null,
+    `评论: ${attachment.comment.trim()}`,
+  ].filter((part): part is string => part !== null && part.length > 0).join("\n");
 }
 
 function getBaseName(path: string): string {

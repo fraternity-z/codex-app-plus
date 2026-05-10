@@ -8,6 +8,8 @@ import { BrowserSidebarPanel } from "../../browser/ui/BrowserSidebarPanel";
 import { OfficialCloseIcon, OfficialFolderIcon, OfficialPlusIcon } from "../../shared/ui/officialIcons";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import { SidebarIcon } from "../../shared/ui/icons";
+import type { CreateLocalCodeCommentInput, LocalCodeComment } from "../../workspace/model/localCodeComments";
+import { WorkspaceFileViewer } from "../../workspace/ui/WorkspaceFileViewer";
 import { useWorkspaceDiffViewer } from "../hooks/useWorkspaceDiffViewer";
 import { getGitViewState, type GitViewState } from "../model/gitViewState";
 import type { WorkspaceGitController } from "../model/types";
@@ -30,8 +32,13 @@ import { WorkspaceDiffViewer } from "./WorkspaceDiffViewer";
 import { WorkspaceDiffFileList } from "./WorkspaceDiffFileList";
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
 
-type WorkspaceSidePanelTab = "review" | "browser";
+type WorkspaceSidePanelTab = "review" | "file" | "browser";
 type BrowserOpenRequest = { readonly id: number; readonly url: string | null };
+
+interface OpenedFileTab {
+  readonly path: string;
+  readonly name: string;
+}
 
 interface WorkspaceDiffSidebarProps {
   readonly hostBridge: HostBridge;
@@ -48,6 +55,9 @@ interface WorkspaceDiffSidebarProps {
   readonly onSelectDiffPath?: (path: string | null) => void;
   readonly onDiffItemsChange?: (items: ReadonlyArray<GitWorkspaceDiffOutput>) => void;
   readonly browserOpenRequest?: BrowserOpenRequest | null;
+  readonly localCodeComments?: ReadonlyArray<LocalCodeComment>;
+  readonly onCreateLocalCodeComment?: (input: CreateLocalCodeCommentInput) => void;
+  readonly onDeleteLocalCodeComment?: (commentId: string) => void;
   readonly onResizeStart?: (event: ReactMouseEvent) => void;
   readonly canResize?: boolean;
   readonly isResizing?: boolean;
@@ -76,6 +86,10 @@ function resolveProjectFilePath(file: FuzzyFileSearchResult): string {
   const root = file.root.replace(/[\\/]+$/, "");
   const relativePath = file.path.replace(/^[\\/]+/, "");
   return `${root}${separator}${relativePath}`;
+}
+
+function getFileTabName(path: string): string {
+  return path.replace(/[\\/]+$/, "").split(/[\\/]/).filter(Boolean).pop() ?? path;
 }
 
 function ReviewTabIcon(props: { readonly className?: string }): JSX.Element {
@@ -128,10 +142,12 @@ function DiffChangeSummary(props: {
 interface SidePanelHeaderProps {
   readonly activeTab: WorkspaceSidePanelTab;
   readonly browserTabOpen: boolean;
+  readonly fileTab: OpenedFileTab | null;
   readonly expanded: boolean;
   readonly onSelectTab: (tab: WorkspaceSidePanelTab) => void;
   readonly onOpenFile: () => void;
   readonly onOpenBrowser: () => void;
+  readonly onCloseFileTab: () => void;
   readonly onCloseBrowserTab: () => void;
   readonly onClose: () => void;
   readonly onToggleExpanded?: () => void;
@@ -143,6 +159,7 @@ function SidePanelHeader(props: SidePanelHeaderProps): JSX.Element {
   const closeMenu = useCallback(() => setMenuOpen(false), []);
   const tabs: ReadonlyArray<{ readonly id: WorkspaceSidePanelTab; readonly label: string }> = [
     { id: "review", label: "审查" },
+    ...(props.fileTab === null ? [] : [{ id: "file" as const, label: props.fileTab.name }]),
     ...(props.browserTabOpen ? [{ id: "browser" as const, label: "浏览器" }] : []),
   ];
   const expandLabel = props.expanded ? "收起侧边栏预览" : "展开侧边栏预览";
@@ -155,7 +172,7 @@ function SidePanelHeader(props: SidePanelHeaderProps): JSX.Element {
       <div className="workspace-side-panel-tabs" role="tablist" aria-label="侧边面板标签页">
         {tabs.map((tab) => {
           const active = props.activeTab === tab.id;
-          const TabIcon = tab.id === "review" ? ReviewTabIcon : null;
+          const TabIcon = tab.id === "review" ? ReviewTabIcon : tab.id === "file" ? OfficialFolderIcon : null;
           const tabButton = (
             <button
               key={tab.id}
@@ -169,9 +186,11 @@ function SidePanelHeader(props: SidePanelHeaderProps): JSX.Element {
               <span>{tab.label}</span>
             </button>
           );
-          if (tab.id !== "browser") {
+          if (tab.id === "review") {
             return tabButton;
           }
+          const closeLabel = tab.id === "file" ? "关闭文件标签页" : "关闭浏览器标签页";
+          const closeTab = tab.id === "file" ? props.onCloseFileTab : props.onCloseBrowserTab;
           return (
             <div
               key={tab.id}
@@ -182,9 +201,9 @@ function SidePanelHeader(props: SidePanelHeaderProps): JSX.Element {
               <button
                 type="button"
                 className="workspace-side-panel-tab-close"
-                aria-label="关闭浏览器标签页"
-                title="关闭浏览器标签页"
-                onClick={props.onCloseBrowserTab}
+                aria-label={closeLabel}
+                title={closeLabel}
+                onClick={closeTab}
               >
                 <OfficialCloseIcon className="workspace-side-panel-tab-close-icon" />
               </button>
@@ -536,6 +555,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
   const [scope, setScope] = useDiffScope(props.open, props.controller);
   const [activeTab, setActiveTab] = useState<WorkspaceSidePanelTab>("review");
   const [browserTabOpen, setBrowserTabOpen] = useState(false);
+  const [fileTab, setFileTab] = useState<OpenedFileTab | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [fileSearchOpen, setFileSearchOpen] = useState(false);
   const viewState = getGitViewState(props.selectedRootName, props.controller);
@@ -602,13 +622,16 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
 
   const handleOpenProjectFile = useCallback(async (path: string) => {
     setActionError(null);
-    try {
-      await props.hostBridge.app.openFileInEditor({ path });
-      setFileSearchOpen(false);
-    } catch (error) {
-      setActionError(`打开文件失败：${toErrorMessage(error)}`);
-    }
-  }, [props.hostBridge.app]);
+    setFileTab({ path, name: getFileTabName(path) });
+    setFileSearchOpen(false);
+    setActiveTab("file");
+  }, []);
+
+  const handleCloseFileTab = useCallback(() => {
+    setActionError(null);
+    setFileTab(null);
+    setActiveTab((currentTab) => (currentTab === "file" ? "review" : currentTab));
+  }, []);
 
   const handleOpenBrowserTab = useCallback(() => {
     setActionError(null);
@@ -624,11 +647,14 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
 
   const handleSelectTab = useCallback((tab: WorkspaceSidePanelTab) => {
     setActionError(null);
+    if (tab === "file" && fileTab === null) {
+      return;
+    }
     if (tab === "browser") {
       setBrowserTabOpen(true);
     }
     setActiveTab(tab);
-  }, []);
+  }, [fileTab]);
 
   useEffect(() => {
     if (!props.open || props.browserOpenRequest === undefined || props.browserOpenRequest === null) {
@@ -664,8 +690,15 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
   useEffect(() => {
     if (!props.open || props.selectedRootPath === null) {
       setFileSearchOpen(false);
+      setFileTab(null);
     }
   }, [props.open, props.selectedRootPath]);
+
+  useEffect(() => {
+    if (activeTab === "file" && fileTab === null) {
+      setActiveTab("review");
+    }
+  }, [activeTab, fileTab]);
 
   if (!props.open || props.selectedRootPath === null) {
     return null;
@@ -739,6 +772,15 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
       hostBridge={props.hostBridge}
       openRequest={props.browserOpenRequest ?? null}
     />
+  ) : activeTab === "file" && fileTab !== null ? (
+    <WorkspaceFileViewer
+      hostBridge={props.hostBridge}
+      rootPath={props.selectedRootPath}
+      path={fileTab.path}
+      comments={props.localCodeComments}
+      onCreateComment={props.onCreateLocalCodeComment}
+      onDeleteComment={props.onDeleteLocalCodeComment}
+    />
   ) : reviewContent;
 
   return (
@@ -747,10 +789,12 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
       <SidePanelHeader
         activeTab={activeTab}
         browserTabOpen={browserTabOpen}
+        fileTab={fileTab}
         expanded={expanded}
         onSelectTab={handleSelectTab}
         onOpenFile={handleOpenFile}
         onOpenBrowser={handleOpenBrowserTab}
+        onCloseFileTab={handleCloseFileTab}
         onCloseBrowserTab={handleCloseBrowserTab}
         onClose={props.onClose}
         onToggleExpanded={props.onToggleExpanded}

@@ -818,6 +818,16 @@ describe("HomeView", () => {
     expect(screen.queryByRole("heading", { level: 1 })).toBeNull();
   });
 
+  it("does not show the workspace name under the active conversation title", () => {
+    const { container } = renderHomeView();
+
+    const toolbar = container.querySelector(".main-toolbar");
+    expect(toolbar).not.toBeNull();
+    expect(toolbar).toHaveTextContent("First thread");
+    expect(toolbar).not.toHaveTextContent("FPGA");
+    expect(toolbar?.querySelector(".toolbar-subtitle")).toBeNull();
+  });
+
   it("shows the current workspace empty state after creating a draft thread", () => {
     renderHomeView({
       selectedThread: null,

@@ -348,6 +348,12 @@
   border-color: var(--border-light);
 }
 
+.attachment-clip-local-comment {
+  background: var(--surface-panel-soft);
+  border-color: var(--border-light);
+  color: var(--text-main);
+}
+
 .attachment-clip-main {
   min-width: 0;
   max-width: 100%;

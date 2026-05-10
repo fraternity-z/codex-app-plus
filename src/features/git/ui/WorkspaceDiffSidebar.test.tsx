@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type {
@@ -77,6 +77,10 @@ function createViewerDiff(overrides?: Partial<GitWorkspaceDiffOutput>): GitWorks
     deletions: 1,
     ...overrides,
   };
+}
+
+function encodeUtf8Base64(value: string): string {
+  return Buffer.from(value, "utf8").toString("base64");
 }
 
 function createController(overrides?: Partial<WorkspaceGitController>): WorkspaceGitController {
@@ -283,24 +287,30 @@ describe("WorkspaceDiffSidebar", () => {
     expect(screen.queryByText("GitHub CLI")).toBeNull();
   });
 
-  it("opens a project file search dialog and opens the selected result", async () => {
+  it("opens a project file search dialog and renders the selected file in the side panel", async () => {
     const getWorkspaceDiffs = vi.fn().mockResolvedValue([]);
-    const request = vi.fn().mockResolvedValue({
-      requestId: "search-1",
-      result: {
-        files: [{
-          root: "E:/code/project",
-          path: "src/App.tsx",
-          match_type: "file",
-          file_name: "App.tsx",
-          score: 100,
-          indices: null,
-        }],
-      },
+    const request = vi.fn().mockImplementation(async (input: { readonly method: string }) => {
+      if (input.method === "fs/readFile") {
+        return {
+          requestId: "read-1",
+          result: { dataBase64: encodeUtf8Base64("export const answer = 1\n") },
+        };
+      }
+      return {
+        requestId: "search-1",
+        result: {
+          files: [{
+            root: "E:/code/project",
+            path: "src/App.tsx",
+            match_type: "file",
+            file_name: "App.tsx",
+            score: 100,
+            indices: null,
+          }],
+        },
+      };
     });
-    const openFileInEditor = vi.fn().mockResolvedValue(undefined);
     const hostBridge = {
-      app: { openFileInEditor },
       git: { getWorkspaceDiffs },
       rpc: { request },
     } as unknown as HostBridge;
@@ -328,10 +338,79 @@ describe("WorkspaceDiffSidebar", () => {
     expect(resultButton).not.toBeNull();
     fireEvent.click(resultButton!);
 
-    await waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith({
-      path: "E:/code/project/src/App.tsx",
+    await waitFor(() => expect(request).toHaveBeenCalledWith({
+      method: "fs/readFile",
+      params: {
+        path: "E:/code/project/src/App.tsx",
+      },
     }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "搜索文件" })).not.toBeInTheDocument());
+    expect(screen.getByRole("tab", { name: "App.tsx" })).toHaveAttribute("aria-selected", "true");
+    const fileViewer = screen.getByRole("region", { name: "文件 App.tsx" });
+    const breadcrumb = within(fileViewer).getByRole("navigation", { name: "文件路径" });
+    expect(within(breadcrumb).getByText("project")).toBeInTheDocument();
+    expect(within(breadcrumb).getByText("src")).toBeInTheDocument();
+    expect(within(breadcrumb).getByText("App.tsx")).toBeInTheDocument();
+    expect(within(fileViewer).queryByText("只读")).toBeNull();
+    expect(within(fileViewer).getByRole("button", { name: "更多文件操作" })).toBeInTheDocument();
+    expect(within(fileViewer).getByRole("button", { name: "在外部打开文件" })).toBeInTheDocument();
+    expect(within(fileViewer).getByRole("button", { name: "显示文件所在文件夹" })).toBeInTheDocument();
+    expect(await screen.findByText((_, node) => node?.textContent === "export const answer = 1")).toBeInTheDocument();
+  });
+
+  it("creates a local comment from an opened file line", async () => {
+    const getWorkspaceDiffs = vi.fn().mockResolvedValue([]);
+    const request = vi.fn().mockImplementation(async (input: { readonly method: string }) => {
+      if (input.method === "fs/readFile") {
+        return {
+          requestId: "read-1",
+          result: { dataBase64: encodeUtf8Base64("export const answer = 1\n") },
+        };
+      }
+      return {
+        requestId: "search-1",
+        result: {
+          files: [{
+            root: "E:/code/project",
+            path: "src/App.tsx",
+            match_type: "file",
+            file_name: "App.tsx",
+            score: 100,
+            indices: null,
+          }],
+        },
+      };
+    });
+    const onCreateLocalCodeComment = vi.fn();
+    const hostBridge = {
+      git: { getWorkspaceDiffs },
+      rpc: { request },
+    } as unknown as HostBridge;
+
+    renderSidebar(createController(), hostBridge, { onCreateLocalCodeComment });
+
+    fireEvent.click(screen.getByRole("button", { name: "打开侧边面板标签页" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /打开文件/ }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "输入内容搜索文件" }), {
+      target: { value: "app" },
+    });
+    const resultButton = (await screen.findByText("App.tsx")).closest("button");
+    fireEvent.click(resultButton!);
+
+    await screen.findByText((_, node) => node?.textContent === "export const answer = 1");
+    fireEvent.click(screen.getByRole("button", { name: "评论第 1 行" }));
+    fireEvent.change(screen.getByPlaceholderText("请求更改"), {
+      target: { value: "请把变量名改得更明确" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "注释" }));
+
+    expect(onCreateLocalCodeComment).toHaveBeenCalledWith({
+      rootPath: "E:/code/project",
+      filePath: "E:/code/project/src/App.tsx",
+      line: 1,
+      lineText: "export const answer = 1",
+      text: "请把变量名改得更明确",
+    });
   });
 
   it("renders empty diff state when the batch result is empty", async () => {

@@ -283,6 +283,63 @@ describe("HomeComposer attachments", () => {
     expect(onInterruptTurn).not.toHaveBeenCalled();
   });
 
+  it("sends local code comment chips as composer attachments and clears draft chips after success", async () => {
+    const onSendTurn = vi.fn().mockResolvedValue(undefined);
+    const onClearLocalCodeCommentAttachments = vi.fn();
+    renderComposer({
+      inputText: "",
+      onSendTurn,
+      localCodeCommentAttachments: [{
+        id: "comment-1",
+        kind: "localComment",
+        source: "localCodeComment",
+        name: "1 个评论",
+        value: "E:/code/codex-app-plus/src/App.tsx",
+        line: 12,
+        lineText: "const name = value",
+        comment: "这里的命名不清晰",
+      }],
+      onClearLocalCodeCommentAttachments,
+    });
+
+    expect(screen.getByText("1 个评论")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send message" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({
+      text: "",
+      attachments: [expect.objectContaining({
+        kind: "localComment",
+        value: "E:/code/codex-app-plus/src/App.tsx",
+        line: 12,
+        comment: "这里的命名不清晰",
+      })],
+    })));
+    expect(onClearLocalCodeCommentAttachments).toHaveBeenCalled();
+  });
+
+  it("removes local code comment chips through the parent callback", () => {
+    const onRemoveLocalCodeCommentAttachment = vi.fn();
+    renderComposer({
+      localCodeCommentAttachments: [{
+        id: "comment-1",
+        kind: "localComment",
+        source: "localCodeComment",
+        name: "1 个评论",
+        value: "E:/code/codex-app-plus/src/App.tsx",
+        line: 12,
+        lineText: "const name = value",
+        comment: "这里的命名不清晰",
+      }],
+      onRemoveLocalCodeCommentAttachment,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove 1 个评论" }));
+
+    expect(onRemoveLocalCodeCommentAttachment).toHaveBeenCalledWith("comment-1");
+  });
+
   it("shows and toggles multi-agent when available", async () => {
     const onSetMultiAgentEnabled = vi.fn().mockResolvedValue(undefined);
     renderComposer({ multiAgentAvailable: true, multiAgentEnabled: false, onSetMultiAgentEnabled });

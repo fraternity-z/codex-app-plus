@@ -101,6 +101,30 @@ describe("composerAttachments", () => {
     ]);
   });
 
+  it("expands local code comments into text context and a file mention", () => {
+    const inputs = buildComposerUserInputs("please inspect", [
+      {
+        id: "comment-1",
+        kind: "localComment",
+        source: "localCodeComment",
+        name: "1 个评论",
+        value: "E:/code/codex-app-plus/src/App.tsx",
+        line: 12,
+        lineText: "const name = value",
+        comment: "这里的命名不清晰",
+      },
+    ], "windowsNative");
+
+    expect(inputs).toEqual([
+      {
+        type: "text",
+        text: "please inspect\n\n本地评论\n文件: E:/code/codex-app-plus/src/App.tsx\n行: 12\n代码: const name = value\n评论: 这里的命名不清晰",
+        text_elements: [],
+      },
+      { type: "mention", name: "App.tsx", path: "E:/code/codex-app-plus/src/App.tsx" },
+    ]);
+  });
+
   it("resolves mention search results to absolute paths", () => {
     expect(resolveMentionAttachmentPath("E:/code/codex-app-plus", "src/App.tsx")).toBe("E:/code/codex-app-plus/src/App.tsx");
     expect(resolveMentionAttachmentPath("E:/code/codex-app-plus", "E:/code/codex-app-plus/src/App.tsx")).toBe("E:/code/codex-app-plus/src/App.tsx");

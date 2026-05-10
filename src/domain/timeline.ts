@@ -76,13 +76,37 @@ export interface ConversationFileAttachment {
 
 export type ConversationAttachment = ConversationImageAttachment | ConversationFileAttachment;
 
-export interface ComposerAttachment {
+export interface ComposerImageAttachment {
   readonly id: string;
-  readonly kind: "image" | "file";
-  readonly source: "localImage" | "dataUrl" | "mention";
+  readonly kind: "image";
+  readonly source: "localImage" | "dataUrl";
   readonly value: string;
   readonly name: string;
 }
+
+export interface ComposerFileAttachment {
+  readonly id: string;
+  readonly kind: "file";
+  readonly source: "mention";
+  readonly value: string;
+  readonly name: string;
+}
+
+export interface ComposerLocalCommentAttachment {
+  readonly id: string;
+  readonly kind: "localComment";
+  readonly source: "localCodeComment";
+  readonly value: string;
+  readonly name: string;
+  readonly line: number;
+  readonly lineText: string;
+  readonly comment: string;
+}
+
+export type ComposerAttachment =
+  | ComposerImageAttachment
+  | ComposerFileAttachment
+  | ComposerLocalCommentAttachment;
 
 export interface ConversationMessage extends TimelineBase {
   readonly kind: "userMessage" | "agentMessage";

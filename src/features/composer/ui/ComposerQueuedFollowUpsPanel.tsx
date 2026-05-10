@@ -68,7 +68,12 @@ export function ComposerQueuedFollowUpsPanel(props: ComposerQueuedFollowUpsPanel
                   {followUp.attachments.length === 0 ? null : (
                     <div className="composer-queue-attachments">
                       {followUp.attachments.map((attachment) => (
-                        <AttachmentClip key={attachment.id} label={getAttachmentLabel(attachment)} tone={attachment.kind} />
+                        <AttachmentClip
+                          key={attachment.id}
+                          label={getAttachmentLabel(attachment)}
+                          tone={attachment.kind === "image" ? "image" : "file"}
+                          className={attachment.kind === "localComment" ? "attachment-clip-local-comment" : undefined}
+                        />
                       ))}
                     </div>
                   )}
