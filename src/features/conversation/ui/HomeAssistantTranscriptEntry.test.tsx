@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   CollabAgentToolCallEntry,
@@ -12,6 +13,7 @@ import type {
   PlanEntry,
   TurnPlanSnapshotEntry,
 } from "../../../domain/timeline";
+import { FileLinkProvider, type FileLinkActions } from "../hooks/fileLinkContext";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { HomeAssistantTranscriptEntry } from "./HomeAssistantTranscriptEntry";
 
@@ -65,6 +67,30 @@ function createCommandNode(command = LONG_COMMAND): Extract<AssistantNode, { kin
   };
 
   return createTraceNode(item);
+}
+
+function createQuickOpenWrapper(
+  openPreviewTarget: FileLinkActions["openPreviewTarget"],
+  isPreviewFileAvailable: FileLinkActions["isPreviewFileAvailable"] = vi.fn().mockResolvedValue(true),
+) {
+  const I18nWrapper = createI18nWrapper("zh-CN");
+  return function QuickOpenWrapper({ children }: { readonly children: ReactNode }): JSX.Element {
+    return (
+      <I18nWrapper>
+        <FileLinkProvider
+          value={{
+            openFileLink: vi.fn(),
+            openExternalLink: vi.fn(),
+            openPreviewTarget,
+            isPreviewFileAvailable,
+            workspacePath: "E:/code/codex-app-plus",
+          }}
+        >
+          {children}
+        </FileLinkProvider>
+      </I18nWrapper>
+    );
+  };
 }
 
 function createCommandNodeWithStatus(
@@ -252,6 +278,56 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(container.querySelector(".home-plan-draft-card")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Plan" })).toBeInTheDocument();
     expect(screen.getByText("after")).toBeInTheDocument();
+  });
+
+  it("renders quick preview cards for local websites and existing documents only", async () => {
+    const openPreviewTarget = vi.fn();
+    const isPreviewFileAvailable = vi.fn(async (path: string) => path.endsWith("/网站设计报告.docx"));
+    render(
+      <HomeAssistantTranscriptEntry
+        node={createAssistantMessage(
+          "预览地址：http://127.0.0.1:5174/design\nWord 在根目录：网站设计报告.docx。代码文件 src/App.tsx 不需要卡片。",
+        )}
+      />,
+      { wrapper: createQuickOpenWrapper(openPreviewTarget, isPreviewFileAvailable) },
+    );
+
+    expect(await screen.findByText("网页预览")).toBeInTheDocument();
+    expect(await screen.findByText("网站设计报告.docx")).toBeInTheDocument();
+    expect(screen.getByText("文档 · DOCX")).toBeInTheDocument();
+    expect(screen.queryByText("文档 · TSX")).toBeNull();
+    expect(isPreviewFileAvailable).toHaveBeenCalledWith("E:/code/codex-app-plus/网站设计报告.docx");
+
+    fireEvent.click(screen.getByRole("button", { name: "打开 网站设计报告.docx" }));
+
+    expect(openPreviewTarget).toHaveBeenCalledWith({
+      kind: "file",
+      fileKind: "document",
+      path: "E:/code/codex-app-plus/网站设计报告.docx",
+      name: "网站设计报告.docx",
+      extension: "DOCX",
+    });
+  });
+
+  it("does not render quick preview cards for missing or malformed file candidates", async () => {
+    const openPreviewTarget = vi.fn();
+    const isPreviewFileAvailable = vi.fn().mockResolvedValue(false);
+    render(
+      <HomeAssistantTranscriptEntry
+        node={createAssistantMessage(
+          "Word 在根目录：网站设计报告.docx。\n还有 [外观设计专利请求书.docx 和内联代码 src={git.svg。",
+        )}
+      />,
+      { wrapper: createQuickOpenWrapper(openPreviewTarget, isPreviewFileAvailable) },
+    );
+
+    await waitFor(() => expect(isPreviewFileAvailable).toHaveBeenCalledWith(
+      "E:/code/codex-app-plus/网站设计报告.docx",
+    ));
+    expect(screen.queryByText("网站设计报告.docx")).toBeNull();
+    expect(screen.queryByText("外观设计专利请求书.docx")).toBeNull();
+    expect(screen.queryByText("git.svg")).toBeNull();
+    expect(openPreviewTarget).not.toHaveBeenCalled();
   });
 
   it("renders plan items as markdown cards", () => {

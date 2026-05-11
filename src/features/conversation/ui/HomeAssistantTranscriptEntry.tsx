@@ -3,6 +3,7 @@ import type { MouseEvent as ReactMouseEvent, RefObject, SyntheticEvent } from "r
 import { createPortal } from "react-dom";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { ConversationMessageContent } from "./ConversationMessageContent";
+import { ConversationQuickOpenCards } from "./ConversationQuickOpenCards";
 import { HomeImagePreviewDialog } from "./HomeImagePreviewDialog";
 import type { ConversationRenderNode } from "../model/localConversationGroups";
 import { createAssistantTranscriptEntryModel, createCommandSummaryParts } from "../model/assistantTranscript";
@@ -106,6 +107,7 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
           message={model.message}
           variant="assistant-inline"
         />
+        <ConversationQuickOpenCards message={model.message} />
       </article>
     );
   }

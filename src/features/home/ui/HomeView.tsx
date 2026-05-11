@@ -36,6 +36,7 @@ import type {
 import type { ResolvedTheme } from "../../../domain/theme";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
+import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
 import { useWorkspaceGit } from "../../git/hooks/useWorkspaceGit";
 import { useDiffSidebarLayout } from "../../git/hooks/useDiffSidebarLayout";
 import { useWorkspaceSwitchTracker } from "../hooks/useWorkspaceSwitchTracker";
@@ -172,6 +173,10 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
     readonly id: number;
     readonly url: string | null;
   } | null>(null);
+  const [previewOpenRequest, setPreviewOpenRequest] = useState<{
+    readonly id: number;
+    readonly target: Extract<QuickPreviewTarget, { readonly kind: "file" }>;
+  } | null>(null);
   const selectedRoot = useMemo(
     () => props.roots.find((root) => root.id === props.selectedRootId) ?? null,
     [props.roots, props.selectedRootId],
@@ -286,6 +291,25 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
     };
   }, [props.hostBridge, props.mainContentOverride, props.selectedRootPath, uiState.openDiffSidebar]);
 
+  const handleOpenPreviewTarget = useCallback((target: QuickPreviewTarget) => {
+    const hasMainContentOverride = props.mainContentOverride !== undefined && props.mainContentOverride !== null;
+    if (props.selectedRootPath === null || hasMainContentOverride) {
+      return;
+    }
+    uiState.openDiffSidebar();
+    if (target.kind === "website") {
+      setBrowserOpenRequest((current) => ({
+        id: (current?.id ?? 0) + 1,
+        url: target.url,
+      }));
+      return;
+    }
+    setPreviewOpenRequest((current) => ({
+      id: (current?.id ?? 0) + 1,
+      target,
+    }));
+  }, [props.mainContentOverride, props.selectedRootPath, uiState.openDiffSidebar]);
+
   const toggleTerminal = useCallback(() => {
     if (uiState.openTerminal) {
       terminalController.hidePanel();
@@ -308,10 +332,11 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
       uiState.canShowDiffSidebar,
       toggleTerminal,
       uiState.toggleDiffSidebar,
+      handleOpenPreviewTarget,
       diffLayout,
       diffItems,
     ),
-    [props, gitController, launchState, filteredActivities, retryInfo, uiState.openTerminal, uiState.canShowDiffSidebar, toggleTerminal, uiState.toggleDiffSidebar, diffLayout, diffItems],
+    [props, gitController, launchState, filteredActivities, retryInfo, uiState.openTerminal, uiState.canShowDiffSidebar, toggleTerminal, uiState.toggleDiffSidebar, handleOpenPreviewTarget, diffLayout, diffItems],
   );
   const mainContentOverride = props.mainContentOverride ?? null;
 
@@ -353,6 +378,7 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
           onSelectDiffPath={diffLayout.setSelectedDiffPath}
           onDiffItemsChange={setDiffItems}
           browserOpenRequest={browserOpenRequest}
+          previewOpenRequest={previewOpenRequest}
           localCodeComments={localCodeComments}
           onCreateLocalCodeComment={handleCreateLocalCodeComment}
           onDeleteLocalCodeComment={handleDeleteLocalCodeComment}

@@ -8,6 +8,7 @@ import { useFileLinkOpener } from "../../conversation/hooks/useFileLinkOpener";
 import type { AgentEnvironment, GitWorkspaceDiffOutput, HostBridge, WorkspaceOpener } from "../../../bridge/types";
 import type { DiffViewStyle } from "../../git/hooks/useDiffSidebarLayout";
 import { WorkspaceDiffConversationPreview } from "../../git/ui/WorkspaceDiffConversationPreview";
+import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
 import type {
   AccountSummary,
   AppState,
@@ -27,6 +28,7 @@ import type {
   QueuedFollowUp,
 } from "../../../domain/timeline";
 import type { AppServerClient } from "../../../protocol/appServerClient";
+import type { FsGetMetadataResponse } from "../../../protocol/generated/v2/FsGetMetadataResponse";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
 import { useAppSelector } from "../../../state/store";
 import { HomeConversationCanvas } from "../../conversation/ui/HomeConversationCanvas";
@@ -129,6 +131,7 @@ export interface HomeViewMainContentProps {
   readonly diffPreviewVisible: boolean;
   readonly diffPreviewStyle: DiffViewStyle;
   readonly diffPreviewSelectedPath: string | null;
+  readonly onOpenPreviewTarget: (target: QuickPreviewTarget) => void;
 }
 
 function alwaysEqual<T>(_left: T, _right: T): boolean {
@@ -165,6 +168,15 @@ function useHomeVisibleBanners(
     banners === undefined ? Object.is : alwaysEqual,
   );
   return banners === undefined ? selectedBanners : selectVisibleHomeBanners(banners);
+}
+
+function isFsGetMetadataResponse(value: unknown): value is FsGetMetadataResponse {
+  return (
+    typeof value === "object"
+    && value !== null
+    && typeof (value as Partial<FsGetMetadataResponse>).isFile === "boolean"
+    && typeof (value as Partial<FsGetMetadataResponse>).isDirectory === "boolean"
+  );
 }
 
 interface HomeToolbarSectionProps {
@@ -418,14 +430,23 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
     () => props.hostBridge.app.openExternal(CODEX_WEB_URL),
     [props.hostBridge],
   );
+  const isPreviewFileAvailable = useCallback(async (path: string): Promise<boolean> => {
+    const response = await props.hostBridge.rpc.request({
+      method: "fs/getMetadata",
+      params: { path },
+    });
+    return isFsGetMetadataResponse(response.result) && response.result.isFile;
+  }, [props.hostBridge]);
 
   const fileLinkActions = useMemo<FileLinkActions>(
     () => ({
       openFileLink,
       openExternalLink,
+      openPreviewTarget: props.onOpenPreviewTarget,
+      isPreviewFileAvailable,
       workspacePath: props.selectedRootPath,
     }),
-    [openFileLink, openExternalLink, props.selectedRootPath],
+    [openFileLink, openExternalLink, isPreviewFileAvailable, props.onOpenPreviewTarget, props.selectedRootPath],
   );
 
   const showPlanPrompt = derivedState.latestPlanPrompt !== null

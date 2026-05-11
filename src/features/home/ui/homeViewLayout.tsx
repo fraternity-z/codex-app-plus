@@ -9,6 +9,7 @@ import type { HomeSidebarProps } from "./HomeSidebar";
 import type { HomeViewMainContentProps } from "./HomeViewMainContent";
 import type { HomeViewProps } from "./HomeView";
 import type { DiffSidebarLayoutState } from "../../git/hooks/useDiffSidebarLayout";
+import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
 
 const NOOP_ARCHIVE_THREAD = async () => undefined;
 const NOOP_REGENERATE_EDITED_MESSAGE = async () => undefined;
@@ -123,6 +124,7 @@ export function createHomeMainContentProps(
   diffOpen: boolean,
   onToggleTerminal: () => void,
   onToggleDiff: () => void,
+  onOpenPreviewTarget: (target: QuickPreviewTarget) => void,
   diffLayout: DiffSidebarLayoutState,
   diffItems: ReadonlyArray<GitWorkspaceDiffOutput>,
 ): HomeViewMainContentProps {
@@ -176,6 +178,7 @@ export function createHomeMainContentProps(
     onTogglePetAwake: props.onTogglePetAwake,
     onToggleDiff,
     onToggleTerminal,
+    onOpenPreviewTarget,
     onUpdateThreadBranch: props.onUpdateThreadBranch,
     queuedFollowUps: props.queuedFollowUps,
     rateLimitSummary: props.rateLimitSummary,

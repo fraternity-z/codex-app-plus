@@ -151,6 +151,7 @@ function createProps(
     onTogglePetAwake: vi.fn(),
     onToggleDiff: vi.fn(),
     onToggleTerminal: vi.fn(),
+    onOpenPreviewTarget: vi.fn(),
     onRetryConnection: vi.fn().mockResolvedValue(undefined),
     onDismissBanner: vi.fn(),
     diffItems: [{

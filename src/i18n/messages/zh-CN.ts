@@ -1079,6 +1079,11 @@ export const zhCN = {
         previewDialog: "用户图片预览",
         closePreview: "关闭图片预览",
       },
+      quickOpen: {
+        label: "可快速预览的结果",
+        open: "打开",
+        openTarget: "打开 {title}",
+      },
     },
     turnPlan: {
       title: "任务清单",

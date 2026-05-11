@@ -1080,6 +1080,11 @@ export const enUS = {
         previewDialog: "User image preview",
         closePreview: "Close image preview",
       },
+      quickOpen: {
+        label: "Quick preview results",
+        open: "Open",
+        openTarget: "Open {title}",
+      },
     },
     turnPlan: {
       title: "Task list",

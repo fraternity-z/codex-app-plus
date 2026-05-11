@@ -10,13 +10,18 @@ import { I18nProvider } from "../../../i18n/provider";
 import type { WorkspaceGitController } from "../model/types";
 import { WorkspaceDiffSidebar } from "./WorkspaceDiffSidebar";
 
-const { mockedUseVirtualizer } = vi.hoisted(() => ({
+const { coreMocks, mockedUseVirtualizer } = vi.hoisted(() => ({
+  coreMocks: {
+    convertFileSrc: vi.fn((path: string) => `asset://${path}`),
+  },
   mockedUseVirtualizer: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-virtual", () => ({
   useVirtualizer: mockedUseVirtualizer,
 }));
+
+vi.mock("@tauri-apps/api/core", () => coreMocks);
 
 beforeAll(() => {
   class MockResizeObserver {
@@ -604,5 +609,51 @@ describe("WorkspaceDiffSidebar", () => {
     await waitFor(() => expect(openBrowserSidebar).toHaveBeenCalledWith(expect.objectContaining({
       url: "about:blank",
     })));
+  });
+
+  it("opens quick file preview requests in the side panel", async () => {
+    const openExternal = vi.fn().mockResolvedValue(undefined);
+    const revealPathInFolder = vi.fn().mockResolvedValue(undefined);
+    const hostBridge = {
+      app: {
+        openExternal,
+        revealPathInFolder,
+        openBrowserSidebar: vi.fn().mockResolvedValue(undefined),
+        updateBrowserSidebarBounds: vi.fn().mockResolvedValue(undefined),
+        hideBrowserSidebar: vi.fn().mockResolvedValue(undefined),
+        openFileInEditor: vi.fn().mockResolvedValue(undefined),
+      },
+      git: {
+        getWorkspaceDiffs: vi.fn().mockResolvedValue([]),
+      },
+      rpc: {
+        request: vi.fn(),
+      },
+    } as unknown as HostBridge;
+
+    renderSidebar(
+      createController(),
+      hostBridge,
+      {
+        previewOpenRequest: {
+          id: 1,
+          target: {
+            kind: "file",
+            fileKind: "document",
+            path: "E:/code/project/网站设计报告.docx",
+            name: "网站设计报告.docx",
+            extension: "DOCX",
+          },
+        },
+      },
+    );
+
+    await waitFor(() => expect(screen.getByRole("tab", { name: "网站设计报告.docx" })).toHaveAttribute("aria-selected", "true"));
+    expect(screen.getByLabelText("预览 网站设计报告.docx")).toBeInTheDocument();
+    expect(screen.getByText("当前格式可能无法直接内嵌渲染，可以用系统默认应用打开查看。")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "在外部打开文件" }));
+
+    await waitFor(() => expect(openExternal).toHaveBeenCalledWith("E:/code/project/网站设计报告.docx"));
   });
 });
