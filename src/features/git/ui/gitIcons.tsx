@@ -98,6 +98,94 @@ export function GitRefreshIcon(props: { readonly className?: string }): JSX.Elem
   );
 }
 
+export function GitMoreHorizontalIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <circle cx="5.3" cy="10" r="1.25" fill="currentColor" />
+      <circle cx="10" cy="10" r="1.25" fill="currentColor" />
+      <circle cx="14.7" cy="10" r="1.25" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function GitDiffColorColumnsIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="4.25" y="4.25" width="11.5" height="11.5" rx="2.1" stroke="currentColor" strokeWidth="1.25" />
+      <path className="workspace-diff-color-delete" d="M8.35 6.8v6.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <path className="workspace-diff-color-add" d="M11.65 6.8v6.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function GitDiffWrapIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M4 6.3h8.8a3.2 3.2 0 0 1 0 6.4H7.1" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="m8.9 10.8-2 1.9 2 1.9" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function GitDiffCollapseAllIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M5 5.4h10" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="M5 10h10" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="M5 14.6h10" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="m7.4 8.1-1.6 1.9 1.6 1.9" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function GitDiffFileIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M6.1 3.5h5.8l3 3v10H6.1a1.4 1.4 0 0 1-1.4-1.4V4.9a1.4 1.4 0 0 1 1.4-1.4Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
+      <path d="M11.9 3.7v2.9h2.8" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function GitDiffRichPreviewIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <rect x="4" y="4.2" width="12" height="11.6" rx="2" stroke="currentColor" strokeWidth="1.25" />
+      <circle cx="7.2" cy="7.3" r="1.1" stroke="currentColor" strokeWidth="1.2" />
+      <path d="m5.6 13 3-3 2.1 2.1 1.4-1.5 2.3 2.4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function GitDiffTextIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M4.2 6.2h11.6" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="M4.2 10h8" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="M4.2 13.8h11.6" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="m14.1 8.4 1.7 1.6-1.7 1.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function GitDiffWhitespaceIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M2.9 10s2.45-4.1 7.1-4.1S17.1 10 17.1 10s-2.45 4.1-7.1 4.1S2.9 10 2.9 10Z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
+      <circle cx="10" cy="10" r="2.1" stroke="currentColor" strokeWidth="1.25" />
+    </svg>
+  );
+}
+
+export function GitClipboardIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M7.4 4.4h-1a1.7 1.7 0 0 0-1.7 1.7v9a1.7 1.7 0 0 0 1.7 1.7h7.2a1.7 1.7 0 0 0 1.7-1.7v-9a1.7 1.7 0 0 0-1.7-1.7h-1" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
+      <rect x="7.3" y="3.2" width="5.4" height="3" rx="1.1" stroke="currentColor" strokeWidth="1.25" />
+    </svg>
+  );
+}
+
 export function GitBranchIcon(props: { readonly className?: string }): JSX.Element {
   return (
     <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">

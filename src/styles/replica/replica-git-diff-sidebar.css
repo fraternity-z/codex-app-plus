@@ -224,6 +224,149 @@
   background: var(--surface-panel);
 }
 
+.workspace-diff-sidebar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.workspace-diff-toolbar-menu-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.workspace-diff-toolbar-button {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0;
+  cursor: pointer;
+}
+
+.workspace-diff-toolbar-button:hover,
+.workspace-diff-toolbar-button-active {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+.workspace-diff-toolbar-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.workspace-diff-toolbar-button:disabled:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.workspace-diff-toolbar-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.workspace-diff-toolbar-color-icon {
+  color: var(--text-muted);
+}
+
+.workspace-diff-color-delete {
+  color: #c56a83;
+}
+
+.workspace-diff-color-add {
+  color: #4faf76;
+}
+
+.workspace-diff-git-asset-icon {
+  object-fit: contain;
+  opacity: 0.78;
+  filter: var(--workspace-diff-git-icon-filter, none);
+}
+
+html[data-theme="dark"] .workspace-diff-git-asset-icon {
+  --workspace-diff-git-icon-filter: invert(82%);
+  opacity: 0.9;
+}
+
+.workspace-diff-actions-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  width: 276px;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background: var(--surface-panel);
+  box-shadow: 0 18px 34px color-mix(in srgb, #000 16%, transparent);
+  padding: 7px 0;
+}
+
+.workspace-diff-actions-menu-group {
+  display: contents;
+}
+
+.workspace-diff-actions-menu-separator {
+  height: 1px;
+  margin: 6px 16px;
+  background: var(--border-light);
+}
+
+.workspace-diff-actions-menu-item {
+  width: 100%;
+  min-height: 38px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-main);
+  padding: 0 16px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.workspace-diff-actions-menu-item:hover {
+  background: var(--surface-hover);
+}
+
+.workspace-diff-actions-menu-item:disabled {
+  color: var(--text-subtle);
+  cursor: default;
+}
+
+.workspace-diff-actions-menu-item:disabled:hover {
+  background: transparent;
+}
+
+.workspace-diff-actions-menu-icon {
+  width: 17px;
+  height: 17px;
+  color: currentColor;
+}
+
+.workspace-diff-actions-menu-todo {
+  justify-self: end;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 5px;
+  padding: 1px 5px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
 .workspace-side-panel-action-error {
   margin: 10px 12px 0;
   padding: 10px 12px;

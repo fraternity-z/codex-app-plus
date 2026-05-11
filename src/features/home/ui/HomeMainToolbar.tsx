@@ -1,6 +1,5 @@
 import type { HostBridge, WorkspaceOpener } from "../../../bridge/types";
 import { useI18n } from "../../../i18n/useI18n";
-import { WorkspaceGitButtonLauncher } from "../../workspace/ui/WorkspaceGitButtonLauncher";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { WorkspaceOpenButton } from "../../workspace/ui/WorkspaceOpenButton";
 import { OfficialSidebarToggleIcon } from "../../shared/ui/officialIcons";
@@ -97,7 +96,6 @@ export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
           selectedOpener={props.workspaceOpener}
           onSelectOpener={props.onSelectWorkspaceOpener}
         />
-        <WorkspaceGitButtonLauncher controller={props.gitController} selectedRootPath={props.selectedRootPath} />
         <div className="toolbar-icon-row" aria-label={t("home.toolbar.quickActions")}>
           <ToolbarIconButton
             active={props.diffOpen}

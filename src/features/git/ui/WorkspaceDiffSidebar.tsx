@@ -11,20 +11,34 @@ import { SidebarIcon } from "../../shared/ui/icons";
 import type { CreateLocalCodeCommentInput, LocalCodeComment } from "../../workspace/model/localCodeComments";
 import { WorkspaceFileViewer } from "../../workspace/ui/WorkspaceFileViewer";
 import { useWorkspaceDiffViewer } from "../hooks/useWorkspaceDiffViewer";
+import { canOpenCommitDialog, canPushChanges } from "../model/gitActionAvailability";
 import { getGitViewState, type GitViewState } from "../model/gitViewState";
 import type { WorkspaceGitController } from "../model/types";
+import { readStoredAppPreferences } from "../../settings/hooks/useAppPreferences";
 import {
   getDefaultGitChangeScope,
   getGitChangeScopeOptions,
   type GitChangeScope,
 } from "./GitChangeBrowser";
+import GitAssetIcon from "../../../assets/icons/git.svg";
+import { GitPushConfirmDialog } from "./GitPushConfirmDialog";
 import { GitStateCard } from "./GitStateCard";
 import {
+  GitClipboardIcon,
+  GitCommitNodeIcon,
+  GitDiffCollapseAllIcon,
+  GitDiffColorColumnsIcon,
   GitDiffCollapseIcon,
   GitDiffExpandIcon,
+  GitDiffFileIcon,
   GitDiffIcon,
-  GitDiffSplitViewIcon,
-  GitDiffUnifiedViewIcon,
+  GitDiffRichPreviewIcon,
+  GitDiffTextIcon,
+  GitDiffWhitespaceIcon,
+  GitDiffWrapIcon,
+  GitHubMarkIcon,
+  GitMoreHorizontalIcon,
+  GitPushIcon,
   GitRefreshIcon,
 } from "./gitIcons";
 import { WorkspaceDiffScopeSelector } from "./WorkspaceDiffScopeSelector";
@@ -276,6 +290,7 @@ function SidePanelHeader(props: SidePanelHeaderProps): JSX.Element {
 
 interface DiffReviewToolbarProps {
   readonly controller: WorkspaceGitController;
+  readonly selectedRootPath: string | null;
   readonly files: number;
   readonly additions: number;
   readonly deletions: number;
@@ -289,54 +304,232 @@ interface DiffReviewToolbarProps {
   readonly allowDiffStyleToggle?: boolean;
 }
 
+type DiffToolbarIcon = (props: { readonly className?: string }) => JSX.Element;
+
+interface DiffReviewMenuItem {
+  readonly label: string;
+  readonly Icon: DiffToolbarIcon;
+  readonly disabled?: boolean;
+  readonly separatorBefore?: boolean;
+  readonly todo?: boolean;
+  readonly onSelect: () => void;
+}
+
+interface GitToolbarMenuItem {
+  readonly label: string;
+  readonly Icon: DiffToolbarIcon;
+  readonly disabled?: boolean;
+  readonly todo?: boolean;
+  readonly onSelect: () => void;
+}
+
+function GitAssetToolbarIcon(props: { readonly className?: string }): JSX.Element {
+  const className = props.className === undefined
+    ? "workspace-diff-git-asset-icon"
+    : `${props.className} workspace-diff-git-asset-icon`;
+  return <img className={className} src={GitAssetIcon} alt="" aria-hidden="true" />;
+}
+
 function DiffReviewToolbar(props: DiffReviewToolbarProps): JSX.Element {
+  const appPreferences = readStoredAppPreferences();
+  const [diffMenuOpen, setDiffMenuOpen] = useState(false);
+  const [gitMenuOpen, setGitMenuOpen] = useState(false);
+  const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
+  const [pushConfirmPending, setPushConfirmPending] = useState(false);
+  const diffMenuRef = useRef<HTMLDivElement>(null);
+  const gitMenuRef = useRef<HTMLDivElement>(null);
+  const closeDiffMenu = useCallback(() => setDiffMenuOpen(false), []);
+  const closeGitMenu = useCallback(() => setGitMenuOpen(false), []);
   const options = getGitChangeScopeOptions(props.controller);
   const showSelector = props.scope !== undefined && props.onScopeChange !== undefined && options.length > 0;
   const diffStyle = props.diffStyle ?? "unified";
   const diffStyleLabel = diffStyle === "split" ? "切换为统一差异" : "切换为拆分差异";
-  const DiffStyleIcon = diffStyle === "split" ? GitDiffUnifiedViewIcon : GitDiffSplitViewIcon;
   const allowDiffStyleToggle = props.allowDiffStyleToggle ?? false;
+  const canToggleDiffStyle = props.onToggleDiffStyle !== undefined && allowDiffStyleToggle;
+  const diffStyleButtonLabel = canToggleDiffStyle ? diffStyleLabel : "切换差异布局";
+  const moreButtonClassName = diffMenuOpen
+    ? "workspace-diff-toolbar-button workspace-diff-toolbar-button-active"
+    : "workspace-diff-toolbar-button";
+  const gitButtonClassName = gitMenuOpen
+    ? "workspace-diff-toolbar-button workspace-diff-toolbar-button-active"
+    : "workspace-diff-toolbar-button";
+  const gitActionsDisabled = props.selectedRootPath === null
+    || props.controller.pendingAction !== null
+    || props.controller.loading
+    || !props.controller.statusLoaded
+    || props.controller.status?.isRepository !== true;
+  const branchName = props.controller.status?.branch?.head ?? null;
+  const handlePlaceholderAction = useCallback(() => {
+    closeDiffMenu();
+  }, [closeDiffMenu]);
+  const handleRefresh = useCallback(() => {
+    closeDiffMenu();
+    void props.onRefresh();
+  }, [closeDiffMenu, props.onRefresh]);
+  const requestPush = useCallback(() => {
+    if (canPushChanges(props.controller)) {
+      setPushConfirmOpen(true);
+    }
+  }, [props.controller]);
+  const closePushConfirm = useCallback(() => {
+    if (!pushConfirmPending) {
+      setPushConfirmOpen(false);
+    }
+  }, [pushConfirmPending]);
+  const confirmPush = useCallback(async () => {
+    setPushConfirmPending(true);
+    try {
+      await props.controller.push();
+      setPushConfirmOpen(false);
+    } finally {
+      setPushConfirmPending(false);
+    }
+  }, [props.controller]);
+  const menuItems: ReadonlyArray<DiffReviewMenuItem> = [
+    { label: "刷新", Icon: GitRefreshIcon, onSelect: handleRefresh },
+    { label: "启用自动换行", Icon: GitDiffWrapIcon, todo: true, onSelect: handlePlaceholderAction },
+    { label: "折叠全部差异", Icon: GitDiffCollapseAllIcon, todo: true, onSelect: handlePlaceholderAction },
+    { label: "不加载完整文件", Icon: GitDiffFileIcon, separatorBefore: true, todo: true, onSelect: handlePlaceholderAction },
+    { label: "启用富文本预览", Icon: GitDiffRichPreviewIcon, todo: true, onSelect: handlePlaceholderAction },
+    { label: "启用文字差异", Icon: GitDiffTextIcon, todo: true, onSelect: handlePlaceholderAction },
+    { label: "隐藏空白字符", Icon: GitDiffWhitespaceIcon, todo: true, onSelect: handlePlaceholderAction },
+    { label: "复制 git apply 命令", Icon: GitClipboardIcon, disabled: true, todo: true, onSelect: handlePlaceholderAction },
+  ];
+  const gitMenuItems: ReadonlyArray<GitToolbarMenuItem> = [
+    { label: "提交", Icon: GitCommitNodeIcon, disabled: !canOpenCommitDialog(props.controller), onSelect: props.controller.openCommitDialog },
+    { label: "推送", Icon: GitPushIcon, disabled: !canPushChanges(props.controller), onSelect: requestPush },
+    { label: "创建拉取请求", Icon: GitHubMarkIcon, disabled: true, todo: true, onSelect: closeGitMenu },
+    { label: "创建分支", Icon: GitAssetToolbarIcon, disabled: true, todo: true, onSelect: closeGitMenu },
+  ];
+
+  useToolbarMenuDismissal(diffMenuOpen, diffMenuRef, closeDiffMenu);
+  useToolbarMenuDismissal(gitMenuOpen, gitMenuRef, closeGitMenu);
+
   return (
-    <div className="workspace-diff-sidebar-review-controls">
-      <div className="workspace-diff-sidebar-title-wrap">
-        {showSelector ? (
-          <>
-            <WorkspaceDiffScopeSelector options={options} selectedScope={props.scope!} onChange={props.onScopeChange!} />
-            <DiffChangeSummary
-              additions={props.additions}
-              deletions={props.deletions}
-              files={props.files}
-              loading={props.loading}
-            />
-          </>
-        ) : (
-          <>
-            <GitDiffIcon className="workspace-diff-sidebar-icon" />
-            <div>
-              <h2 className="workspace-diff-sidebar-title">差异</h2>
-              <p className="workspace-diff-sidebar-subtitle">{props.controller.status?.repoRoot ?? "当前工作区"}</p>
-            </div>
-          </>
-        )}
-      </div>
-      <div className="workspace-diff-sidebar-actions">
-        {props.onToggleDiffStyle === undefined || !allowDiffStyleToggle ? null : (
+    <>
+      <div className="workspace-diff-sidebar-review-controls">
+        <div className="workspace-diff-sidebar-title-wrap">
+          {showSelector ? (
+            <>
+              <WorkspaceDiffScopeSelector options={options} selectedScope={props.scope!} onChange={props.onScopeChange!} />
+              <DiffChangeSummary
+                additions={props.additions}
+                deletions={props.deletions}
+                files={props.files}
+                loading={props.loading}
+              />
+            </>
+          ) : (
+            <>
+              <GitDiffIcon className="workspace-diff-sidebar-icon" />
+              <div>
+                <h2 className="workspace-diff-sidebar-title">差异</h2>
+                <p className="workspace-diff-sidebar-subtitle">{props.controller.status?.repoRoot ?? "当前工作区"}</p>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="workspace-diff-sidebar-actions">
+          <div className="workspace-diff-toolbar-menu-wrap" ref={diffMenuRef}>
+            <button
+              type="button"
+              className={moreButtonClassName}
+              aria-label="更多差异操作"
+              aria-haspopup="menu"
+              aria-expanded={diffMenuOpen}
+              title="更多差异操作"
+              onClick={() => {
+                setGitMenuOpen(false);
+                setDiffMenuOpen((currentValue) => !currentValue);
+              }}
+            >
+              <GitMoreHorizontalIcon className="workspace-diff-toolbar-icon" />
+            </button>
+            {diffMenuOpen ? (
+              <div className="workspace-diff-actions-menu" role="menu" aria-label="差异操作">
+                {menuItems.map((item) => (
+                  <div key={item.label} className={item.separatorBefore ? "workspace-diff-actions-menu-group" : undefined}>
+                    {item.separatorBefore ? <div className="workspace-diff-actions-menu-separator" role="separator" /> : null}
+                    <button
+                      type="button"
+                      className="workspace-diff-actions-menu-item"
+                      role="menuitem"
+                      disabled={item.disabled}
+                      onClick={item.onSelect}
+                    >
+                      <item.Icon className="workspace-diff-actions-menu-icon" />
+                      <span>{item.label}</span>
+                      {item.todo === true ? <span className="workspace-diff-actions-menu-todo">TODO</span> : null}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
           <button
             type="button"
-            className="workspace-diff-sidebar-close"
-            aria-label={diffStyleLabel}
-            aria-pressed={diffStyle === "split"}
-            title={diffStyleLabel}
-            onClick={props.onToggleDiffStyle}
+            className="workspace-diff-toolbar-button"
+            aria-label={diffStyleButtonLabel}
+            title={diffStyleButtonLabel}
+            onClick={canToggleDiffStyle ? props.onToggleDiffStyle : undefined}
           >
-            <DiffStyleIcon className="workspace-diff-sidebar-close-icon" />
+            <GitDiffColorColumnsIcon className="workspace-diff-toolbar-icon workspace-diff-toolbar-color-icon" />
           </button>
-        )}
-        <button type="button" className="workspace-diff-sidebar-close" aria-label="刷新差异" onClick={() => void props.onRefresh()}>
-          <GitRefreshIcon className="workspace-diff-sidebar-close-icon" />
-        </button>
+          <div className="workspace-diff-toolbar-menu-wrap" ref={gitMenuRef}>
+            <button
+              type="button"
+              className={gitButtonClassName}
+              aria-label="Git 操作"
+              aria-haspopup="menu"
+              aria-expanded={gitMenuOpen}
+              disabled={gitActionsDisabled}
+              title="Git 操作"
+              onClick={() => {
+                setDiffMenuOpen(false);
+                setGitMenuOpen((currentValue) => !currentValue);
+              }}
+            >
+              <GitAssetToolbarIcon className="workspace-diff-toolbar-icon" />
+            </button>
+            {gitMenuOpen ? (
+              <div className="workspace-diff-actions-menu workspace-diff-git-menu" role="menu" aria-label="Git 操作">
+                {gitMenuItems.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="workspace-diff-actions-menu-item"
+                    role="menuitem"
+                    disabled={item.disabled}
+                    onClick={() => {
+                      if (item.disabled) {
+                        return;
+                      }
+                      closeGitMenu();
+                      item.onSelect();
+                    }}
+                  >
+                    <item.Icon className="workspace-diff-actions-menu-icon" />
+                    <span>{item.label}</span>
+                    {item.todo === true ? <span className="workspace-diff-actions-menu-todo">TODO</span> : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <button type="button" className="workspace-diff-toolbar-button" aria-label="打开文件列表" title="打开文件列表">
+            <OfficialFolderIcon className="workspace-diff-toolbar-icon" />
+          </button>
+        </div>
       </div>
-    </div>
+      <GitPushConfirmDialog
+        branchName={branchName}
+        forceWithLease={appPreferences.gitPushForceWithLease}
+        open={pushConfirmOpen}
+        pending={pushConfirmPending}
+        onClose={closePushConfirm}
+        onConfirm={() => void confirmPush()}
+      />
+    </>
   );
 }
 
@@ -710,6 +903,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
     <>
       <DiffReviewToolbar
         controller={props.controller}
+        selectedRootPath={props.selectedRootPath}
         additions={0}
         deletions={0}
         files={0}
@@ -725,6 +919,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
     <>
       <DiffReviewToolbar
         controller={props.controller}
+        selectedRootPath={props.selectedRootPath}
         additions={diffViewer.summary.additions}
         deletions={diffViewer.summary.deletions}
         files={diffViewer.summary.files}

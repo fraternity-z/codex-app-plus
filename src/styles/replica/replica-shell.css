@@ -44,12 +44,6 @@
   left: 0;
 }
 
-.replica-app-with-diff-sidebar::before {
-  background:
-    linear-gradient(var(--border-light), var(--border-light))
-    calc(100% - var(--replica-diff-sidebar-width)) 0 / 1px 100% no-repeat;
-}
-
 .replica-app::after {
   content: "";
   position: absolute;

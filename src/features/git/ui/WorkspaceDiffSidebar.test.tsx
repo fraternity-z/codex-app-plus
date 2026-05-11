@@ -199,6 +199,58 @@ describe("WorkspaceDiffSidebar", () => {
     expect(within(menu).getByRole("menuitemradio", { name: "上轮对话" })).toBeInTheDocument();
   });
 
+  it("renders the review toolbar action group and menu", () => {
+    renderSidebar(
+      createController({ status: createStatus({ unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }] }) }),
+      createHostBridge(vi.fn().mockResolvedValue([createViewerDiff()])),
+    );
+
+    expect(screen.getByRole("button", { name: "更多差异操作" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "切换差异布局" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Git 操作" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "打开文件列表" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "更多差异操作" }));
+
+    const menu = screen.getByRole("menu", { name: "差异操作" });
+    expect(within(menu).getByRole("menuitem", { name: "刷新" })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: /启用自动换行.*TODO/ })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: /折叠全部差异.*TODO/ })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: /不加载完整文件.*TODO/ })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: /启用富文本预览.*TODO/ })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: /启用文字差异.*TODO/ })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: /隐藏空白字符.*TODO/ })).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: /复制 git apply 命令.*TODO/ })).toBeDisabled();
+  });
+
+  it("opens git actions from the review toolbar", () => {
+    const openCommitDialog = vi.fn();
+    const createBranch = vi.fn().mockResolvedValue(true);
+    renderSidebar(
+      createController({
+        openCommitDialog,
+        createBranch,
+        newBranchName: "feature/sidebar-git-actions",
+        status: createStatus({
+          unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }],
+          isClean: false,
+        }),
+      }),
+      createHostBridge(vi.fn().mockResolvedValue([createViewerDiff()])),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Git 操作" }));
+
+    const menu = screen.getByRole("menu", { name: "Git 操作" });
+    expect(within(menu).getByRole("menuitem", { name: "提交" })).not.toBeDisabled();
+    expect(within(menu).getByRole("menuitem", { name: "推送" })).not.toBeDisabled();
+    expect(within(menu).getByRole("menuitem", { name: /创建拉取请求.*TODO/ })).toBeDisabled();
+    expect(within(menu).getByRole("menuitem", { name: /创建分支.*TODO/ })).toBeDisabled();
+
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "提交" }));
+    expect(openCommitDialog).toHaveBeenCalledTimes(1);
+  });
+
   it("does not request workspace git diffs for non-workspace groups", async () => {
     const getWorkspaceDiffs = vi.fn().mockResolvedValue([createViewerDiff()]);
     renderSidebar(
