@@ -34,6 +34,8 @@ const DOCUMENT_EXTENSIONS = new Set([
   "xlsx",
 ]);
 const TEXT_DOCUMENT_EXTENSIONS = new Set(["csv", "md", "markdown", "txt"]);
+const MARKDOWN_DOCUMENT_EXTENSIONS = new Set(["md", "markdown"]);
+const DOCX_DOCUMENT_EXTENSIONS = new Set(["docx"]);
 const EMBEDDABLE_DOCUMENT_EXTENSIONS = new Set(["pdf"]);
 const PREVIEW_EXTENSION_SOURCE = [
   ...IMAGE_EXTENSIONS,
@@ -120,6 +122,14 @@ export function getQuickPreviewFileKind(path: string): QuickPreviewFileKind | nu
 
 export function isTextDocumentPreview(extension: string): boolean {
   return TEXT_DOCUMENT_EXTENSIONS.has(extension.toLowerCase());
+}
+
+export function isMarkdownDocumentPreview(extension: string): boolean {
+  return MARKDOWN_DOCUMENT_EXTENSIONS.has(extension.toLowerCase());
+}
+
+export function isDocxDocumentPreview(extension: string): boolean {
+  return DOCX_DOCUMENT_EXTENSIONS.has(extension.toLowerCase());
 }
 
 export function isEmbeddableDocumentPreview(extension: string): boolean {
