@@ -433,8 +433,8 @@ describe("useWorkspaceConversation", () => {
       await result.current.conversation.sendTurn(createSendOptions("first turn"));
     });
 
-    expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({ method: "thread/start", params: expect.objectContaining({ approvalPolicy: "on-request", sandbox: "workspace-write" }) }));
-    expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({ method: "turn/start", params: expect.objectContaining({ approvalPolicy: "on-request", sandboxPolicy: expect.objectContaining({ type: "workspaceWrite", networkAccess: false }) }) }));
+    expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({ method: "thread/start", params: expect.not.objectContaining({ approvalPolicy: expect.anything(), sandbox: expect.anything() }) }));
+    expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({ method: "turn/start", params: expect.not.objectContaining({ approvalPolicy: expect.anything(), sandboxPolicy: expect.anything() }) }));
     expect(result.current.conversation.draftActive).toBe(false);
     expect(result.current.conversation.selectedThreadId).toBe("thread-1");
   });
@@ -1213,7 +1213,6 @@ describe("useWorkspaceConversation", () => {
       params: expect.objectContaining({
         approvalPolicy: "on-request",
         approvalsReviewer: "auto_review",
-        sandbox: "workspace-write",
       }),
     }));
     expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({
@@ -1221,12 +1220,11 @@ describe("useWorkspaceConversation", () => {
       params: expect.objectContaining({
         approvalPolicy: "on-request",
         approvalsReviewer: "auto_review",
-        sandboxPolicy: expect.objectContaining({ type: "workspaceWrite", networkAccess: false }),
       }),
     }));
   });
 
-  it("uses configured access-mode mappings for new threads and turns", async () => {
+  it("lets configured default access-mode mappings come from config.toml", async () => {
     const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
       if (input.method === "thread/start") {
         return createThreadStartResponse();
@@ -1263,17 +1261,11 @@ describe("useWorkspaceConversation", () => {
 
     expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({
       method: "thread/start",
-      params: expect.objectContaining({ approvalPolicy: "on-failure", sandbox: "read-only" }),
+      params: expect.not.objectContaining({ approvalPolicy: expect.anything(), sandbox: expect.anything() }),
     }));
     expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({
       method: "turn/start",
-      params: expect.objectContaining({
-        approvalPolicy: "on-failure",
-        sandboxPolicy: {
-          type: "readOnly",
-          networkAccess: false,
-        },
-      }),
+      params: expect.not.objectContaining({ approvalPolicy: expect.anything(), sandboxPolicy: expect.anything() }),
     }));
   });
 

@@ -17,6 +17,7 @@ import type {
   BrowserUseOriginKind,
   BrowserUseSettingsOutput,
   CustomPetsOutput,
+  WriteProjectPermissionConfigInput,
 } from "../../../bridge/types";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import type { GitWorktreeEntry } from "../../../bridge/types";
@@ -61,6 +62,7 @@ export interface SettingsViewProps {
   readonly section: SettingsSection;
   readonly sidebarCollapsed: boolean;
   readonly roots: ReadonlyArray<WorkspaceRoot>;
+  readonly selectedRoot: WorkspaceRoot | null;
   readonly worktrees?: ReadonlyArray<GitWorktreeEntry>;
   readonly onCreateWorktree?: () => Promise<void>;
   readonly onDeleteWorktree?: (worktreePath: string) => Promise<void>;
@@ -83,10 +85,11 @@ export interface SettingsViewProps {
   onSelectSection: (section: SettingsSection) => void;
   onAddRoot: () => void;
   onTogglePetAwake: () => void;
-  onOpenConfigToml: () => Promise<void>;
+  onOpenConfigToml: (filePath?: string | null) => Promise<void>;
   onOpenConfigDocs: () => Promise<void>;
   onOpenMcpDocs: () => Promise<void>;
-  refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
+  writeProjectPermissionConfig: (input: WriteProjectPermissionConfigInput) => Promise<unknown>;
+  refreshConfigSnapshot: (cwd?: string | null) => Promise<ConfigReadResponse>;
   readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
   listCustomPets: () => Promise<CustomPetsOutput>;
   openCustomPetsFolder: (path: string) => Promise<void>;
@@ -251,8 +254,14 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
       <>
         <ConfigSettingsSection
           preferences={props.preferences}
+          agentEnvironment={props.preferences.agentEnvironment}
+          configSnapshot={props.configSnapshot}
+          selectedRoot={props.selectedRoot}
           onOpenConfigToml={props.onOpenConfigToml}
           onOpenConfigDocs={props.onOpenConfigDocs}
+          writeProjectPermissionConfig={props.writeProjectPermissionConfig}
+          refreshConfigSnapshot={props.refreshConfigSnapshot}
+          batchWriteConfigSnapshot={props.batchWriteConfigSnapshot}
         />
         <AgentsSettingsSection
           embedded

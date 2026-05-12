@@ -434,7 +434,14 @@ export const zhCN = {
       composer: {
         title: "自定义 config.toml 设置",
         sourceUserConfig: "用户配置",
+        sourceProjectConfig: "项目配置",
+        sourceGlobalConfig: "全局配置",
+        sourceNoProject: "未选择工作区",
+        sourceMenuLabel: "配置范围",
         openConfigToml: "打开 config.toml",
+        savedMessage: "配置已同步并即时应用。",
+        loadFailed: "读取配置失败：{error}",
+        saveFailed: "保存配置失败：{error}",
         approvalPolicy: {
           label: "批准策略",
           description: "选择 Codex 何时请求批准",
@@ -453,6 +460,10 @@ export const zhCN = {
             workspaceWrite: "Workspace write",
             dangerFullAccess: "Danger full access",
           },
+        },
+        networkAccess: {
+          label: "允许网络访问",
+          description: "当沙盒设置为工作区写入时允许网络访问",
         },
       },
     },

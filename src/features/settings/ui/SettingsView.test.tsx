@@ -64,6 +64,7 @@ function createBaseProps(
     section: "general",
     sidebarCollapsed: false,
     roots: [],
+    selectedRoot: null,
     worktrees: [],
     onCreateWorktree: vi.fn().mockResolvedValue(undefined),
     onDeleteWorktree: vi.fn().mockResolvedValue(undefined),
@@ -83,6 +84,7 @@ function createBaseProps(
     onOpenConfigToml: vi.fn().mockResolvedValue(undefined),
     onOpenConfigDocs: vi.fn().mockResolvedValue(undefined),
     onOpenMcpDocs: vi.fn().mockResolvedValue(undefined),
+    writeProjectPermissionConfig: vi.fn().mockResolvedValue({ filePath: "E:/code/project/.codex/config.toml" }),
     refreshConfigSnapshot: vi.fn().mockResolvedValue({ config: {}, origins: {}, layers: [] }),
     readGlobalAgentInstructions: vi.fn().mockResolvedValue({ path: "~/.codex/AGENTS.md", content: "" }),
     listCustomPets: vi.fn().mockResolvedValue({

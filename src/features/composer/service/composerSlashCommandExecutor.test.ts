@@ -96,6 +96,7 @@ describe("composerSlashCommandExecutor", () => {
       ],
       filePath: "C:/Users/dev/.codex/config.toml",
       expectedVersion: "u1",
+      reloadUserConfig: true,
     });
     expect(deps.onSelectPermissionLevel).toHaveBeenCalledWith("autoReview");
   });

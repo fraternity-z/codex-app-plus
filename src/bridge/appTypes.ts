@@ -11,6 +11,18 @@ export interface OpenCodexConfigTomlInput {
   readonly filePath?: string | null;
 }
 
+export interface WriteProjectPermissionConfigInput {
+  readonly agentEnvironment: AgentEnvironment;
+  readonly filePath: string;
+  readonly approvalPolicy?: string | null;
+  readonly sandboxMode?: string | null;
+  readonly networkAccess?: boolean | null;
+}
+
+export interface WriteProjectPermissionConfigOutput {
+  readonly filePath: string;
+}
+
 export interface RpcRequestInput {
   readonly method: string;
   readonly params: unknown;

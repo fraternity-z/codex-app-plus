@@ -142,7 +142,10 @@ export function useAppControllerActions({
     });
   }, [client, dispatch, hostBridge, runBusy]);
 
-  const refreshConfigSnapshot = useCallback(() => readConfigSnapshot(client, dispatch), [client, dispatch]);
+  const refreshConfigSnapshot = useCallback(
+    (cwd?: string | null) => readConfigSnapshot(client, dispatch, { cwd }),
+    [client, dispatch],
+  );
   const refreshAuthState = useCallback(() => refreshAccountState(client, dispatch), [client, dispatch]);
   const refreshMcpData = useCallback(() => refreshMcpSnapshot(client, dispatch), [client, dispatch]);
   const listMcpServerStatuses = useCallback(async () => {

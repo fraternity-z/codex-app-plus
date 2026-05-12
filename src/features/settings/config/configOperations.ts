@@ -45,10 +45,16 @@ type Dispatch = (action: AppAction) => void;
 
 export async function readConfigSnapshot(
   client: ProtocolClient,
-  dispatch?: Dispatch
+  dispatch?: Dispatch,
+  options: { readonly cwd?: string | null } = {},
 ): Promise<ConfigReadResponse> {
-  const config = (await client.request("config/read", { includeLayers: true })) as ConfigReadResponse;
-  dispatch?.({ type: "config/loaded", config });
+  const params = options.cwd == null
+    ? { includeLayers: true }
+    : { includeLayers: true, cwd: options.cwd };
+  const config = (await client.request("config/read", params)) as ConfigReadResponse;
+  if (options.cwd == null) {
+    dispatch?.({ type: "config/loaded", config });
+  }
   return config;
 }
 

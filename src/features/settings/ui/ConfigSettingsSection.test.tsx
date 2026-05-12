@@ -62,8 +62,14 @@ function createBaseProps(
 ): ComponentProps<typeof ConfigSettingsSection> {
   return {
     preferences: createPreferencesController(),
+    agentEnvironment: "windowsNative",
+    configSnapshot: { config: {}, origins: {}, layers: [] } as unknown as ComponentProps<typeof ConfigSettingsSection>["configSnapshot"],
+    selectedRoot: null,
     onOpenConfigToml: vi.fn().mockResolvedValue(undefined),
     onOpenConfigDocs: vi.fn().mockResolvedValue(undefined),
+    writeProjectPermissionConfig: vi.fn().mockResolvedValue({ filePath: "E:/code/project/.codex/config.toml" }),
+    refreshConfigSnapshot: vi.fn().mockResolvedValue({ config: {}, origins: {}, layers: [] }),
+    batchWriteConfigSnapshot: vi.fn().mockResolvedValue({ config: { config: {}, origins: {}, layers: [] }, write: {} }),
     ...overrides,
   };
 }

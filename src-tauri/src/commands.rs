@@ -41,9 +41,10 @@ use crate::models::{
     ShowNotificationInput, UpdateAgentInput, UpdateChatgptAuthTokensInput,
     UpdateGlobalAgentInstructionsInput, UpdateProxySettingsInput, UpdateProxySettingsOutput,
     UpsertManagedPromptInput, WindowChromeAction, WorkspacePersistenceState, WriteAgentConfigInput,
-    WriteAgentConfigOutput,
+    WriteAgentConfigOutput, WriteProjectPermissionConfigInput, WriteProjectPermissionConfigOutput,
 };
 use crate::pets::list_custom_pets;
+use crate::permission_config::write_project_permission_config;
 use crate::process_manager::ProcessManager;
 use crate::proxy_settings::{read_proxy_settings, write_proxy_settings};
 use crate::window_theme::{apply_window_theme, WindowTheme};
@@ -238,6 +239,13 @@ pub fn app_open_file_in_editor(input: OpenFileInEditorInput) -> Result<(), Strin
 #[tauri::command]
 pub fn app_open_codex_config_toml(input: OpenCodexConfigTomlInput) -> Result<(), String> {
     to_result(open_codex_config_toml(input))
+}
+
+#[tauri::command]
+pub async fn app_write_project_permission_config(
+    input: WriteProjectPermissionConfigInput,
+) -> Result<WriteProjectPermissionConfigOutput, String> {
+    run_blocking(move || write_project_permission_config(input)).await
 }
 
 #[tauri::command]

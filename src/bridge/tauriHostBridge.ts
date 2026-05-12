@@ -90,6 +90,8 @@ import type {
   UpsertManagedPromptInput,
   WriteAgentConfigInput,
   WriteAgentConfigOutput,
+  WriteProjectPermissionConfigInput,
+  WriteProjectPermissionConfigOutput,
 } from "./types";
 
 type TauriPayload = Readonly<Record<string, unknown>>;
@@ -183,6 +185,11 @@ export function createTauriHostBridge(): HostBridge {
         ),
       openCodexConfigToml: (input: OpenCodexConfigTomlInput) =>
         invokeWithInput("app_open_codex_config_toml", input),
+      writeProjectPermissionConfig: (input: WriteProjectPermissionConfigInput) =>
+        invokeWithInput<WriteProjectPermissionConfigInput, WriteProjectPermissionConfigOutput>(
+          "app_write_project_permission_config",
+          input
+        ),
       revealPathInFolder: (input: RevealPathInFolderInput) =>
         invokeWithInput("app_reveal_path_in_folder", input),
       readWorkspaceState: () =>

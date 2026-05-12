@@ -350,6 +350,22 @@ pub struct OpenCodexConfigTomlInput {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct WriteProjectPermissionConfigInput {
+    pub agent_environment: AgentEnvironment,
+    pub file_path: String,
+    pub approval_policy: Option<String>,
+    pub sandbox_mode: Option<String>,
+    pub network_access: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WriteProjectPermissionConfigOutput {
+    pub file_path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReadGlobalAgentInstructionsInput {
     pub agent_environment: AgentEnvironment,
 }

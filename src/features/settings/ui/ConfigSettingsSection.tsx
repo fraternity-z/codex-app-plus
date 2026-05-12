@@ -1,11 +1,22 @@
 import type { AppPreferencesController } from "../hooks/useAppPreferences";
 import { useI18n } from "../../../i18n";
+import type { AgentEnvironment, WriteProjectPermissionConfigInput } from "../../../bridge/types";
+import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
+import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
+import type { WorkspaceRoot } from "../../workspace";
+import type { ConfigSnapshotMutationResult } from "../config/configOperations";
 import { ComposerPermissionDefaultsCard } from "./ComposerPermissionDefaultsCard";
 
 interface ConfigSettingsSectionProps {
   readonly preferences: AppPreferencesController;
-  onOpenConfigToml: () => Promise<void>;
+  readonly agentEnvironment: AgentEnvironment;
+  readonly configSnapshot: ConfigReadResponse | null;
+  readonly selectedRoot: WorkspaceRoot | null;
+  onOpenConfigToml: (filePath?: string | null) => Promise<void>;
   onOpenConfigDocs: () => Promise<void>;
+  writeProjectPermissionConfig: (input: WriteProjectPermissionConfigInput) => Promise<unknown>;
+  refreshConfigSnapshot: (cwd?: string | null) => Promise<ConfigReadResponse>;
+  batchWriteConfigSnapshot: (params: ConfigBatchWriteParams) => Promise<ConfigSnapshotMutationResult>;
 }
 
 export function ConfigSettingsSection(props: ConfigSettingsSectionProps): JSX.Element {
@@ -34,7 +45,13 @@ export function ConfigSettingsSection(props: ConfigSettingsSectionProps): JSX.El
       </header>
       <ComposerPermissionDefaultsCard
         preferences={props.preferences}
+        agentEnvironment={props.agentEnvironment}
+        configSnapshot={props.configSnapshot}
+        selectedRoot={props.selectedRoot}
         onOpenConfigToml={props.onOpenConfigToml}
+        writeProjectPermissionConfig={props.writeProjectPermissionConfig}
+        refreshConfigSnapshot={props.refreshConfigSnapshot}
+        batchWriteConfigSnapshot={props.batchWriteConfigSnapshot}
       />
     </div>
   );

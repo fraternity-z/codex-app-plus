@@ -33,6 +33,9 @@ function createHostBridge(): HostBridge {
       openWorkspace: vi.fn().mockResolvedValue(undefined),
       openFileInEditor: vi.fn().mockResolvedValue(undefined),
       openCodexConfigToml: vi.fn().mockResolvedValue(undefined),
+      writeProjectPermissionConfig: vi.fn().mockResolvedValue({
+        filePath: "E:/code/project/.codex/config.toml"
+      }),
       revealPathInFolder: vi.fn().mockResolvedValue(undefined),
       readWorkspaceState: vi.fn().mockResolvedValue(null),
       writeWorkspaceState: vi.fn().mockResolvedValue(undefined),

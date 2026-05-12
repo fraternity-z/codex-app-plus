@@ -62,6 +62,8 @@ import type {
   UpsertManagedPromptInput,
   WriteAgentConfigInput,
   WriteAgentConfigOutput,
+  WriteProjectPermissionConfigInput,
+  WriteProjectPermissionConfigOutput,
 } from "./appTypes";
 import type { BridgeEventName, BridgeEventPayloadMap } from "./eventTypes";
 import type {
@@ -128,6 +130,9 @@ export interface HostBridge {
     addBrowserUseOrigin(input: BrowserUseOriginInput): Promise<BrowserUseSettingsOutput>;
     removeBrowserUseOrigin(input: BrowserUseOriginInput): Promise<BrowserUseSettingsOutput>;
     openCodexConfigToml(input: OpenCodexConfigTomlInput): Promise<void>;
+    writeProjectPermissionConfig(
+      input: WriteProjectPermissionConfigInput
+    ): Promise<WriteProjectPermissionConfigOutput>;
     revealPathInFolder(input: RevealPathInFolderInput): Promise<void>;
     readWorkspaceState(): Promise<WorkspacePersistenceState | null>;
     writeWorkspaceState(input: WorkspacePersistenceState): Promise<void>;

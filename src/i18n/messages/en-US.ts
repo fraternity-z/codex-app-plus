@@ -435,7 +435,14 @@ export const enUS = {
       composer: {
         title: "Custom config.toml settings",
         sourceUserConfig: "User config",
+        sourceProjectConfig: "Project config",
+        sourceGlobalConfig: "Global config",
+        sourceNoProject: "No workspace selected",
+        sourceMenuLabel: "Configuration scope",
         openConfigToml: "Open config.toml",
+        savedMessage: "Configuration synced and applied.",
+        loadFailed: "Failed to load configuration: {error}",
+        saveFailed: "Failed to save configuration: {error}",
         approvalPolicy: {
           label: "Approval policy",
           description: "Choose when Codex asks for approval",
@@ -454,6 +461,10 @@ export const enUS = {
             workspaceWrite: "Workspace write",
             dangerFullAccess: "Danger full access",
           },
+        },
+        networkAccess: {
+          label: "Allow network access",
+          description: "Allow network access when the sandbox is set to workspace write",
         },
       },
     },

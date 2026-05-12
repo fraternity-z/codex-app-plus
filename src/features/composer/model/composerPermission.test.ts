@@ -28,19 +28,14 @@ describe("composerPermission", () => {
     expect(isComposerApprovalPolicy("other")).toBe(false);
   });
 
-  it("maps default thread permissions to workspace-write with approval", () => {
-    expect(createThreadPermissionOverrides("default", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({
-      approvalPolicy: "on-request",
-      approvalsReviewer: "user",
-      sandbox: "workspace-write"
-    });
+  it("lets default thread permissions come from config.toml", () => {
+    expect(createThreadPermissionOverrides("default", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({});
   });
 
-  it("maps auto-review thread permissions to workspace-write with auto reviewer", () => {
+  it("maps auto-review thread permissions to auto reviewer only", () => {
     expect(createThreadPermissionOverrides("autoReview", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({
       approvalPolicy: "on-request",
-      approvalsReviewer: "auto_review",
-      sandbox: "workspace-write"
+      approvalsReviewer: "auto_review"
     });
   });
 
@@ -52,18 +47,8 @@ describe("composerPermission", () => {
     });
   });
 
-  it("maps default turn permissions to workspace-write sandbox policy", () => {
-    expect(createTurnPermissionOverrides("default", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({
-      approvalPolicy: "on-request",
-      approvalsReviewer: "user",
-      sandboxPolicy: {
-        type: "workspaceWrite",
-        writableRoots: [],
-        networkAccess: false,
-        excludeTmpdirEnvVar: false,
-        excludeSlashTmp: false
-      }
-    });
+  it("lets default turn permissions come from config.toml", () => {
+    expect(createTurnPermissionOverrides("default", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({});
   });
 
   it("maps full turn permissions to danger-full-access sandbox policy", () => {
@@ -74,44 +59,26 @@ describe("composerPermission", () => {
     });
   });
 
-  it("maps auto-review turn permissions to workspace-write sandbox policy", () => {
+  it("maps auto-review turn permissions to auto reviewer only", () => {
     expect(createTurnPermissionOverrides("autoReview", DEFAULT_COMPOSER_PERMISSION_SETTINGS)).toEqual({
       approvalPolicy: "on-request",
-      approvalsReviewer: "auto_review",
-      sandboxPolicy: {
-        type: "workspaceWrite",
-        writableRoots: [],
-        networkAccess: false,
-        excludeTmpdirEnvVar: false,
-        excludeSlashTmp: false
-      }
+      approvalsReviewer: "auto_review"
     });
   });
 
-  it("maps default permission to on-failure + read-only when configured", () => {
+  it("ignores legacy default permission settings in favor of config.toml", () => {
     expect(createThreadPermissionOverrides("default", {
       defaultApprovalPolicy: "on-failure",
       defaultSandboxMode: "read-only",
       fullApprovalPolicy: "never",
       fullSandboxMode: "danger-full-access"
-    })).toEqual({
-      approvalPolicy: "on-failure",
-      approvalsReviewer: "user",
-      sandbox: "read-only"
-    });
+    })).toEqual({});
     expect(createTurnPermissionOverrides("default", {
       defaultApprovalPolicy: "on-failure",
       defaultSandboxMode: "read-only",
       fullApprovalPolicy: "never",
       fullSandboxMode: "danger-full-access"
-    })).toEqual({
-      approvalPolicy: "on-failure",
-      approvalsReviewer: "user",
-      sandboxPolicy: {
-        type: "readOnly",
-        networkAccess: false
-      }
-    });
+    })).toEqual({});
   });
 
   it("keeps full permission fixed even when settings contain overrides", () => {

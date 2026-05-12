@@ -77,7 +77,7 @@ export type AppHostBridge = Pick<HostBridge, "app">;
 export interface AppController {
   setInput: (text: string) => void;
   retryConnection: () => Promise<void>;
-  refreshConfigSnapshot: () => Promise<ConfigReadResponse>;
+  refreshConfigSnapshot: (cwd?: string | null) => Promise<ConfigReadResponse>;
   refreshAuthState: () => Promise<void>;
   refreshMcpData: () => Promise<McpRefreshResult>;
   listMcpServerStatuses: () => Promise<ReadonlyArray<McpServerStatus>>;

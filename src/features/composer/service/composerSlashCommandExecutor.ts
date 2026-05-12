@@ -116,6 +116,7 @@ export async function applySlashPermissionLevel(
     ],
     filePath: writeTarget.filePath,
     expectedVersion: writeTarget.expectedVersion,
+    reloadUserConfig: true,
   });
   deps.onSelectPermissionLevel(level);
   await refreshSlashConfig(deps.composerCommandBridge, deps.dispatch);

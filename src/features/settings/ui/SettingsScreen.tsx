@@ -89,12 +89,12 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
       reportError("选择工作区文件夹失败", error);
     }
   }, [props.workspace, reportError]);
-  const openConfigToml = useCallback(async () => {
+  const openConfigToml = useCallback(async (filePath?: string | null) => {
     try {
       const writeTarget = readUserConfigWriteTarget(state.configSnapshot);
       await props.hostBridge.app.openCodexConfigToml({
         agentEnvironment: props.preferences.agentEnvironment,
-        filePath: writeTarget.filePath,
+        filePath: filePath === undefined ? writeTarget.filePath : filePath,
       });
     } catch (error) {
       reportError("打开 config.toml 失败", error);
@@ -186,6 +186,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     section: props.section,
     sidebarCollapsed: props.sidebarCollapsed,
     roots: props.workspace.roots,
+    selectedRoot: props.workspace.selectedRoot,
     worktrees: worktreeController.worktrees,
     onCreateWorktree: createWorktree,
     onDeleteWorktree: deleteWorktree,
@@ -208,6 +209,8 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     onOpenConfigToml: openConfigToml,
     onOpenConfigDocs: openConfigDocs,
     onOpenMcpDocs: openMcpDocs,
+    writeProjectPermissionConfig: (input) =>
+      props.hostBridge.app.writeProjectPermissionConfig(input),
     refreshConfigSnapshot: props.controller.refreshConfigSnapshot,
     readGlobalAgentInstructions: () =>
       props.hostBridge.app.readGlobalAgentInstructions({

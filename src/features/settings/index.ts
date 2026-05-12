@@ -12,6 +12,16 @@ export {
 } from "./config/configOperations";
 export { readUserConfigWriteTarget } from "./config/configWriteTarget";
 export {
+  createPermissionConfigEdit,
+  createProjectConfigCwd,
+  createProjectConfigFilePath,
+  readPermissionConfigValues,
+  readProjectConfigWriteTarget,
+  type PermissionConfigScope,
+  type PermissionConfigValues,
+  type PermissionConfigWriteTarget,
+} from "./config/permissionConfig";
+export {
   selectMultiAgentFeatureState,
   selectSteerFeatureState,
 } from "./config/experimentalFeatures";

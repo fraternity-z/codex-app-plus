@@ -26,6 +26,7 @@ mod git;
 mod global_agent_instructions;
 mod media_permissions;
 mod models;
+mod permission_config;
 mod pets;
 mod process_manager;
 mod process_supervisor;
@@ -63,7 +64,8 @@ use commands::{
     app_set_window_theme, app_show_context_menu, app_show_notification, app_start_window_dragging,
     app_update_agent, app_upsert_managed_prompt, app_write_agent_config,
     app_write_chatgpt_auth_tokens, app_write_global_agent_instructions, app_write_proxy_settings,
-    app_write_workspace_state, rpc_cancel, rpc_notify, rpc_request, server_request_resolve,
+    app_write_project_permission_config, app_write_workspace_state, rpc_cancel, rpc_notify,
+    rpc_request, server_request_resolve,
 };
 use dictation_transcription::app_transcribe_dictation_audio;
 use git::commands::{
@@ -143,6 +145,7 @@ fn main() {
             app_browser_use_origin_add,
             app_browser_use_origin_remove,
             app_open_codex_config_toml,
+            app_write_project_permission_config,
             app_reveal_path_in_folder,
             app_read_workspace_state,
             app_write_workspace_state,

@@ -31,8 +31,8 @@ export const DEFAULT_COMPOSER_PERMISSION_SETTINGS = Object.freeze<ComposerPermis
   fullSandboxMode: DEFAULT_COMPOSER_FULL_SANDBOX_MODE
 });
 
-type ThreadPermissionOverrides = Pick<ThreadStartParams, "approvalPolicy" | "approvalsReviewer" | "sandbox">;
-type TurnPermissionOverrides = Pick<TurnStartParams, "approvalPolicy" | "approvalsReviewer" | "sandboxPolicy">;
+type ThreadPermissionOverrides = Partial<Pick<ThreadStartParams, "approvalPolicy" | "approvalsReviewer" | "sandbox">>;
+type TurnPermissionOverrides = Partial<Pick<TurnStartParams, "approvalPolicy" | "approvalsReviewer" | "sandboxPolicy">>;
 
 export function isComposerPermissionLevel(value: unknown): value is ComposerPermissionLevel {
   return value === "default" || value === "autoReview" || value === "full";
@@ -103,6 +103,15 @@ export function createThreadPermissionOverrides(
   settings: ComposerPermissionSettings = DEFAULT_COMPOSER_PERMISSION_SETTINGS
 ): ThreadPermissionOverrides {
   const values = resolveComposerPermissionValues(level, settings);
+  if (level === "default") {
+    return {};
+  }
+  if (level === "autoReview") {
+    return {
+      approvalPolicy: values.approvalPolicy,
+      approvalsReviewer: values.approvalsReviewer,
+    };
+  }
   return {
     approvalPolicy: values.approvalPolicy,
     approvalsReviewer: values.approvalsReviewer,
@@ -115,6 +124,15 @@ export function createTurnPermissionOverrides(
   settings: ComposerPermissionSettings = DEFAULT_COMPOSER_PERMISSION_SETTINGS
 ): TurnPermissionOverrides {
   const values = resolveComposerPermissionValues(level, settings);
+  if (level === "default") {
+    return {};
+  }
+  if (level === "autoReview") {
+    return {
+      approvalPolicy: values.approvalPolicy,
+      approvalsReviewer: values.approvalsReviewer,
+    };
+  }
   return {
     approvalPolicy: values.approvalPolicy,
     approvalsReviewer: values.approvalsReviewer,
