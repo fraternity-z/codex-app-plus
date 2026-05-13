@@ -591,7 +591,8 @@ html[data-theme="dark"] .workspace-diff-git-asset-icon {
   background: var(--surface-panel);
 }
 
-.workspace-file-viewer-breadcrumb {
+.workspace-file-viewer-breadcrumb,
+.quick-preview-breadcrumb {
   min-width: 0;
   display: flex;
   align-items: center;
@@ -599,14 +600,16 @@ html[data-theme="dark"] .workspace-diff-git-asset-icon {
   white-space: nowrap;
 }
 
-.workspace-file-viewer-breadcrumb-group {
+.workspace-file-viewer-breadcrumb-group,
+.quick-preview-breadcrumb-group {
   min-width: 0;
   display: inline-flex;
   align-items: center;
   flex: 0 1 auto;
 }
 
-.workspace-file-viewer-breadcrumb-item {
+.workspace-file-viewer-breadcrumb-item,
+.quick-preview-breadcrumb-item {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -615,16 +618,19 @@ html[data-theme="dark"] .workspace-diff-git-asset-icon {
   line-height: 18px;
 }
 
-.workspace-file-viewer-breadcrumb-group:last-child {
+.workspace-file-viewer-breadcrumb-group:last-child,
+.quick-preview-breadcrumb-group:last-child {
   flex: 1 1 auto;
 }
 
-.workspace-file-viewer-breadcrumb-group:last-child .workspace-file-viewer-breadcrumb-item {
+.workspace-file-viewer-breadcrumb-group:last-child .workspace-file-viewer-breadcrumb-item,
+.quick-preview-breadcrumb-group:last-child .quick-preview-breadcrumb-item {
   color: var(--text-main);
   font-weight: 650;
 }
 
-.workspace-file-viewer-breadcrumb-separator {
+.workspace-file-viewer-breadcrumb-separator,
+.quick-preview-breadcrumb-separator {
   flex: 0 0 auto;
   margin: 0 8px;
   color: var(--text-subtle);
@@ -884,37 +890,8 @@ html[data-theme="dark"] .workspace-diff-git-asset-icon {
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid var(--border-light);
-  padding: 7px 12px 7px 16px;
+  padding: 0 12px 0 16px;
   background: var(--surface-panel);
-}
-
-.quick-preview-title-wrap {
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.quick-preview-title,
-.quick-preview-subtitle {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.quick-preview-title {
-  margin: 0;
-  color: var(--text-main);
-  font-size: 13px;
-  font-weight: 650;
-  line-height: 1.25;
-}
-
-.quick-preview-subtitle {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 11px;
-  line-height: 1.25;
 }
 
 .quick-preview-toolbar-actions {

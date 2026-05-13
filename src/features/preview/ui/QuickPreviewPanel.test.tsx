@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../../bridge/types";
 import { QuickPreviewPanel } from "./QuickPreviewPanel";
@@ -89,6 +89,31 @@ describe("QuickPreviewPanel", () => {
       wrapper.appendChild(page);
       bodyContainer.appendChild(wrapper);
     });
+  });
+
+  it("renders the opened file title as a full path breadcrumb", () => {
+    const hostBridge = createHostBridge();
+
+    render(
+      <QuickPreviewPanel
+        hostBridge={hostBridge}
+        target={{
+          kind: "file",
+          fileKind: "document",
+          path: "E:/code/codex-app-plus/docs/report.pdf",
+          name: "report.pdf",
+          extension: "PDF",
+        }}
+      />,
+    );
+
+    const breadcrumb = screen.getByRole("navigation", { name: "文件路径" });
+    expect(within(breadcrumb).getByText("E:")).toBeInTheDocument();
+    expect(within(breadcrumb).getByText("code")).toBeInTheDocument();
+    expect(within(breadcrumb).getByText("codex-app-plus")).toBeInTheDocument();
+    expect(within(breadcrumb).getByText("docs")).toBeInTheDocument();
+    expect(within(breadcrumb).getByText("report.pdf")).toBeInTheDocument();
+    expect(breadcrumb).toHaveAttribute("title", "E:/code/codex-app-plus/docs/report.pdf");
   });
 
   it("renders markdown documents instead of raw text", async () => {

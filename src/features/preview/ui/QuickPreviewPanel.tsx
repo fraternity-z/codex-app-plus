@@ -4,7 +4,6 @@ import type { HostBridge } from "../../../bridge/types";
 import type { FsReadFileResponse } from "../../../protocol/generated/v2/FsReadFileResponse";
 import { MarkdownRenderer } from "../../conversation/ui/MarkdownRenderer";
 import {
-  getPathBaseName,
   isDocxDocumentPreview,
   isEmbeddableDocumentPreview,
   isMarkdownDocumentPreview,
@@ -213,6 +212,28 @@ function PreviewActionIcon(props: { readonly kind: "open" | "folder" }): JSX.Ele
       <path d="M8.7 2.2h5.1v5.1" />
       <path d="m7.6 8.4 5.7-5.7" />
     </svg>
+  );
+}
+
+function getPathBreadcrumbSegments(path: string, fallbackName: string): ReadonlyArray<string> {
+  const segments = path.replace(/\\/g, "/").replace(/\/+$/, "").split("/").filter(Boolean);
+  return segments.length > 0 ? segments : [fallbackName];
+}
+
+function QuickPreviewBreadcrumb(props: {
+  readonly path: string;
+  readonly name: string;
+}): JSX.Element {
+  const segments = getPathBreadcrumbSegments(props.path, props.name);
+  return (
+    <nav className="quick-preview-breadcrumb" aria-label="文件路径" title={props.path}>
+      {segments.map((segment, index) => (
+        <span key={`${index}-${segment}`} className="quick-preview-breadcrumb-group">
+          {index === 0 ? null : <span className="quick-preview-breadcrumb-separator">›</span>}
+          <span className="quick-preview-breadcrumb-item">{segment}</span>
+        </span>
+      ))}
+    </nav>
   );
 }
 
@@ -522,15 +543,10 @@ export function QuickPreviewPanel(props: QuickPreviewPanelProps): JSX.Element {
     }
   }, [pendingAction, props.hostBridge, props.target.path]);
 
-  const relativeTitle = getPathBaseName(props.target.path);
-
   return (
     <section className="quick-preview-panel" aria-label={`预览 ${props.target.name}`}>
       <div className="quick-preview-toolbar">
-        <div className="quick-preview-title-wrap">
-          <h2 className="quick-preview-title">{relativeTitle}</h2>
-          <p className="quick-preview-subtitle" title={props.target.path}>{props.target.path}</p>
-        </div>
+        <QuickPreviewBreadcrumb path={props.target.path} name={props.target.name} />
         <div className="quick-preview-toolbar-actions">
           <button
             type="button"
