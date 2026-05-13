@@ -40,6 +40,7 @@ function createTurnState(overrides: Partial<ConversationTurnState> = {}): Conver
     params: null,
     items: [createAssistantItem("assistant reply")],
     turnStartedAtMs: 123,
+    planAvailable: true,
     planExplanation: "plan summary",
     planSteps: [{ step: "Inspect state merge", status: "completed" }],
     diff: "diff --git a/file b/file",
@@ -148,6 +149,7 @@ describe("conversationState", () => {
     expect(nextTurn?.items[0]?.item.type === "agentMessage" ? nextTurn.items[0].item.text : null).toBe("assistant reply");
     expect(nextTurn?.rawResponses).toBe(originalTurn?.rawResponses);
     expect(nextTurn?.notices).toBe(originalTurn?.notices);
+    expect(nextTurn?.planAvailable).toBe(originalTurn?.planAvailable);
     expect(nextTurn?.planExplanation).toBe(originalTurn?.planExplanation);
     expect(nextTurn?.planSteps).toBe(originalTurn?.planSteps);
     expect(nextTurn?.diff).toBe(originalTurn?.diff);

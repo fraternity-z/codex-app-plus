@@ -24,7 +24,7 @@ function createPlanEntry(overrides?: Partial<TurnPlanSnapshotEntry>): TurnPlanSn
 describe("HomeTurnPlanDrawer", () => {
   it("renders the progress card with overview sections when expanded", () => {
     const plan = createTurnPlanModel(createPlanEntry());
-    render(
+    const { container } = render(
       <HomeTurnPlanDrawer
         plan={plan}
         overview={{ additions: 12, changedFiles: 2, deletions: 4, generatedImages: 1 }}
@@ -39,6 +39,8 @@ describe("HomeTurnPlanDrawer", () => {
 
     expect(screen.getByRole("region", { name: "Progress card" })).toBeInTheDocument();
     expect(screen.getByText("Progress")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(container.querySelector(".home-turn-progress-card")).toHaveAttribute("data-plan-state", "active");
     expect(screen.getByText("Prepare UI")).toBeInTheDocument();
     expect(screen.getByLabelText("Prepare UI: In progress")).toBeInTheDocument();
     expect(screen.getByText("Wire data")).toBeInTheDocument();
@@ -59,6 +61,22 @@ describe("HomeTurnPlanDrawer", () => {
     });
 
     expect(screen.getByText("Task list cleared, waiting for a new plan")).toBeInTheDocument();
+  });
+
+  it("marks the card complete when all plan steps are done", () => {
+    const plan = createTurnPlanModel(createPlanEntry({
+      id: "plan-complete",
+      plan: [
+        { step: "Prepare UI", status: "completed" },
+        { step: "Wire data", status: "completed" },
+      ],
+    }));
+    const { container } = render(<HomeTurnPlanDrawer plan={plan} pinned={false} visible onTogglePinned={() => undefined} />, {
+      wrapper: createI18nWrapper("en-US"),
+    });
+
+    expect(container.querySelector(".home-turn-progress-card")).toHaveAttribute("data-plan-state", "complete");
+    expect(screen.getByText("Completed 2 / 2")).toBeInTheDocument();
   });
 
   it("invokes toggle handler when pressing the pin button", () => {

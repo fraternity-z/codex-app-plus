@@ -628,6 +628,7 @@
   color: var(--text-muted);
   font-size: var(--app-ui-font-size-xl);
   line-height: 1.35;
+  animation: home-turn-progress-step-enter 180ms ease-out both;
 }
 
 .home-turn-progress-step-marker {
@@ -638,6 +639,20 @@
   border: 1.8px solid color-mix(in srgb, var(--text-muted) 72%, transparent);
   border-radius: 999px;
   background: var(--surface-panel);
+}
+
+.home-turn-progress-step-marker[data-status="inProgress"] {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-color) 12%, transparent);
+  animation: home-turn-progress-marker-pulse 1.4s ease-in-out infinite;
+}
+
+.home-turn-progress-step-marker[data-status="inProgress"]::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: inherit;
+  background: var(--accent-color);
 }
 
 .home-turn-progress-step-marker[data-status="completed"] {
@@ -659,6 +674,7 @@
 
 .home-turn-progress-step-marker[data-status="completed"] .home-turn-progress-step-check {
   display: block;
+  animation: home-turn-progress-check-pop 160ms ease-out both;
 }
 
 .home-turn-progress-step-text {
@@ -731,6 +747,41 @@ html[data-theme="dark"] .home-turn-progress-card .home-turn-progress-card-surfac
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
 }
 
+@keyframes home-turn-progress-marker-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 10%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-color) 18%, transparent);
+  }
+}
+
+@keyframes home-turn-progress-check-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) rotate(45deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(45deg);
+  }
+}
+
+@keyframes home-turn-progress-step-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 900px) {
   .home-turn-progress-card .home-turn-progress-card-surface {
     max-height: min(58vh, calc(100% - (var(--home-turn-progress-card-edge-gap) * 2)));
@@ -754,5 +805,15 @@ html[data-theme="dark"] .home-turn-progress-card .home-turn-progress-card-surfac
   .home-turn-progress-row-value {
     grid-column: 2;
     justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-turn-progress-card .home-turn-progress-card-surface,
+  .home-turn-progress-step,
+  .home-turn-progress-step-marker,
+  .home-turn-progress-step-check {
+    animation: none;
+    transition-duration: 1ms;
   }
 }

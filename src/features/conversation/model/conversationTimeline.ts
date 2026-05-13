@@ -199,7 +199,7 @@ function appendTurnArtifacts(
   conversationId: string,
   turn: ConversationTurnState,
 ): void {
-  if (turn.planSteps.length > 0) {
+  if (turn.planAvailable === true || turn.planSteps.length > 0) {
     entries.push({ id: createEntryId(conversationId, turn.turnId, null, "turnPlan"), kind: "turnPlanSnapshot", threadId: conversationId, turnId: turn.turnId, itemId: null, explanation: turn.planExplanation, plan: [...turn.planSteps] });
   }
   if (turn.diff !== null) {

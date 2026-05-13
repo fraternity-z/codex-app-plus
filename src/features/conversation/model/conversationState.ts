@@ -110,6 +110,7 @@ function createTurnState(turn: Turn, params: ConversationTurnParams | null): Con
     params,
     items: turn.items.map(createItemState),
     turnStartedAtMs: turn.startedAt === null ? Date.now() : turn.startedAt * 1000,
+    planAvailable: false,
     planExplanation: null,
     planSteps: [],
     diff: null,
@@ -130,6 +131,7 @@ function createEmptyTurn(turnId: string | null): ConversationTurnState {
     params: null,
     items: [],
     turnStartedAtMs: Date.now(),
+    planAvailable: false,
     planExplanation: null,
     planSteps: [],
     diff: null,
@@ -208,6 +210,7 @@ function mergeSparseTurnState(currentTurn: ConversationTurnState, turn: Turn): C
     localId: currentTurn.localId,
     items: turn.items.length === 0 ? currentTurn.items : nextTurn.items,
     turnStartedAtMs: currentTurn.turnStartedAtMs ?? nextTurn.turnStartedAtMs,
+    planAvailable: currentTurn.planAvailable,
     planExplanation: currentTurn.planExplanation,
     planSteps: currentTurn.planSteps,
     diff: currentTurn.diff,
@@ -392,7 +395,7 @@ export function attachApprovalRequestToConversation(conversation: ConversationSt
 }
 
 export function setConversationPlan(conversation: ConversationState, turnId: string, explanation: string | null, planSteps: ReadonlyArray<ConversationTurnState["planSteps"][number]>): ConversationState {
-  return updateTurn(conversation, turnId, (turn) => ({ ...turn, planExplanation: explanation, planSteps: [...planSteps] }));
+  return updateTurn(conversation, turnId, (turn) => ({ ...turn, planAvailable: true, planExplanation: explanation, planSteps: [...planSteps] }));
 }
 
 export function setConversationDiff(conversation: ConversationState, turnId: string, diff: string): ConversationState {

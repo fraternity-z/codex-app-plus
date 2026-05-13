@@ -21,6 +21,7 @@ export function HomeTurnPlanDrawer(props: HomeTurnPlanDrawerProps): JSX.Element 
 
   const plan = props.plan;
   const isEmpty = plan !== null && plan.entry.plan.length === 0;
+  const planState = createPlanState(plan, isEmpty);
   const progressSummary = plan === null
     ? t("home.turnPlan.waitingStatus")
     : isEmpty
@@ -31,6 +32,7 @@ export function HomeTurnPlanDrawer(props: HomeTurnPlanDrawerProps): JSX.Element 
   return (
     <section
       className={props.pinned ? "home-turn-plan-drawer home-turn-progress-card home-turn-progress-card-pinned" : "home-turn-plan-drawer home-turn-progress-card"}
+      data-plan-state={planState}
       aria-label={t("home.turnPlan.progressCardLabel")}
     >
       <span className="home-turn-progress-hover-zone" aria-hidden="true" />
@@ -61,7 +63,7 @@ export function HomeTurnPlanDrawer(props: HomeTurnPlanDrawerProps): JSX.Element 
             <ol className="home-turn-progress-list">
               {plan.entry.plan.map((step, index) => (
                 <li
-                  key={`${plan.entry.id}-${index}`}
+                  key={`${plan.entry.id}-${index}-${step.status}`}
                   className="home-turn-progress-step"
                   data-status={step.status}
                   aria-label={`${step.step}: ${formatTurnPlanStatusLabel(step.status, t)}`}
@@ -78,6 +80,16 @@ export function HomeTurnPlanDrawer(props: HomeTurnPlanDrawerProps): JSX.Element 
       </div>
     </section>
   );
+}
+
+function createPlanState(plan: TurnPlanModel | null, isEmpty: boolean): "active" | "complete" | "cleared" | "waiting" {
+  if (plan === null) {
+    return "waiting";
+  }
+  if (isEmpty) {
+    return "cleared";
+  }
+  return plan.completedSteps === plan.totalSteps ? "complete" : "active";
 }
 
 function PlanStepMarker(props: { readonly status: TurnPlanStep["status"] }): JSX.Element {

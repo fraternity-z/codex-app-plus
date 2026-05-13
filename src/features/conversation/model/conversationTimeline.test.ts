@@ -122,6 +122,22 @@ describe("conversationTimeline", () => {
     expect(entries[1]?.kind === "agentMessage" ? entries[1].text : null).toBe("assistant reply");
   });
 
+  it("keeps an empty turn plan snapshot after the task list is cleared", () => {
+    const conversation = createConversation([
+      createTurn({
+        planAvailable: true,
+        planExplanation: null,
+        planSteps: [],
+      }),
+    ]);
+
+    const entries = mapConversationToTimelineEntries(conversation, []);
+    const planEntry = entries.find((entry) => entry.kind === "turnPlanSnapshot");
+
+    expect(planEntry?.kind).toBe("turnPlanSnapshot");
+    expect(planEntry?.kind === "turnPlanSnapshot" ? planEntry.plan : null).toEqual([]);
+  });
+
   it("keeps context compaction items inline with the assistant flow", () => {
     const conversation = createConversation([
       createTurn({

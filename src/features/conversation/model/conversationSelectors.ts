@@ -62,5 +62,5 @@ export function isConversationStreaming(conversation: ConversationState | null):
 }
 
 export function hasVisibleConversationContent(conversation: ConversationState | null): boolean {
-  return conversation !== null && conversation.turns.some((turn) => turn.params !== null || turn.items.length > 0 || turn.planSteps.length > 0 || turn.diff !== null);
+  return conversation !== null && conversation.turns.some((turn) => turn.params !== null || turn.items.length > 0 || turn.planAvailable === true || turn.planSteps.length > 0 || turn.diff !== null);
 }

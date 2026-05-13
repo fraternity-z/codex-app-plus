@@ -60,6 +60,8 @@ export interface ConversationTurnState {
   params: ConversationTurnParams | null;
   items: Array<ConversationItemState>;
   turnStartedAtMs: number | null;
+  // Set once turn/plan/updated arrives, including the cleared empty-plan state.
+  planAvailable?: boolean;
   planExplanation: string | null;
   planSteps: Array<TurnPlanStep>;
   diff: string | null;
