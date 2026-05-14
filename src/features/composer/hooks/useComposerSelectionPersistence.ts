@@ -16,8 +16,8 @@ function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function sameSelection(left: ComposerSelection, right: ComposerSelection): boolean {
-  return left.model === right.model && left.effort === right.effort && left.serviceTier === right.serviceTier;
+function samePersistedSelection(left: ComposerSelection, right: ComposerSelection): boolean {
+  return left.model === right.model && left.effort === right.effort;
 }
 
 interface UseComposerSelectionPersistenceOptions {
@@ -59,6 +59,7 @@ export function useComposerSelectionPersistence(
   const queuedSelectionRef = useRef<ComposerSelection | null>(null);
   const inFlightSelectionRef = useRef<ComposerSelection | null>(null);
   const timerRef = useRef<number | null>(null);
+  const selectedServiceTierRef = useRef<ServiceTier | null>(options.selectedServiceTier);
 
   useEffect(() => {
     lastPersistedSelectionRef.current = {
@@ -67,6 +68,10 @@ export function useComposerSelectionPersistence(
       serviceTier: persistedSelection.serviceTier
     };
   }, [persistedSelection.effort, persistedSelection.model, persistedSelection.serviceTier]);
+
+  useEffect(() => {
+    selectedServiceTierRef.current = options.selectedServiceTier;
+  }, [options.selectedServiceTier]);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -89,7 +94,10 @@ export function useComposerSelectionPersistence(
       lastPersistedSelectionRef.current = nextSelection;
     } catch (error) {
       queuedSelectionRef.current = null;
-      options.replaceSelection(lastPersistedSelectionRef.current);
+      options.replaceSelection({
+        ...lastPersistedSelectionRef.current,
+        serviceTier: selectedServiceTierRef.current
+      });
       console.error("保存 Composer 配置失败", error);
       notifyError("保存 Composer 配置失败", error, toErrorMessage(error));
     } finally {
@@ -97,7 +105,7 @@ export function useComposerSelectionPersistence(
     }
 
     if (queuedSelectionRef.current !== null) {
-      if (sameSelection(queuedSelectionRef.current, lastPersistedSelectionRef.current)) {
+      if (samePersistedSelection(queuedSelectionRef.current, lastPersistedSelectionRef.current)) {
         queuedSelectionRef.current = null;
         return;
       }
@@ -126,7 +134,7 @@ export function useComposerSelectionPersistence(
       serviceTier: options.selectedServiceTier
     };
     options.replaceSelection(nextSelection);
-    if (sameSelection(nextSelection, lastPersistedSelectionRef.current)) {
+    if (samePersistedSelection(nextSelection, lastPersistedSelectionRef.current)) {
       queuedSelectionRef.current = null;
       clearTimer();
       return;
@@ -145,7 +153,7 @@ export function useComposerSelectionPersistence(
       serviceTier: options.selectedServiceTier
     };
     options.replaceSelection(nextSelection);
-    if (sameSelection(nextSelection, lastPersistedSelectionRef.current)) {
+    if (samePersistedSelection(nextSelection, lastPersistedSelectionRef.current)) {
       queuedSelectionRef.current = null;
       clearTimer();
       return;
@@ -154,19 +162,14 @@ export function useComposerSelectionPersistence(
   }, [clearTimer, options.replaceSelection, options.selectedModel, options.selectedServiceTier, schedulePersist]);
 
   const handleSelectServiceTier = useCallback((serviceTier: ServiceTier | null) => {
+    selectedServiceTierRef.current = serviceTier;
     const nextSelection = {
       model: options.selectedModel,
       effort: options.selectedEffort,
       serviceTier
     };
     options.replaceSelection(nextSelection);
-    if (sameSelection(nextSelection, lastPersistedSelectionRef.current)) {
-      queuedSelectionRef.current = null;
-      clearTimer();
-      return;
-    }
-    schedulePersist(nextSelection);
-  }, [clearTimer, options.replaceSelection, options.selectedEffort, options.selectedModel, schedulePersist]);
+  }, [options.replaceSelection, options.selectedEffort, options.selectedModel]);
 
   return { handleSelectModel, handleSelectEffort, handleSelectServiceTier };
 }

@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { ComposerModelOption } from "../model/composerPreferences";
 import { useComposerSelection } from "./useComposerSelection";
@@ -40,5 +40,30 @@ describe("useComposerSelection", () => {
     expect(result.current.selectedEffort).toBe("high");
     expect(result.current.selectedServiceTier).toBeNull();
     expect(result.current.selectedModelOption?.value).toBe("gpt-5.5");
+  });
+
+  it("preserves a local speed override across unrelated config refreshes", () => {
+    const { result, rerender } = renderHook(
+      ({ defaultModel, defaultServiceTier }) => useComposerSelection(MODELS, defaultModel, "high", defaultServiceTier),
+      { initialProps: { defaultModel: "gpt-5.5", defaultServiceTier: null as "fast" | null } }
+    );
+
+    act(() => result.current.selectServiceTier("fast"));
+
+    rerender({ defaultModel: "gpt-5.4", defaultServiceTier: null });
+
+    expect(result.current.selectedModel).toBe("gpt-5.4");
+    expect(result.current.selectedServiceTier).toBe("fast");
+  });
+
+  it("follows external speed defaults when there is no local override", () => {
+    const { result, rerender } = renderHook(
+      ({ defaultServiceTier }) => useComposerSelection(MODELS, "gpt-5.5", "high", defaultServiceTier),
+      { initialProps: { defaultServiceTier: null as "fast" | null } }
+    );
+
+    rerender({ defaultServiceTier: "fast" });
+
+    expect(result.current.selectedServiceTier).toBe("fast");
   });
 });

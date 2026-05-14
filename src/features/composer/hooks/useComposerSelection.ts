@@ -48,7 +48,9 @@ export function useComposerSelection(
     previousPersistedSelectionRef.current = persistedSelection;
     setSelectedModel(persistedSelection.model);
     setSelectedEffort(persistedSelection.effort);
-    setSelectedServiceTier(persistedSelection.serviceTier);
+    setSelectedServiceTier((currentServiceTier) =>
+      currentServiceTier === previous.serviceTier ? persistedSelection.serviceTier : currentServiceTier
+    );
   }, [persistedSelection]);
 
   const replaceSelection = useCallback((selection: ComposerSelection) => {

@@ -877,8 +877,6 @@ export const zhCN = {
       serviceTierStandardDescription: "默认速度，正常消耗额度",
       serviceTierFast: "快速",
       serviceTierFastDescription: "约快 1.5 倍，但会增加套餐用量",
-      serviceTierFlex: "灵活",
-      serviceTierFlexDescription: "低优先级执行，通常更节省额度",
       selectReasoningEffort: "选择推理强度",
       slashCommandFailed: "Slash 命令执行失败",
       extraModels: "额外模型",

@@ -9,7 +9,7 @@ const PRIMARY_COMPOSER_MODEL_COUNT = 5;
 const REASONING_EFFORT_VALUES = ["none", "minimal", "low", "medium", "high", "xhigh"] as const satisfies ReadonlyArray<ReasoningEffort>;
 const DEFAULT_REASONING_EFFORTS = ["low", "medium", "high", "xhigh"] as const satisfies ReadonlyArray<ReasoningEffort>;
 const REASONING_EFFORT_SET = new Set<ReasoningEffort>(REASONING_EFFORT_VALUES);
-const SERVICE_TIER_VALUES = ["fast", "flex"] as const satisfies ReadonlyArray<ServiceTier>;
+const SERVICE_TIER_VALUES = ["fast"] as const satisfies ReadonlyArray<ServiceTier>;
 const SERVICE_TIER_SET = new Set<ServiceTier>(SERVICE_TIER_VALUES);
 
 export const DEFAULT_COMPOSER_MODEL_LABEL = "gpt-5.5";

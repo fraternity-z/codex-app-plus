@@ -133,12 +133,6 @@ function ServiceTierFolder(props: {
           selected={props.serviceTier === "fast"}
           onClick={() => props.onSelectServiceTier("fast")}
         />
-        <ServiceTierMenuItem
-          label={t("home.composer.serviceTierFlex")}
-          description={t("home.composer.serviceTierFlexDescription")}
-          selected={props.serviceTier === "flex"}
-          onClick={() => props.onSelectServiceTier("flex")}
-        />
       </div>
     </div>
   );

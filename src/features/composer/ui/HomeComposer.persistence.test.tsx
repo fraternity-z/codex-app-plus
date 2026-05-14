@@ -170,6 +170,26 @@ describe("HomeComposer persistence", () => {
     await waitFor(() => expect(onPersistComposerSelection).toHaveBeenCalledWith({ model: "gpt-5.3-codex", effort: "high", serviceTier: null }));
   });
 
+  it("uses selected speed as a send override without persisting it", async () => {
+    const { onSendTurn, onPersistComposerSelection } = renderComposer();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open attachment menu" }));
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Speed" }));
+
+    expect(screen.queryByRole("menuitemradio", { name: /Flex/ })).toBeNull();
+
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: /Fast/ }));
+    await new Promise((resolve) => window.setTimeout(resolve, 300));
+
+    expect(onPersistComposerSelection).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    await waitFor(() => expect(onSendTurn).toHaveBeenCalledWith(expect.objectContaining({
+      selection: expect.objectContaining({ model: "custom-model", effort: "high", serviceTier: "fast" }),
+    })));
+  });
+
   it("rolls back to the last persisted selection when persistence fails", async () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const onPersistComposerSelection = vi.fn().mockRejectedValue(new Error("write failed"));

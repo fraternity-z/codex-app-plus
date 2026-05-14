@@ -432,7 +432,7 @@ function normalizeReasoningEffort(value: unknown): ReasoningEffort | null {
 }
 
 function normalizeServiceTier(value: unknown): ServiceTier | null {
-  return value === "fast" || value === "flex" ? value : null;
+  return value === "fast" ? value : null;
 }
 
 function parseTimeToMinuteOfDay(value: string): number | null {

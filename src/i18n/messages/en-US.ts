@@ -878,8 +878,6 @@ export const enUS = {
       serviceTierStandardDescription: "Default speed, normal quota usage",
       serviceTierFast: "Fast",
       serviceTierFastDescription: "About 1.5x faster, but uses more plan quota",
-      serviceTierFlex: "Flex",
-      serviceTierFlexDescription: "Lower priority execution, usually uses less quota",
       selectReasoningEffort: "Select reasoning effort",
       slashCommandFailed: "Slash command failed",
       extraModels: "Extra models",

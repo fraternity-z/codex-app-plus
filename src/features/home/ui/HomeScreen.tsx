@@ -421,7 +421,6 @@ function useHomeScreenActions(args: {
       edits: [
         { keyPath: "model", value: selection.model, mergeStrategy: "upsert" },
         { keyPath: "model_reasoning_effort", value: selection.effort, mergeStrategy: "upsert" },
-        { keyPath: "service_tier", value: selection.serviceTier, mergeStrategy: "replace" },
       ],
       filePath: writeTarget.filePath,
       expectedVersion: writeTarget.expectedVersion,

@@ -1,1 +1,1 @@
-export type ServiceTier = "fast" | "flex";
+export type ServiceTier = "fast";
