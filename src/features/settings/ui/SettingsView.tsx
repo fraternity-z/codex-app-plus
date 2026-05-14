@@ -8,9 +8,12 @@ import type {
   GlobalAgentInstructionsOutput,
   ManagedPromptOutput,
   ReadProxySettingsOutput,
+  ReadMcpSharedPoolSettingsOutput,
   UpsertManagedPromptInput,
   UpdateProxySettingsInput,
   UpdateProxySettingsOutput,
+  UpdateMcpSharedPoolSettingsInput,
+  UpdateMcpSharedPoolSettingsOutput,
   UpdateGlobalAgentInstructionsInput,
   BrowserUseApprovalMode,
   BrowserBrowsingDataKind,
@@ -110,6 +113,8 @@ export interface SettingsViewProps {
     input: UpdateGlobalAgentInstructionsInput
   ) => Promise<GlobalAgentInstructionsOutput>;
   writeProxySettings: (input: UpdateProxySettingsInput) => Promise<UpdateProxySettingsOutput>;
+  readMcpSharedPoolSettings: (input: { readonly agentEnvironment: AgentEnvironment }) => Promise<ReadMcpSharedPoolSettingsOutput>;
+  writeMcpSharedPoolSettings: (input: UpdateMcpSharedPoolSettingsInput) => Promise<UpdateMcpSharedPoolSettingsOutput>;
   readBrowserUseSettings: () => Promise<BrowserUseSettingsOutput>;
   writeBrowserUseApprovalMode: (
     input: { readonly approvalMode: BrowserUseApprovalMode }
@@ -306,7 +311,10 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
       <McpSettingsPanel
         busy={props.busy}
         configSnapshot={props.configSnapshot}
+        agentEnvironment={props.preferences.agentEnvironment}
         ready={props.ready}
+        readMcpSharedPoolSettings={props.readMcpSharedPoolSettings}
+        writeMcpSharedPoolSettings={props.writeMcpSharedPoolSettings}
         refreshMcpData={props.refreshMcpData}
         writeConfigValue={props.writeConfigValue}
         batchWriteConfig={props.batchWriteConfig}

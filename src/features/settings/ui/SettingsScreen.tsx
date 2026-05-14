@@ -256,6 +256,10 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
       props.hostBridge.app.readProxySettings(input),
     writeProxySettings: (input) =>
       props.hostBridge.app.writeProxySettings(input),
+    readMcpSharedPoolSettings: (input) =>
+      props.hostBridge.app.readMcpSharedPoolSettings(input),
+    writeMcpSharedPoolSettings: (input) =>
+      props.hostBridge.app.writeMcpSharedPoolSettings(input),
     readBrowserUseSettings: () =>
       props.hostBridge.app.readBrowserUseSettings(),
     writeBrowserUseApprovalMode: (input) =>

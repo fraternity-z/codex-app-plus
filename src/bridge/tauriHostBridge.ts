@@ -59,6 +59,8 @@ import type {
   ReadAgentConfigInput,
   ReadAgentConfigOutput,
   ReadCustomPromptsInput,
+  ReadMcpSharedPoolSettingsInput,
+  ReadMcpSharedPoolSettingsOutput,
   OpenCodexConfigTomlInput,
   OpenFileInEditorInput,
   OpenWorkspaceInput,
@@ -85,6 +87,8 @@ import type {
   UpdateAgentInput,
   UpdateChatgptAuthTokensInput,
   UpdateGlobalAgentInstructionsInput,
+  UpdateMcpSharedPoolSettingsInput,
+  UpdateMcpSharedPoolSettingsOutput,
   UpdateProxySettingsInput,
   UpdateProxySettingsOutput,
   UpsertManagedPromptInput,
@@ -252,6 +256,16 @@ export function createTauriHostBridge(): HostBridge {
       writeAgentConfig: (input: WriteAgentConfigInput) =>
         invokeWithInput<WriteAgentConfigInput, WriteAgentConfigOutput>(
           "app_write_agent_config",
+          input
+        ),
+      readMcpSharedPoolSettings: (input: ReadMcpSharedPoolSettingsInput) =>
+        invokeWithInput<ReadMcpSharedPoolSettingsInput, ReadMcpSharedPoolSettingsOutput>(
+          "app_mcp_shared_pool_settings_read",
+          input
+        ),
+      writeMcpSharedPoolSettings: (input: UpdateMcpSharedPoolSettingsInput) =>
+        invokeWithInput<UpdateMcpSharedPoolSettingsInput, UpdateMcpSharedPoolSettingsOutput>(
+          "app_mcp_shared_pool_settings_write",
           input
         ),
       readProxySettings: (input: ReadProxySettingsInput) =>

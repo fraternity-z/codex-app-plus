@@ -123,6 +123,12 @@ function createBaseProps(
         noProxy: "",
       },
     }),
+    readMcpSharedPoolSettings: vi.fn().mockResolvedValue({
+      settings: { enabled: false },
+    }),
+    writeMcpSharedPoolSettings: vi.fn().mockResolvedValue({
+      settings: { enabled: true },
+    }),
     readBrowserUseSettings: vi.fn().mockResolvedValue({
       approvalMode: "alwaysAsk",
       allowedOrigins: [],

@@ -24,6 +24,9 @@ use crate::custom_prompts::{
 };
 use crate::error::{AppError, AppResult};
 use crate::events::{EVENT_CONTEXT_MENU_REQUESTED, EVENT_NOTIFICATION_REQUESTED};
+use crate::mcp_shared_pool_settings::{
+    read_mcp_shared_pool_settings, write_mcp_shared_pool_settings,
+};
 use crate::models::{
     ActivateCodexChatgptInput, AppServerStartInput, CaptureCodexOauthSnapshotInput,
     ChatgptAuthTokensOutput, CodexAuthModeStateOutput, CodexAuthSwitchResult,
@@ -34,17 +37,19 @@ use crate::models::{
     ListCodexSessionsInput, ListCustomPetsInput, ListCustomPromptsInput, ListManagedPromptsInput,
     ManagedPromptOutput, OpenCodexConfigTomlInput, OpenFileInEditorInput, OpenWorkspaceInput,
     ReadAgentConfigInput, ReadAgentConfigOutput, ReadGlobalAgentInstructionsInput,
-    ReadProxySettingsInput, ReadProxySettingsOutput, RememberCommandApprovalRuleInput,
-    RememberCommandApprovalRuleOutput, RevealPathInFolderInput, RpcCancelInput, RpcNotifyInput,
-    RpcRequestInput, RpcRequestOutput, SearchCodexSessionsInput, ServerRequestResolveInput,
-    SetAgentsCoreInput, SetUserModelInstructionsFileInput, ShowContextMenuInput,
-    ShowNotificationInput, UpdateAgentInput, UpdateChatgptAuthTokensInput,
-    UpdateGlobalAgentInstructionsInput, UpdateProxySettingsInput, UpdateProxySettingsOutput,
-    UpsertManagedPromptInput, WindowChromeAction, WorkspacePersistenceState, WriteAgentConfigInput,
-    WriteAgentConfigOutput, WriteProjectPermissionConfigInput, WriteProjectPermissionConfigOutput,
+    ReadMcpSharedPoolSettingsInput, ReadMcpSharedPoolSettingsOutput, ReadProxySettingsInput,
+    ReadProxySettingsOutput, RememberCommandApprovalRuleInput, RememberCommandApprovalRuleOutput,
+    RevealPathInFolderInput, RpcCancelInput, RpcNotifyInput, RpcRequestInput, RpcRequestOutput,
+    SearchCodexSessionsInput, ServerRequestResolveInput, SetAgentsCoreInput,
+    SetUserModelInstructionsFileInput, ShowContextMenuInput, ShowNotificationInput,
+    UpdateAgentInput, UpdateChatgptAuthTokensInput, UpdateGlobalAgentInstructionsInput,
+    UpdateMcpSharedPoolSettingsInput, UpdateMcpSharedPoolSettingsOutput, UpdateProxySettingsInput,
+    UpdateProxySettingsOutput, UpsertManagedPromptInput, WindowChromeAction,
+    WorkspacePersistenceState, WriteAgentConfigInput, WriteAgentConfigOutput,
+    WriteProjectPermissionConfigInput, WriteProjectPermissionConfigOutput,
 };
-use crate::pets::list_custom_pets;
 use crate::permission_config::write_project_permission_config;
+use crate::pets::list_custom_pets;
 use crate::process_manager::ProcessManager;
 use crate::proxy_settings::{read_proxy_settings, write_proxy_settings};
 use crate::window_theme::{apply_window_theme, WindowTheme};
@@ -327,6 +332,20 @@ pub async fn app_write_proxy_settings(
     input: UpdateProxySettingsInput,
 ) -> Result<UpdateProxySettingsOutput, String> {
     run_blocking(move || write_proxy_settings(input)).await
+}
+
+#[tauri::command]
+pub async fn app_mcp_shared_pool_settings_read(
+    input: ReadMcpSharedPoolSettingsInput,
+) -> Result<ReadMcpSharedPoolSettingsOutput, String> {
+    run_blocking(move || read_mcp_shared_pool_settings(input)).await
+}
+
+#[tauri::command]
+pub async fn app_mcp_shared_pool_settings_write(
+    input: UpdateMcpSharedPoolSettingsInput,
+) -> Result<UpdateMcpSharedPoolSettingsOutput, String> {
+    run_blocking(move || write_mcp_shared_pool_settings(input)).await
 }
 
 #[tauri::command]

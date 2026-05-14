@@ -24,6 +24,8 @@ mod error;
 mod events;
 mod git;
 mod global_agent_instructions;
+mod mcp_shared_pool;
+mod mcp_shared_pool_settings;
 mod media_permissions;
 mod models;
 mod permission_config;
@@ -55,17 +57,18 @@ use commands::{
     app_control_window, app_create_agent, app_delete_agent, app_delete_codex_session,
     app_delete_managed_prompt, app_get_agents_settings, app_get_codex_auth_mode_state,
     app_import_official_data, app_list_codex_sessions, app_list_custom_pets,
-    app_list_custom_prompts, app_list_managed_prompts, app_open_codex_config_toml,
-    app_open_external, app_open_file_in_editor, app_open_workspace, app_read_agent_config,
+    app_list_custom_prompts, app_list_managed_prompts, app_mcp_shared_pool_settings_read,
+    app_mcp_shared_pool_settings_write, app_open_codex_config_toml, app_open_external,
+    app_open_file_in_editor, app_open_workspace, app_read_agent_config,
     app_read_chatgpt_auth_tokens, app_read_codex_session, app_read_global_agent_instructions,
     app_read_proxy_settings, app_read_workspace_state, app_remember_command_approval_rule,
     app_reveal_path_in_folder, app_search_codex_sessions, app_server_restart, app_server_start,
     app_server_stop, app_set_agents_core, app_set_user_model_instructions_file,
     app_set_window_theme, app_show_context_menu, app_show_notification, app_start_window_dragging,
     app_update_agent, app_upsert_managed_prompt, app_write_agent_config,
-    app_write_chatgpt_auth_tokens, app_write_global_agent_instructions, app_write_proxy_settings,
-    app_write_project_permission_config, app_write_workspace_state, rpc_cancel, rpc_notify,
-    rpc_request, server_request_resolve,
+    app_write_chatgpt_auth_tokens, app_write_global_agent_instructions,
+    app_write_project_permission_config, app_write_proxy_settings, app_write_workspace_state,
+    rpc_cancel, rpc_notify, rpc_request, server_request_resolve,
 };
 use dictation_transcription::app_transcribe_dictation_audio;
 use git::commands::{
@@ -166,6 +169,8 @@ fn main() {
             app_write_global_agent_instructions,
             app_read_proxy_settings,
             app_write_proxy_settings,
+            app_mcp_shared_pool_settings_read,
+            app_mcp_shared_pool_settings_write,
             app_get_codex_auth_mode_state,
             app_activate_codex_chatgpt,
             app_capture_codex_oauth_snapshot,

@@ -92,23 +92,46 @@ function getOriginMetadata(snapshot: ConfigReadResponse, id: string): ConfigLaye
   return ["enabled", "command", "url", "type"].map((field) => snapshot.origins[`${path}.${field}`]).find(Boolean) ?? null;
 }
 
+function isInternalSharedPoolAlias(
+  snapshot: ConfigReadResponse | null,
+  id: string
+): boolean {
+  return id.includes("__shared_pool")
+    && snapshot !== null
+    && getOriginMetadata(snapshot, id)?.name.type === "sessionFlags";
+}
+
+function findSharedPoolAliasId(
+  snapshot: ConfigReadResponse | null,
+  serversMap: JsonObject,
+  id: string
+): string | null {
+  const prefix = `${id}__shared_pool`;
+  return Object.keys(serversMap).find((candidate) => (
+    (candidate === prefix || candidate.startsWith(`${prefix}_`))
+      && isInternalSharedPoolAlias(snapshot, candidate)
+  )) ?? null;
+}
+
 function toServerView(
   id: string,
   config: JsonObject,
   snapshot: ConfigReadResponse | null,
-  runtimes: ReadonlyMap<string, McpRuntimeSummary>
+  runtimes: ReadonlyMap<string, McpRuntimeSummary>,
+  runtimeId: string = id,
+  enabledOverride?: boolean
 ): McpConfigServerView {
   const origin = snapshot === null ? null : getOriginMetadata(snapshot, id);
   return {
     id,
     name: typeof config.name === "string" && config.name.length > 0 ? config.name : id,
     type: getTransportType(config),
-    enabled: isEnabled(config),
+    enabled: enabledOverride ?? isEnabled(config),
     config,
     origin,
     originType: origin?.name.type ?? null,
     writable: origin?.name.type === "user",
-    runtime: runtimes.get(id) ?? null
+    runtime: runtimes.get(runtimeId) ?? runtimes.get(id) ?? null
   };
 }
 
@@ -121,8 +144,22 @@ export function readMcpConfigView(
   const runtimes = buildRuntimeMap(statuses);
   const views = Object.entries(serversMap)
     .map(([id, value]) => {
+      if (isInternalSharedPoolAlias(typedSnapshot, id)) {
+        return null;
+      }
       const config = toJsonObject(value);
-      return config === null ? null : toServerView(id, config, typedSnapshot, runtimes);
+      if (config === null) {
+        return null;
+      }
+      const sharedPoolAliasId = findSharedPoolAliasId(typedSnapshot, serversMap, id);
+      return toServerView(
+        id,
+        config,
+        typedSnapshot,
+        runtimes,
+        sharedPoolAliasId ?? id,
+        sharedPoolAliasId !== null ? true : undefined
+      );
     })
     .filter((item): item is McpConfigServerView => item !== null)
     .sort((left, right) => left.name.localeCompare(right.name));

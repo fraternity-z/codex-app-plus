@@ -6,6 +6,26 @@ export interface AppServerStartInput {
   readonly codexPath?: string;
 }
 
+export interface McpSharedPoolSettings {
+  readonly enabled: boolean;
+}
+
+export interface ReadMcpSharedPoolSettingsInput {
+  readonly agentEnvironment: AgentEnvironment;
+}
+
+export interface ReadMcpSharedPoolSettingsOutput {
+  readonly settings: McpSharedPoolSettings;
+}
+
+export interface UpdateMcpSharedPoolSettingsInput extends McpSharedPoolSettings {
+  readonly agentEnvironment: AgentEnvironment;
+}
+
+export interface UpdateMcpSharedPoolSettingsOutput {
+  readonly settings: McpSharedPoolSettings;
+}
+
 export interface OpenCodexConfigTomlInput {
   readonly agentEnvironment: AgentEnvironment;
   readonly filePath?: string | null;

@@ -1625,7 +1625,45 @@
 }
 
 .mcp-settings-page .settings-title-wrap {
-  margin-bottom: 86px;
+  margin-bottom: 28px;
+}
+
+.mcp-shared-pool-card {
+  margin-top: 0;
+  margin-bottom: 22px;
+  padding: 18px 20px;
+}
+
+.mcp-shared-pool-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mcp-shared-pool-copy {
+  min-width: 0;
+}
+
+.mcp-shared-pool-copy strong {
+  display: block;
+  color: var(--text-main);
+  font-size: 16px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.mcp-shared-pool-copy .settings-note {
+  padding-top: 6px;
+}
+
+.mcp-shared-pool-card .settings-note-pad {
+  margin: 10px 56px 0 0;
+  padding: 0;
+}
+
+.mcp-shared-pool-card .settings-status-note {
+  margin: 10px 56px 0 0;
 }
 
 .mcp-server-section-head {
@@ -2040,6 +2078,15 @@
 }
 
 @media (max-width: 900px) {
+  .mcp-shared-pool-row {
+    align-items: flex-start;
+  }
+
+  .mcp-shared-pool-card .settings-note-pad,
+  .mcp-shared-pool-card .settings-status-note {
+    margin-right: 0;
+  }
+
   .mcp-server-row {
     align-items: center;
   }

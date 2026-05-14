@@ -45,6 +45,15 @@ export const zhCNSettingsMcp = {
     unloaded: "未加载状态",
     summary: "工具 {toolCount} · 资源 {resourceCount} · 鉴权 {authStatus}",
   },
+  sharedPool: {
+    title: "STDIO 共享池(实验性开发中)",
+    description: "将可复用的 STDIO MCP 通过本地代理共享，减少多会话重复启动的进程数量。",
+    restartNote: "修改后需要重启当前 app-server / Codex 连接才会生效；关闭后会恢复官方原生调用方式。",
+    wslNote: "WSL 环境暂时保持官方原生调用方式。",
+    loading: "正在读取共享池设置。",
+    saving: "正在保存共享池设置。",
+    loadFailed: "读取共享池设置失败：{error}",
+  },
   deleteDialog: {
     title: "删除 MCP 服务器",
     description: "将从用户配置中删除 {name}（{id}）。",
@@ -162,6 +171,15 @@ export const enUSSettingsMcp = {
   runtime: {
     unloaded: "Status not loaded",
     summary: "Tools {toolCount} · Resources {resourceCount} · Auth {authStatus}",
+  },
+  sharedPool: {
+    title: "STDIO shared pool",
+    description: "Share reusable STDIO MCP servers through a local proxy to reduce repeated server processes across sessions.",
+    restartNote: "Restart the current app-server / Codex connection after changing this. Turning it off restores the official native path.",
+    wslNote: "WSL currently keeps the official native MCP path.",
+    loading: "Loading shared pool settings.",
+    saving: "Saving shared pool settings.",
+    loadFailed: "Failed to load shared pool settings: {error}",
   },
   deleteDialog: {
     title: "Delete MCP server",

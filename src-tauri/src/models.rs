@@ -21,6 +21,38 @@ pub struct AppServerStartInput {
     pub codex_path: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct McpSharedPoolSettings {
+    pub enabled: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadMcpSharedPoolSettingsInput {
+    pub agent_environment: AgentEnvironment,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadMcpSharedPoolSettingsOutput {
+    pub settings: McpSharedPoolSettings,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateMcpSharedPoolSettingsInput {
+    pub agent_environment: AgentEnvironment,
+    #[serde(flatten)]
+    pub settings: McpSharedPoolSettings,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateMcpSharedPoolSettingsOutput {
+    pub settings: McpSharedPoolSettings,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ProxyMode {

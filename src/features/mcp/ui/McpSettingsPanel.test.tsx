@@ -44,10 +44,20 @@ function createMutationResult(snapshot = createSnapshot()): ConfigMutationResult
 }
 
 function renderPanel(
-  props: ComponentProps<typeof McpSettingsPanel>,
+  props: Partial<ComponentProps<typeof McpSettingsPanel>>,
   locale: Locale = "zh-CN"
 ) {
-  return render(<McpSettingsPanel {...props} />, {
+  return render(<McpSettingsPanel
+    busy={false}
+    configSnapshot={createSnapshot()}
+    agentEnvironment="windowsNative"
+    readMcpSharedPoolSettings={vi.fn().mockResolvedValue({ settings: { enabled: false } })}
+    writeMcpSharedPoolSettings={vi.fn().mockResolvedValue({ settings: { enabled: true } })}
+    refreshMcpData={vi.fn().mockResolvedValue(createRefreshResult())}
+    writeConfigValue={vi.fn().mockResolvedValue(createMutationResult())}
+    batchWriteConfig={vi.fn().mockResolvedValue(createMutationResult())}
+    {...props}
+  />, {
     wrapper: createI18nWrapper(locale)
   });
 }
@@ -69,6 +79,27 @@ describe("McpSettingsPanel", () => {
     expect(screen.getAllByText("fetch").length).toBeGreaterThan(0);
     expect(screen.queryAllByText("projectOnly")).toHaveLength(0);
     expect(screen.queryByText("只读")).toBeNull();
+  });
+
+  it("persists the shared pool toggle per agent environment", async () => {
+    const readMcpSharedPoolSettings = vi.fn().mockResolvedValue({ settings: { enabled: false } });
+    const writeMcpSharedPoolSettings = vi.fn().mockResolvedValue({ settings: { enabled: true } });
+
+    renderPanel({
+      agentEnvironment: "windowsNative",
+      readMcpSharedPoolSettings,
+      writeMcpSharedPoolSettings,
+    });
+
+    await waitFor(() => expect(readMcpSharedPoolSettings).toHaveBeenCalledWith({
+      agentEnvironment: "windowsNative",
+    }));
+    fireEvent.click(screen.getByRole("switch", { name: "STDIO 共享池" }));
+
+    await waitFor(() => expect(writeMcpSharedPoolSettings).toHaveBeenCalledWith({
+      agentEnvironment: "windowsNative",
+      enabled: true,
+    }));
   });
 
   it("blocks dotted server ids before submit", async () => {

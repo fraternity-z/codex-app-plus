@@ -110,6 +110,12 @@ function createHostBridge(): HostBridge {
           noProxy: ""
         }
       }),
+      readMcpSharedPoolSettings: vi.fn().mockResolvedValue({
+        settings: { enabled: false }
+      }),
+      writeMcpSharedPoolSettings: vi.fn().mockResolvedValue({
+        settings: { enabled: true }
+      }),
       openBrowser: vi.fn().mockResolvedValue(undefined),
       openBrowserSidebar: vi.fn().mockResolvedValue(undefined),
       updateBrowserSidebarBounds: vi.fn().mockResolvedValue(undefined),

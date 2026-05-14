@@ -34,6 +34,8 @@ import type {
   ReadAgentConfigInput,
   ReadAgentConfigOutput,
   ReadCustomPromptsInput,
+  ReadMcpSharedPoolSettingsInput,
+  ReadMcpSharedPoolSettingsOutput,
   OpenCodexConfigTomlInput,
   OpenFileInEditorInput,
   OpenWorkspaceInput,
@@ -52,6 +54,8 @@ import type {
   ShowContextMenuInput,
   ShowNotificationInput,
   UpdateAgentInput,
+  UpdateMcpSharedPoolSettingsInput,
+  UpdateMcpSharedPoolSettingsOutput,
   UpdateProxySettingsInput,
   UpdateProxySettingsOutput,
   WindowChromeAction,
@@ -152,6 +156,12 @@ export interface HostBridge {
     deleteAgent(input: DeleteAgentInput): Promise<AgentsSettingsOutput>;
     readAgentConfig(input: ReadAgentConfigInput): Promise<ReadAgentConfigOutput>;
     writeAgentConfig(input: WriteAgentConfigInput): Promise<WriteAgentConfigOutput>;
+    readMcpSharedPoolSettings(
+      input: ReadMcpSharedPoolSettingsInput
+    ): Promise<ReadMcpSharedPoolSettingsOutput>;
+    writeMcpSharedPoolSettings(
+      input: UpdateMcpSharedPoolSettingsInput
+    ): Promise<UpdateMcpSharedPoolSettingsOutput>;
     readProxySettings(input: ReadProxySettingsInput): Promise<ReadProxySettingsOutput>;
     writeGlobalAgentInstructions(
       input: UpdateGlobalAgentInstructionsInput

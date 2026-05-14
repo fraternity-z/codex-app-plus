@@ -52,6 +52,7 @@ fn closed_writer_runtime() -> AppServerRuntime {
         stderr_task: tokio::spawn(async {}),
         wait_task: tokio::spawn(async {}),
         next_id: AtomicU64::new(1),
+        mcp_shared_pool: None,
     }
 }
 

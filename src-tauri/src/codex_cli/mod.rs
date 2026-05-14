@@ -48,13 +48,10 @@ impl CodexCli {
         )))
     }
 
-    pub fn spawn_app_server(&self) -> AppResult<SpawnedAppServer> {
-        let mut command = self.command_for_args(&[
-            "app-server",
-            "--analytics-default-enabled",
-            "--listen",
-            "stdio://",
-        ]);
+    pub fn spawn_app_server(&self, config_overrides: &[String]) -> AppResult<SpawnedAppServer> {
+        let args = app_server_args(config_overrides);
+        let arg_refs = args.iter().map(String::as_str).collect::<Vec<_>>();
+        let mut command = self.command_for_args(&arg_refs);
         command
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -120,6 +117,20 @@ impl CodexCli {
     }
 }
 
+fn app_server_args(config_overrides: &[String]) -> Vec<String> {
+    let mut args = vec!["app-server".to_string()];
+    for value in config_overrides {
+        args.push("-c".to_string());
+        args.push(value.clone());
+    }
+    args.extend([
+        "--analytics-default-enabled".to_string(),
+        "--listen".to_string(),
+        "stdio://".to_string(),
+    ]);
+    args
+}
+
 fn parse_version_output(stdout: &[u8]) -> AppResult<String> {
     let version = String::from_utf8_lossy(stdout).trim().to_string();
     if version.is_empty() {
@@ -136,7 +147,7 @@ mod tests {
     use std::fs;
     use std::sync::{Mutex, OnceLock};
 
-    use super::CodexCli;
+    use super::{app_server_args, CodexCli};
     use crate::models::AppServerStartInput;
     use crate::test_support::unique_temp_dir;
     use tokio::process::Command;
@@ -305,6 +316,25 @@ mod tests {
 
         assert_eq!(version_args[..cli.prefix_args.len()], cli.prefix_args);
         assert_eq!(app_server_args[..cli.prefix_args.len()], cli.prefix_args);
+    }
+
+    #[test]
+    fn app_server_args_include_config_overrides_before_listen_args() {
+        let args = app_server_args(&[
+            "mcp_servers.fetch={ url = \"http://127.0.0.1:1/mcp/fetch\" }".to_string(),
+        ]);
+
+        assert_eq!(
+            args,
+            vec![
+                "app-server",
+                "-c",
+                "mcp_servers.fetch={ url = \"http://127.0.0.1:1/mcp/fetch\" }",
+                "--analytics-default-enabled",
+                "--listen",
+                "stdio://",
+            ],
+        );
     }
 
     fn collect_args(command: Command) -> Vec<String> {

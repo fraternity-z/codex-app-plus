@@ -4,22 +4,35 @@ import { readMcpConfigView, type JsonObject, type McpConfigServerView } from "..
 import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
 import type { McpServerStatus } from "../../../protocol/generated/v2/McpServerStatus";
+import type {
+  AgentEnvironment,
+  ReadMcpSharedPoolSettingsOutput,
+  UpdateMcpSharedPoolSettingsInput,
+  UpdateMcpSharedPoolSettingsOutput,
+} from "../../../bridge/types";
 import { useI18n } from "../../../i18n";
 import { McpServerDialog } from "./McpServerDialog";
 
 interface McpSettingsPanelProps {
   readonly busy: boolean;
   readonly configSnapshot: unknown;
+  readonly agentEnvironment: AgentEnvironment;
   readonly ready?: boolean;
+  readMcpSharedPoolSettings: (
+    input: { readonly agentEnvironment: AgentEnvironment }
+  ) => Promise<ReadMcpSharedPoolSettingsOutput>;
+  writeMcpSharedPoolSettings: (
+    input: UpdateMcpSharedPoolSettingsInput
+  ) => Promise<UpdateMcpSharedPoolSettingsOutput>;
   refreshMcpData: () => Promise<McpRefreshResult>;
   writeConfigValue: (params: ConfigValueWriteParams) => Promise<ConfigMutationResult>;
   batchWriteConfig: (params: ConfigBatchWriteParams) => Promise<ConfigMutationResult>;
   onOpenMcpDocs?: () => Promise<void>;
 }
 
-function ToggleSwitch(props: { readonly checked: boolean; readonly disabled?: boolean; readonly onClick: () => void }): JSX.Element {
+function ToggleSwitch(props: { readonly checked: boolean; readonly disabled?: boolean; readonly ariaLabel?: string; readonly onClick: () => void }): JSX.Element {
   return (
-    <button type="button" className={props.checked ? "settings-toggle settings-toggle-on" : "settings-toggle"} role="switch" aria-checked={props.checked} disabled={props.disabled} onClick={props.onClick}>
+    <button type="button" className={props.checked ? "settings-toggle settings-toggle-on" : "settings-toggle"} role="switch" aria-checked={props.checked} aria-label={props.ariaLabel} disabled={props.disabled} onClick={props.onClick}>
       <span className="settings-toggle-knob" />
     </button>
   );
@@ -107,6 +120,83 @@ function CustomServersSection(props: {
   );
 }
 
+function McpSharedPoolSection(props: {
+  readonly agentEnvironment: AgentEnvironment;
+  readonly busy: boolean;
+  readMcpSharedPoolSettings: McpSettingsPanelProps["readMcpSharedPoolSettings"];
+  writeMcpSharedPoolSettings: McpSettingsPanelProps["writeMcpSharedPoolSettings"];
+}): JSX.Element {
+  const { t } = useI18n();
+  const [enabled, setEnabled] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setErrorMessage(null);
+    void props.readMcpSharedPoolSettings({ agentEnvironment: props.agentEnvironment })
+      .then((output) => {
+        if (active) {
+          setEnabled(output.settings.enabled);
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setErrorMessage(t("settings.mcp.sharedPool.loadFailed", { error: String(error) }));
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [props.agentEnvironment, props.readMcpSharedPoolSettings, t]);
+
+  const toggle = useCallback(() => {
+    const nextEnabled = !enabled;
+    setEnabled(nextEnabled);
+    setSaving(true);
+    setErrorMessage(null);
+    void props.writeMcpSharedPoolSettings({
+      agentEnvironment: props.agentEnvironment,
+      enabled: nextEnabled,
+    })
+      .then((output) => {
+        setEnabled(output.settings.enabled);
+      })
+      .catch((error) => {
+        setEnabled(enabled);
+        setErrorMessage(String(error));
+      })
+      .finally(() => setSaving(false));
+  }, [enabled, props.agentEnvironment, props.writeMcpSharedPoolSettings]);
+
+  const disabled = props.busy || loading || saving;
+
+  return (
+    <section className="settings-card mcp-shared-pool-card">
+      <div className="mcp-shared-pool-row">
+        <div className="mcp-shared-pool-copy">
+          <strong>{t("settings.mcp.sharedPool.title")}</strong>
+          <p className="settings-note">{t("settings.mcp.sharedPool.description")}</p>
+        </div>
+        <ToggleSwitch checked={enabled} disabled={disabled} ariaLabel={t("settings.mcp.sharedPool.title")} onClick={toggle} />
+      </div>
+      <p className="settings-note settings-note-pad">{t("settings.mcp.sharedPool.restartNote")}</p>
+      {props.agentEnvironment === "wsl" ? (
+        <p className="settings-status-note">{t("settings.mcp.sharedPool.wslNote")}</p>
+      ) : null}
+      {loading ? <p className="settings-status-note">{t("settings.mcp.sharedPool.loading")}</p> : null}
+      {saving ? <p className="settings-status-note">{t("settings.mcp.sharedPool.saving")}</p> : null}
+      {errorMessage ? <p className="settings-status-note settings-status-note-error">{errorMessage}</p> : null}
+    </section>
+  );
+}
 
 export function McpSettingsPanel(props: McpSettingsPanelProps): JSX.Element {
   const { t } = useI18n();
@@ -187,6 +277,12 @@ export function McpSettingsPanel(props: McpSettingsPanelProps): JSX.Element {
   return (
     <div className="settings-panel-group mcp-settings-page">
       <header className="settings-title-wrap"><h1 className="settings-page-title">{t("settings.mcp.title")}</h1></header>
+      <McpSharedPoolSection
+        agentEnvironment={props.agentEnvironment}
+        busy={props.busy}
+        readMcpSharedPoolSettings={props.readMcpSharedPoolSettings}
+        writeMcpSharedPoolSettings={props.writeMcpSharedPoolSettings}
+      />
       <CustomServersSection view={view} busy={props.busy} pendingKey={pendingKey} errorMessage={errorMessage} onAdd={() => setDialogServer(null)} onToggle={handleToggle} onEdit={setDialogServer} />
     </div>
   );

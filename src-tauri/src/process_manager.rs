@@ -17,6 +17,7 @@ use crate::bundled_computer_use;
 use crate::codex_cli::CodexCli;
 use crate::error::{AppError, AppResult};
 use crate::events::emit_connection_changed;
+use crate::mcp_shared_pool::{self, McpSharedPoolRuntime};
 use crate::models::{
     AgentEnvironment, AppServerStartInput, JsonRpcErrorBody, RpcCancelInput, RpcNotifyInput,
     RpcRequestInput, RpcRequestOutput, ServerRequestResolveInput,
@@ -36,6 +37,7 @@ struct AppServerRuntime {
     stderr_task: JoinHandle<()>,
     wait_task: JoinHandle<()>,
     next_id: AtomicU64,
+    mcp_shared_pool: Option<McpSharedPoolRuntime>,
 }
 
 impl AppServerRuntime {
@@ -49,6 +51,8 @@ impl AppServerRuntime {
 
         let mut child = self.child.lock().await;
         terminate_tokio_child(&mut child).await;
+        drop(child);
+        self.shutdown_sidecars().await;
         let _ = emit_connection_changed(app, "disconnected");
     }
 
@@ -60,6 +64,12 @@ impl AppServerRuntime {
                 message: "app-server 已停止".to_string(),
                 data: None,
             }));
+        }
+    }
+
+    async fn shutdown_sidecars(&self) {
+        if let Some(runtime) = &self.mcp_shared_pool {
+            runtime.shutdown().await;
         }
     }
 }
@@ -225,11 +235,27 @@ async fn spawn_runtime(
     let mut cli = CodexCli::resolve(Some(&app), &input)?;
     configure_browser_use_iab_environment(agent_environment, &mut cli);
     let _version = cli.detect_version().await?;
+    let mcp_shared_pool = mcp_shared_pool::prepare(agent_environment).await?;
+    let config_overrides = mcp_shared_pool
+        .as_ref()
+        .map(McpSharedPoolRuntime::config_overrides)
+        .unwrap_or(&[]);
     let supervisor = ProcessSupervisor::new("app-server")?;
     let stderr_log = AppServerStderrLog::new();
-    let mut spawned = cli.spawn_app_server()?;
+    let mut spawned = match cli.spawn_app_server(config_overrides) {
+        Ok(spawned) => spawned,
+        Err(error) => {
+            if let Some(runtime) = &mcp_shared_pool {
+                runtime.shutdown().await;
+            }
+            return Err(error);
+        }
+    };
     if let Err(error) = supervisor.assign_tokio_child(&spawned.child) {
         terminate_tokio_child(&mut spawned.child).await;
+        if let Some(runtime) = &mcp_shared_pool {
+            runtime.shutdown().await;
+        }
         return Err(error);
     }
 
@@ -259,6 +285,7 @@ async fn spawn_runtime(
         stderr_task,
         wait_task,
         next_id: AtomicU64::new(1),
+        mcp_shared_pool,
     }))
 }
 
@@ -299,6 +326,7 @@ fn spawn_wait_task(
         let runtime = runtime_store.lock().await.take();
         if let Some(runtime) = runtime {
             runtime.fail_all_pending().await;
+            runtime.shutdown_sidecars().await;
         }
 
         match wait_result {
