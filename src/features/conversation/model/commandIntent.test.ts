@@ -22,7 +22,7 @@ describe("classifyCommand", () => {
     expect(classifyCommand(`"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command '[Console]::InputEncoding  = [Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 chcp 65001 > $null
-rg -n "ConversationPane|ControlBar" src'`)).toBeNull();
+rg -n "HomeConversationCanvas|HomeComposer" src'`)).toBeNull();
   });
 
   it("aggregates multi-file reads from compound PowerShell commands", () => {

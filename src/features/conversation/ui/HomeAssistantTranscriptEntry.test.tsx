@@ -519,14 +519,14 @@ describe("HomeAssistantTranscriptEntry", () => {
 
   it("uses raw command text in collapsed search command summaries", () => {
     const { container } = render(
-      <HomeAssistantTranscriptEntry node={createCommandNodeWithStatus("rg -n \"ConversationPane|ControlBar\" src", "completed")} />,
+      <HomeAssistantTranscriptEntry node={createCommandNodeWithStatus("rg -n \"HomeConversationCanvas|HomeComposer\" src", "completed")} />,
       { wrapper: createI18nWrapper("zh-CN") },
     );
 
     const summaryText = container.querySelector(".home-assistant-transcript-summary-text");
 
     expect(container.querySelector(".home-assistant-transcript-file-name")).toBeNull();
-    expect(summaryText?.textContent).toBe("已运行 rg -n \"ConversationPane|ControlBar\" src");
+    expect(summaryText?.textContent).toBe("已运行 rg -n \"HomeConversationCanvas|HomeComposer\" src");
   });
 
   it("uses raw command text in collapsed listing command summaries", () => {

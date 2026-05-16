@@ -63,87 +63,7 @@
   flex: 1 1 auto;
 }
 
-.workspace-diff-layout {
-  min-height: 0;
-  display: grid;
-  grid-template-rows: minmax(120px, 34%) minmax(0, 1fr);
-  gap: 14px;
-}
-
-.workspace-diff-file-list-pane,
-.workspace-diff-preview-card {
-  min-width: 0;
-  border: 1px solid var(--border-light);
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: var(--shadow-sm);
-}
-
-.workspace-diff-file-list-pane {
-  min-height: 0;
-  overflow: auto;
-  padding: 12px;
-  display: grid;
-  gap: 14px;
-}
-
-.workspace-diff-file-group {
-  display: grid;
-  gap: 8px;
-}
-
-.workspace-diff-file-group-title {
-  padding: 0 4px;
-  color: #636363;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.workspace-diff-file-group-list {
-  display: grid;
-  gap: 8px;
-}
-
-.workspace-diff-file-row {
-  width: 100%;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1px solid #ececec;
-  border-radius: 14px;
-  background: #fbfbfb;
-  color: #2b2b2b;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.workspace-diff-file-row:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-.workspace-diff-file-row-active {
-  border-color: var(--accent-color);
-  background: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.08);
-}
-
-.workspace-diff-file-row-title {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.workspace-diff-file-row-summary,
-.workspace-diff-preview-summary {
+.workspace-diff-file-row-summary {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -153,11 +73,6 @@
   color: var(--text-soft);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
-}
-
-.workspace-diff-file-row-summary-pending,
-.workspace-diff-preview-status {
-  color: #727272;
 }
 
 .workspace-diff-file-summary-add,
@@ -171,77 +86,6 @@
 
 .workspace-diff-file-summary-delete {
   color: #cf4d4d;
-}
-
-.workspace-diff-preview-card {
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.workspace-diff-preview-empty {
-  justify-content: center;
-  gap: 8px;
-  padding: 24px;
-}
-
-.workspace-diff-preview-header {
-  flex: 0 0 auto;
-  min-width: 0;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border-bottom: 1px solid #f1f1f1;
-}
-
-.workspace-diff-preview-meta {
-  min-width: 0;
-  display: grid;
-  gap: 8px;
-}
-
-.workspace-diff-preview-title {
-  margin: 0;
-  color: #2b2b2b;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.workspace-diff-preview-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.workspace-diff-preview-action {
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 999px;
-  background: #f4f4f4;
-  color: #585858;
-  cursor: pointer;
-}
-
-.workspace-diff-preview-action:hover {
-  background: #ebebeb;
-}
-
-.workspace-diff-preview-action:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.workspace-diff-preview-loading {
-  padding: 18px 16px;
-  color: #7a7a7a;
-  font-size: 13px;
 }
 
 .workspace-diff-raw {
@@ -371,67 +215,9 @@
   .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
     grid-template-columns: 0 minmax(0, 1fr) var(--replica-diff-sidebar-width);
   }
-
-  .workspace-diff-preview-header {
-    flex-direction: column;
-  }
-
-  .workspace-diff-layout {
-    grid-template-rows: minmax(120px, 40%) minmax(0, 1fr);
-  }
 }
 
-.workspace-diff-layout-stream {
-  grid-template-columns: minmax(180px, 34%) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-}
-
-@media (max-width: 1080px) {
-  .workspace-diff-layout-stream {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(140px, 34%) minmax(0, 1fr);
-  }
-}
-
-html[data-theme="dark"] .workspace-diff-file-list-pane,
-html[data-theme="dark"] .workspace-diff-preview-card {
-  background: var(--surface-panel);
-}
-
-html[data-theme="dark"] .workspace-diff-file-group-title,
-html[data-theme="dark"] .workspace-diff-file-row-summary-pending,
-html[data-theme="dark"] .workspace-diff-preview-status,
-html[data-theme="dark"] .workspace-diff-preview-loading {
-  color: var(--text-muted);
-}
-
-html[data-theme="dark"] .workspace-diff-file-row {
-  border-color: var(--border-light);
-  background: var(--surface-panel-muted);
-  color: var(--text-main);
-}
-
-html[data-theme="dark"] .workspace-diff-file-row:hover {
-  background: var(--surface-hover);
-  border-color: var(--border-strong);
-}
-
-html[data-theme="dark"] .workspace-diff-file-row-active {
-  background: var(--surface-panel);
-  box-shadow: 0 4px 12px var(--accent-soft);
-}
-
-html[data-theme="dark"] .workspace-diff-file-row-summary,
-html[data-theme="dark"] .workspace-diff-preview-summary,
-html[data-theme="dark"] .workspace-diff-preview-action {
+html[data-theme="dark"] .workspace-diff-file-row-summary {
   background: var(--surface-panel-soft);
   color: var(--text-soft);
-}
-
-html[data-theme="dark"] .workspace-diff-preview-header {
-  border-bottom-color: var(--border-light);
-}
-
-html[data-theme="dark"] .workspace-diff-preview-title {
-  color: var(--text-main);
 }

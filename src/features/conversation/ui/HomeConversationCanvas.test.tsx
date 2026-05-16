@@ -379,7 +379,6 @@ describe("HomeConversationCanvas", () => {
     expect(screen.getByText(/正在思考|Thinking/)).toBeInTheDocument();
     expect(container.querySelector(".home-turn-thinking-indicator")).not.toBeNull();
     expect(container.querySelector(".home-assistant-transcript-thinking")).toBeNull();
-    expect(container.querySelector(".home-thinking-block")).toBeNull();
   });
 
   it("keeps user input requests out of the timeline while suppressing the thinking indicator", () => {

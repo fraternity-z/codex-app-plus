@@ -40,7 +40,6 @@
   padding: 8px 0 18px;
 }
 
-.workspace-diff-file-groups,
 .workspace-diff-file-list {
   display: grid;
   gap: 14px;
