@@ -1,5 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "McpServerOauthLoginCompletedNotification",
+  "type": "object",
+  "required": [
+    "name",
+    "success"
+  ],
   "properties": {
     "error": {
       "type": [
@@ -13,11 +19,5 @@
     "success": {
       "type": "boolean"
     }
-  },
-  "required": [
-    "name",
-    "success"
-  ],
-  "title": "McpServerOauthLoginCompletedNotification",
-  "type": "object"
+  }
 }

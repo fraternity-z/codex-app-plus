@@ -1,7 +1,19 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ThreadRealtimeListVoicesResponse",
+  "description": "EXPERIMENTAL - response for listing supported realtime voices.",
+  "type": "object",
+  "required": [
+    "voices"
+  ],
+  "properties": {
+    "voices": {
+      "$ref": "#/definitions/RealtimeVoicesList"
+    }
+  },
   "definitions": {
     "RealtimeVoice": {
+      "type": "string",
       "enum": [
         "alloy",
         "arbor",
@@ -22,10 +34,16 @@
         "spruce",
         "vale",
         "verse"
-      ],
-      "type": "string"
+      ]
     },
     "RealtimeVoicesList": {
+      "type": "object",
+      "required": [
+        "defaultV1",
+        "defaultV2",
+        "v1",
+        "v2"
+      ],
       "properties": {
         "defaultV1": {
           "$ref": "#/definitions/RealtimeVoice"
@@ -34,36 +52,18 @@
           "$ref": "#/definitions/RealtimeVoice"
         },
         "v1": {
+          "type": "array",
           "items": {
             "$ref": "#/definitions/RealtimeVoice"
-          },
-          "type": "array"
+          }
         },
         "v2": {
+          "type": "array",
           "items": {
             "$ref": "#/definitions/RealtimeVoice"
-          },
-          "type": "array"
+          }
         }
-      },
-      "required": [
-        "defaultV1",
-        "defaultV2",
-        "v1",
-        "v2"
-      ],
-      "type": "object"
+      }
     }
-  },
-  "description": "EXPERIMENTAL - response for listing supported realtime voices.",
-  "properties": {
-    "voices": {
-      "$ref": "#/definitions/RealtimeVoicesList"
-    }
-  },
-  "required": [
-    "voices"
-  ],
-  "title": "ThreadRealtimeListVoicesResponse",
-  "type": "object"
+  }
 }

@@ -1,55 +1,86 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReviewStartParams",
+  "type": "object",
+  "required": [
+    "target",
+    "threadId"
+  ],
+  "properties": {
+    "delivery": {
+      "description": "Where to run the review: inline (default) on the current thread or detached on a new thread (returned in `reviewThreadId`).",
+      "default": null,
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ReviewDelivery"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "target": {
+      "$ref": "#/definitions/ReviewTarget"
+    },
+    "threadId": {
+      "type": "string"
+    }
+  },
   "definitions": {
     "ReviewDelivery": {
+      "type": "string",
       "enum": [
         "inline",
         "detached"
-      ],
-      "type": "string"
+      ]
     },
     "ReviewTarget": {
       "oneOf": [
         {
           "description": "Review the working tree: staged, unstaged, and untracked files.",
-          "properties": {
-            "type": {
-              "enum": [
-                "uncommittedChanges"
-              ],
-              "title": "UncommittedChangesReviewTargetType",
-              "type": "string"
-            }
-          },
+          "type": "object",
           "required": [
             "type"
           ],
-          "title": "UncommittedChangesReviewTarget",
-          "type": "object"
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "uncommittedChanges"
+              ],
+              "title": "UncommittedChangesReviewTargetType"
+            }
+          },
+          "title": "UncommittedChangesReviewTarget"
         },
         {
           "description": "Review changes between the current branch and the given base branch.",
+          "type": "object",
+          "required": [
+            "branch",
+            "type"
+          ],
           "properties": {
             "branch": {
               "type": "string"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "baseBranch"
               ],
-              "title": "BaseBranchReviewTargetType",
-              "type": "string"
+              "title": "BaseBranchReviewTargetType"
             }
           },
-          "required": [
-            "branch",
-            "type"
-          ],
-          "title": "BaseBranchReviewTarget",
-          "type": "object"
+          "title": "BaseBranchReviewTarget"
         },
         {
           "description": "Review the changes introduced by a specific commit.",
+          "type": "object",
+          "required": [
+            "sha",
+            "type"
+          ],
           "properties": {
             "sha": {
               "type": "string"
@@ -62,68 +93,37 @@
               ]
             },
             "type": {
+              "type": "string",
               "enum": [
                 "commit"
               ],
-              "title": "CommitReviewTargetType",
-              "type": "string"
+              "title": "CommitReviewTargetType"
             }
           },
-          "required": [
-            "sha",
-            "type"
-          ],
-          "title": "CommitReviewTarget",
-          "type": "object"
+          "title": "CommitReviewTarget"
         },
         {
           "description": "Arbitrary instructions, equivalent to the old free-form prompt.",
+          "type": "object",
+          "required": [
+            "instructions",
+            "type"
+          ],
           "properties": {
             "instructions": {
               "type": "string"
             },
             "type": {
+              "type": "string",
               "enum": [
                 "custom"
               ],
-              "title": "CustomReviewTargetType",
-              "type": "string"
+              "title": "CustomReviewTargetType"
             }
           },
-          "required": [
-            "instructions",
-            "type"
-          ],
-          "title": "CustomReviewTarget",
-          "type": "object"
+          "title": "CustomReviewTarget"
         }
       ]
     }
-  },
-  "properties": {
-    "delivery": {
-      "anyOf": [
-        {
-          "$ref": "#/definitions/ReviewDelivery"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "description": "Where to run the review: inline (default) on the current thread or detached on a new thread (returned in `reviewThreadId`)."
-    },
-    "target": {
-      "$ref": "#/definitions/ReviewTarget"
-    },
-    "threadId": {
-      "type": "string"
-    }
-  },
-  "required": [
-    "target",
-    "threadId"
-  ],
-  "title": "ReviewStartParams",
-  "type": "object"
+  }
 }

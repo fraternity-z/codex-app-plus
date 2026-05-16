@@ -176,6 +176,7 @@ export async function resumeSlashThread(
 ): Promise<void> {
   const response = (await deps.composerCommandBridge.request("thread/resume", {
     threadId,
+    persistExtendedHistory: false,
   })) as ThreadResumeResponse;
   deps.dispatch({ type: "conversation/loaded", conversationId: threadId, thread: response.thread });
   deps.dispatch({ type: "conversation/selected", conversationId: threadId });
@@ -244,6 +245,7 @@ async function forkThread(context: SlashExecutionContext, deps: SlashExecutionDe
   if (context.selectedThreadId === null || context.selectedConversation === null) throw new Error("请先打开一个线程。");
   const response = (await deps.composerCommandBridge.request("thread/fork", {
     threadId: context.selectedThreadId,
+    persistExtendedHistory: false,
   })) as ThreadForkResponse;
   const conversation = createConversationFromThread(response.thread, {
     hidden: false,

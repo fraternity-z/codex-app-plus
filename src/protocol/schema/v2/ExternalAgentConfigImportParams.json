@@ -1,18 +1,36 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExternalAgentConfigImportParams",
+  "type": "object",
+  "required": [
+    "migrationItems"
+  ],
+  "properties": {
+    "migrationItems": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ExternalAgentConfigMigrationItem"
+      }
+    }
+  },
   "definitions": {
     "CommandMigration": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
       "properties": {
         "name": {
           "type": "string"
         }
-      },
-      "required": [
-        "name"
-      ],
-      "type": "object"
+      }
     },
     "ExternalAgentConfigMigrationItem": {
+      "type": "object",
+      "required": [
+        "description",
+        "itemType"
+      ],
       "properties": {
         "cwd": {
           "description": "Null or empty means home-scoped migration; non-empty means repo-scoped migration.",
@@ -37,14 +55,10 @@
         "itemType": {
           "$ref": "#/definitions/ExternalAgentConfigMigrationItemType"
         }
-      },
-      "required": [
-        "description",
-        "itemType"
-      ],
-      "type": "object"
+      }
     },
     "ExternalAgentConfigMigrationItemType": {
+      "type": "string",
       "enum": [
         "AGENTS_MD",
         "CONFIG",
@@ -55,97 +69,101 @@
         "HOOKS",
         "COMMANDS",
         "SESSIONS"
-      ],
-      "type": "string"
+      ]
     },
     "HookMigration": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
       "properties": {
         "name": {
           "type": "string"
         }
-      },
-      "required": [
-        "name"
-      ],
-      "type": "object"
+      }
     },
     "McpServerMigration": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
       "properties": {
         "name": {
           "type": "string"
         }
-      },
-      "required": [
-        "name"
-      ],
-      "type": "object"
+      }
     },
     "MigrationDetails": {
+      "type": "object",
       "properties": {
         "commands": {
           "default": [],
+          "type": "array",
           "items": {
             "$ref": "#/definitions/CommandMigration"
-          },
-          "type": "array"
+          }
         },
         "hooks": {
           "default": [],
+          "type": "array",
           "items": {
             "$ref": "#/definitions/HookMigration"
-          },
-          "type": "array"
+          }
         },
         "mcpServers": {
           "default": [],
+          "type": "array",
           "items": {
             "$ref": "#/definitions/McpServerMigration"
-          },
-          "type": "array"
+          }
         },
         "plugins": {
           "default": [],
+          "type": "array",
           "items": {
             "$ref": "#/definitions/PluginsMigration"
-          },
-          "type": "array"
+          }
         },
         "sessions": {
           "default": [],
+          "type": "array",
           "items": {
             "$ref": "#/definitions/SessionMigration"
-          },
-          "type": "array"
+          }
         },
         "subagents": {
           "default": [],
+          "type": "array",
           "items": {
             "$ref": "#/definitions/SubagentMigration"
-          },
-          "type": "array"
+          }
         }
-      },
-      "type": "object"
+      }
     },
     "PluginsMigration": {
+      "type": "object",
+      "required": [
+        "marketplaceName",
+        "pluginNames"
+      ],
       "properties": {
         "marketplaceName": {
           "type": "string"
         },
         "pluginNames": {
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         }
-      },
-      "required": [
-        "marketplaceName",
-        "pluginNames"
-      ],
-      "type": "object"
+      }
     },
     "SessionMigration": {
+      "type": "object",
+      "required": [
+        "cwd",
+        "path"
+      ],
       "properties": {
         "cwd": {
           "type": "string"
@@ -159,36 +177,18 @@
             "null"
           ]
         }
-      },
-      "required": [
-        "cwd",
-        "path"
-      ],
-      "type": "object"
+      }
     },
     "SubagentMigration": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
       "properties": {
         "name": {
           "type": "string"
         }
-      },
-      "required": [
-        "name"
-      ],
-      "type": "object"
+      }
     }
-  },
-  "properties": {
-    "migrationItems": {
-      "items": {
-        "$ref": "#/definitions/ExternalAgentConfigMigrationItem"
-      },
-      "type": "array"
-    }
-  },
-  "required": [
-    "migrationItems"
-  ],
-  "title": "ExternalAgentConfigImportParams",
-  "type": "object"
+  }
 }

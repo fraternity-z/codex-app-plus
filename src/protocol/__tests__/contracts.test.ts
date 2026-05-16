@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   CLIENT_REQUEST_METHODS,
@@ -10,19 +12,24 @@ function expectUnique(items: ReadonlyArray<string>): void {
   expect(set.size).toBe(items.length);
 }
 
+function extractGeneratedMethods(relativePath: string): ReadonlyArray<string> {
+  const text = readFileSync(resolve(process.cwd(), relativePath), "utf8");
+  return Array.from(text.matchAll(/"method": "([^"]+)"/g), ([, method]) => method);
+}
+
 describe("protocol method coverage", () => {
-  it("contains all 88 client request methods", () => {
-    expect(CLIENT_REQUEST_METHODS.length).toBe(88);
+  it("matches generated client request methods", () => {
+    expect(CLIENT_REQUEST_METHODS).toEqual(extractGeneratedMethods("src/protocol/generated/ClientRequest.ts"));
     expectUnique(CLIENT_REQUEST_METHODS);
   });
 
-  it("contains all 58 server notifications", () => {
-    expect(SERVER_NOTIFICATION_METHODS.length).toBe(58);
+  it("matches generated server notifications", () => {
+    expect(SERVER_NOTIFICATION_METHODS).toEqual(extractGeneratedMethods("src/protocol/generated/ServerNotification.ts"));
     expectUnique(SERVER_NOTIFICATION_METHODS);
   });
 
-  it("contains all 9 server request methods", () => {
-    expect(SERVER_REQUEST_METHODS.length).toBe(9);
+  it("matches generated server request methods", () => {
+    expect(SERVER_REQUEST_METHODS).toEqual(extractGeneratedMethods("src/protocol/generated/ServerRequest.ts"));
     expectUnique(SERVER_REQUEST_METHODS);
   });
 });

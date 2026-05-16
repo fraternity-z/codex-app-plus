@@ -1,5 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MarketplaceUpgradeParams",
+  "type": "object",
   "properties": {
     "marketplaceName": {
       "type": [
@@ -7,7 +9,5 @@
         "null"
       ]
     }
-  },
-  "title": "MarketplaceUpgradeParams",
-  "type": "object"
+  }
 }

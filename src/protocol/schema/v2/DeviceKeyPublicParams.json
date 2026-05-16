@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DeviceKeyPublicParams",
+  "description": "Fetch a controller-local device key public key by id.",
+  "type": "object",
+  "required": [
+    "keyId"
+  ],
+  "properties": {
+    "keyId": {
+      "type": "string"
+    }
+  }
+}

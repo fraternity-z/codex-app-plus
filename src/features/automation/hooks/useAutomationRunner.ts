@@ -73,6 +73,7 @@ export function useAutomationRunner(options: UseAutomationRunnerOptions): Automa
         serviceTier,
         cwd: agentWorkspacePath,
         experimentalRawEvents: false,
+        persistExtendedHistory: false,
         ...createThreadPermissionOverrides("default", permissionSettings),
       }) as ThreadStartResponse;
       const conversation = createConversationFromThread(threadResponse.thread, {

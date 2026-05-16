@@ -1,90 +1,19 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "definitions": {
-    "FileUpdateChange": {
-      "properties": {
-        "diff": {
-          "type": "string"
-        },
-        "kind": {
-          "$ref": "#/definitions/PatchChangeKind"
-        },
-        "path": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "diff",
-        "kind",
-        "path"
-      ],
-      "type": "object"
-    },
-    "PatchChangeKind": {
-      "oneOf": [
-        {
-          "properties": {
-            "type": {
-              "enum": [
-                "add"
-              ],
-              "title": "AddPatchChangeKindType",
-              "type": "string"
-            }
-          },
-          "required": [
-            "type"
-          ],
-          "title": "AddPatchChangeKind",
-          "type": "object"
-        },
-        {
-          "properties": {
-            "type": {
-              "enum": [
-                "delete"
-              ],
-              "title": "DeletePatchChangeKindType",
-              "type": "string"
-            }
-          },
-          "required": [
-            "type"
-          ],
-          "title": "DeletePatchChangeKind",
-          "type": "object"
-        },
-        {
-          "properties": {
-            "move_path": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "type": {
-              "enum": [
-                "update"
-              ],
-              "title": "UpdatePatchChangeKindType",
-              "type": "string"
-            }
-          },
-          "required": [
-            "type"
-          ],
-          "title": "UpdatePatchChangeKind",
-          "type": "object"
-        }
-      ]
-    }
-  },
+  "title": "FileChangePatchUpdatedNotification",
+  "type": "object",
+  "required": [
+    "changes",
+    "itemId",
+    "threadId",
+    "turnId"
+  ],
   "properties": {
     "changes": {
+      "type": "array",
       "items": {
         "$ref": "#/definitions/FileUpdateChange"
-      },
-      "type": "array"
+      }
     },
     "itemId": {
       "type": "string"
@@ -96,12 +25,83 @@
       "type": "string"
     }
   },
-  "required": [
-    "changes",
-    "itemId",
-    "threadId",
-    "turnId"
-  ],
-  "title": "FileChangePatchUpdatedNotification",
-  "type": "object"
+  "definitions": {
+    "FileUpdateChange": {
+      "type": "object",
+      "required": [
+        "diff",
+        "kind",
+        "path"
+      ],
+      "properties": {
+        "diff": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/PatchChangeKind"
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    "PatchChangeKind": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "add"
+              ],
+              "title": "AddPatchChangeKindType"
+            }
+          },
+          "title": "AddPatchChangeKind"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "delete"
+              ],
+              "title": "DeletePatchChangeKindType"
+            }
+          },
+          "title": "DeletePatchChangeKind"
+        },
+        {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "move_path": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "update"
+              ],
+              "title": "UpdatePatchChangeKindType"
+            }
+          },
+          "title": "UpdatePatchChangeKind"
+        }
+      ]
+    }
+  }
 }

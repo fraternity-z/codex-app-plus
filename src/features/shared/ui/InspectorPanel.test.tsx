@@ -16,7 +16,6 @@ function createCommandApprovalRequest(): ReceivedServerRequest {
       threadId: "thread-1",
       turnId: "turn-1",
       itemId: "item-3",
-      startedAtMs: 1,
       command: "Get-Content src/state/appReducer.ts",
       cwd: "E:/code/codex-app-plus",
       reason: "Allow read-only scan?",
@@ -43,7 +42,6 @@ function createFileApprovalRequest(): ReceivedServerRequest {
       threadId: "thread-1",
       turnId: "turn-1",
       itemId: "item-1",
-      startedAtMs: 1,
       reason: "Review the proposed file changes before continuing.",
     },
   };

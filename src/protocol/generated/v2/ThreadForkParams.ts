@@ -48,4 +48,9 @@ threadSource?: ThreadSource | null,
  * `thread/turns/list` immediately after forking.
  */
 excludeTurns?: boolean,
-};
+/**
+ * Deprecated and ignored by app-server. Kept only so older clients can
+ * continue sending the field while rollout persistence always uses the
+ * limited history policy.
+ */
+persistExtendedHistory: boolean, };

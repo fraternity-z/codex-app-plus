@@ -1,5 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WarningNotification",
+  "type": "object",
+  "required": [
+    "message"
+  ],
   "properties": {
     "message": {
       "description": "Concise warning message for the user.",
@@ -12,10 +17,5 @@
         "null"
       ]
     }
-  },
-  "required": [
-    "message"
-  ],
-  "title": "WarningNotification",
-  "type": "object"
+  }
 }

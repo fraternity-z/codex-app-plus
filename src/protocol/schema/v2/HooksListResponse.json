@@ -1,11 +1,29 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HooksListResponse",
+  "type": "object",
+  "required": [
+    "data"
+  ],
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/HooksListEntry"
+      }
+    }
+  },
   "definitions": {
     "AbsolutePathBuf": {
       "description": "A path that is guaranteed to be absolute and normalized (though it is not guaranteed to be canonicalized or exist on the filesystem).\n\nIMPORTANT: When deserializing an `AbsolutePathBuf`, a base path must be set using [AbsolutePathBufGuard::new]. If no base path is set, the deserialization will fail unless the path being deserialized is already absolute.",
       "type": "string"
     },
     "HookErrorInfo": {
+      "type": "object",
+      "required": [
+        "message",
+        "path"
+      ],
       "properties": {
         "message": {
           "type": "string"
@@ -13,14 +31,10 @@
         "path": {
           "type": "string"
         }
-      },
-      "required": [
-        "message",
-        "path"
-      ],
-      "type": "object"
+      }
     },
     "HookEventName": {
+      "type": "string",
       "enum": [
         "preToolUse",
         "permissionRequest",
@@ -30,18 +44,31 @@
         "sessionStart",
         "userPromptSubmit",
         "stop"
-      ],
-      "type": "string"
+      ]
     },
     "HookHandlerType": {
+      "type": "string",
       "enum": [
         "command",
         "prompt",
         "agent"
-      ],
-      "type": "string"
+      ]
     },
     "HookMetadata": {
+      "type": "object",
+      "required": [
+        "currentHash",
+        "displayOrder",
+        "enabled",
+        "eventName",
+        "handlerType",
+        "isManaged",
+        "key",
+        "source",
+        "sourcePath",
+        "timeoutSec",
+        "trustStatus"
+      ],
       "properties": {
         "command": {
           "type": [
@@ -53,8 +80,8 @@
           "type": "string"
         },
         "displayOrder": {
-          "format": "int64",
-          "type": "integer"
+          "type": "integer",
+          "format": "int64"
         },
         "enabled": {
           "type": "boolean"
@@ -96,30 +123,17 @@
           ]
         },
         "timeoutSec": {
+          "type": "integer",
           "format": "uint64",
-          "minimum": 0.0,
-          "type": "integer"
+          "minimum": 0.0
         },
         "trustStatus": {
           "$ref": "#/definitions/HookTrustStatus"
         }
-      },
-      "required": [
-        "currentHash",
-        "displayOrder",
-        "enabled",
-        "eventName",
-        "handlerType",
-        "isManaged",
-        "key",
-        "source",
-        "sourcePath",
-        "timeoutSec",
-        "trustStatus"
-      ],
-      "type": "object"
+      }
     },
     "HookSource": {
+      "type": "string",
       "enum": [
         "system",
         "user",
@@ -131,62 +145,48 @@
         "legacyManagedConfigFile",
         "legacyManagedConfigMdm",
         "unknown"
-      ],
-      "type": "string"
+      ]
     },
     "HookTrustStatus": {
+      "type": "string",
       "enum": [
         "managed",
         "untrusted",
         "trusted",
         "modified"
-      ],
-      "type": "string"
+      ]
     },
     "HooksListEntry": {
-      "properties": {
-        "cwd": {
-          "type": "string"
-        },
-        "errors": {
-          "items": {
-            "$ref": "#/definitions/HookErrorInfo"
-          },
-          "type": "array"
-        },
-        "hooks": {
-          "items": {
-            "$ref": "#/definitions/HookMetadata"
-          },
-          "type": "array"
-        },
-        "warnings": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
+      "type": "object",
       "required": [
         "cwd",
         "errors",
         "hooks",
         "warnings"
       ],
-      "type": "object"
+      "properties": {
+        "cwd": {
+          "type": "string"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HookErrorInfo"
+          }
+        },
+        "hooks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HookMetadata"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     }
-  },
-  "properties": {
-    "data": {
-      "items": {
-        "$ref": "#/definitions/HooksListEntry"
-      },
-      "type": "array"
-    }
-  },
-  "required": [
-    "data"
-  ],
-  "title": "HooksListResponse",
-  "type": "object"
+  }
 }

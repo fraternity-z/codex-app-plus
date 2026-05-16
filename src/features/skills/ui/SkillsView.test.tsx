@@ -137,7 +137,6 @@ function createPluginReadResponse(): PluginReadResponse {
       summary: createMarketplacePluginsResponse().marketplaces[0]!.plugins[0]!,
       description: "Control the in-app browser with Codex",
       skills: [],
-      hooks: [],
       apps: [{
         id: "browser-use",
         name: "Browser Use",
