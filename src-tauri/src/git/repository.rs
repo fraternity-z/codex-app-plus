@@ -230,7 +230,8 @@ mod tests {
         let repo = RealGitRepo::create();
         let cache = RepositoryContextCache::default();
         let worktree_path = repo.path.join(".worktrees").join("feature-a");
-        fs::create_dir_all(worktree_path.parent().expect("worktree parent")).expect("create worktree parent");
+        fs::create_dir_all(worktree_path.parent().expect("worktree parent"))
+            .expect("create worktree parent");
         run_git_cmd(
             &repo.path,
             &[

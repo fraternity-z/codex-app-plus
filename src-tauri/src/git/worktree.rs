@@ -2,13 +2,13 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use crate::error::{AppError, AppResult};
+use crate::infra::filesystem::app_data::app_data_dir;
 
 use super::models::{GitRepoInput, GitWorktreeAddInput, GitWorktreeEntry, GitWorktreeRemoveInput};
 use super::process::{has_head, rev_parse, run_git};
 use super::repository::{require_repository_context, to_args};
 use super::runtime::RepositoryContextCache;
 
-const APP_DIRECTORY: &str = "CodexAppPlus";
 const WORKTREE_DIRECTORY: &str = "worktrees";
 const WORKTREE_LIST_ARGS: [&str; 4] = ["worktree", "list", "--porcelain", "-z"];
 
@@ -278,9 +278,6 @@ fn unique_worktree_path(repo_root: &Path, name: &str) -> AppResult<PathBuf> {
 }
 
 fn managed_worktree_root(repo_root: &Path) -> AppResult<PathBuf> {
-    let data_dir = dirs::data_local_dir().ok_or_else(|| {
-        AppError::Protocol("无法定位本机应用数据目录，不能创建稳定工作树。".to_string())
-    })?;
     let canonical_repo =
         std::fs::canonicalize(repo_root).unwrap_or_else(|_| repo_root.to_path_buf());
     let repo_name = canonical_repo
@@ -294,8 +291,7 @@ fn managed_worktree_root(repo_root: &Path) -> AppResult<PathBuf> {
         .replace('\\', "/")
         .to_lowercase();
     let repo_hash = stable_path_hash(&repo_key);
-    Ok(data_dir
-        .join(APP_DIRECTORY)
+    Ok(app_data_dir()?
         .join(WORKTREE_DIRECTORY)
         .join(format!("{repo_name}-{repo_hash}")))
 }
@@ -341,7 +337,7 @@ fn same_path_text(left: &str, right: &str) -> bool {
 mod tests {
     use super::{
         add_worktree, get_worktrees, managed_worktree_root, parse_worktree_list_output,
-        remove_worktree, same_path_text, sanitize_worktree_name, stable_path_hash, APP_DIRECTORY,
+        remove_worktree, same_path_text, sanitize_worktree_name, stable_path_hash,
         WORKTREE_DIRECTORY,
     };
     use crate::git::models::{GitRepoInput, GitWorktreeAddInput, GitWorktreeRemoveInput};
@@ -564,6 +560,8 @@ mod tests {
     fn creates_stable_paths_under_app_data() {
         let repo = TestRepo::create();
         let root = managed_worktree_root(&repo.path).expect("managed root");
+        let app_data =
+            crate::infra::filesystem::app_data::app_data_dir().expect("resolve app data root");
 
         assert_eq!(
             root.parent()
@@ -571,8 +569,7 @@ mod tests {
                 .and_then(|value| value.to_str()),
             Some(WORKTREE_DIRECTORY)
         );
-        assert!(root.to_string_lossy().contains(APP_DIRECTORY));
-        assert!(!root.starts_with(std::env::temp_dir()));
+        assert!(root.starts_with(app_data));
     }
 
     #[test]

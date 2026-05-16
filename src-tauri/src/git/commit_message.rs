@@ -8,9 +8,9 @@ use serde_json::Value;
 use tauri::AppHandle;
 use tokio::io::AsyncWriteExt;
 
-use crate::codex_cli::CodexCli;
-use crate::command_utils::command_failure_detail;
 use crate::error::{AppError, AppResult};
+use crate::infra::process::codex_cli::CodexCli;
+use crate::infra::process::command::command_failure_detail;
 use crate::models::AppServerStartInput;
 
 use super::models::{GitGenerateCommitMessageInput, GitGenerateCommitMessageOutput};

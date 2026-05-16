@@ -126,13 +126,16 @@ mod tests {
     use std::ffi::OsString;
 
     use super::{
-        autostash_unsupported, build_fetch_args, build_push_args,
-        pull_needs_reconcile_strategy, split_upstream,
+        autostash_unsupported, build_fetch_args, build_push_args, pull_needs_reconcile_strategy,
+        split_upstream,
     };
 
     #[test]
     fn parses_upstream_remote_and_branch() {
-        assert_eq!(split_upstream(Some("origin/main")), Some(("origin", "main")));
+        assert_eq!(
+            split_upstream(Some("origin/main")),
+            Some(("origin", "main"))
+        );
         assert_eq!(
             split_upstream(Some("fork/feature/login")),
             Some(("fork", "feature/login"))

@@ -2,10 +2,10 @@ use std::ffi::OsString;
 use std::path::Path;
 use std::process::Command;
 
+use crate::domains::settings::proxy::load_proxy_settings;
 use crate::error::{AppError, AppResult};
-use crate::proxy_environment::apply_std_proxy_environment;
-use crate::proxy_settings::load_proxy_settings;
-use crate::windows_child_process::configure_background_std_command;
+use crate::infra::process::proxy_environment::apply_std_proxy_environment;
+use crate::infra::process::windows_child::configure_background_std_command;
 
 const GIT_PROGRAM: &str = "git";
 const GIT_QUOTEPATH_CONFIG: [&str; 2] = ["-c", "core.quotepath=false"];
@@ -21,7 +21,10 @@ pub(super) fn has_head(repo_root: &Path) -> AppResult<bool> {
 }
 
 pub(super) fn rev_parse(repo_root: &Path, arg: &str) -> AppResult<String> {
-    run_git(repo_root, &[OsString::from("rev-parse"), OsString::from(arg)])
+    run_git(
+        repo_root,
+        &[OsString::from("rev-parse"), OsString::from(arg)],
+    )
 }
 
 pub(super) fn run_git(repo_root: &Path, args: &[OsString]) -> AppResult<String> {

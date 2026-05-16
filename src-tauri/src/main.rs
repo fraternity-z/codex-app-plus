@@ -1,59 +1,21 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod agent_environment;
-mod agents_config;
-mod app_approval_rules;
-mod app_server_io;
-mod app_server_stderr;
-mod app_support;
-mod browser;
-mod browser_commands;
-mod browser_use_backend;
-mod bundled_browser_use;
-mod bundled_codex_cli;
-mod bundled_computer_use;
-mod codex_auth;
-mod codex_cli;
-mod codex_data;
-mod codex_session_text;
-mod command_utils;
 mod commands;
-mod custom_prompts;
-mod dictation_transcription;
+mod domains;
 mod error;
 mod events;
 mod git;
-mod global_agent_instructions;
-mod mcp_shared_pool;
-mod mcp_shared_pool_settings;
-mod media_permissions;
+mod infra;
 mod models;
-mod permission_config;
-mod pets;
-mod process_manager;
-mod process_supervisor;
-mod proxy_environment;
-mod proxy_settings;
-mod rpc_transport;
-mod rules;
-mod terminal_commands;
-mod terminal_manager;
 #[cfg(test)]
 mod test_support;
-mod window_theme;
-mod windows_child_process;
-mod workspace_launcher;
-mod workspace_state;
-mod wsl_support;
 
-use browser_commands::{
-    app_browser_clear_browsing_data, app_browser_clear_browsing_data_by_kind, app_browser_open,
-    app_browser_sidebar_hide, app_browser_sidebar_open, app_browser_sidebar_update_bounds,
-    app_browser_use_approval_mode_write, app_browser_use_origin_add, app_browser_use_origin_remove,
-    app_browser_use_settings_read,
-};
 use commands::{
-    app_activate_codex_chatgpt, app_capture_codex_oauth_snapshot, app_clear_chatgpt_auth_state,
+    app_activate_codex_chatgpt, app_browser_clear_browsing_data,
+    app_browser_clear_browsing_data_by_kind, app_browser_open, app_browser_sidebar_hide,
+    app_browser_sidebar_open, app_browser_sidebar_update_bounds,
+    app_browser_use_approval_mode_write, app_browser_use_origin_add, app_browser_use_origin_remove,
+    app_browser_use_settings_read, app_capture_codex_oauth_snapshot, app_clear_chatgpt_auth_state,
     app_control_window, app_create_agent, app_delete_agent, app_delete_codex_session,
     app_delete_managed_prompt, app_get_agents_settings, app_get_codex_auth_mode_state,
     app_import_official_data, app_list_codex_sessions, app_list_custom_pets,
@@ -65,12 +27,14 @@ use commands::{
     app_reveal_path_in_folder, app_search_codex_sessions, app_server_restart, app_server_start,
     app_server_stop, app_set_agents_core, app_set_user_model_instructions_file,
     app_set_window_theme, app_show_context_menu, app_show_notification, app_start_window_dragging,
-    app_update_agent, app_upsert_managed_prompt, app_write_agent_config,
-    app_write_chatgpt_auth_tokens, app_write_global_agent_instructions,
+    app_transcribe_dictation_audio, app_update_agent, app_upsert_managed_prompt,
+    app_write_agent_config, app_write_chatgpt_auth_tokens, app_write_global_agent_instructions,
     app_write_project_permission_config, app_write_proxy_settings, app_write_workspace_state,
-    rpc_cancel, rpc_notify, rpc_request, server_request_resolve,
+    rpc_cancel, rpc_notify, rpc_request, server_request_resolve, terminal_close_session,
+    terminal_create_session, terminal_resize, terminal_write,
 };
-use dictation_transcription::app_transcribe_dictation_audio;
+use domains::app_server::service::ProcessManager;
+use domains::terminal::service::TerminalManager;
 use git::commands::{
     git_add_worktree, git_checkout, git_commit, git_delete_branch, git_discard_paths, git_fetch,
     git_generate_commit_message, git_get_branch_refs, git_get_diff, git_get_remote_url,
@@ -78,21 +42,16 @@ use git::commands::{
     git_pull, git_push, git_remove_worktree, git_stage_paths, git_unstage_paths,
 };
 use git::runtime::GitRuntimeState;
-use process_manager::ProcessManager;
 #[cfg(desktop)]
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 use tauri::{Manager, RunEvent, WindowEvent};
-use terminal_commands::{
-    terminal_close_session, terminal_create_session, terminal_resize, terminal_write,
-};
-use terminal_manager::TerminalManager;
 
 fn main() {
     #[cfg(target_os = "windows")]
-    windows_child_process::ensure_hidden_parent_console();
+    infra::process::windows_child::ensure_hidden_parent_console();
 
     let builder = tauri::Builder::default();
 
@@ -115,9 +74,9 @@ fn main() {
             #[cfg(target_os = "windows")]
             if let Some(main_window) = app.get_webview_window("main") {
                 let _ = main_window.set_decorations(false);
-                media_permissions::allow_microphone_capture(&main_window);
+                domains::app::media_permissions::allow_microphone_capture(&main_window);
             }
-            browser_use_backend::start(app.handle().clone());
+            domains::browser::use_backend::start(app.handle().clone());
             Ok(())
         })
         .manage(ProcessManager::new())
