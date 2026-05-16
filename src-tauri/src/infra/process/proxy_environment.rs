@@ -7,14 +7,18 @@ use crate::models::{ProxyMode, ProxySettings};
 const HTTP_PROXY_KEYS: [&str; 2] = ["HTTP_PROXY", "http_proxy"];
 const HTTPS_PROXY_KEYS: [&str; 2] = ["HTTPS_PROXY", "https_proxy"];
 const NO_PROXY_KEYS: [&str; 2] = ["NO_PROXY", "no_proxy"];
-const ALL_PROXY_KEYS: [&str; 6] = [
+const GENERIC_PROXY_KEYS: [&str; 2] = ["ALL_PROXY", "all_proxy"];
+const ALL_PROXY_KEYS: [&str; 8] = [
     "HTTP_PROXY",
     "http_proxy",
     "HTTPS_PROXY",
     "https_proxy",
     "NO_PROXY",
     "no_proxy",
+    "ALL_PROXY",
+    "all_proxy",
 ];
+const LOOPBACK_NO_PROXY_VALUES: [&str; 3] = ["localhost", "127.0.0.1", "::1"];
 
 pub(crate) type ProxyEnvironmentEdit = (&'static str, Option<String>);
 
@@ -71,13 +75,20 @@ pub(crate) fn apply_terminal_proxy_environment(
 
 fn proxy_environment_edits_from_values(values: &SystemProxyValues) -> Vec<ProxyEnvironmentEdit> {
     let mut assignments = Vec::new();
-    extend_assignments(&mut assignments, &HTTP_PROXY_KEYS, values.http_proxy.trim());
-    extend_assignments(
-        &mut assignments,
-        &HTTPS_PROXY_KEYS,
-        values.https_proxy.trim(),
-    );
-    extend_assignments(&mut assignments, &NO_PROXY_KEYS, values.no_proxy.trim());
+    let http_proxy = values.http_proxy.trim();
+    let https_proxy = values.https_proxy.trim();
+    let has_proxy = !http_proxy.is_empty() || !https_proxy.is_empty();
+
+    extend_assignments(&mut assignments, &HTTP_PROXY_KEYS, http_proxy);
+    extend_assignments(&mut assignments, &HTTPS_PROXY_KEYS, https_proxy);
+
+    let no_proxy = if has_proxy {
+        normalize_no_proxy_with_loopback(values.no_proxy.trim())
+    } else {
+        String::new()
+    };
+    extend_assignments(&mut assignments, &NO_PROXY_KEYS, &no_proxy);
+    extend_assignments(&mut assignments, &GENERIC_PROXY_KEYS, "");
     assignments
 }
 
@@ -275,7 +286,9 @@ fn system_proxy_values_from_windows_proxy_config(
     SystemProxyValues {
         http_proxy,
         https_proxy,
-        no_proxy: normalize_windows_proxy_override(proxy_override),
+        no_proxy: normalize_no_proxy_with_loopback(&normalize_windows_proxy_override(
+            proxy_override,
+        )),
     }
 }
 
@@ -311,6 +324,33 @@ fn normalize_windows_proxy_override_item(value: &str) -> Vec<String> {
     vec![value]
 }
 
+fn normalize_no_proxy_with_loopback(value: &str) -> String {
+    let mut entries = value
+        .split(',')
+        .map(str::trim)
+        .filter(|entry| !entry.is_empty())
+        .map(ToString::to_string)
+        .fold(Vec::new(), |mut entries, entry| {
+            push_unique_no_proxy_entry(&mut entries, entry);
+            entries
+        });
+
+    for entry in LOOPBACK_NO_PROXY_VALUES {
+        push_unique_no_proxy_entry(&mut entries, entry.to_string());
+    }
+
+    entries.join(",")
+}
+
+fn push_unique_no_proxy_entry(entries: &mut Vec<String>, entry: String) {
+    if !entries
+        .iter()
+        .any(|existing| existing.eq_ignore_ascii_case(&entry))
+    {
+        entries.push(entry);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -333,6 +373,8 @@ mod tests {
                 ("https_proxy", None),
                 ("NO_PROXY", None),
                 ("no_proxy", None),
+                ("ALL_PROXY", None),
+                ("all_proxy", None),
             ]
         );
     }
@@ -353,8 +395,10 @@ mod tests {
                 ("http_proxy", Some("http://127.0.0.1:7890".to_string())),
                 ("HTTPS_PROXY", Some("http://127.0.0.1:7890".to_string())),
                 ("https_proxy", Some("http://127.0.0.1:7890".to_string())),
-                ("NO_PROXY", Some("localhost".to_string())),
-                ("no_proxy", Some("localhost".to_string())),
+                ("NO_PROXY", Some("localhost,127.0.0.1,::1".to_string())),
+                ("no_proxy", Some("localhost,127.0.0.1,::1".to_string())),
+                ("ALL_PROXY", None),
+                ("all_proxy", None),
             ]
         );
     }
@@ -375,8 +419,10 @@ mod tests {
                 ("http_proxy", Some("http://127.0.0.1:7890".to_string())),
                 ("HTTPS_PROXY", None),
                 ("https_proxy", None),
-                ("NO_PROXY", None),
-                ("no_proxy", None),
+                ("NO_PROXY", Some("localhost,127.0.0.1,::1".to_string())),
+                ("no_proxy", Some("localhost,127.0.0.1,::1".to_string())),
+                ("ALL_PROXY", None),
+                ("all_proxy", None),
             ]
         );
     }
@@ -396,10 +442,24 @@ mod tests {
                 ("http_proxy", Some("http://127.0.0.1:8080".to_string())),
                 ("HTTPS_PROXY", Some("https://127.0.0.1:8443".to_string())),
                 ("https_proxy", Some("https://127.0.0.1:8443".to_string())),
-                ("NO_PROXY", Some("localhost,127.0.0.1".to_string())),
-                ("no_proxy", Some("localhost,127.0.0.1".to_string())),
+                ("NO_PROXY", Some("localhost,127.0.0.1,::1".to_string())),
+                ("no_proxy", Some("localhost,127.0.0.1,::1".to_string())),
+                ("ALL_PROXY", None),
+                ("all_proxy", None),
             ]
         );
+    }
+
+    #[test]
+    fn proxy_modes_always_bypass_loopback_rpc_addresses() {
+        let assignments = proxy_environment_edits_from_values(&SystemProxyValues {
+            http_proxy: "http://127.0.0.1:7890".to_string(),
+            https_proxy: "http://127.0.0.1:7890".to_string(),
+            no_proxy: String::new(),
+        });
+
+        assert!(assignments.contains(&("NO_PROXY", Some("localhost,127.0.0.1,::1".to_string()))));
+        assert!(assignments.contains(&("no_proxy", Some("localhost,127.0.0.1,::1".to_string()))));
     }
 
     #[test]
@@ -440,7 +500,7 @@ mod tests {
             SystemProxyValues {
                 http_proxy: "http://127.0.0.1:7890".to_string(),
                 https_proxy: "http://secure.local:7891".to_string(),
-                no_proxy: "localhost,.internal,localhost,127.0.0.1".to_string(),
+                no_proxy: "localhost,.internal,127.0.0.1,::1".to_string(),
             }
         );
     }
@@ -454,7 +514,7 @@ mod tests {
             SystemProxyValues {
                 http_proxy: "http://127.0.0.1:7890".to_string(),
                 https_proxy: "http://127.0.0.1:7890".to_string(),
-                no_proxy: String::new(),
+                no_proxy: "localhost,127.0.0.1,::1".to_string(),
             }
         );
     }

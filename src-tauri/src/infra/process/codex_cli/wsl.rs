@@ -243,7 +243,7 @@ mod tests {
 
     use super::{build_launch_spec, resolve_wsl_codex_candidate};
 
-    const DISABLED_PROXY_EXEC_SCRIPT: &str = "export CODEX_HOME='/mnt/c/Users/me/.codex'; unset HTTP_PROXY; unset http_proxy; unset HTTPS_PROXY; unset https_proxy; unset NO_PROXY; unset no_proxy; exec \"$@\"";
+    const DISABLED_PROXY_EXEC_SCRIPT: &str = "export CODEX_HOME='/mnt/c/Users/me/.codex'; unset HTTP_PROXY; unset http_proxy; unset HTTPS_PROXY; unset https_proxy; unset NO_PROXY; unset no_proxy; unset ALL_PROXY; unset all_proxy; exec \"$@\"";
 
     fn wsl_context() -> WslContext {
         WslContext {
@@ -355,7 +355,9 @@ mod tests {
         restore_env("NO_PROXY", original_no_proxy);
 
         assert!(spec.prefix_args[7].contains("export HTTP_PROXY='http://127.0.0.1:8080';"));
-        assert!(spec.prefix_args[7].contains("export no_proxy='localhost';"));
+        assert!(spec.prefix_args[7].contains("export no_proxy='localhost,127.0.0.1,::1';"));
+        assert!(spec.prefix_args[7].contains("unset ALL_PROXY;"));
+        assert!(spec.prefix_args[7].contains("unset all_proxy;"));
         assert!(spec.prefix_args[7].contains("exec \"$@\""));
     }
 
