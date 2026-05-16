@@ -471,6 +471,62 @@ describe("WorkspaceDiffSidebar", () => {
     expect(await screen.findByText((_, node) => node?.textContent === "export const answer = 1")).toBeInTheDocument();
   });
 
+  it("opens image search results in the preview tab", async () => {
+    const getWorkspaceDiffs = vi.fn().mockResolvedValue([]);
+    const imageDataBase64 = Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64");
+    const request = vi.fn().mockImplementation(async (input: { readonly method: string }) => {
+      if (input.method === "fs/readFile") {
+        return {
+          requestId: "read-1",
+          result: { dataBase64: imageDataBase64 },
+        };
+      }
+      return {
+        requestId: "search-1",
+        result: {
+          files: [{
+            root: "E:/code/project",
+            path: "assets/logo.png",
+            match_type: "file",
+            file_name: "logo.png",
+            score: 100,
+            indices: null,
+          }],
+        },
+      };
+    });
+    const hostBridge = {
+      app: {
+        openExternal: vi.fn().mockResolvedValue(undefined),
+        revealPathInFolder: vi.fn().mockResolvedValue(undefined),
+      },
+      git: { getWorkspaceDiffs },
+      rpc: { request },
+    } as unknown as HostBridge;
+
+    renderSidebar(createController(), hostBridge);
+
+    fireEvent.click(screen.getByRole("button", { name: "打开侧边面板标签页" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /打开文件/ }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "输入内容搜索文件" }), {
+      target: { value: "logo" },
+    });
+    const resultButton = (await screen.findByText("logo.png")).closest("button");
+    expect(resultButton).not.toBeNull();
+    fireEvent.click(resultButton!);
+
+    await waitFor(() => expect(request).toHaveBeenCalledWith({
+      method: "fs/readFile",
+      params: {
+        path: "E:/code/project/assets/logo.png",
+      },
+    }));
+    expect(screen.getByRole("tab", { name: "logo.png" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByLabelText("预览 logo.png")).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "logo.png" })).toHaveAttribute("src", `data:image/png;base64,${imageDataBase64}`);
+    expect(screen.queryByRole("region", { name: "文件 logo.png" })).toBeNull();
+  });
+
   it("creates a local comment from an opened file line", async () => {
     const getWorkspaceDiffs = vi.fn().mockResolvedValue([]);
     const request = vi.fn().mockImplementation(async (input: { readonly method: string }) => {
@@ -640,20 +696,20 @@ describe("WorkspaceDiffSidebar", () => {
           target: {
             kind: "file",
             fileKind: "document",
-            path: "E:/code/project/网站设计报告.docx",
-            name: "网站设计报告.docx",
-            extension: "DOCX",
+            path: "E:/code/project/网站设计报告.pptx",
+            name: "网站设计报告.pptx",
+            extension: "PPTX",
           },
         },
       },
     );
 
-    await waitFor(() => expect(screen.getByRole("tab", { name: "网站设计报告.docx" })).toHaveAttribute("aria-selected", "true"));
-    expect(screen.getByLabelText("预览 网站设计报告.docx")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("tab", { name: "网站设计报告.pptx" })).toHaveAttribute("aria-selected", "true"));
+    expect(screen.getByLabelText("预览 网站设计报告.pptx")).toBeInTheDocument();
     expect(screen.getByText("当前格式可能无法直接内嵌渲染，可以用系统默认应用打开查看。")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "在外部打开文件" }));
 
-    await waitFor(() => expect(openExternal).toHaveBeenCalledWith("E:/code/project/网站设计报告.docx"));
+    await waitFor(() => expect(openExternal).toHaveBeenCalledWith("E:/code/project/网站设计报告.pptx"));
   });
 });

@@ -9,7 +9,12 @@ import { OfficialCloseIcon, OfficialFolderIcon, OfficialPlusIcon } from "../../s
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import { SidebarIcon } from "../../shared/ui/icons";
 import { QuickPreviewPanel } from "../../preview/ui/QuickPreviewPanel";
-import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
+import {
+  getPathBaseName,
+  getPathExtension,
+  getQuickPreviewFileKind,
+  type QuickPreviewTarget,
+} from "../../preview/model/previewTargets";
 import type { CreateLocalCodeCommentInput, LocalCodeComment } from "../../workspace/model/localCodeComments";
 import { WorkspaceFileViewer } from "../../workspace/ui/WorkspaceFileViewer";
 import { useWorkspaceDiffViewer } from "../hooks/useWorkspaceDiffViewer";
@@ -108,6 +113,20 @@ function resolveProjectFilePath(file: FuzzyFileSearchResult): string {
 
 function getFileTabName(path: string): string {
   return path.replace(/[\\/]+$/, "").split(/[\\/]/).filter(Boolean).pop() ?? path;
+}
+
+function createImagePreviewTarget(path: string): PreviewOpenRequest["target"] | null {
+  const fileKind = getQuickPreviewFileKind(path);
+  if (fileKind !== "image") {
+    return null;
+  }
+  return {
+    kind: "file",
+    fileKind,
+    path,
+    name: getPathBaseName(path),
+    extension: getPathExtension(path).toUpperCase(),
+  };
 }
 
 function ReviewTabIcon(props: { readonly className?: string }): JSX.Element {
@@ -827,6 +846,13 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
 
   const handleOpenProjectFile = useCallback(async (path: string) => {
     setActionError(null);
+    const previewTarget = createImagePreviewTarget(path);
+    if (previewTarget !== null) {
+      setPreviewTab(previewTarget);
+      setFileSearchOpen(false);
+      setActiveTab("preview");
+      return;
+    }
     setFileTab({ path, name: getFileTabName(path) });
     setFileSearchOpen(false);
     setActiveTab("file");

@@ -116,6 +116,51 @@ describe("QuickPreviewPanel", () => {
     expect(breadcrumb).toHaveAttribute("title", "E:/code/codex-app-plus/docs/report.pdf");
   });
 
+  it("renders png image previews from file bytes instead of asset URLs", async () => {
+    const dataBase64 = encodeBytesBase64([0x89, 0x50, 0x4e, 0x47]);
+    const hostBridge = createHostBridge({ readFileDataBase64: dataBase64 });
+
+    render(
+      <QuickPreviewPanel
+        hostBridge={hostBridge}
+        target={{
+          kind: "file",
+          fileKind: "image",
+          path: "E:/code/codex-app-plus/assets/diagram.png",
+          name: "diagram.png",
+          extension: "PNG",
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole("img", { name: "diagram.png" })).toHaveAttribute("src", `data:image/png;base64,${dataBase64}`);
+    expect(coreMocks.convertFileSrc).not.toHaveBeenCalled();
+    expect(hostBridge.rpc.request).toHaveBeenCalledWith({
+      method: "fs/readFile",
+      params: { path: "E:/code/codex-app-plus/assets/diagram.png" },
+    });
+  });
+
+  it("renders svg image previews with the svg mime type", async () => {
+    const dataBase64 = encodeBase64("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1 1\" />");
+    const hostBridge = createHostBridge({ readFileDataBase64: dataBase64 });
+
+    render(
+      <QuickPreviewPanel
+        hostBridge={hostBridge}
+        target={{
+          kind: "file",
+          fileKind: "image",
+          path: "E:/code/codex-app-plus/assets/icon.svg",
+          name: "icon.svg",
+          extension: "SVG",
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole("img", { name: "icon.svg" })).toHaveAttribute("src", `data:image/svg+xml;base64,${dataBase64}`);
+  });
+
   it("renders markdown documents instead of raw text", async () => {
     const hostBridge = createHostBridge({
       readFileContent: "# 标题\n\n- 第一项\n- 第二项",

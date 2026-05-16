@@ -30,6 +30,12 @@ type DocxPreviewState =
   | { readonly status: "ready"; readonly bytes: Uint8Array; readonly error: null }
   | { readonly status: "error"; readonly bytes: null; readonly error: string };
 
+type ImagePreviewState =
+  | { readonly status: "idle"; readonly dataUrl: null; readonly error: null }
+  | { readonly status: "loading"; readonly dataUrl: null; readonly error: null }
+  | { readonly status: "ready"; readonly dataUrl: string; readonly error: null }
+  | { readonly status: "error"; readonly dataUrl: null; readonly error: string };
+
 type DocxRenderState =
   | { readonly status: "loading"; readonly error: null }
   | { readonly status: "ready"; readonly error: null }
@@ -117,6 +123,54 @@ async function readFileContent(hostBridge: HostBridge, path: string): Promise<st
 
 async function readFileBytes(hostBridge: HostBridge, path: string): Promise<Uint8Array> {
   return decodeBase64Bytes(await readFileBase64(hostBridge, path));
+}
+
+function getImageMimeType(extension: string): string {
+  const normalized = extension.toLowerCase();
+  if (normalized === "svg") return "image/svg+xml";
+  if (normalized === "jpg" || normalized === "jpeg") return "image/jpeg";
+  if (normalized === "png") return "image/png";
+  if (normalized === "gif") return "image/gif";
+  if (normalized === "webp") return "image/webp";
+  if (normalized === "avif") return "image/avif";
+  if (normalized === "bmp") return "image/bmp";
+  return "application/octet-stream";
+}
+
+function toImageDataUrl(dataBase64: string, extension: string): string {
+  return `data:${getImageMimeType(extension)};base64,${dataBase64}`;
+}
+
+function useImagePreviewContent(hostBridge: HostBridge, target: QuickPreviewFileTarget): ImagePreviewState {
+  const shouldReadImage = target.fileKind === "image";
+  const [state, setState] = useState<ImagePreviewState>({ status: "idle", dataUrl: null, error: null });
+
+  useEffect(() => {
+    if (!shouldReadImage) {
+      setState({ status: "idle", dataUrl: null, error: null });
+      return undefined;
+    }
+
+    let cancelled = false;
+    setState({ status: "loading", dataUrl: null, error: null });
+    void readFileBase64(hostBridge, target.path)
+      .then((dataBase64) => {
+        if (!cancelled) {
+          setState({ status: "ready", dataUrl: toImageDataUrl(dataBase64, target.extension), error: null });
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setState({ status: "error", dataUrl: null, error: toErrorMessage(error) });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hostBridge, shouldReadImage, target.extension, target.path]);
+
+  return state;
 }
 
 function useTextDocumentContent(hostBridge: HostBridge, target: QuickPreviewFileTarget): TextReadState {
@@ -451,14 +505,21 @@ function DocxPreview(props: { readonly bytes: Uint8Array; readonly title: string
 function QuickPreviewBody(props: {
   readonly assetSrc: string;
   readonly target: QuickPreviewFileTarget;
+  readonly imageState: ImagePreviewState;
   readonly textState: TextReadState;
   readonly docxState: DocxPreviewState;
   readonly onOpenExternal: () => void;
 }): JSX.Element {
   if (props.target.fileKind === "image") {
+    if (props.imageState.status === "loading" || props.imageState.status === "idle") {
+      return <div className="quick-preview-status">正在读取图片…</div>;
+    }
+    if (props.imageState.status === "error") {
+      return <div className="quick-preview-status quick-preview-error" role="alert">打开图片失败：{props.imageState.error}</div>;
+    }
     return (
       <div className="quick-preview-image-stage">
-        <img className="quick-preview-image" src={props.assetSrc} alt={props.target.name} />
+        <img className="quick-preview-image" src={props.imageState.dataUrl} alt={props.target.name} />
       </div>
     );
   }
@@ -518,7 +579,11 @@ function QuickPreviewBody(props: {
 }
 
 export function QuickPreviewPanel(props: QuickPreviewPanelProps): JSX.Element {
-  const assetSrc = useMemo(() => convertFileSrc(props.target.path), [props.target.path]);
+  const assetSrc = useMemo(
+    () => props.target.fileKind === "image" ? "" : convertFileSrc(props.target.path),
+    [props.target.fileKind, props.target.path],
+  );
+  const imageState = useImagePreviewContent(props.hostBridge, props.target);
   const textState = useTextDocumentContent(props.hostBridge, props.target);
   const docxState = useDocxPreviewContent(props.hostBridge, props.target);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -578,6 +643,7 @@ export function QuickPreviewPanel(props: QuickPreviewPanelProps): JSX.Element {
       <QuickPreviewBody
         assetSrc={assetSrc}
         target={props.target}
+        imageState={imageState}
         textState={textState}
         docxState={docxState}
         onOpenExternal={() => void runAction("open")}
