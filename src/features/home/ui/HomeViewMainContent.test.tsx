@@ -124,7 +124,7 @@ function createProps(
     workspaceSwitch: createWorkspaceSwitch(),
     launchState: null,
     terminalOpen: false,
-    diffOpen: true,
+    diffOpen: false,
     followUpQueueMode: "queue",
     composerEnterBehavior: "enter",
     composerPermissionLevel: "default",
@@ -177,6 +177,7 @@ describe("HomeViewMainContent", () => {
     const { container } = render(
       <HomeViewMainContent
         {...createProps({
+          diffOpen: true,
           diffPreviewVisible: true,
           diffPreviewStyle: "split",
         })}
@@ -187,9 +188,21 @@ describe("HomeViewMainContent", () => {
     expect(screen.getByTestId("conversation-canvas")).toBeInTheDocument();
     expect(screen.getByTestId("diff-preview")).toBeInTheDocument();
     expect(screen.getByTestId("home-composer")).toBeInTheDocument();
-    expect(screen.getByTestId("plan-drawer")).toBeInTheDocument();
+    expect(screen.queryByTestId("plan-drawer")).toBeNull();
     expect(container.querySelector(".replica-main-diff-preview-active")).not.toBeNull();
     expect(container.querySelector(".home-main-overlay")).not.toBeNull();
+  });
+
+  it("hides the progress card while the right sidebar is open", () => {
+    render(
+      <HomeViewMainContent
+        {...createProps({
+          diffOpen: true,
+        })}
+      />,
+    );
+
+    expect(screen.queryByTestId("plan-drawer")).toBeNull();
   });
 
   it("hides the progress card in the new conversation empty state", () => {

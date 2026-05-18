@@ -453,6 +453,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
   const showPlanPrompt = derivedState.latestPlanPrompt !== null
     && !props.isResponding
     && dismissedPlanPromptId !== derivedState.latestPlanPrompt.entryId;
+  const showTurnPlanDrawer = derivedState.conversationActive && !props.diffOpen;
 
   const sendPlanPromptTurn = useCallback(async (options: PlanPromptTurnOptions) => {
     setDismissedPlanPromptId(derivedState.latestPlanPrompt?.entryId ?? null);
@@ -558,7 +559,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           plan={derivedState.currentTurnPlan}
           overview={turnPlanOverview}
           pinned={planDrawerPinned}
-          visible={derivedState.conversationActive}
+          visible={showTurnPlanDrawer}
           onTogglePinned={() => setPlanDrawerPinned((value) => !value)}
         />
       </div>
