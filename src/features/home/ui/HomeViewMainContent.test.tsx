@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../../bridge/types";
@@ -22,8 +22,12 @@ vi.mock("../../conversation/ui/HomeConversationCanvas", () => ({
 }));
 
 vi.mock("../../conversation/ui/HomeTurnPlanDrawer", () => ({
-  HomeTurnPlanDrawer: (props: { readonly visible: boolean }) => (
-    props.visible ? <div data-testid="plan-drawer">plan drawer</div> : null
+  HomeTurnPlanDrawer: (props: { readonly onOpenDiff?: () => void; readonly showProgress?: boolean; readonly visible: boolean }) => (
+    props.visible ? (
+      <button type="button" data-show-progress={String(props.showProgress ?? true)} data-testid="plan-drawer" onClick={props.onOpenDiff}>
+        plan drawer
+      </button>
+    ) : null
   ),
 }));
 
@@ -203,6 +207,33 @@ describe("HomeViewMainContent", () => {
     );
 
     expect(screen.queryByTestId("plan-drawer")).toBeNull();
+  });
+
+  it("keeps the card overview-only when no response is running", () => {
+    render(
+      <HomeViewMainContent
+        {...createProps({
+          isResponding: false,
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId("plan-drawer")).toHaveAttribute("data-show-progress", "false");
+  });
+
+  it("forwards progress card change clicks to the diff sidebar toggle", () => {
+    const onToggleDiff = vi.fn();
+    render(
+      <HomeViewMainContent
+        {...createProps({
+          onToggleDiff,
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("plan-drawer"));
+
+    expect(onToggleDiff).toHaveBeenCalledTimes(1);
   });
 
   it("hides the progress card in the new conversation empty state", () => {

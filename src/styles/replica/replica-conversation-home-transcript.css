@@ -798,9 +798,11 @@
   white-space: nowrap;
 }
 
-.home-turn-diff-summary .workspace-diff-file-row-summary {
+.home-turn-diff-summary .workspace-diff-file-row-summary,
+html[data-theme="dark"] .home-turn-diff-summary .workspace-diff-file-row-summary {
   gap: 6px;
   padding: 0;
+  border-radius: 0;
   background: transparent;
 }
 
@@ -890,22 +892,6 @@
   white-space: nowrap;
   font-size: var(--app-ui-font-size-base);
   line-height: 1.35;
-}
-
-.home-turn-diff-summary-dot {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--text-subtle);
-}
-
-.home-turn-diff-summary-dot[data-kind="add"] {
-  background: #72b7ff;
-}
-
-.home-turn-diff-summary-dot[data-kind="delete"] {
-  background: #ff6f7a;
 }
 
 .home-turn-diff-summary-row-chevron {

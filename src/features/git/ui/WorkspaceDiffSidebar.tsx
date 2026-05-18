@@ -23,21 +23,18 @@ import {
 import type { CreateLocalCodeCommentInput, LocalCodeComment } from "../../workspace/model/localCodeComments";
 import { WorkspaceFileViewer } from "../../workspace/ui/WorkspaceFileViewer";
 import { useWorkspaceDiffViewer } from "../hooks/useWorkspaceDiffViewer";
-import { canOpenCommitDialog, canPushChanges } from "../model/gitActionAvailability";
 import { getGitViewState, type GitViewState } from "../model/gitViewState";
 import type { WorkspaceGitController } from "../model/types";
-import { readStoredAppPreferences } from "../../settings/hooks/useAppPreferences";
 import {
   getDefaultGitChangeScope,
   getGitChangeScopeOptions,
   type GitChangeScope,
 } from "./GitChangeBrowser";
 import GitAssetIcon from "../../../assets/icons/git.svg";
-import { GitPushConfirmDialog } from "./GitPushConfirmDialog";
+import { GitOperationsMenu } from "./GitOperationsMenu";
 import { GitStateCard } from "./GitStateCard";
 import {
   GitClipboardIcon,
-  GitCommitNodeIcon,
   GitDiffCollapseAllIcon,
   GitDiffColorColumnsIcon,
   GitDiffCollapseIcon,
@@ -47,9 +44,7 @@ import {
   GitDiffTextIcon,
   GitDiffWhitespaceIcon,
   GitDiffWrapIcon,
-  GitHubMarkIcon,
   GitMoreHorizontalIcon,
-  GitPushIcon,
   GitRefreshIcon,
 } from "./gitIcons";
 import { WorkspaceDiffScopeSelector } from "./WorkspaceDiffScopeSelector";
@@ -356,14 +351,6 @@ interface DiffReviewMenuItem {
   readonly onSelect: () => void;
 }
 
-interface GitToolbarMenuItem {
-  readonly label: string;
-  readonly Icon: DiffToolbarIcon;
-  readonly disabled?: boolean;
-  readonly todo?: boolean;
-  readonly onSelect: () => void;
-}
-
 function GitAssetToolbarIcon(props: { readonly className?: string }): JSX.Element {
   const className = props.className === undefined
     ? "workspace-diff-git-asset-icon"
@@ -372,15 +359,9 @@ function GitAssetToolbarIcon(props: { readonly className?: string }): JSX.Elemen
 }
 
 function DiffReviewToolbar(props: DiffReviewToolbarProps): JSX.Element {
-  const appPreferences = readStoredAppPreferences();
   const [diffMenuOpen, setDiffMenuOpen] = useState(false);
-  const [gitMenuOpen, setGitMenuOpen] = useState(false);
-  const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
-  const [pushConfirmPending, setPushConfirmPending] = useState(false);
   const diffMenuRef = useRef<HTMLDivElement>(null);
-  const gitMenuRef = useRef<HTMLDivElement>(null);
   const closeDiffMenu = useCallback(() => setDiffMenuOpen(false), []);
-  const closeGitMenu = useCallback(() => setGitMenuOpen(false), []);
   const options = getGitChangeScopeOptions(props.controller);
   const showSelector = props.scope !== undefined && props.onScopeChange !== undefined && options.length > 0;
   const diffStyle = props.diffStyle ?? "unified";
@@ -391,15 +372,11 @@ function DiffReviewToolbar(props: DiffReviewToolbarProps): JSX.Element {
   const moreButtonClassName = diffMenuOpen
     ? "workspace-diff-toolbar-button workspace-diff-toolbar-button-active"
     : "workspace-diff-toolbar-button";
-  const gitButtonClassName = gitMenuOpen
-    ? "workspace-diff-toolbar-button workspace-diff-toolbar-button-active"
-    : "workspace-diff-toolbar-button";
   const gitActionsDisabled = props.selectedRootPath === null
     || props.controller.pendingAction !== null
     || props.controller.loading
     || !props.controller.statusLoaded
     || props.controller.status?.isRepository !== true;
-  const branchName = props.controller.status?.branch?.head ?? null;
   const handleRefresh = useCallback(() => {
     closeDiffMenu();
     void props.onRefresh();
@@ -416,25 +393,6 @@ function DiffReviewToolbar(props: DiffReviewToolbarProps): JSX.Element {
     closeDiffMenu();
     void props.onCopyGitApplyCommand?.();
   }, [closeDiffMenu, props]);
-  const requestPush = useCallback(() => {
-    if (canPushChanges(props.controller)) {
-      setPushConfirmOpen(true);
-    }
-  }, [props.controller]);
-  const closePushConfirm = useCallback(() => {
-    if (!pushConfirmPending) {
-      setPushConfirmOpen(false);
-    }
-  }, [pushConfirmPending]);
-  const confirmPush = useCallback(async () => {
-    setPushConfirmPending(true);
-    try {
-      await props.controller.push();
-      setPushConfirmOpen(false);
-    } finally {
-      setPushConfirmPending(false);
-    }
-  }, [props.controller]);
   const menuItems: ReadonlyArray<DiffReviewMenuItem> = [
     { label: "刷新", Icon: GitRefreshIcon, onSelect: handleRefresh },
     {
@@ -470,15 +428,8 @@ function DiffReviewToolbar(props: DiffReviewToolbarProps): JSX.Element {
       onSelect: handleCopyGitApplyCommand,
     },
   ];
-  const gitMenuItems: ReadonlyArray<GitToolbarMenuItem> = [
-    { label: "提交", Icon: GitCommitNodeIcon, disabled: !canOpenCommitDialog(props.controller), onSelect: props.controller.openCommitDialog },
-    { label: "推送", Icon: GitPushIcon, disabled: !canPushChanges(props.controller), onSelect: requestPush },
-    { label: "创建拉取请求", Icon: GitHubMarkIcon, disabled: true, todo: true, onSelect: closeGitMenu },
-    { label: "创建分支", Icon: GitAssetToolbarIcon, disabled: true, todo: true, onSelect: closeGitMenu },
-  ];
 
   useToolbarMenuDismissal(diffMenuOpen, diffMenuRef, closeDiffMenu);
-  useToolbarMenuDismissal(gitMenuOpen, gitMenuRef, closeGitMenu);
 
   return (
     <>
@@ -514,7 +465,6 @@ function DiffReviewToolbar(props: DiffReviewToolbarProps): JSX.Element {
               aria-expanded={diffMenuOpen}
               title="更多差异操作"
               onClick={() => {
-                setGitMenuOpen(false);
                 setDiffMenuOpen((currentValue) => !currentValue);
               }}
             >
@@ -555,60 +505,23 @@ function DiffReviewToolbar(props: DiffReviewToolbarProps): JSX.Element {
           >
             <GitDiffColorColumnsIcon className="workspace-diff-toolbar-icon workspace-diff-toolbar-color-icon" />
           </button>
-          <div className="workspace-diff-toolbar-menu-wrap" ref={gitMenuRef}>
-            <button
-              type="button"
-              className={gitButtonClassName}
-              aria-label="Git 操作"
-              aria-haspopup="menu"
-              aria-expanded={gitMenuOpen}
-              disabled={gitActionsDisabled}
-              title="Git 操作"
-              onClick={() => {
-                setDiffMenuOpen(false);
-                setGitMenuOpen((currentValue) => !currentValue);
-              }}
-            >
+          <GitOperationsMenu
+            controller={props.controller}
+            triggerLabel="Git 操作"
+            triggerClassName="workspace-diff-toolbar-button"
+            activeTriggerClassName="workspace-diff-toolbar-button workspace-diff-toolbar-button-active"
+            disabled={gitActionsDisabled}
+            includePullRequest
+            onBeforeOpen={() => setDiffMenuOpen(false)}
+            triggerChildren={(
               <GitAssetToolbarIcon className="workspace-diff-toolbar-icon" />
-            </button>
-            {gitMenuOpen ? (
-              <div className="workspace-diff-actions-menu workspace-diff-git-menu" role="menu" aria-label="Git 操作">
-                {gitMenuItems.map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    className="workspace-diff-actions-menu-item"
-                    role="menuitem"
-                    disabled={item.disabled}
-                    onClick={() => {
-                      if (item.disabled) {
-                        return;
-                      }
-                      closeGitMenu();
-                      item.onSelect();
-                    }}
-                  >
-                    <item.Icon className="workspace-diff-actions-menu-icon" />
-                    <span>{item.label}</span>
-                    {item.todo === true ? <span className="workspace-diff-actions-menu-todo">TODO</span> : null}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+            )}
+          />
           <button type="button" className="workspace-diff-toolbar-button" aria-label="打开文件列表" title="打开文件列表">
             <OfficialFolderIcon className="workspace-diff-toolbar-icon" />
           </button>
         </div>
       </div>
-      <GitPushConfirmDialog
-        branchName={branchName}
-        forceWithLease={appPreferences.gitPushForceWithLease}
-        open={pushConfirmOpen}
-        pending={pushConfirmPending}
-        onClose={closePushConfirm}
-        onConfirm={() => void confirmPush()}
-      />
     </>
   );
 }

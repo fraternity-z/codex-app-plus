@@ -108,7 +108,7 @@ function DiffSummaryRow(props: {
         onClick={() => props.onToggle(props.file.path)}
       >
         <span className="home-turn-diff-summary-row-title" title={props.file.path}>{props.file.path}</span>
-        <DiffCountBadge additions={props.file.additions} deletions={props.file.deletions} showDot />
+        <DiffCountBadge additions={props.file.additions} deletions={props.file.deletions} />
         <ChevronIcon className="home-turn-diff-summary-row-chevron" />
       </button>
       {props.expanded ? (
@@ -120,13 +120,11 @@ function DiffSummaryRow(props: {
   );
 }
 
-function DiffCountBadge(props: { readonly additions: number; readonly deletions: number; readonly showDot?: boolean }): JSX.Element {
-  const dotKind = props.additions > 0 ? "add" : props.deletions > 0 ? "delete" : "neutral";
+function DiffCountBadge(props: { readonly additions: number; readonly deletions: number }): JSX.Element {
   return (
     <span className="workspace-diff-file-row-summary" aria-label={`新增 ${props.additions} 行，删除 ${props.deletions} 行`}>
       <span className="workspace-diff-file-summary-add">+{props.additions}</span>
       <span className="workspace-diff-file-summary-delete">-{props.deletions}</span>
-      {props.showDot === true ? <span className="home-turn-diff-summary-dot" data-kind={dotKind} aria-hidden="true" /> : null}
     </span>
   );
 }

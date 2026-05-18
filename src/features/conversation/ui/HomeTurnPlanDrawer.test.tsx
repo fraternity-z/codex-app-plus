@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { TurnPlanSnapshotEntry } from "../../../domain/timeline";
+import type { WorkspaceGitController } from "../../git/model/types";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { createTurnPlanModel } from "../model/homeTurnPlanModel";
 import { HomeTurnPlanDrawer } from "./HomeTurnPlanDrawer";
@@ -19,6 +20,64 @@ function createPlanEntry(overrides?: Partial<TurnPlanSnapshotEntry>): TurnPlanSn
     ],
     ...overrides,
   } satisfies TurnPlanSnapshotEntry;
+}
+
+function createGitController(overrides?: Partial<WorkspaceGitController>): WorkspaceGitController {
+  return {
+    loading: false,
+    pendingAction: null,
+    status: {
+      isRepository: true,
+      repoRoot: "E:/code/codex-app-plus",
+      branch: { head: "main", upstream: "origin/main", ahead: 0, behind: 0, detached: false },
+      remoteName: "origin",
+      remoteUrl: "https://example.com/repo.git",
+      branches: [{ name: "main", upstream: "origin/main", isCurrent: true }],
+      staged: [],
+      unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }],
+      untracked: [],
+      conflicted: [],
+      isClean: false,
+    },
+    statusLoaded: true,
+    hasRepository: true,
+    error: null,
+    notice: null,
+    commitDialogOpen: false,
+    commitDialogError: null,
+    commitMessage: "",
+    commitInstructions: "",
+    selectedBranch: "main",
+    newBranchName: "",
+    diff: null,
+    diffCache: {},
+    diffTarget: null,
+    loadingDiffKeys: [],
+    staleDiffKeys: [],
+    refresh: vi.fn().mockResolvedValue(undefined),
+    initRepository: vi.fn().mockResolvedValue(undefined),
+    fetch: vi.fn().mockResolvedValue(undefined),
+    pull: vi.fn().mockResolvedValue(undefined),
+    push: vi.fn().mockResolvedValue(undefined),
+    stagePaths: vi.fn().mockResolvedValue(undefined),
+    unstagePaths: vi.fn().mockResolvedValue(undefined),
+    discardPaths: vi.fn().mockResolvedValue(undefined),
+    commit: vi.fn().mockResolvedValue(undefined),
+    openCommitDialog: vi.fn(),
+    closeCommitDialog: vi.fn(),
+    checkoutBranch: vi.fn().mockResolvedValue(true),
+    deleteBranch: vi.fn().mockResolvedValue(true),
+    createBranchFromName: vi.fn().mockResolvedValue(true),
+    checkoutSelectedBranch: vi.fn().mockResolvedValue(true),
+    createBranch: vi.fn().mockResolvedValue(true),
+    ensureDiff: vi.fn().mockResolvedValue(undefined),
+    selectDiff: vi.fn().mockResolvedValue(undefined),
+    clearDiff: vi.fn(),
+    setCommitMessage: vi.fn(),
+    setSelectedBranch: vi.fn(),
+    setNewBranchName: vi.fn(),
+    ...overrides,
+  };
 }
 
 describe("HomeTurnPlanDrawer", () => {
@@ -111,6 +170,81 @@ describe("HomeTurnPlanDrawer", () => {
     expect(screen.getByRole("region", { name: "Progress card" })).toBeInTheDocument();
     expect(screen.getByText("Longer replies will show progress")).toBeInTheDocument();
     expect(screen.getByText("Branch details")).toBeInTheDocument();
+  });
+
+  it("renders only overview sections when progress is hidden", () => {
+    const plan = createTurnPlanModel(createPlanEntry({ id: "plan-overview-only" }));
+    render(
+      <HomeTurnPlanDrawer
+        plan={plan}
+        overview={{ additions: 7, changedFiles: 2, deletions: 3, generatedImages: 0 }}
+        pinned={false}
+        showProgress={false}
+        visible
+        onTogglePinned={() => undefined}
+      />,
+      {
+        wrapper: createI18nWrapper("en-US"),
+      },
+    );
+
+    expect(screen.getByRole("region", { name: "Progress card" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pin progress card" })).toBeInTheDocument();
+    expect(screen.queryByText("Progress")).toBeNull();
+    expect(screen.queryByText("Prepare UI")).toBeNull();
+    expect(screen.getByText("Branch details")).toBeInTheDocument();
+    expect(screen.getByText("+7")).toBeInTheDocument();
+    expect(screen.getByText("-3")).toBeInTheDocument();
+  });
+
+  it("opens the diff sidebar from the changes row", () => {
+    const onOpenDiff = vi.fn();
+    render(
+      <HomeTurnPlanDrawer
+        plan={null}
+        pinned={false}
+        showProgress={false}
+        visible
+        onOpenDiff={onOpenDiff}
+        onTogglePinned={() => undefined}
+      />,
+      {
+        wrapper: createI18nWrapper("en-US"),
+      },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Changes" }));
+
+    expect(onOpenDiff).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens git operations from the Git row", () => {
+    const openCommitDialog = vi.fn();
+    const gitController = createGitController({ openCommitDialog });
+    render(
+      <HomeTurnPlanDrawer
+        gitController={gitController}
+        plan={null}
+        pinned={false}
+        showProgress={false}
+        visible
+        onTogglePinned={() => undefined}
+      />,
+      {
+        wrapper: createI18nWrapper("en-US"),
+      },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Git operations" }));
+
+    const menu = screen.getByRole("menu", { name: "Git operations" });
+    expect(within(menu).getByRole("menuitem", { name: "提交" })).not.toBeDisabled();
+    expect(within(menu).getByRole("menuitem", { name: "推送" })).not.toBeDisabled();
+    expect(within(menu).getByRole("menuitem", { name: "创建分支" })).not.toBeDisabled();
+
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "提交" }));
+
+    expect(openCommitDialog).toHaveBeenCalledTimes(1);
   });
 
   it("stays hidden in the new conversation empty state", () => {

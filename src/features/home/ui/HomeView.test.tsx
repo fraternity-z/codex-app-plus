@@ -566,8 +566,12 @@ describe("HomeView", () => {
     ));
   });
 
-  it("shows the task progress card by default and lets it stay pinned", () => {
-    const { container } = renderHomeView({ activities: [createTurnPlanActivity()] });
+  it("shows the task progress while responding and lets the card stay pinned", () => {
+    const { container } = renderHomeView({
+      activeTurnId: "turn-1",
+      activities: [createTurnPlanActivity()],
+      isResponding: true,
+    });
 
     const toggle = screen.getByRole("button", { name: "固定进度卡片" });
     expect(toggle).toBeInTheDocument();
@@ -586,7 +590,8 @@ describe("HomeView", () => {
     renderHomeView({ activities: [] });
 
     expect(screen.getByRole("region", { name: "进度卡片" })).toBeInTheDocument();
-    expect(screen.getByText("较长回复会显示进度")).toBeInTheDocument();
+    expect(screen.queryByText("较长回复会显示进度")).toBeNull();
+    expect(screen.getByText("分支详情")).toBeInTheDocument();
   });
 
   it("renders command cards and shows user input prompts above the composer", () => {

@@ -45,6 +45,7 @@ describe("HomeAssistantTranscriptEntry turn diff summary", () => {
     expect(screen.getByText("src/index.css")).toBeInTheDocument();
     expect(screen.getByText("+3")).toBeInTheDocument();
     expect(screen.getByText("-3")).toBeInTheDocument();
+    expect(container.querySelector(".home-turn-diff-summary-dot")).toBeNull();
   });
 
   it("does not render the diff file list while the turn is still running", () => {

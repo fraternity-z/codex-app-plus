@@ -1,6 +1,8 @@
 import type { TurnPlanModel, TurnPlanOverview } from "../model/homeTurnPlanModel";
 import { formatTurnPlanStatusLabel } from "../model/homeTurnPlanModel";
 import { OfficialPinIcon } from "../../shared/ui/officialIcons";
+import type { WorkspaceGitController } from "../../git/model/types";
+import { GitOperationsMenu } from "../../git/ui/GitOperationsMenu";
 import { GitBranchIcon, GitHubMarkIcon } from "../../git/ui/gitIcons";
 import { useI18n } from "../../../i18n/useI18n";
 import type { TurnPlanStep } from "../../../protocol/generated/v2/TurnPlanStep";
@@ -9,7 +11,10 @@ interface HomeTurnPlanDrawerProps {
   readonly plan: TurnPlanModel | null;
   readonly overview?: TurnPlanOverview;
   readonly pinned: boolean;
+  readonly showProgress?: boolean;
   readonly visible: boolean;
+  readonly gitController?: WorkspaceGitController;
+  readonly onOpenDiff?: () => void;
   readonly onTogglePinned: () => void;
 }
 
@@ -20,6 +25,7 @@ export function HomeTurnPlanDrawer(props: HomeTurnPlanDrawerProps): JSX.Element 
   }
 
   const plan = props.plan;
+  const showProgress = props.showProgress ?? true;
   const isEmpty = plan !== null && plan.entry.plan.length === 0;
   const planState = createPlanState(plan, isEmpty);
   const progressSummary = plan === null
@@ -36,47 +42,55 @@ export function HomeTurnPlanDrawer(props: HomeTurnPlanDrawerProps): JSX.Element 
       aria-label={t("home.turnPlan.progressCardLabel")}
     >
       <span className="home-turn-progress-hover-zone" aria-hidden="true" />
-      <div className="home-turn-progress-card-surface">
-        <header className="home-turn-progress-header">
-          <div className="home-turn-progress-heading">
-            <h2>{t("home.turnPlan.progressTitle")}</h2>
-            <span>{progressSummary}</span>
-          </div>
-          <button
-            type="button"
-            className="home-turn-progress-pin"
-            aria-label={toggleLabel}
-            aria-pressed={props.pinned}
-            title={toggleLabel}
-            onClick={props.onTogglePinned}
-          >
-            <OfficialPinIcon className="home-turn-progress-pin-icon" />
-          </button>
-        </header>
-        <section className="home-turn-progress-section" aria-label={t("home.turnPlan.progressTitle")}>
-          {plan?.explanation ? <p className="home-turn-plan-explanation">{plan.explanation}</p> : null}
-          {plan === null ? (
-            <p className="home-turn-plan-empty">{t("home.turnPlan.waiting")}</p>
-          ) : isEmpty ? (
-            <p className="home-turn-plan-empty">{t("home.turnPlan.empty")}</p>
-          ) : (
-            <ol className="home-turn-progress-list">
-              {plan.entry.plan.map((step, index) => (
-                <li
-                  key={`${plan.entry.id}-${index}-${step.status}`}
-                  className="home-turn-progress-step"
-                  data-status={step.status}
-                  aria-label={`${step.step}: ${formatTurnPlanStatusLabel(step.status, t)}`}
-                >
-                  <PlanStepMarker status={step.status} />
-                  <span className="home-turn-progress-step-text">{step.step}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </section>
-        <div className="home-turn-progress-divider" />
-        <OverviewSections overview={props.overview} />
+      <div className={showProgress ? "home-turn-progress-card-surface" : "home-turn-progress-card-surface home-turn-progress-card-surface-compact"}>
+        <button
+          type="button"
+          className="home-turn-progress-pin"
+          aria-label={toggleLabel}
+          aria-pressed={props.pinned}
+          title={toggleLabel}
+          onClick={props.onTogglePinned}
+        >
+          <OfficialPinIcon className="home-turn-progress-pin-icon" />
+        </button>
+        {showProgress ? (
+          <>
+            <header className="home-turn-progress-header">
+              <div className="home-turn-progress-heading">
+                <h2>{t("home.turnPlan.progressTitle")}</h2>
+                <span>{progressSummary}</span>
+              </div>
+            </header>
+            <section className="home-turn-progress-section" aria-label={t("home.turnPlan.progressTitle")}>
+              {plan?.explanation ? <p className="home-turn-plan-explanation">{plan.explanation}</p> : null}
+              {plan === null ? (
+                <p className="home-turn-plan-empty">{t("home.turnPlan.waiting")}</p>
+              ) : isEmpty ? (
+                <p className="home-turn-plan-empty">{t("home.turnPlan.empty")}</p>
+              ) : (
+                <ol className="home-turn-progress-list">
+                  {plan.entry.plan.map((step, index) => (
+                    <li
+                      key={`${plan.entry.id}-${index}-${step.status}`}
+                      className="home-turn-progress-step"
+                      data-status={step.status}
+                      aria-label={`${step.step}: ${formatTurnPlanStatusLabel(step.status, t)}`}
+                    >
+                      <PlanStepMarker status={step.status} />
+                      <span className="home-turn-progress-step-text">{step.step}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+            <div className="home-turn-progress-divider" />
+          </>
+        ) : null}
+        <OverviewSections
+          gitController={props.gitController}
+          onOpenDiff={props.onOpenDiff}
+          overview={props.overview}
+        />
       </div>
     </section>
   );
@@ -100,7 +114,11 @@ function PlanStepMarker(props: { readonly status: TurnPlanStep["status"] }): JSX
   );
 }
 
-function OverviewSections(props: { readonly overview?: TurnPlanOverview }): JSX.Element {
+function OverviewSections(props: {
+  readonly gitController?: WorkspaceGitController;
+  readonly onOpenDiff?: () => void;
+  readonly overview?: TurnPlanOverview;
+}): JSX.Element {
   const { t } = useI18n();
   const overview = props.overview ?? {
     additions: null,
@@ -113,10 +131,32 @@ function OverviewSections(props: { readonly overview?: TurnPlanOverview }): JSX.
     <>
       <section className="home-turn-progress-section" aria-label={t("home.turnPlan.branchDetails")}>
         <h3>{t("home.turnPlan.branchDetails")}</h3>
-        <OverviewRow icon={<ChangeIcon className="home-turn-progress-row-icon" />} label={t("home.turnPlan.changes")}>
+        <OverviewRow
+          actionLabel={t("home.turnPlan.changes")}
+          icon={<ChangeIcon className="home-turn-progress-row-icon" />}
+          label={t("home.turnPlan.changes")}
+          onClick={props.onOpenDiff}
+        >
           <ChangeSummary overview={overview} />
         </OverviewRow>
-        <OverviewRow icon={<GitBranchIcon className="home-turn-progress-row-icon" />} label={t("home.turnPlan.gitOperation")} />
+        {props.gitController === undefined ? (
+          <OverviewRow icon={<GitBranchIcon className="home-turn-progress-row-icon" />} label={t("home.turnPlan.gitOperation")} />
+        ) : (
+          <GitOperationsMenu
+            controller={props.gitController}
+            triggerLabel={t("home.turnPlan.gitOperation")}
+            triggerClassName="home-turn-progress-row home-turn-progress-row-action"
+            activeTriggerClassName="home-turn-progress-row home-turn-progress-row-action home-turn-progress-row-action-active"
+            wrapperClassName="home-turn-progress-menu-wrap"
+            menuClassName="workspace-diff-actions-menu workspace-diff-git-menu home-turn-progress-git-menu"
+            triggerChildren={(
+              <>
+                <GitBranchIcon className="home-turn-progress-row-icon" />
+                <span className="home-turn-progress-row-label">{t("home.turnPlan.gitOperation")}</span>
+              </>
+            )}
+          />
+        )}
         <OverviewRow
           muted
           icon={<GitHubMarkIcon className="home-turn-progress-row-icon" />}
@@ -133,16 +173,40 @@ function OverviewSections(props: { readonly overview?: TurnPlanOverview }): JSX.
 }
 
 function OverviewRow(props: {
+  readonly actionLabel?: string;
   readonly children?: JSX.Element | null;
   readonly icon: JSX.Element;
   readonly label: string;
   readonly muted?: boolean;
+  readonly onClick?: () => void;
 }): JSX.Element {
-  return (
-    <div className={props.muted === true ? "home-turn-progress-row home-turn-progress-row-muted" : "home-turn-progress-row"}>
+  const className = props.muted === true
+    ? "home-turn-progress-row home-turn-progress-row-muted"
+    : props.onClick === undefined
+      ? "home-turn-progress-row"
+      : "home-turn-progress-row home-turn-progress-row-action";
+  const content = (
+    <>
       {props.icon}
       <span className="home-turn-progress-row-label">{props.label}</span>
       {props.children ?? null}
+    </>
+  );
+  if (props.onClick !== undefined) {
+    return (
+      <button
+        type="button"
+        className={className}
+        aria-label={props.actionLabel ?? props.label}
+        onClick={props.onClick}
+      >
+        {content}
+      </button>
+    );
+  }
+  return (
+    <div className={className}>
+      {content}
     </div>
   );
 }

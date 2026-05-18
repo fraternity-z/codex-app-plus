@@ -559,7 +559,10 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           plan={derivedState.currentTurnPlan}
           overview={turnPlanOverview}
           pinned={planDrawerPinned}
+          showProgress={props.isResponding}
           visible={showTurnPlanDrawer}
+          gitController={props.gitController}
+          onOpenDiff={props.selectedRootPath === null ? undefined : props.onToggleDiff}
           onTogglePinned={() => setPlanDrawerPinned((value) => !value)}
         />
       </div>

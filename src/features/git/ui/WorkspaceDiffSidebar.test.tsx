@@ -230,11 +230,9 @@ describe("WorkspaceDiffSidebar", () => {
 
   it("opens git actions from the review toolbar", () => {
     const openCommitDialog = vi.fn();
-    const createBranch = vi.fn().mockResolvedValue(true);
     renderSidebar(
       createController({
         openCommitDialog,
-        createBranch,
         newBranchName: "feature/sidebar-git-actions",
         status: createStatus({
           unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }],
@@ -250,7 +248,7 @@ describe("WorkspaceDiffSidebar", () => {
     expect(within(menu).getByRole("menuitem", { name: "提交" })).not.toBeDisabled();
     expect(within(menu).getByRole("menuitem", { name: "推送" })).not.toBeDisabled();
     expect(within(menu).getByRole("menuitem", { name: /创建拉取请求.*TODO/ })).toBeDisabled();
-    expect(within(menu).getByRole("menuitem", { name: /创建分支.*TODO/ })).toBeDisabled();
+    expect(within(menu).getByRole("menuitem", { name: "创建分支" })).not.toBeDisabled();
 
     fireEvent.click(within(menu).getByRole("menuitem", { name: "提交" }));
     expect(openCommitDialog).toHaveBeenCalledTimes(1);
