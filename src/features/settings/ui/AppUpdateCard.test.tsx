@@ -57,4 +57,22 @@ describe("AppUpdateCard", () => {
     expect(screen.getByText("Release notes")).toBeInTheDocument();
     expect(screen.getByText("Added auto update support")).toBeInTheDocument();
   });
+
+  it("disables update checks when updates are unavailable", () => {
+    render(
+      <AppUpdateCard
+        appUpdate={{
+          ...INITIAL_APP_UPDATE_STATE,
+          status: "disabled",
+          currentVersion: "0.1.0",
+        }}
+        onCheckForAppUpdate={vi.fn().mockResolvedValue(undefined)}
+        onInstallAppUpdate={vi.fn().mockResolvedValue(undefined)}
+      />,
+      { wrapper: createI18nWrapper("zh-CN") },
+    );
+
+    expect(screen.getByText("开发或测试模式下已禁用自动更新。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "已禁用" })).toBeDisabled();
+  });
 });

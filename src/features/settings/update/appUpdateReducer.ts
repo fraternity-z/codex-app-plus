@@ -90,6 +90,20 @@ export function reduceAppUpdateState(state: AppState, action: AppAction): AppSta
       };
     case "appUpdate/installStarted":
       return { ...state, appUpdate: { ...state.appUpdate, status: "installing", error: null } };
+    case "appUpdate/disabled":
+      return {
+        ...state,
+        appUpdate: {
+          ...state.appUpdate,
+          status: "disabled",
+          nextVersion: null,
+          notes: null,
+          downloadedBytes: 0,
+          totalBytes: null,
+          progressPercent: null,
+          error: null,
+        },
+      };
     case "appUpdate/error":
       return { ...state, appUpdate: { ...state.appUpdate, status: "error", error: action.message } };
     default:

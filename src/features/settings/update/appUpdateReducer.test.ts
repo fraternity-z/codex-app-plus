@@ -52,4 +52,27 @@ describe("appUpdateReducer", () => {
       lastCheckedAt: "2026-03-19T09:05:00.000Z",
     }));
   });
+
+  it("clears pending update metadata when updates are disabled", () => {
+    const stateWithUpdate = reduceAppUpdateState(INITIAL_STATE, {
+      type: "appUpdate/available",
+      currentVersion: "0.1.0",
+      nextVersion: "0.2.0",
+      notes: "notes",
+      checkedAt: "2026-03-19T09:00:00.000Z",
+    });
+    const disabledState = reduceAppUpdateState(stateWithUpdate ?? INITIAL_STATE, {
+      type: "appUpdate/disabled",
+    });
+
+    expect(disabledState?.appUpdate).toEqual(expect.objectContaining({
+      status: "disabled",
+      nextVersion: null,
+      notes: null,
+      downloadedBytes: 0,
+      totalBytes: null,
+      progressPercent: null,
+      error: null,
+    }));
+  });
 });

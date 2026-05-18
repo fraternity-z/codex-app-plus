@@ -45,6 +45,10 @@ export function useAppUpdater(): AppUpdaterActions {
   }, [dispatch]);
 
   const checkForAppUpdate = useCallback(async () => {
+    if (!supportsAppUpdate()) {
+      dispatch({ type: "appUpdate/disabled" });
+      return;
+    }
     if (checkInFlightRef.current || installInFlightRef.current) {
       return;
     }
@@ -75,6 +79,10 @@ export function useAppUpdater(): AppUpdaterActions {
   }, [dispatch, reportUpdateError]);
 
   const installAppUpdate = useCallback(async () => {
+    if (!supportsAppUpdate()) {
+      dispatch({ type: "appUpdate/disabled" });
+      return;
+    }
     if (checkInFlightRef.current || installInFlightRef.current) {
       return;
     }
@@ -105,14 +113,19 @@ export function useAppUpdater(): AppUpdaterActions {
   }, [dispatch, reportUpdateError]);
 
   useEffect(() => {
-    if (autoCheckStartedRef.current || !supportsAppUpdate()) {
+    if (autoCheckStartedRef.current) {
+      return;
+    }
+    if (!supportsAppUpdate()) {
+      autoCheckStartedRef.current = true;
+      dispatch({ type: "appUpdate/disabled" });
       return;
     }
     autoCheckStartedRef.current = true;
     void checkForAppUpdate().catch((error) => {
       console.error("自动检查更新失败", error);
     });
-  }, [checkForAppUpdate]);
+  }, [checkForAppUpdate, dispatch]);
 
   useEffect(() => () => {
     void releasePendingAppUpdate(pendingUpdateRef.current);

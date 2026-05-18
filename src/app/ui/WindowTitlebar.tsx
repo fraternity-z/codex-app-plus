@@ -112,6 +112,9 @@ function createUpdateStatusLabel(appUpdate: AppUpdateState): string {
   if (appUpdate.status === "installing") {
     return "正在安装更新并重启应用…";
   }
+  if (appUpdate.status === "disabled") {
+    return "自动更新在当前运行模式下已禁用。";
+  }
   if (appUpdate.status === "upToDate") {
     return "当前已经是最新版本。";
   }
@@ -133,6 +136,10 @@ function createProgressLabel(appUpdate: AppUpdateState): string | null {
 
 function isUpdateBusy(status: AppUpdateState["status"]): boolean {
   return status === "checking" || status === "downloading" || status === "installing";
+}
+
+function isUpdateCheckDisabled(status: AppUpdateState["status"]): boolean {
+  return isUpdateBusy(status) || status === "disabled";
 }
 
 function MinimizeIcon(): JSX.Element {
@@ -189,6 +196,7 @@ function AboutDropdown(props: {
   const progressLabel = createProgressLabel(props.appUpdate);
   const progressPercent = props.appUpdate.progressPercent === null ? null : Math.round(props.appUpdate.progressPercent * 100);
   const checkBusy = isUpdateBusy(props.appUpdate.status);
+  const checkDisabled = isUpdateCheckDisabled(props.appUpdate.status);
 
   return (
     <div className="window-titlebar-about-popover" role="dialog" aria-label="关于">
@@ -210,10 +218,10 @@ function AboutDropdown(props: {
           <button
             type="button"
             className="window-titlebar-popover-button"
-            disabled={checkBusy}
+            disabled={checkDisabled}
             onClick={() => void props.onCheckForUpdate()}
           >
-            {checkBusy ? "处理中…" : "检查更新"}
+            {props.appUpdate.status === "disabled" ? "已禁用" : checkBusy ? "处理中…" : "检查更新"}
           </button>
         </div>
         {progressLabel !== null ? (

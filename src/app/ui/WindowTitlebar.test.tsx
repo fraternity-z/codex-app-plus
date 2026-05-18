@@ -188,6 +188,36 @@ describe("WindowTitlebar", () => {
     expect(onInstallUpdate).toHaveBeenCalledTimes(1);
   });
 
+  it("disables update checks from the about popover when updates are unavailable", () => {
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: "Win32",
+    });
+    const controlWindow = vi.fn().mockResolvedValue(undefined);
+    const onCheckForUpdate = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <WindowTitlebar
+        hostBridge={createHostBridge(controlWindow)}
+        aboutControl={{
+          appUpdate: {
+            ...INITIAL_APP_UPDATE_STATE,
+            status: "disabled",
+            currentVersion: "0.1.0",
+          },
+          onCheckForUpdate,
+          onInstallUpdate: vi.fn().mockResolvedValue(undefined),
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "打开关于" }));
+
+    expect(screen.getByText("自动更新在当前运行模式下已禁用。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "已禁用" })).toBeDisabled();
+    expect(onCheckForUpdate).not.toHaveBeenCalled();
+  });
+
   it("starts dragging when pressing the titlebar content", () => {
     Object.defineProperty(window.navigator, "platform", {
       configurable: true,

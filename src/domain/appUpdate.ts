@@ -5,6 +5,7 @@ export type AppUpdateStatus =
   | "downloading"
   | "downloaded"
   | "installing"
+  | "disabled"
   | "error"
   | "upToDate";
 
@@ -29,6 +30,7 @@ export type AppUpdateAction =
   | { type: "appUpdate/downloadProgress"; downloadedBytes: number; totalBytes: number | null; progressPercent: number | null }
   | { type: "appUpdate/downloaded" }
   | { type: "appUpdate/installStarted" }
+  | { type: "appUpdate/disabled" }
   | { type: "appUpdate/error"; message: string };
 
 export const INITIAL_APP_UPDATE_STATE: AppUpdateState = {

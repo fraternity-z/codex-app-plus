@@ -4,7 +4,7 @@ import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { APP_VERSION } from "../../../app/appVersion";
 
-export const APP_UPDATE_UNSUPPORTED_MESSAGE = "自动更新仅在桌面宿主中可用。";
+export const APP_UPDATE_UNSUPPORTED_MESSAGE = "自动更新在当前运行模式下不可用。";
 
 export interface AppUpdateProgress {
   readonly downloadedBytes: number;
@@ -26,7 +26,7 @@ function ensureUpdaterAvailable(): void {
 }
 
 export function supportsAppUpdate(): boolean {
-  return isTauri();
+  return isTauri() && import.meta.env.PROD;
 }
 
 export async function readCurrentAppVersion(): Promise<string> {

@@ -43,6 +43,9 @@ function createStatusDescription(appUpdate: AppUpdateState, t: ReturnType<typeof
   if (appUpdate.status === "installing") {
     return t("settings.general.appUpdate.statusInstalling");
   }
+  if (appUpdate.status === "disabled") {
+    return t("settings.general.appUpdate.statusDisabled");
+  }
   if (appUpdate.status === "upToDate") {
     return t("settings.general.appUpdate.statusUpToDate");
   }
@@ -70,16 +73,21 @@ function createProgressLabel(appUpdate: AppUpdateState, t: ReturnType<typeof use
 function StatusActions(props: AppUpdateCardProps): JSX.Element {
   const { t } = useI18n();
   const checkBusy = props.appUpdate.status === "checking" || props.appUpdate.status === "downloading" || props.appUpdate.status === "installing";
+  const updateDisabled = props.appUpdate.status === "disabled";
   const installVisible = props.appUpdate.status === "downloaded";
   return (
     <div className="app-update-actions">
       <button
         type="button"
         className="settings-action-btn"
-        disabled={checkBusy}
+        disabled={checkBusy || updateDisabled}
         onClick={() => void props.onCheckForAppUpdate()}
       >
-        {checkBusy ? t("settings.general.appUpdate.checkingAction") : t("settings.general.appUpdate.checkAction")}
+        {updateDisabled
+          ? t("settings.general.appUpdate.disabledAction")
+          : checkBusy
+            ? t("settings.general.appUpdate.checkingAction")
+            : t("settings.general.appUpdate.checkAction")}
       </button>
       {installVisible ? (
         <button

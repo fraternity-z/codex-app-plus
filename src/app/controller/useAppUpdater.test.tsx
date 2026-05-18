@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import type { PropsWithChildren } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppStoreProvider, useAppSelector } from "../../state/store";
 import { useAppUpdater } from "./useAppUpdater";
 
@@ -41,12 +41,17 @@ function useHarness() {
 
 describe("useAppUpdater", () => {
   beforeEach(() => {
+    vi.stubEnv("PROD", true);
     updaterState.check.mockReset();
     updaterState.download.mockReset();
     updaterState.install.mockReset();
     updaterState.close.mockReset();
     updaterState.relaunch.mockReset();
     updaterState.getVersion.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it("checks and downloads the latest release on startup", async () => {
@@ -74,6 +79,24 @@ describe("useAppUpdater", () => {
     expect(result.current.appUpdate.nextVersion).toBe("0.2.0");
     expect(updaterState.check).toHaveBeenCalledTimes(1);
     expect(updaterState.download).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not check or download updates in development builds", async () => {
+    vi.stubEnv("PROD", false);
+
+    const { result } = renderHook(() => useHarness(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.appUpdate.status).toBe("disabled");
+    });
+
+    await act(async () => {
+      await result.current.updater.checkForAppUpdate();
+    });
+
+    expect(updaterState.getVersion).not.toHaveBeenCalled();
+    expect(updaterState.check).not.toHaveBeenCalled();
+    expect(updaterState.download).not.toHaveBeenCalled();
   });
 
   it("installs a downloaded update and relaunches the app", async () => {
