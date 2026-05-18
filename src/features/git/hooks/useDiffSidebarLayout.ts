@@ -3,14 +3,30 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 
 export type DiffViewStyle = "split" | "unified";
 
+export interface DiffDisplayOptions {
+  readonly wordWrap: boolean;
+  readonly richPreview: boolean;
+  readonly wordDiff: boolean;
+  readonly hideWhitespace: boolean;
+}
+
+export type DiffDisplayOptionKey = keyof DiffDisplayOptions;
+
 const STORAGE_KEY_WIDTH = "codex-app-plus.diffSidebar.width";
 const STORAGE_KEY_EXPANDED = "codex-app-plus.diffSidebar.expanded";
 const STORAGE_KEY_STYLE = "codex-app-plus.diffSidebar.style";
+const STORAGE_KEY_DISPLAY_OPTIONS = "codex-app-plus.diffSidebar.displayOptions";
 
 const DEFAULT_WIDTH = 560;
 const MIN_WIDTH = 320;
 const MAX_WIDTH_ABSOLUTE = 1200;
 const MAX_WIDTH_RATIO = 0.5;
+export const DEFAULT_DIFF_DISPLAY_OPTIONS: DiffDisplayOptions = Object.freeze({
+  wordWrap: false,
+  richPreview: true,
+  wordDiff: false,
+  hideWhitespace: false,
+});
 
 export interface DiffSidebarLayoutState {
   readonly width: number;
@@ -19,6 +35,7 @@ export interface DiffSidebarLayoutState {
   readonly maxWidth: number;
   readonly expanded: boolean;
   readonly diffStyle: DiffViewStyle;
+  readonly diffDisplayOptions: DiffDisplayOptions;
   readonly selectedDiffPath: string | null;
   readonly isResizing: boolean;
   readonly setWidth: (value: number) => void;
@@ -27,6 +44,8 @@ export interface DiffSidebarLayoutState {
   readonly toggleExpanded: () => void;
   readonly setDiffStyle: (value: DiffViewStyle) => void;
   readonly toggleDiffStyle: () => void;
+  readonly setDiffDisplayOption: (key: DiffDisplayOptionKey, value: boolean) => void;
+  readonly toggleDiffDisplayOption: (key: DiffDisplayOptionKey) => void;
   readonly setSelectedDiffPath: (path: string | null) => void;
   readonly startResize: (event: ReactMouseEvent) => void;
 }
@@ -68,6 +87,27 @@ function readStoredStyle(): DiffViewStyle {
   return raw === "split" ? "split" : "unified";
 }
 
+function readStoredDisplayOptions(): DiffDisplayOptions {
+  if (typeof window === "undefined") {
+    return DEFAULT_DIFF_DISPLAY_OPTIONS;
+  }
+  const raw = window.localStorage.getItem(STORAGE_KEY_DISPLAY_OPTIONS);
+  if (raw === null) {
+    return DEFAULT_DIFF_DISPLAY_OPTIONS;
+  }
+  try {
+    const parsed = JSON.parse(raw) as Partial<Record<DiffDisplayOptionKey, unknown>>;
+    return {
+      wordWrap: typeof parsed.wordWrap === "boolean" ? parsed.wordWrap : DEFAULT_DIFF_DISPLAY_OPTIONS.wordWrap,
+      richPreview: typeof parsed.richPreview === "boolean" ? parsed.richPreview : DEFAULT_DIFF_DISPLAY_OPTIONS.richPreview,
+      wordDiff: typeof parsed.wordDiff === "boolean" ? parsed.wordDiff : DEFAULT_DIFF_DISPLAY_OPTIONS.wordDiff,
+      hideWhitespace: typeof parsed.hideWhitespace === "boolean" ? parsed.hideWhitespace : DEFAULT_DIFF_DISPLAY_OPTIONS.hideWhitespace,
+    };
+  } catch {
+    return DEFAULT_DIFF_DISPLAY_OPTIONS;
+  }
+}
+
 function resolveMaxWidth(containerWidth: number | null): number {
   if (containerWidth === null || containerWidth <= 0) {
     return MAX_WIDTH_ABSOLUTE;
@@ -85,6 +125,7 @@ export function useDiffSidebarLayout(): DiffSidebarLayoutState {
   const [width, setWidthState] = useState<number>(() => readStoredWidth());
   const [expanded, setExpandedState] = useState<boolean>(() => readStoredExpanded());
   const [diffStyle, setDiffStyleState] = useState<DiffViewStyle>(() => readStoredStyle());
+  const [diffDisplayOptions, setDiffDisplayOptionsState] = useState<DiffDisplayOptions>(() => readStoredDisplayOptions());
   const [selectedDiffPath, setSelectedDiffPathState] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const [containerWidth, setContainerWidth] = useState<number | null>(null);
@@ -128,6 +169,13 @@ export function useDiffSidebarLayout(): DiffSidebarLayoutState {
     window.localStorage.setItem(STORAGE_KEY_STYLE, diffStyle);
   }, [diffStyle]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(STORAGE_KEY_DISPLAY_OPTIONS, JSON.stringify(diffDisplayOptions));
+  }, [diffDisplayOptions]);
+
   const setWidth = useCallback((value: number) => {
     setWidthState((current) => {
       const next = clamp(value, MIN_WIDTH, maxWidth);
@@ -153,6 +201,19 @@ export function useDiffSidebarLayout(): DiffSidebarLayoutState {
 
   const toggleDiffStyle = useCallback(() => {
     setDiffStyleState((current) => (current === "split" ? "unified" : "split"));
+  }, []);
+
+  const setDiffDisplayOption = useCallback((key: DiffDisplayOptionKey, value: boolean) => {
+    setDiffDisplayOptionsState((current) => {
+      if (current[key] === value) {
+        return current;
+      }
+      return { ...current, [key]: value };
+    });
+  }, []);
+
+  const toggleDiffDisplayOption = useCallback((key: DiffDisplayOptionKey) => {
+    setDiffDisplayOptionsState((current) => ({ ...current, [key]: !current[key] }));
   }, []);
 
   const setSelectedDiffPath = useCallback((path: string | null) => {
@@ -221,6 +282,7 @@ export function useDiffSidebarLayout(): DiffSidebarLayoutState {
     maxWidth,
     expanded,
     diffStyle,
+    diffDisplayOptions,
     selectedDiffPath,
     isResizing,
     setWidth,
@@ -229,6 +291,8 @@ export function useDiffSidebarLayout(): DiffSidebarLayoutState {
     toggleExpanded,
     setDiffStyle,
     toggleDiffStyle,
+    setDiffDisplayOption,
+    toggleDiffDisplayOption,
     setSelectedDiffPath,
     startResize,
   };

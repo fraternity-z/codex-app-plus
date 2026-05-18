@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { GitWorkspaceDiffOutput } from "../../../bridge/types";
-import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
+import type { DiffDisplayOptions, DiffViewStyle } from "../hooks/useDiffSidebarLayout";
 import { createGitDiffKey } from "../model/gitDiffKey";
 import { WorkspaceDiffViewerCard } from "./WorkspaceDiffViewerCard";
 
@@ -11,6 +11,8 @@ const CARD_OVERSCAN = 4;
 
 interface WorkspaceDiffViewerProps {
   readonly busy: boolean;
+  readonly collapseAllSignal?: number;
+  readonly displayOptions: DiffDisplayOptions;
   readonly error: string | null;
   readonly items: ReadonlyArray<GitWorkspaceDiffOutput>;
   readonly loading: boolean;
@@ -91,7 +93,11 @@ function useCollapsedCards(items: ReadonlyArray<GitWorkspaceDiffOutput>) {
     });
   }, []);
 
-  return { collapsedKeys, toggleCollapsed };
+  const collapseAll = useCallback(() => {
+    setCollapsedKeys(new Set(itemKeys));
+  }, [itemKeys]);
+
+  return { collapseAll, collapsedKeys, toggleCollapsed };
 }
 
 function useMeasuredRows(items: ReadonlyArray<GitWorkspaceDiffOutput>) {
@@ -143,9 +149,18 @@ function useMeasuredRows(items: ReadonlyArray<GitWorkspaceDiffOutput>) {
 }
 
 export function WorkspaceDiffViewer(props: WorkspaceDiffViewerProps): JSX.Element {
-  const { collapsedKeys, toggleCollapsed } = useCollapsedCards(props.items);
+  const { collapseAll, collapsedKeys, toggleCollapsed } = useCollapsedCards(props.items);
   const { containerRef, rowVirtualizer, setRowRef } = useMeasuredRows(props.items);
+  const collapseSignalRef = useRef(props.collapseAllSignal);
   const hasItems = props.items.length > 0;
+
+  useEffect(() => {
+    if (props.collapseAllSignal === undefined || collapseSignalRef.current === props.collapseAllSignal) {
+      return;
+    }
+    collapseSignalRef.current = props.collapseAllSignal;
+    collapseAll();
+  }, [collapseAll, props.collapseAllSignal]);
 
   return (
     <section className="workspace-diff-viewer" aria-label="工作区差异列表">
@@ -174,6 +189,7 @@ export function WorkspaceDiffViewer(props: WorkspaceDiffViewerProps): JSX.Elemen
                 >
                   <WorkspaceDiffViewerCard
                     busy={props.busy}
+                    displayOptions={props.displayOptions}
                     diffKey={itemKey}
                     expanded={!collapsedKeys.has(itemKey)}
                     item={item}

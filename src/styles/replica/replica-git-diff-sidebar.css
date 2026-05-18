@@ -367,6 +367,15 @@ html[data-theme="dark"] .workspace-diff-git-asset-icon {
   letter-spacing: 0;
 }
 
+.workspace-diff-actions-menu-check {
+  justify-self: end;
+  min-width: 18px;
+  color: var(--accent-color);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
 .workspace-side-panel-action-error {
   margin: 10px 12px 0;
   padding: 10px 12px;

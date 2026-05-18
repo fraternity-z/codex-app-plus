@@ -219,13 +219,13 @@ describe("WorkspaceDiffSidebar", () => {
 
     const menu = screen.getByRole("menu", { name: "差异操作" });
     expect(within(menu).getByRole("menuitem", { name: "刷新" })).toBeInTheDocument();
-    expect(within(menu).getByRole("menuitem", { name: /启用自动换行.*TODO/ })).toBeInTheDocument();
-    expect(within(menu).getByRole("menuitem", { name: /折叠全部差异.*TODO/ })).toBeInTheDocument();
-    expect(within(menu).getByRole("menuitem", { name: /不加载完整文件.*TODO/ })).toBeInTheDocument();
-    expect(within(menu).getByRole("menuitem", { name: /启用富文本预览.*TODO/ })).toBeInTheDocument();
-    expect(within(menu).getByRole("menuitem", { name: /启用文字差异.*TODO/ })).toBeInTheDocument();
-    expect(within(menu).getByRole("menuitem", { name: /隐藏空白字符.*TODO/ })).toBeInTheDocument();
-    expect(within(menu).getByRole("menuitem", { name: /复制 git apply 命令.*TODO/ })).toBeDisabled();
+    expect(within(menu).getByRole("menuitemcheckbox", { name: "启用自动换行" })).toHaveAttribute("aria-checked", "false");
+    expect(within(menu).getByRole("menuitem", { name: "折叠全部差异" })).toBeInTheDocument();
+    expect(within(menu).queryByRole("menuitemcheckbox", { name: "不加载完整文件" })).toBeNull();
+    expect(within(menu).getByRole("menuitemcheckbox", { name: /禁用富文本预览/ })).toHaveAttribute("aria-checked", "true");
+    expect(within(menu).getByRole("menuitemcheckbox", { name: "启用文字差异" })).toHaveAttribute("aria-checked", "false");
+    expect(within(menu).getByRole("menuitemcheckbox", { name: "隐藏空白字符" })).toHaveAttribute("aria-checked", "false");
+    expect(within(menu).getByRole("menuitem", { name: "复制 git apply 命令" })).toBeDisabled();
   });
 
   it("opens git actions from the review toolbar", () => {
@@ -277,19 +277,21 @@ describe("WorkspaceDiffSidebar", () => {
     expect(getWorkspaceDiffs).not.toHaveBeenCalled();
   });
 
-  it("forces unified diff in the collapsed sidebar and hides the split toggle", async () => {
+  it("renders split diff in the collapsed sidebar and wires the split toggle", async () => {
+    const onToggleDiffStyle = vi.fn();
     const { container } = renderSidebar(
       createController({ status: createStatus({ unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }] }) }),
       createHostBridge(vi.fn().mockResolvedValue([createViewerDiff()])),
-      { diffStyle: "split", onToggleDiffStyle: vi.fn() },
+      { diffStyle: "split", onToggleDiffStyle },
     );
 
-    expect(screen.queryByRole("button", { name: "切换为统一差异" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "切换为统一差异" }));
+    expect(onToggleDiffStyle).toHaveBeenCalledTimes(1);
     await screen.findByRole("button", { name: "折叠 src/App.tsx" });
-    expect(container.querySelector(".workspace-diff-code-scroll-split")).toBeNull();
+    expect(container.querySelector(".workspace-diff-code-frame-split")).not.toBeNull();
   });
 
-  it("shows the split toggle only in expanded preview mode", () => {
+  it("uses the split toggle label in expanded preview mode", () => {
     renderSidebar(
       createController({ status: createStatus() }),
       createHostBridge(vi.fn().mockResolvedValue([])),
@@ -297,6 +299,36 @@ describe("WorkspaceDiffSidebar", () => {
     );
 
     expect(screen.getByRole("button", { name: "切换为统一差异" })).toBeInTheDocument();
+  });
+
+  it("copies a git apply command for the current diff group", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    renderSidebar(
+      createController({ status: createStatus({ unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }] }) }),
+      createHostBridge(vi.fn().mockResolvedValue([createViewerDiff({
+        diff: [
+          "diff --git a/src/App.tsx b/src/App.tsx",
+          "--- a/src/App.tsx",
+          "+++ b/src/App.tsx",
+          "@@ -1 +1 @@",
+          "-console.log('old')",
+          "+console.log('new')",
+        ].join("\n"),
+      })])),
+    );
+
+    await waitFor(() => expect(screen.getByLabelText("当前分组新增 1 行，删除 1 行")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "更多差异操作" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "复制 git apply 命令" }));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    expect(writeText.mock.calls[0]?.[0]).toContain("git apply --whitespace=nowarn");
+    expect(writeText.mock.calls[0]?.[0]).toContain("diff --git a/src/App.tsx b/src/App.tsx");
   });
 
   it("loads batch diffs and renders the continuous viewer", async () => {

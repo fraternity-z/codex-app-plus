@@ -16,10 +16,14 @@ interface GitDiffCodeViewProps {
   readonly parsed?: ParsedDiffFile;
   readonly path?: string;
   readonly viewStyle?: DiffViewStyle;
+  readonly wordWrap?: boolean;
+  readonly richPreview?: boolean;
+  readonly wordDiff?: boolean;
 }
 
 interface DiffScrollFrameProps {
   readonly scrollClassName: string;
+  readonly wrapLines: boolean;
   readonly children: ReactNode;
 }
 
@@ -143,8 +147,12 @@ function DiffScrollFrame(props: DiffScrollFrameProps): JSX.Element {
     ? "workspace-diff-code-horizontal-scroll workspace-diff-code-horizontal-scroll-active"
     : "workspace-diff-code-horizontal-scroll workspace-diff-code-horizontal-scroll-inactive";
 
+  const frameClassName = props.wrapLines
+    ? "workspace-diff-code-frame workspace-diff-code-frame-wrap"
+    : "workspace-diff-code-frame";
+
   return (
-    <div className="workspace-diff-code-frame">
+    <div className={frameClassName}>
       <div
         ref={viewportRef}
         className={`${props.scrollClassName} workspace-diff-code-scroll-viewport`}
@@ -170,6 +178,7 @@ function DiffScrollFrame(props: DiffScrollFrameProps): JSX.Element {
 interface SplitDiffFrameProps {
   readonly leftPane: ReactNode;
   readonly rightPane: ReactNode;
+  readonly wrapLines: boolean;
 }
 
 function SplitDiffFrame(props: SplitDiffFrameProps): JSX.Element {
@@ -340,8 +349,12 @@ function SplitDiffFrame(props: SplitDiffFrameProps): JSX.Element {
     : "workspace-diff-code-horizontal-scroll workspace-diff-code-horizontal-scroll-inactive";
   const surfaceStyle = surfaceWidth > 0 ? { width: `${surfaceWidth}px` } : undefined;
 
+  const frameClassName = props.wrapLines
+    ? "workspace-diff-code-frame workspace-diff-code-frame-split workspace-diff-code-frame-wrap"
+    : "workspace-diff-code-frame workspace-diff-code-frame-split";
+
   return (
-    <div className="workspace-diff-code-frame workspace-diff-code-frame-split">
+    <div className={frameClassName}>
       <div className="workspace-diff-code-scroll workspace-diff-code-scroll-split-vertical" role="presentation">
         <div className="workspace-diff-split-frame">
           <div ref={leftViewportRef} className="workspace-diff-split-pane" onScroll={handleLeftScroll}>
@@ -366,6 +379,130 @@ function SplitDiffFrame(props: SplitDiffFrameProps): JSX.Element {
       </div>
     </div>
   );
+}
+
+interface DiffTextSegment {
+  readonly text: string;
+  readonly changed: boolean;
+}
+
+const WORD_DIFF_TOKEN_LIMIT = 360;
+
+function splitDiffTextTokens(text: string): ReadonlyArray<string> {
+  return text.match(/\s+|[A-Za-z0-9_$]+|./gu) ?? [];
+}
+
+function mergeTextSegments(segments: ReadonlyArray<DiffTextSegment>): ReadonlyArray<DiffTextSegment> {
+  const merged: DiffTextSegment[] = [];
+  for (const segment of segments) {
+    if (segment.text.length === 0) {
+      continue;
+    }
+    const previous = merged.at(-1);
+    if (previous !== undefined && previous.changed === segment.changed) {
+      merged[merged.length - 1] = {
+        changed: previous.changed,
+        text: `${previous.text}${segment.text}`,
+      };
+      continue;
+    }
+    merged.push(segment);
+  }
+  return merged;
+}
+
+function createSimpleChangedSegments(text: string, changed: boolean): ReadonlyArray<DiffTextSegment> {
+  return text.length === 0 ? [] : [{ text, changed }];
+}
+
+function createAffixWordDiffSegments(
+  oldText: string,
+  newText: string,
+): readonly [ReadonlyArray<DiffTextSegment>, ReadonlyArray<DiffTextSegment>] {
+  let prefixLength = 0;
+  const maxPrefixLength = Math.min(oldText.length, newText.length);
+  while (prefixLength < maxPrefixLength && oldText[prefixLength] === newText[prefixLength]) {
+    prefixLength += 1;
+  }
+
+  let suffixLength = 0;
+  const maxSuffixLength = maxPrefixLength - prefixLength;
+  while (
+    suffixLength < maxSuffixLength
+    && oldText[oldText.length - 1 - suffixLength] === newText[newText.length - 1 - suffixLength]
+  ) {
+    suffixLength += 1;
+  }
+
+  const toSegments = (text: string) => mergeTextSegments([
+    { text: text.slice(0, prefixLength), changed: false },
+    { text: text.slice(prefixLength, text.length - suffixLength), changed: true },
+    { text: suffixLength === 0 ? "" : text.slice(text.length - suffixLength), changed: false },
+  ]);
+
+  return [toSegments(oldText), toSegments(newText)];
+}
+
+function createWordDiffSegments(
+  oldText: string,
+  newText: string,
+): readonly [ReadonlyArray<DiffTextSegment>, ReadonlyArray<DiffTextSegment>] {
+  if (oldText === newText) {
+    const unchanged = createSimpleChangedSegments(oldText, false);
+    return [unchanged, unchanged];
+  }
+
+  const oldTokens = splitDiffTextTokens(oldText);
+  const newTokens = splitDiffTextTokens(newText);
+  if (oldTokens.length === 0 || newTokens.length === 0) {
+    return [createSimpleChangedSegments(oldText, true), createSimpleChangedSegments(newText, true)];
+  }
+  if (oldTokens.length > WORD_DIFF_TOKEN_LIMIT || newTokens.length > WORD_DIFF_TOKEN_LIMIT) {
+    return createAffixWordDiffSegments(oldText, newText);
+  }
+
+  const table = Array.from(
+    { length: oldTokens.length + 1 },
+    () => new Uint16Array(newTokens.length + 1),
+  );
+  for (let oldIndex = oldTokens.length - 1; oldIndex >= 0; oldIndex -= 1) {
+    for (let newIndex = newTokens.length - 1; newIndex >= 0; newIndex -= 1) {
+      table[oldIndex]![newIndex] = oldTokens[oldIndex] === newTokens[newIndex]
+        ? table[oldIndex + 1]![newIndex + 1]! + 1
+        : Math.max(table[oldIndex + 1]![newIndex]!, table[oldIndex]![newIndex + 1]!);
+    }
+  }
+
+  const oldSegments: DiffTextSegment[] = [];
+  const newSegments: DiffTextSegment[] = [];
+  let oldIndex = 0;
+  let newIndex = 0;
+  while (oldIndex < oldTokens.length && newIndex < newTokens.length) {
+    if (oldTokens[oldIndex] === newTokens[newIndex]) {
+      oldSegments.push({ text: oldTokens[oldIndex]!, changed: false });
+      newSegments.push({ text: newTokens[newIndex]!, changed: false });
+      oldIndex += 1;
+      newIndex += 1;
+      continue;
+    }
+    if (table[oldIndex + 1]![newIndex]! >= table[oldIndex]![newIndex + 1]!) {
+      oldSegments.push({ text: oldTokens[oldIndex]!, changed: true });
+      oldIndex += 1;
+      continue;
+    }
+    newSegments.push({ text: newTokens[newIndex]!, changed: true });
+    newIndex += 1;
+  }
+  while (oldIndex < oldTokens.length) {
+    oldSegments.push({ text: oldTokens[oldIndex]!, changed: true });
+    oldIndex += 1;
+  }
+  while (newIndex < newTokens.length) {
+    newSegments.push({ text: newTokens[newIndex]!, changed: true });
+    newIndex += 1;
+  }
+
+  return [mergeTextSegments(oldSegments), mergeTextSegments(newSegments)];
 }
 
 function formatLineNumber(value: number | null): string {
@@ -413,20 +550,70 @@ function CollapsedDiffRowView(props: { readonly row: CollapsedDiffRow }): JSX.El
   );
 }
 
-function ParsedDiffRowView(props: { readonly row: ParsedDiffLine; readonly path?: string }): JSX.Element {
+function DiffLineContent(props: {
+  readonly className: string;
+  readonly content: string;
+  readonly path?: string;
+  readonly richPreview: boolean;
+  readonly segments?: ReadonlyArray<DiffTextSegment>;
+}): JSX.Element {
+  if (props.segments !== undefined) {
+    return (
+      <code className={props.className}>
+        {props.segments.map((segment, index) => (
+          <span
+            key={`${index}:${segment.text}`}
+            className={segment.changed ? "workspace-diff-word-change" : undefined}
+          >
+            {segment.text}
+          </span>
+        ))}
+      </code>
+    );
+  }
+  if (!props.richPreview) {
+    return <code className={props.className}>{props.content}</code>;
+  }
+  return <HighlightedCodeContent className={props.className} content={props.content} path={props.path} />;
+}
+
+function ParsedDiffRowView(props: {
+  readonly row: ParsedDiffLine;
+  readonly path?: string;
+  readonly richPreview: boolean;
+  readonly segments?: ReadonlyArray<DiffTextSegment>;
+}): JSX.Element {
   return (
     <div className={getRowClassName(props.row)}>
       <DiffCodeLineNumbers row={props.row} />
-      <HighlightedCodeContent className="workspace-diff-code-content" content={props.row.content} path={props.path} />
+      <DiffLineContent
+        className="workspace-diff-code-content"
+        content={props.row.content}
+        path={props.path}
+        richPreview={props.richPreview}
+        segments={props.segments}
+      />
     </div>
   );
 }
 
-function DiffCodeRow(props: { readonly row: DiffDisplayRow; readonly path?: string }): JSX.Element {
+function DiffCodeRow(props: {
+  readonly row: DiffDisplayRow;
+  readonly path?: string;
+  readonly richPreview: boolean;
+  readonly wordSegments: WeakMap<ParsedDiffLine, ReadonlyArray<DiffTextSegment>> | null;
+}): JSX.Element {
   if (props.row.kind === "collapsed") {
     return <CollapsedDiffRowView row={props.row} />;
   }
-  return <ParsedDiffRowView row={props.row} path={props.path} />;
+  return (
+    <ParsedDiffRowView
+      row={props.row}
+      path={props.path}
+      richPreview={props.richPreview}
+      segments={props.wordSegments?.get(props.row)}
+    />
+  );
 }
 
 function HunkHeader(props: { readonly hunk: ParsedDiffHunk }): JSX.Element | null {
@@ -436,12 +623,24 @@ function HunkHeader(props: { readonly hunk: ParsedDiffHunk }): JSX.Element | nul
   return <div className="workspace-diff-hunk-header">{props.hunk.sectionTitle}</div>;
 }
 
-function HunkBody(props: { readonly hunk: ParsedDiffHunk; readonly path?: string }): JSX.Element {
+function HunkBody(props: {
+  readonly hunk: ParsedDiffHunk;
+  readonly path?: string;
+  readonly richPreview: boolean;
+  readonly wordDiff: boolean;
+}): JSX.Element {
   const rows = collapseDiffRows(props.hunk.lines);
+  const wordSegments = props.wordDiff ? buildWordDiffSegmentMap(rows, props.hunk.header) : null;
   return (
     <div className="workspace-diff-hunk-body">
       {rows.map((row, index) => (
-        <DiffCodeRow key={`${props.hunk.header}:${index}`} row={row} path={props.path} />
+        <DiffCodeRow
+          key={`${props.hunk.header}:${index}`}
+          row={row}
+          path={props.path}
+          richPreview={props.richPreview}
+          wordSegments={wordSegments}
+        />
       ))}
     </div>
   );
@@ -451,9 +650,15 @@ interface SplitRowPair {
   readonly key: string;
   readonly left: ParsedDiffLine | CollapsedDiffRow | null;
   readonly right: ParsedDiffLine | CollapsedDiffRow | null;
+  readonly leftSegments?: ReadonlyArray<DiffTextSegment>;
+  readonly rightSegments?: ReadonlyArray<DiffTextSegment>;
 }
 
-function toSplitPairs(rows: ReadonlyArray<DiffDisplayRow>, hunkHeader: string): ReadonlyArray<SplitRowPair> {
+function toSplitPairs(
+  rows: ReadonlyArray<DiffDisplayRow>,
+  hunkHeader: string,
+  wordDiff: boolean,
+): ReadonlyArray<SplitRowPair> {
   const pairs: SplitRowPair[] = [];
   let i = 0;
   let counter = 0;
@@ -493,10 +698,17 @@ function toSplitPairs(rows: ReadonlyArray<DiffDisplayRow>, hunkHeader: string): 
       }
       const pairCount = Math.max(deletes.length, adds.length);
       for (let p = 0; p < pairCount; p += 1) {
+        const deleteRow = deletes[p] ?? null;
+        const addRow = adds[p] ?? null;
+        const segments = wordDiff && deleteRow !== null && addRow !== null
+          ? createWordDiffSegments(deleteRow.content, addRow.content)
+          : null;
         pairs.push({
           key: `${hunkHeader}:p:${counter++}`,
-          left: deletes[p] ?? null,
-          right: adds[p] ?? null,
+          left: deleteRow,
+          right: addRow,
+          leftSegments: segments?.[0],
+          rightSegments: segments?.[1],
         });
       }
       i = j;
@@ -512,10 +724,28 @@ function toSplitPairs(rows: ReadonlyArray<DiffDisplayRow>, hunkHeader: string): 
   return pairs;
 }
 
+function buildWordDiffSegmentMap(
+  rows: ReadonlyArray<DiffDisplayRow>,
+  hunkHeader: string,
+): WeakMap<ParsedDiffLine, ReadonlyArray<DiffTextSegment>> {
+  const map = new WeakMap<ParsedDiffLine, ReadonlyArray<DiffTextSegment>>();
+  for (const pair of toSplitPairs(rows, hunkHeader, true)) {
+    if (pair.left !== null && pair.left.kind !== "collapsed" && pair.leftSegments !== undefined) {
+      map.set(pair.left, pair.leftSegments);
+    }
+    if (pair.right !== null && pair.right.kind !== "collapsed" && pair.rightSegments !== undefined) {
+      map.set(pair.right, pair.rightSegments);
+    }
+  }
+  return map;
+}
+
 function SplitHalf(props: {
   readonly row: ParsedDiffLine | CollapsedDiffRow | null;
   readonly side: "old" | "new";
   readonly path?: string;
+  readonly richPreview: boolean;
+  readonly segments?: ReadonlyArray<DiffTextSegment>;
 }): JSX.Element {
   if (props.row === null) {
     return <div className="workspace-diff-code-row workspace-diff-code-row-empty" aria-hidden="true" />;
@@ -533,7 +763,13 @@ function SplitHalf(props: {
   return (
     <div className={getRowClassName(props.row)}>
       <span className="workspace-diff-line-number">{formatLineNumber(value)}</span>
-      <HighlightedCodeContent className="workspace-diff-code-content" content={props.row.content} path={props.path} />
+      <DiffLineContent
+        className="workspace-diff-code-content"
+        content={props.row.content}
+        path={props.path}
+        richPreview={props.richPreview}
+        segments={props.segments}
+      />
     </div>
   );
 }
@@ -543,16 +779,17 @@ interface SplitHunkData {
   readonly pairs: ReadonlyArray<SplitRowPair>;
 }
 
-function buildSplitHunkData(hunk: ParsedDiffHunk): SplitHunkData {
+function buildSplitHunkData(hunk: ParsedDiffHunk, wordDiff: boolean): SplitHunkData {
   return {
     hunk,
-    pairs: toSplitPairs(collapseDiffRows(hunk.lines), hunk.header),
+    pairs: toSplitPairs(collapseDiffRows(hunk.lines), hunk.header, wordDiff),
   };
 }
 
 function SplitPaneHunk(props: {
   readonly data: SplitHunkData;
   readonly path?: string;
+  readonly richPreview: boolean;
   readonly side: "old" | "new";
 }): JSX.Element {
   return (
@@ -565,6 +802,8 @@ function SplitPaneHunk(props: {
             row={props.side === "old" ? pair.left : pair.right}
             side={props.side}
             path={props.path}
+            richPreview={props.richPreview}
+            segments={props.side === "old" ? pair.leftSegments : pair.rightSegments}
           />
         ))}
       </div>
@@ -575,18 +814,29 @@ function SplitPaneHunk(props: {
 function DiffHunkView(props: {
   readonly hunk: ParsedDiffHunk;
   readonly path?: string;
+  readonly richPreview: boolean;
+  readonly wordDiff: boolean;
 }): JSX.Element {
   return (
     <section className="workspace-diff-hunk">
       <HunkHeader hunk={props.hunk} />
-      <HunkBody hunk={props.hunk} path={props.path} />
+      <HunkBody
+        hunk={props.hunk}
+        path={props.path}
+        richPreview={props.richPreview}
+        wordDiff={props.wordDiff}
+      />
     </section>
   );
 }
 
-function RawDiffFallback(props: { readonly parsed: ParsedDiffFile }): JSX.Element {
+function RawDiffFallback(props: {
+  readonly parsed: ParsedDiffFile;
+  readonly wordWrap: boolean;
+}): JSX.Element {
+  const className = props.wordWrap ? "workspace-diff-raw workspace-diff-raw-wrap" : "workspace-diff-raw";
   return (
-    <div className="workspace-diff-raw">
+    <div className={className}>
       <div className="workspace-diff-raw-note">当前 diff 暂时无法结构化展示，下面显示原始输出。</div>
       <pre className="workspace-diff-raw-content">{props.parsed.raw}</pre>
     </div>
@@ -597,25 +847,47 @@ function StructuredDiff(props: {
   readonly parsed: ParsedDiffFile;
   readonly path?: string;
   readonly viewStyle: DiffViewStyle;
+  readonly wordWrap: boolean;
+  readonly richPreview: boolean;
+  readonly wordDiff: boolean;
 }): JSX.Element {
   if (props.viewStyle === "split") {
-    const splitHunks = props.parsed.hunks.map(buildSplitHunkData);
+    const splitHunks = props.parsed.hunks.map((hunk) => buildSplitHunkData(hunk, props.wordDiff));
     return (
       <SplitDiffFrame
+        wrapLines={props.wordWrap}
         leftPane={splitHunks.map((data) => (
-          <SplitPaneHunk key={`${data.hunk.header}:old`} data={data} path={props.path} side="old" />
+          <SplitPaneHunk
+            key={`${data.hunk.header}:old`}
+            data={data}
+            path={props.path}
+            richPreview={props.richPreview}
+            side="old"
+          />
         ))}
         rightPane={splitHunks.map((data) => (
-          <SplitPaneHunk key={`${data.hunk.header}:new`} data={data} path={props.path} side="new" />
+          <SplitPaneHunk
+            key={`${data.hunk.header}:new`}
+            data={data}
+            path={props.path}
+            richPreview={props.richPreview}
+            side="new"
+          />
         ))}
       />
     );
   }
   return (
-    <DiffScrollFrame scrollClassName="workspace-diff-code-scroll">
+    <DiffScrollFrame scrollClassName="workspace-diff-code-scroll" wrapLines={props.wordWrap}>
       <>
         {props.parsed.hunks.map((hunk) => (
-          <DiffHunkView key={hunk.header} hunk={hunk} path={props.path} />
+          <DiffHunkView
+            key={hunk.header}
+            hunk={hunk}
+            path={props.path}
+            richPreview={props.richPreview}
+            wordDiff={props.wordDiff}
+          />
         ))}
       </>
     </DiffScrollFrame>
@@ -625,8 +897,20 @@ function StructuredDiff(props: {
 export function GitDiffCodeView(props: GitDiffCodeViewProps): JSX.Element {
   const parsed = props.parsed ?? parseUnifiedDiffCached(props.diff ?? "");
   const viewStyle = props.viewStyle ?? "unified";
+  const wordWrap = props.wordWrap ?? false;
+  const richPreview = props.richPreview ?? true;
+  const wordDiff = props.wordDiff ?? false;
   if (parsed.hunks.length === 0) {
-    return <RawDiffFallback parsed={parsed} />;
+    return <RawDiffFallback parsed={parsed} wordWrap={wordWrap} />;
   }
-  return <StructuredDiff parsed={parsed} path={props.path} viewStyle={viewStyle} />;
+  return (
+    <StructuredDiff
+      parsed={parsed}
+      path={props.path}
+      viewStyle={viewStyle}
+      wordWrap={wordWrap}
+      richPreview={richPreview}
+      wordDiff={wordDiff}
+    />
+  );
 }

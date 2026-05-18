@@ -1720,7 +1720,7 @@
 .mcp-server-list-card {
   margin-top: 12px;
   border-radius: 11px;
-  background: #ffffff;
+  background: var(--surface-panel);
   box-shadow: none;
 }
 
@@ -2432,6 +2432,10 @@ html[data-theme="dark"] .mcp-form-input,
 html[data-theme="dark"] .mcp-transport-toggle,
 html[data-theme="dark"] .mcp-transport-option {
   border-color: var(--border-light);
+}
+
+html[data-theme="dark"] .mcp-server-list-card {
+  background: var(--surface-panel);
 }
 
 html[data-theme="dark"] .mcp-transport-option {

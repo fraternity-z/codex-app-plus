@@ -197,6 +197,7 @@ export function createHomeMainContentProps(
     diffItems,
     diffPreviewVisible: diffOpen && diffLayout.expanded,
     diffPreviewStyle: diffLayout.diffStyle,
+    diffPreviewDisplayOptions: diffLayout.diffDisplayOptions,
     diffPreviewSelectedPath: diffLayout.selectedDiffPath,
   };
 }

@@ -12,6 +12,33 @@ beforeAll(() => {
 });
 
 describe("GitDiffCodeView", () => {
+  it("marks changed words when word diff is enabled", () => {
+    const { container } = render(
+      <GitDiffCodeView
+        diff={"@@ -1 +1 @@\n-const label = 'before';\n+const label = 'after';"}
+        path="src/example.ts"
+        wordDiff
+      />,
+    );
+
+    const changedWords = Array.from(container.querySelectorAll(".workspace-diff-word-change"))
+      .map((node) => node.textContent);
+    expect(changedWords).toContain("before");
+    expect(changedWords).toContain("after");
+  });
+
+  it("applies the wrapping frame class when word wrap is enabled", () => {
+    const { container } = render(
+      <GitDiffCodeView
+        diff={"@@ -1 +1 @@\n-const before = 'left';\n+const after = 'right';"}
+        path="src/example.ts"
+        wordWrap
+      />,
+    );
+
+    expect(container.querySelector(".workspace-diff-code-frame-wrap")).not.toBeNull();
+  });
+
   it("keeps split panes horizontally synchronized", async () => {
     const { container } = render(
       <GitDiffCodeView

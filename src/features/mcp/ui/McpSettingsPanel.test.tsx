@@ -94,7 +94,7 @@ describe("McpSettingsPanel", () => {
     await waitFor(() => expect(readMcpSharedPoolSettings).toHaveBeenCalledWith({
       agentEnvironment: "windowsNative",
     }));
-    fireEvent.click(screen.getByRole("switch", { name: "STDIO 共享池" }));
+    fireEvent.click(screen.getByRole("switch", { name: /^STDIO 共享池/ }));
 
     await waitFor(() => expect(writeMcpSharedPoolSettings).toHaveBeenCalledWith({
       agentEnvironment: "windowsNative",

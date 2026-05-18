@@ -375,6 +375,45 @@
   white-space: pre;
 }
 
+.workspace-diff-code-frame-wrap .workspace-diff-code-surface,
+.workspace-diff-code-frame-wrap .workspace-diff-raw-content,
+.workspace-diff-raw-wrap .workspace-diff-raw-content {
+  width: 100%;
+  min-width: 100%;
+}
+
+.workspace-diff-code-frame-wrap .workspace-diff-code-row {
+  min-width: 0;
+}
+
+.workspace-diff-code-frame-wrap .workspace-diff-code-content,
+.workspace-diff-code-frame-wrap .workspace-diff-collapsed-pill,
+.workspace-diff-code-frame-wrap .workspace-diff-raw-content,
+.workspace-diff-raw-wrap .workspace-diff-raw-content {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.workspace-diff-code-frame-wrap .workspace-diff-split-pane-surface {
+  width: 100% !important;
+  min-width: 100%;
+}
+
+.workspace-diff-word-change {
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 0 1px;
+}
+
+.workspace-diff-code-row-add .workspace-diff-word-change {
+  background: color-mix(in srgb, var(--app-code-style-diff-add-accent) 22%, transparent);
+}
+
+.workspace-diff-code-row-delete .workspace-diff-word-change {
+  background: color-mix(in srgb, var(--app-code-style-diff-delete-accent) 22%, transparent);
+}
+
 .workspace-diff-code-row-add {
   background: var(--app-code-style-diff-add-surface);
   box-shadow: inset 3px 0 0 var(--app-code-style-diff-add-accent);

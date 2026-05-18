@@ -374,6 +374,8 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
           }}
           diffStyle={diffLayout.diffStyle}
           onToggleDiffStyle={diffLayout.toggleDiffStyle}
+          diffDisplayOptions={diffLayout.diffDisplayOptions}
+          onToggleDiffDisplayOption={diffLayout.toggleDiffDisplayOption}
           selectedDiffPath={diffLayout.selectedDiffPath}
           onSelectDiffPath={diffLayout.setSelectedDiffPath}
           onDiffItemsChange={setDiffItems}

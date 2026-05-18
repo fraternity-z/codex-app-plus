@@ -2,12 +2,13 @@ import { useMemo } from "react";
 import type { GitWorkspaceDiffOutput } from "../../../bridge/types";
 import { parseWorkspaceDiffText } from "../model/workspaceDiffDisplayModel";
 import { GitDiffCodeView } from "./GitDiffCodeView";
-import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
+import type { DiffDisplayOptions, DiffViewStyle } from "../hooks/useDiffSidebarLayout";
 
 interface WorkspaceDiffConversationPreviewProps {
   readonly items: ReadonlyArray<GitWorkspaceDiffOutput>;
   readonly selectedDiffPath: string | null;
   readonly diffStyle: DiffViewStyle;
+  readonly displayOptions?: DiffDisplayOptions;
 }
 
 function EmptyPreview(props: { readonly message: string; readonly hint: string }): JSX.Element {
@@ -92,7 +93,14 @@ export function WorkspaceDiffConversationPreview(props: WorkspaceDiffConversatio
         </div>
       </header>
       <div className={styleClass}>
-        <GitDiffCodeView parsed={parsed} path={active.path} viewStyle={props.diffStyle} />
+        <GitDiffCodeView
+          parsed={parsed}
+          path={active.path}
+          viewStyle={props.diffStyle}
+          wordWrap={props.displayOptions?.wordWrap}
+          richPreview={props.displayOptions?.richPreview}
+          wordDiff={props.displayOptions?.wordDiff}
+        />
       </div>
     </section>
   );

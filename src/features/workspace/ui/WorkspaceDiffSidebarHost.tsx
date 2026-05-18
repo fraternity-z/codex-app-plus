@@ -2,7 +2,7 @@ import { Suspense, lazy } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import type { GitWorkspaceDiffOutput, HostBridge } from "../../../bridge/types";
 import type { WorkspaceGitController } from "../../git/model/types";
-import type { DiffViewStyle } from "../../git/hooks/useDiffSidebarLayout";
+import type { DiffDisplayOptionKey, DiffDisplayOptions, DiffViewStyle } from "../../git/hooks/useDiffSidebarLayout";
 import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
 import type { CreateLocalCodeCommentInput, LocalCodeComment } from "../model/localCodeComments";
 
@@ -21,6 +21,8 @@ interface WorkspaceDiffSidebarHostProps {
   readonly onToggleExpanded?: () => void;
   readonly diffStyle?: DiffViewStyle;
   readonly onToggleDiffStyle?: () => void;
+  readonly diffDisplayOptions?: DiffDisplayOptions;
+  readonly onToggleDiffDisplayOption?: (key: DiffDisplayOptionKey) => void;
   readonly selectedDiffPath?: string | null;
   readonly onSelectDiffPath?: (path: string | null) => void;
   readonly onDiffItemsChange?: (items: ReadonlyArray<GitWorkspaceDiffOutput>) => void;
@@ -52,6 +54,8 @@ export function WorkspaceDiffSidebarHost(props: WorkspaceDiffSidebarHostProps): 
         onToggleExpanded={props.onToggleExpanded}
         diffStyle={props.diffStyle}
         onToggleDiffStyle={props.onToggleDiffStyle}
+        diffDisplayOptions={props.diffDisplayOptions}
+        onToggleDiffDisplayOption={props.onToggleDiffDisplayOption}
         selectedDiffPath={props.selectedDiffPath}
         onSelectDiffPath={props.onSelectDiffPath}
         onDiffItemsChange={props.onDiffItemsChange}

@@ -6,7 +6,7 @@ import type { RegenerateEditedUserMessageOptions, SendTurnOptions } from "../../
 import { FileLinkProvider, type FileLinkActions } from "../../conversation/hooks/fileLinkContext";
 import { useFileLinkOpener } from "../../conversation/hooks/useFileLinkOpener";
 import type { AgentEnvironment, GitWorkspaceDiffOutput, HostBridge, WorkspaceOpener } from "../../../bridge/types";
-import type { DiffViewStyle } from "../../git/hooks/useDiffSidebarLayout";
+import type { DiffDisplayOptions, DiffViewStyle } from "../../git/hooks/useDiffSidebarLayout";
 import { WorkspaceDiffConversationPreview } from "../../git/ui/WorkspaceDiffConversationPreview";
 import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
 import type {
@@ -130,6 +130,7 @@ export interface HomeViewMainContentProps {
   readonly diffItems: ReadonlyArray<GitWorkspaceDiffOutput>;
   readonly diffPreviewVisible: boolean;
   readonly diffPreviewStyle: DiffViewStyle;
+  readonly diffPreviewDisplayOptions?: DiffDisplayOptions;
   readonly diffPreviewSelectedPath: string | null;
   readonly onOpenPreviewTarget: (target: QuickPreviewTarget) => void;
 }
@@ -634,6 +635,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
             items={props.diffItems}
             selectedDiffPath={props.diffPreviewSelectedPath}
             diffStyle={props.diffPreviewStyle}
+            displayOptions={props.diffPreviewDisplayOptions}
           />
         </div>
       ) : null}

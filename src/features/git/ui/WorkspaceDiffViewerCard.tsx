@@ -1,7 +1,7 @@
 import { confirm } from "@tauri-apps/plugin-dialog";
 import { memo, useEffect, useMemo } from "react";
 import type { GitWorkspaceDiffOutput, GitWorkspaceDiffSection } from "../../../bridge/types";
-import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
+import type { DiffDisplayOptions, DiffViewStyle } from "../hooks/useDiffSidebarLayout";
 import { parseWorkspaceDiffText } from "../model/workspaceDiffDisplayModel";
 import { GitDiffCodeView } from "./GitDiffCodeView";
 import {
@@ -13,6 +13,7 @@ import {
 
 interface WorkspaceDiffViewerCardProps {
   readonly busy: boolean;
+  readonly displayOptions: DiffDisplayOptions;
   readonly diffKey: string;
   readonly expanded: boolean;
   readonly item: GitWorkspaceDiffOutput;
@@ -130,6 +131,7 @@ function FileActions(props: WorkspaceDiffViewerCardProps): JSX.Element {
 }
 
 function FileBody(props: {
+  readonly displayOptions: DiffDisplayOptions;
   readonly diffError?: string | null;
   readonly diffLoaded?: boolean;
   readonly diffLoading?: boolean;
@@ -154,14 +156,24 @@ function FileBody(props: {
     if (props.diffError !== undefined && props.diffError !== null) {
       return <div className="git-banner git-banner-error">加载差异失败：{props.diffError}</div>;
     }
-    if (props.diffLoading === true || !diffLoaded) {
+    if (props.diffLoading === true) {
+      return <div className="workspace-diff-file-loading">正在加载差异…</div>;
+    }
+    if (!diffLoaded) {
       return <div className="workspace-diff-file-loading">正在加载差异…</div>;
     }
     return null;
   }
   return (
     <div className="workspace-diff-file-body">
-      <GitDiffCodeView parsed={parsedDiff} path={props.path} viewStyle={props.viewStyle} />
+      <GitDiffCodeView
+        parsed={parsedDiff}
+        path={props.path}
+        viewStyle={props.viewStyle}
+        wordWrap={props.displayOptions.wordWrap}
+        richPreview={props.displayOptions.richPreview}
+        wordDiff={props.displayOptions.wordDiff}
+      />
     </div>
   );
 }
@@ -229,6 +241,7 @@ export const WorkspaceDiffViewerCard = memo(function WorkspaceDiffViewerCard(
         />
       </header>
       <FileBody
+        displayOptions={props.displayOptions}
         diff={props.item.diff}
         diffError={props.item.diffError}
         diffLoaded={diffLoaded}

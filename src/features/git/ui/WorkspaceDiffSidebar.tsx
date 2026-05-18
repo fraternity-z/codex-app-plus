@@ -3,7 +3,12 @@ import { createPortal } from "react-dom";
 import type { GitWorkspaceDiffOutput, HostBridge } from "../../../bridge/types";
 import type { FuzzyFileSearchResponse } from "../../../protocol/generated/FuzzyFileSearchResponse";
 import type { FuzzyFileSearchResult } from "../../../protocol/generated/FuzzyFileSearchResult";
-import type { DiffViewStyle } from "../hooks/useDiffSidebarLayout";
+import {
+  DEFAULT_DIFF_DISPLAY_OPTIONS,
+  type DiffDisplayOptionKey,
+  type DiffDisplayOptions,
+  type DiffViewStyle,
+} from "../hooks/useDiffSidebarLayout";
 import { BrowserSidebarPanel } from "../../browser/ui/BrowserSidebarPanel";
 import { OfficialCloseIcon, OfficialFolderIcon, OfficialPlusIcon } from "../../shared/ui/officialIcons";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
@@ -37,7 +42,6 @@ import {
   GitDiffColorColumnsIcon,
   GitDiffCollapseIcon,
   GitDiffExpandIcon,
-  GitDiffFileIcon,
   GitDiffIcon,
   GitDiffRichPreviewIcon,
   GitDiffTextIcon,
@@ -73,6 +77,8 @@ interface WorkspaceDiffSidebarProps {
   readonly onToggleExpanded?: () => void;
   readonly diffStyle?: DiffViewStyle;
   readonly onToggleDiffStyle?: () => void;
+  readonly diffDisplayOptions?: DiffDisplayOptions;
+  readonly onToggleDiffDisplayOption?: (key: DiffDisplayOptionKey) => void;
   readonly selectedDiffPath?: string | null;
   readonly onSelectDiffPath?: (path: string | null) => void;
   readonly onDiffItemsChange?: (items: ReadonlyArray<GitWorkspaceDiffOutput>) => void;
@@ -331,7 +337,12 @@ interface DiffReviewToolbarProps {
   readonly expanded?: boolean;
   readonly diffStyle?: DiffViewStyle;
   readonly onToggleDiffStyle?: () => void;
+  readonly displayOptions: DiffDisplayOptions;
+  readonly onToggleDisplayOption: (key: DiffDisplayOptionKey) => void;
   readonly allowDiffStyleToggle?: boolean;
+  readonly copyGitApplyPending?: boolean;
+  readonly onCollapseAllDiffs?: () => void;
+  readonly onCopyGitApplyCommand?: () => Promise<void>;
 }
 
 type DiffToolbarIcon = (props: { readonly className?: string }) => JSX.Element;
@@ -341,7 +352,7 @@ interface DiffReviewMenuItem {
   readonly Icon: DiffToolbarIcon;
   readonly disabled?: boolean;
   readonly separatorBefore?: boolean;
-  readonly todo?: boolean;
+  readonly checked?: boolean;
   readonly onSelect: () => void;
 }
 
@@ -389,13 +400,22 @@ function DiffReviewToolbar(props: DiffReviewToolbarProps): JSX.Element {
     || !props.controller.statusLoaded
     || props.controller.status?.isRepository !== true;
   const branchName = props.controller.status?.branch?.head ?? null;
-  const handlePlaceholderAction = useCallback(() => {
-    closeDiffMenu();
-  }, [closeDiffMenu]);
   const handleRefresh = useCallback(() => {
     closeDiffMenu();
     void props.onRefresh();
   }, [closeDiffMenu, props.onRefresh]);
+  const toggleDisplayOption = useCallback((key: DiffDisplayOptionKey) => {
+    closeDiffMenu();
+    props.onToggleDisplayOption(key);
+  }, [closeDiffMenu, props]);
+  const handleCollapseAllDiffs = useCallback(() => {
+    closeDiffMenu();
+    props.onCollapseAllDiffs?.();
+  }, [closeDiffMenu, props]);
+  const handleCopyGitApplyCommand = useCallback(() => {
+    closeDiffMenu();
+    void props.onCopyGitApplyCommand?.();
+  }, [closeDiffMenu, props]);
   const requestPush = useCallback(() => {
     if (canPushChanges(props.controller)) {
       setPushConfirmOpen(true);
@@ -417,13 +437,38 @@ function DiffReviewToolbar(props: DiffReviewToolbarProps): JSX.Element {
   }, [props.controller]);
   const menuItems: ReadonlyArray<DiffReviewMenuItem> = [
     { label: "刷新", Icon: GitRefreshIcon, onSelect: handleRefresh },
-    { label: "启用自动换行", Icon: GitDiffWrapIcon, todo: true, onSelect: handlePlaceholderAction },
-    { label: "折叠全部差异", Icon: GitDiffCollapseAllIcon, todo: true, onSelect: handlePlaceholderAction },
-    { label: "不加载完整文件", Icon: GitDiffFileIcon, separatorBefore: true, todo: true, onSelect: handlePlaceholderAction },
-    { label: "启用富文本预览", Icon: GitDiffRichPreviewIcon, todo: true, onSelect: handlePlaceholderAction },
-    { label: "启用文字差异", Icon: GitDiffTextIcon, todo: true, onSelect: handlePlaceholderAction },
-    { label: "隐藏空白字符", Icon: GitDiffWhitespaceIcon, todo: true, onSelect: handlePlaceholderAction },
-    { label: "复制 git apply 命令", Icon: GitClipboardIcon, disabled: true, todo: true, onSelect: handlePlaceholderAction },
+    {
+      label: props.displayOptions.wordWrap ? "禁用自动换行" : "启用自动换行",
+      Icon: GitDiffWrapIcon,
+      checked: props.displayOptions.wordWrap,
+      onSelect: () => toggleDisplayOption("wordWrap"),
+    },
+    { label: "折叠全部差异", Icon: GitDiffCollapseAllIcon, onSelect: handleCollapseAllDiffs },
+    {
+      label: props.displayOptions.richPreview ? "禁用富文本预览" : "启用富文本预览",
+      Icon: GitDiffRichPreviewIcon,
+      separatorBefore: true,
+      checked: props.displayOptions.richPreview,
+      onSelect: () => toggleDisplayOption("richPreview"),
+    },
+    {
+      label: props.displayOptions.wordDiff ? "禁用文字差异" : "启用文字差异",
+      Icon: GitDiffTextIcon,
+      checked: props.displayOptions.wordDiff,
+      onSelect: () => toggleDisplayOption("wordDiff"),
+    },
+    {
+      label: props.displayOptions.hideWhitespace ? "显示空白字符" : "隐藏空白字符",
+      Icon: GitDiffWhitespaceIcon,
+      checked: props.displayOptions.hideWhitespace,
+      onSelect: () => toggleDisplayOption("hideWhitespace"),
+    },
+    {
+      label: "复制 git apply 命令",
+      Icon: GitClipboardIcon,
+      disabled: props.copyGitApplyPending === true || props.files === 0,
+      onSelect: handleCopyGitApplyCommand,
+    },
   ];
   const gitMenuItems: ReadonlyArray<GitToolbarMenuItem> = [
     { label: "提交", Icon: GitCommitNodeIcon, disabled: !canOpenCommitDialog(props.controller), onSelect: props.controller.openCommitDialog },
@@ -483,13 +528,18 @@ function DiffReviewToolbar(props: DiffReviewToolbarProps): JSX.Element {
                     <button
                       type="button"
                       className="workspace-diff-actions-menu-item"
-                      role="menuitem"
+                      role={item.checked === undefined ? "menuitem" : "menuitemcheckbox"}
+                      aria-checked={item.checked}
                       disabled={item.disabled}
                       onClick={item.onSelect}
                     >
                       <item.Icon className="workspace-diff-actions-menu-icon" />
                       <span>{item.label}</span>
-                      {item.todo === true ? <span className="workspace-diff-actions-menu-todo">TODO</span> : null}
+                      {item.checked === undefined ? null : (
+                        <span className="workspace-diff-actions-menu-check" aria-hidden="true">
+                          {item.checked ? "开" : ""}
+                        </span>
+                      )}
                     </button>
                   </div>
                 ))}
@@ -774,6 +824,34 @@ async function refreshSidebar(
   await refreshViewer();
 }
 
+const NON_PATCH_DIFF_MESSAGES = new Set([
+  "当前没有可显示的差异。",
+  "空文件暂时没有可显示的差异。",
+  "目录变更暂不支持内联预览。",
+  "该文件不是 UTF-8 文本，无法显示预览。",
+]);
+
+function isLoadedWorkspaceDiff(item: GitWorkspaceDiffOutput): boolean {
+  return item.diffLoaded === true || item.diff.length > 0;
+}
+
+function isPatchDiff(diff: string): boolean {
+  const trimmed = diff.trim();
+  return trimmed.length > 0 && !NON_PATCH_DIFF_MESSAGES.has(trimmed) && /^(diff --git|@@ )/m.test(trimmed);
+}
+
+function createGitApplyCommand(diffText: string): string {
+  const trimmed = diffText.trimEnd();
+  return `@'\n${trimmed}\n'@ | git apply --whitespace=nowarn`;
+}
+
+async function writeClipboardText(text: string): Promise<void> {
+  if (typeof navigator === "undefined" || navigator.clipboard?.writeText === undefined) {
+    throw new Error("当前环境不支持写入剪贴板。");
+  }
+  await navigator.clipboard.writeText(text);
+}
+
 export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Element | null {
   const [scope, setScope] = useDiffScope(props.open, props.controller);
   const [activeTab, setActiveTab] = useState<WorkspaceSidePanelTab>("review");
@@ -782,10 +860,22 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
   const [previewTab, setPreviewTab] = useState<PreviewOpenRequest["target"] | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [fileSearchOpen, setFileSearchOpen] = useState(false);
+  const [collapseAllSignal, setCollapseAllSignal] = useState(0);
+  const [copyGitApplyPending, setCopyGitApplyPending] = useState(false);
+  const [localDisplayOptions, setLocalDisplayOptions] = useState<DiffDisplayOptions>(DEFAULT_DIFF_DISPLAY_OPTIONS);
   const viewState = getGitViewState(props.selectedRootName, props.controller);
+  const displayOptions = props.diffDisplayOptions ?? localDisplayOptions;
+  const toggleDisplayOption = useCallback((key: DiffDisplayOptionKey) => {
+    if (props.onToggleDiffDisplayOption !== undefined) {
+      props.onToggleDiffDisplayOption(key);
+      return;
+    }
+    setLocalDisplayOptions((current) => ({ ...current, [key]: !current[key] }));
+  }, [props.onToggleDiffDisplayOption]);
   const diffViewer = useWorkspaceDiffViewer({
     enabled: props.open,
     hostBridge: props.hostBridge,
+    ignoreWhitespaceChanges: displayOptions.hideWhitespace,
     repoPath: props.selectedRootPath,
     scope,
     status: props.controller.status,
@@ -793,7 +883,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
   const busy = props.controller.loading || props.controller.pendingAction !== null;
   const expanded = props.expanded ?? false;
   const diffStyle = props.diffStyle ?? "unified";
-  const effectiveDiffStyle = expanded ? diffStyle : "unified";
+  const effectiveDiffStyle = diffStyle;
   const canResize = (props.canResize ?? true) && !expanded;
   const isResizing = props.isResizing ?? false;
   const selectedDiffPath = props.selectedDiffPath ?? null;
@@ -802,6 +892,39 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
     () => refreshSidebar(props.controller, diffViewer.refresh),
     [diffViewer.refresh, props.controller],
   );
+  const collapseAllDiffs = useCallback(() => {
+    setCollapseAllSignal((current) => current + 1);
+  }, []);
+  const copyGitApplyCommand = useCallback(async () => {
+    if (props.selectedRootPath === null) {
+      return;
+    }
+    setActionError(null);
+    setCopyGitApplyPending(true);
+    try {
+      const diffs = await Promise.all(diffViewer.items.map(async (item) => {
+        if (isLoadedWorkspaceDiff(item)) {
+          return item.diff;
+        }
+        const output = await props.hostBridge.git.getDiff({
+          repoPath: props.selectedRootPath!,
+          path: item.path,
+          staged: item.staged,
+          ignoreWhitespaceChanges: displayOptions.hideWhitespace,
+        });
+        return output.diff;
+      }));
+      const patchText = diffs.filter(isPatchDiff).map((diff) => diff.trimEnd()).join("\n");
+      if (patchText.length === 0) {
+        throw new Error("当前分组没有可复制的补丁内容。");
+      }
+      await writeClipboardText(createGitApplyCommand(patchText));
+    } catch (error) {
+      setActionError(toErrorMessage(error));
+    } finally {
+      setCopyGitApplyPending(false);
+    }
+  }, [diffViewer.items, displayOptions.hideWhitespace, props.hostBridge.git, props.selectedRootPath]);
 
   useEffect(() => {
     onDiffItemsChange?.(diffViewer.items);
@@ -971,7 +1094,12 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
         onRefresh={props.controller.refresh}
         diffStyle={effectiveDiffStyle}
         onToggleDiffStyle={props.onToggleDiffStyle}
-        allowDiffStyleToggle={expanded}
+        displayOptions={displayOptions}
+        onToggleDisplayOption={toggleDisplayOption}
+        allowDiffStyleToggle={true}
+        copyGitApplyPending={copyGitApplyPending}
+        onCollapseAllDiffs={collapseAllDiffs}
+        onCopyGitApplyCommand={copyGitApplyCommand}
       />
       <DiffSidebarState viewState={viewState} />
     </>
@@ -989,7 +1117,12 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
         onScopeChange={setScope}
         diffStyle={effectiveDiffStyle}
         onToggleDiffStyle={props.onToggleDiffStyle}
-        allowDiffStyleToggle={expanded}
+        displayOptions={displayOptions}
+        onToggleDisplayOption={toggleDisplayOption}
+        allowDiffStyleToggle={true}
+        copyGitApplyPending={copyGitApplyPending}
+        onCollapseAllDiffs={collapseAllDiffs}
+        onCopyGitApplyCommand={copyGitApplyCommand}
       />
       <div className="workspace-diff-sidebar-content workspace-diff-sidebar-content-stream">
         {props.controller.notice !== null ? (
@@ -1007,6 +1140,8 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
         ) : (
           <WorkspaceDiffViewer
             busy={busy}
+            collapseAllSignal={collapseAllSignal}
+            displayOptions={displayOptions}
             error={diffViewer.error}
             items={diffViewer.items}
             loading={diffViewer.loading}
