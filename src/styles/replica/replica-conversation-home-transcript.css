@@ -603,7 +603,12 @@
 }
 
 .home-assistant-transcript-detail-panel[data-variant="diffSummary"] {
-  padding: 14px;
+  width: min(720px, 100%);
+  margin: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: none;
 }
 
 .home-assistant-transcript-detail-panel[data-variant="fileDiff"] {
@@ -764,15 +769,24 @@
 .home-turn-diff-summary {
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
 .home-turn-diff-summary-header {
   min-width: 0;
-  display: flex;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-light);
+  padding: 0 16px;
+}
+
+.home-turn-diff-summary-title-wrap {
+  min-width: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
 }
 
 .home-turn-diff-summary-title {
@@ -780,27 +794,92 @@
   color: var(--text-main);
   font-size: var(--app-ui-font-size-base);
   font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.home-turn-diff-summary .workspace-diff-file-row-summary {
+  gap: 6px;
+  padding: 0;
+  background: transparent;
+}
+
+.home-turn-diff-summary-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--text-muted);
+}
+
+.home-turn-diff-summary-action {
+  min-width: 0;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0;
+  font-size: var(--app-ui-font-size-md);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.home-turn-diff-summary-action-disabled {
+  opacity: 0.72;
+}
+
+.home-turn-diff-summary-icon-action {
+  width: 30px;
+  cursor: pointer;
+}
+
+.home-turn-diff-summary-icon-action:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+.home-turn-diff-summary-action-icon {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
 }
 
 .home-turn-diff-summary-list {
   max-height: 320px;
   overflow: auto;
-  border: 1px solid var(--border-light);
-  border-radius: 14px;
   background: var(--surface-panel);
 }
 
 .home-turn-diff-summary-row {
   min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
 }
 
 .home-turn-diff-summary-row + .home-turn-diff-summary-row {
   border-top: 1px solid var(--border-light);
+}
+
+.home-turn-diff-summary-row-trigger {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-main);
+  padding: 0 12px 0 16px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.home-turn-diff-summary-row-trigger:hover {
+  background: var(--surface-hover);
 }
 
 .home-turn-diff-summary-row-title {
@@ -810,6 +889,70 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--app-ui-font-size-base);
+  line-height: 1.35;
+}
+
+.home-turn-diff-summary-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--text-subtle);
+}
+
+.home-turn-diff-summary-dot[data-kind="add"] {
+  background: #72b7ff;
+}
+
+.home-turn-diff-summary-dot[data-kind="delete"] {
+  background: #ff6f7a;
+}
+
+.home-turn-diff-summary-row-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
+}
+
+.home-turn-diff-summary-row-body {
+  min-width: 0;
+  overflow: hidden;
+  border-top: 1px solid var(--border-light);
+}
+
+.home-turn-diff-summary-row-body .workspace-diff-code-scroll,
+.home-turn-diff-summary-row-body .workspace-diff-raw {
+  max-height: 314px;
+}
+
+.home-turn-diff-summary-row-body .workspace-diff-code-horizontal-scroll {
+  min-height: 14px;
+}
+
+.home-turn-diff-summary-row-body .workspace-diff-code-horizontal-spacer {
+  height: 12px;
+}
+
+.home-turn-diff-summary-row-body .workspace-diff-hunk {
+  padding: 4px 0;
+}
+
+.home-turn-diff-summary-row-body .workspace-diff-code-row,
+.home-turn-diff-summary-row-body .workspace-diff-raw-content {
+  line-height: 1.65;
+}
+
+.home-turn-diff-summary-row-body .workspace-diff-code-row {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.home-turn-diff-summary-row-body .workspace-diff-line-number {
+  padding: 0 9px;
+}
+
+.home-turn-diff-summary-row-body .workspace-diff-code-content,
+.home-turn-diff-summary-row-body .workspace-diff-collapsed-pill {
+  padding: 0 12px;
 }
 
 .home-turn-diff-summary-empty {

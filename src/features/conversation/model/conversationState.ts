@@ -20,6 +20,14 @@ import type { Turn } from "../../../protocol/generated/v2/Turn";
 
 export const MAX_MCP_PROGRESS_MESSAGES_PER_ITEM = 50;
 
+const DEV_NULL_PATH = "/dev/null";
+const RAW_DIFF_FALLBACK_MESSAGES = new Set([
+  "当前没有可显示的差异。",
+  "空文件暂时没有可显示的差异。",
+  "目录变更暂不支持内联预览。",
+  "该文件不是 UTF-8 文本，无法显示预览。",
+]);
+
 function toIsoFromUnixSeconds(value: number): string {
   return new Date(value * 1000).toISOString();
 }
@@ -73,6 +81,83 @@ export function createItemState(item: ThreadItem) {
   };
 }
 
+function splitRawLines(raw: string): ReadonlyArray<string> {
+  const lines = raw.split(/\r?\n/);
+  return raw.endsWith("\n") ? lines.slice(0, -1) : lines;
+}
+
+function formatDiffPath(prefix: "a" | "b", path: string): string {
+  return `${prefix}/${path.replace(/^[\\/]+/, "")}`;
+}
+
+function createPlainTextDiffHunk(diff: string, kind: "add" | "delete"): string {
+  const lines = splitRawLines(diff);
+  if (kind === "add") {
+    return [
+      `@@ -0,0 +1,${lines.length} @@`,
+      ...lines.map((line) => `+${line}`),
+    ].join("\n");
+  }
+  return [
+    `@@ -1,${lines.length} +0,0 @@`,
+    ...lines.map((line) => `-${line}`),
+  ].join("\n");
+}
+
+function normalizeFileChangeDiffBody(change: FileUpdateChange, diff: string): string {
+  if (/^@@ /m.test(diff)) {
+    return diff;
+  }
+  if (change.kind.type === "add") {
+    return createPlainTextDiffHunk(diff, "add");
+  }
+  if (change.kind.type === "delete") {
+    return createPlainTextDiffHunk(diff, "delete");
+  }
+  return diff;
+}
+
+function createFileChangeDiffSection(change: FileUpdateChange): string | null {
+  const diff = change.diff;
+  if (diff.trim().length === 0 || RAW_DIFF_FALLBACK_MESSAGES.has(diff.trim())) {
+    return null;
+  }
+  if (/^diff --git /m.test(diff)) {
+    return diff;
+  }
+
+  const oldPath = change.kind.type === "add"
+    ? DEV_NULL_PATH
+    : change.kind.type === "update" && change.kind.move_path !== null
+      ? change.kind.move_path
+      : change.path;
+  const newPath = change.kind.type === "delete" ? DEV_NULL_PATH : change.path;
+  const oldHeaderPath = oldPath === DEV_NULL_PATH ? formatDiffPath("a", change.path) : formatDiffPath("a", oldPath);
+  const newHeaderPath = newPath === DEV_NULL_PATH ? formatDiffPath("b", change.path) : formatDiffPath("b", newPath);
+  return [
+    `diff --git ${oldHeaderPath} ${newHeaderPath}`,
+    `--- ${oldPath === DEV_NULL_PATH ? DEV_NULL_PATH : oldHeaderPath}`,
+    `+++ ${newPath === DEV_NULL_PATH ? DEV_NULL_PATH : newHeaderPath}`,
+    normalizeFileChangeDiffBody(change, diff),
+  ].join("\n");
+}
+
+function deriveTurnDiffFromItems(items: ReadonlyArray<ThreadItem>): string | null {
+  const sections: string[] = [];
+  for (const item of items) {
+    if (item.type !== "fileChange") {
+      continue;
+    }
+    for (const change of item.changes) {
+      const section = createFileChangeDiffSection(change);
+      if (section !== null) {
+        sections.push(section);
+      }
+    }
+  }
+  return sections.length === 0 ? null : sections.join("\n");
+}
+
 export function createSkeletonItem(itemId: string, target: ConversationTextDelta["target"] | ConversationOutputDelta["target"], cwd: string | null): ThreadItem {
   if (target === "commandExecution") {
     return {
@@ -113,7 +198,7 @@ function createTurnState(turn: Turn, params: ConversationTurnParams | null): Con
     planAvailable: false,
     planExplanation: null,
     planSteps: [],
-    diff: null,
+    diff: deriveTurnDiffFromItems(turn.items),
     rawResponses: [],
     notices: [],
     reviewStates: [],
@@ -213,7 +298,7 @@ function mergeSparseTurnState(currentTurn: ConversationTurnState, turn: Turn): C
     planAvailable: currentTurn.planAvailable,
     planExplanation: currentTurn.planExplanation,
     planSteps: currentTurn.planSteps,
-    diff: currentTurn.diff,
+    diff: currentTurn.diff ?? nextTurn.diff,
     rawResponses: currentTurn.rawResponses,
     notices: currentTurn.notices,
     reviewStates: currentTurn.reviewStates,

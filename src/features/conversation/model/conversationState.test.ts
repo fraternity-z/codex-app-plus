@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ConversationState, ConversationTurnState } from "../../../domain/conversation";
+import type { Thread } from "../../../protocol/generated/v2/Thread";
 import type { Turn } from "../../../protocol/generated/v2/Turn";
 import type { ThreadTokenUsage } from "../../../protocol/generated/v2/ThreadTokenUsage";
 import {
@@ -86,36 +87,72 @@ function createNotificationTurn(overrides: Partial<Turn> = {}): Turn {
   };
 }
 
+function createThread(overrides: Partial<Thread> = {}): Thread {
+  return {
+    id: "thread-1",
+    forkedFromId: null,
+    sessionId: "session-1",
+    preview: "thread preview",
+    ephemeral: false,
+    modelProvider: "openai",
+    createdAt: 1,
+    updatedAt: 2,
+    status: { type: "idle" },
+    path: null,
+    cwd: "E:/code/codex-app-plus",
+    cliVersion: "0.1.0",
+    source: "appServer",
+    threadSource: null,
+    agentNickname: null,
+    agentRole: null,
+    gitInfo: null,
+    name: "Thread",
+    turns: [],
+    ...overrides,
+  };
+}
+
 describe("conversationState", () => {
 
   it("preserves branch when creating and hydrating from thread metadata", () => {
-    const thread = {
-      id: "thread-1",
-      forkedFromId: null,
-      sessionId: "session-1",
-      preview: "thread preview",
-      ephemeral: false,
-      modelProvider: "openai",
-      createdAt: 1,
-      updatedAt: 2,
-      status: { type: "idle" as const },
-      path: null,
-      cwd: "E:/code/codex-app-plus",
-      cliVersion: "0.1.0",
-      source: "appServer" as const,
-      threadSource: null,
-      agentNickname: null,
-      agentRole: null,
-      gitInfo: { sha: null, branch: "feature/thread-branch", originUrl: null },
-      name: "Thread",
-      turns: [],
-    };
+    const thread = createThread({ gitInfo: { sha: null, branch: "feature/thread-branch", originUrl: null } });
 
     const conversation = createConversationFromThread(thread, { resumeState: "resumed" });
     const hydrated = hydrateConversationFromThread(conversation, { ...thread, gitInfo: { sha: null, branch: "feature/next-branch", originUrl: null } });
 
     expect(conversation.branch).toBe("feature/thread-branch");
     expect(hydrated.branch).toBe("feature/next-branch");
+  });
+
+  it("rebuilds turn diff snapshots from persisted file change items", () => {
+    const thread = createThread({
+      turns: [
+        createNotificationTurn({
+          items: [
+            {
+              type: "fileChange",
+              id: "file-change-1",
+              status: "completed",
+              changes: [
+                {
+                  path: "src/App.tsx",
+                  kind: { type: "update", move_path: null },
+                  diff: ["@@ -1 +1,2 @@", "-old", "+new", "+another"].join("\n"),
+                },
+              ],
+            },
+          ],
+        }),
+      ],
+    });
+
+    const conversation = createConversationFromThread(thread, { resumeState: "resumed" });
+    const diff = conversation.turns[0]?.diff ?? "";
+
+    expect(diff).toContain("diff --git a/src/App.tsx b/src/App.tsx");
+    expect(diff).toContain("--- a/src/App.tsx");
+    expect(diff).toContain("+++ b/src/App.tsx");
+    expect(diff).toContain("+another");
   });
 
   it("sets token usage without changing the existing turn content", () => {

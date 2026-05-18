@@ -13,13 +13,33 @@ export interface TurnDiffFileSummary {
   readonly deletions: number;
 }
 
+export interface TurnDiffFileDetails extends TurnDiffFileSummary {
+  readonly diff: string;
+}
+
 export interface TurnDiffSummary {
   readonly files: ReadonlyArray<TurnDiffFileSummary>;
   readonly additions: number;
   readonly deletions: number;
 }
 
+export interface TurnDiffDetails {
+  readonly files: ReadonlyArray<TurnDiffFileDetails>;
+  readonly additions: number;
+  readonly deletions: number;
+}
+
 export function parseTurnDiffSummary(diffText: string): TurnDiffSummary {
+  const details = parseTurnDiffDetails(diffText);
+  const files = details.files.map(({ path, additions, deletions }) => ({ path, additions, deletions }));
+  return {
+    files,
+    additions: details.additions,
+    deletions: details.deletions,
+  };
+}
+
+export function parseTurnDiffDetails(diffText: string): TurnDiffDetails {
   const files = summarizeDiffSections(splitDiffSections(diffText));
   return {
     files,
@@ -28,23 +48,25 @@ export function parseTurnDiffSummary(diffText: string): TurnDiffSummary {
   };
 }
 
-function summarizeDiffSections(sections: ReadonlyArray<ReadonlyArray<string>>): ReadonlyArray<TurnDiffFileSummary> {
-  const summaries = new Map<string, TurnDiffFileSummary>();
+function summarizeDiffSections(sections: ReadonlyArray<ReadonlyArray<string>>): ReadonlyArray<TurnDiffFileDetails> {
+  const summaries = new Map<string, TurnDiffFileDetails>();
   const order: Array<string> = [];
 
   for (const section of sections) {
     const path = resolveSectionPath(section);
-    const metrics = parseUnifiedDiff(section.join("\n"));
+    const diff = section.join("\n");
+    const metrics = parseUnifiedDiff(diff);
     const current = summaries.get(path);
     if (current === undefined) {
       order.push(path);
-      summaries.set(path, { path, additions: metrics.additions, deletions: metrics.deletions });
+      summaries.set(path, { path, additions: metrics.additions, deletions: metrics.deletions, diff });
       continue;
     }
     summaries.set(path, {
       path,
       additions: current.additions + metrics.additions,
       deletions: current.deletions + metrics.deletions,
+      diff: `${current.diff.trimEnd()}\n${diff}`,
     });
   }
 
