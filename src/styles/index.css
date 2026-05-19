@@ -43,6 +43,9 @@
   --app-terminal-font-size: 13px;
   --replica-code-font-family: var(--app-code-font-family);
   --replica-code-font-size: var(--app-code-font-size);
+  --replica-sidebar-transition-duration: 260ms;
+  --replica-sidebar-fade-duration: 180ms;
+  --replica-sidebar-transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
   --app-code-style-surface: #0f1720;
   --app-code-style-surface-elevated: #162230;
   --app-code-style-border: #26384a;

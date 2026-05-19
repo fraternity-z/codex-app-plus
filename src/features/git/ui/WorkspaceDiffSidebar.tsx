@@ -82,6 +82,7 @@ interface WorkspaceDiffSidebarProps {
   readonly localCodeComments?: ReadonlyArray<LocalCodeComment>;
   readonly onCreateLocalCodeComment?: (input: CreateLocalCodeCommentInput) => void;
   readonly onDeleteLocalCodeComment?: (commentId: string) => void;
+  readonly closing?: boolean;
   readonly onResizeStart?: (event: ReactMouseEvent) => void;
   readonly canResize?: boolean;
   readonly isResizing?: boolean;
@@ -992,9 +993,12 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
   if (!props.open || props.selectedRootPath === null) {
     return null;
   }
-  const asideClass = expanded
-    ? "workspace-diff-sidebar workspace-diff-sidebar-open workspace-diff-sidebar-expanded"
-    : "workspace-diff-sidebar workspace-diff-sidebar-open";
+  const asideClass = [
+    "workspace-diff-sidebar",
+    "workspace-diff-sidebar-open",
+    expanded ? "workspace-diff-sidebar-expanded" : "",
+    props.closing === true ? "workspace-diff-sidebar-closing" : "",
+  ].filter(Boolean).join(" ");
   const reviewContent = viewState !== null ? (
     <>
       <DiffReviewToolbar

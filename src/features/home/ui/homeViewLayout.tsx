@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { TimelineEntry } from "../../../domain/types";
 import type { GitWorkspaceDiffOutput } from "../../../bridge/types";
@@ -13,10 +13,13 @@ import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
 
 const NOOP_ARCHIVE_THREAD = async () => undefined;
 const NOOP_REGENERATE_EDITED_MESSAGE = async () => undefined;
+const DIFF_SIDEBAR_TRANSITION_MS = 260;
 
 export interface HomeViewUiState {
   readonly canShowDiffSidebar: boolean;
   readonly closeDiffSidebar: () => void;
+  readonly diffSidebarClosing: boolean;
+  readonly diffSidebarOpen: boolean;
   readonly hideTerminalPanel: () => void;
   readonly openDiffSidebar: () => void;
   readonly openTerminal: boolean;
@@ -27,26 +30,75 @@ export interface HomeViewUiState {
 
 export function useHomeViewUiState(selectedRootPath: string | null, sidebarCollapsed: boolean): HomeViewUiState {
   const [diffSidebarOpen, setDiffSidebarOpen] = useState(false);
+  const [diffSidebarClosing, setDiffSidebarClosing] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(false);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const clearCloseTimer = useCallback(() => {
+    if (closeTimerRef.current !== null && typeof window !== "undefined") {
+      window.clearTimeout(closeTimerRef.current);
+    }
+    closeTimerRef.current = null;
+  }, []);
+
+  const startCloseAnimation = useCallback(() => {
+    clearCloseTimer();
+    if (typeof window === "undefined") {
+      setDiffSidebarClosing(false);
+      return;
+    }
+    setDiffSidebarClosing(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      setDiffSidebarClosing(false);
+    }, DIFF_SIDEBAR_TRANSITION_MS);
+  }, [clearCloseTimer]);
+
+  const openDiffSidebar = useCallback(() => {
+    clearCloseTimer();
+    setDiffSidebarClosing(false);
+    setDiffSidebarOpen(true);
+  }, [clearCloseTimer]);
+
+  const closeDiffSidebar = useCallback(() => {
+    if (!diffSidebarOpen && !diffSidebarClosing) {
+      return;
+    }
+    setDiffSidebarOpen(false);
+    startCloseAnimation();
+  }, [diffSidebarClosing, diffSidebarOpen, startCloseAnimation]);
+
+  const toggleDiffSidebar = useCallback(() => {
+    if (diffSidebarOpen) {
+      closeDiffSidebar();
+      return;
+    }
+    openDiffSidebar();
+  }, [closeDiffSidebar, diffSidebarOpen, openDiffSidebar]);
 
   useEffect(() => {
     if (selectedRootPath === null) {
+      clearCloseTimer();
       setDiffSidebarOpen(false);
+      setDiffSidebarClosing(false);
     }
-  }, [selectedRootPath]);
+  }, [clearCloseTimer, selectedRootPath]);
+
+  useEffect(() => clearCloseTimer, [clearCloseTimer]);
+
+  const canShowDiffSidebar = (diffSidebarOpen || diffSidebarClosing) && selectedRootPath !== null;
 
   return {
-    canShowDiffSidebar: diffSidebarOpen && selectedRootPath !== null,
-    closeDiffSidebar: useCallback(() => setDiffSidebarOpen(false), []),
+    canShowDiffSidebar,
+    closeDiffSidebar,
+    diffSidebarClosing,
+    diffSidebarOpen: diffSidebarOpen && selectedRootPath !== null,
     hideTerminalPanel: useCallback(() => setTerminalOpen(false), []),
-    openDiffSidebar: useCallback(() => setDiffSidebarOpen(true), []),
+    openDiffSidebar,
     openTerminal: terminalOpen,
     showTerminalPanel: useCallback(() => setTerminalOpen(true), []),
     sidebarCollapsed,
-    toggleDiffSidebar: useCallback(
-      () => setDiffSidebarOpen((currentValue) => !currentValue),
-      [],
-    ),
+    toggleDiffSidebar,
   };
 }
 

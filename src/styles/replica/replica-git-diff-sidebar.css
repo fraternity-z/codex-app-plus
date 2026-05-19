@@ -5,13 +5,48 @@
   grid-row: 1 / -1;
   align-self: stretch;
   z-index: 30;
-  width: var(--replica-diff-sidebar-width);
+  width: 100%;
   height: auto;
   max-height: none;
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--border-light);
   overflow: hidden;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    transform var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    visibility 0s linear 0s;
+}
+
+.workspace-diff-sidebar-open {
+  animation: replica-sidebar-fade-in var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing) both;
+}
+
+.workspace-diff-sidebar-closing {
+  animation: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(8px);
+  visibility: hidden;
+  transition:
+    opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    transform var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    visibility 0s linear var(--replica-sidebar-transition-duration);
+}
+
+@keyframes replica-sidebar-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .workspace-diff-sidebar-resize {

@@ -4,7 +4,7 @@
   min-height: 100%;
   height: 100%;
   background: var(--surface-canvas);
-  transition: grid-template-columns 0.3s ease;
+  transition: grid-template-columns var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing);
 }
 
 .settings-layout.settings-layout-sidebar-collapsed {
@@ -17,16 +17,47 @@
   padding: 12px 5px 18px;
   min-width: 0;
   overflow: hidden;
-  transition: padding 0.3s ease, border-color 0.3s ease;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    padding var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    border-color var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    visibility 0s linear 0s;
 }
 
 .settings-layout-sidebar-collapsed .settings-sidebar {
   border-right: 0;
   padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    padding var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    border-color var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    visibility 0s linear var(--replica-sidebar-transition-duration);
+}
+
+.settings-sidebar > * {
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    transform var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    visibility 0s linear 0s;
 }
 
 .settings-layout-sidebar-collapsed .settings-sidebar > * {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-8px);
+  visibility: hidden;
+  transition:
+    opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    transform var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    visibility 0s linear var(--replica-sidebar-transition-duration);
 }
 
 .settings-back-app {

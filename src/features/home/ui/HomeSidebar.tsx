@@ -448,7 +448,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
   ), [props.hostBridge.app]);
 
   return (
-    <aside className={sidebarClassName}>
+    <aside className={sidebarClassName} aria-hidden={collapsed}>
       {settingsMenuOpen ? <button type="button" className="settings-backdrop" onClick={onDismissSettingsMenu} aria-label={t("home.sidebar.closeMenu")} /> : null}
       <SidebarNav
         activeItem={props.activeNavItem ?? null}

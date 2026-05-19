@@ -339,11 +339,13 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
     [props, gitController, launchState, filteredActivities, retryInfo, uiState.openTerminal, uiState.canShowDiffSidebar, toggleTerminal, uiState.toggleDiffSidebar, handleOpenPreviewTarget, diffLayout, diffItems],
   );
   const mainContentOverride = props.mainContentOverride ?? null;
+  const diffSidebarOpen = mainContentOverride === null && uiState.diffSidebarOpen;
+  const diffSidebarVisible = mainContentOverride === null && uiState.canShowDiffSidebar;
 
   return (
     <div
-      className={createReplicaAppClassName(mainContentOverride === null && uiState.canShowDiffSidebar, diffLayout.expanded)}
-      style={createReplicaAppStyle(mainContentOverride === null && uiState.canShowDiffSidebar, diffLayout.width)}
+      className={createReplicaAppClassName(diffSidebarOpen, diffLayout.expanded)}
+      style={createReplicaAppStyle(diffSidebarOpen, diffLayout.width)}
     >
       <HomeSidebar {...sidebarProps} />
       {mainContentOverride === null ? (
@@ -358,7 +360,7 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
           {mainContentOverride}
         </main>
       )}
-      {mainContentOverride === null && uiState.canShowDiffSidebar ? (
+      {diffSidebarVisible ? (
         <WorkspaceDiffSidebarHost
           hostBridge={props.hostBridge}
           controller={gitController}
@@ -379,6 +381,7 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
           selectedDiffPath={diffLayout.selectedDiffPath}
           onSelectDiffPath={diffLayout.setSelectedDiffPath}
           onDiffItemsChange={setDiffItems}
+          closing={uiState.diffSidebarClosing}
           browserOpenRequest={browserOpenRequest}
           previewOpenRequest={previewOpenRequest}
           localCodeComments={localCodeComments}

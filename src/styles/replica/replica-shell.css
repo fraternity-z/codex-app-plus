@@ -4,11 +4,11 @@
   --replica-top-toolbar-height: 38px;
   position: relative;
   display: grid;
-  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr);
+  grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) 0;
   grid-template-rows: minmax(0, 1fr) auto;
   height: 100%;
   background: var(--surface-canvas);
-  transition: grid-template-columns 0.3s ease;
+  transition: grid-template-columns var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing);
 }
 
 .replica-app-with-diff-sidebar {
@@ -16,7 +16,7 @@
 }
 
 .replica-app:has(.sidebar-collapsed) {
-  grid-template-columns: 0 minmax(0, 1fr);
+  grid-template-columns: 0 minmax(0, 1fr) 0;
 }
 
 .replica-app-with-diff-sidebar:has(.sidebar-collapsed) {
@@ -35,9 +35,17 @@
   right: 0;
   height: var(--replica-top-toolbar-height);
   border: 1px solid var(--border-light);
+  border-bottom: 0;
   border-radius: 8px 8px 0 0;
   pointer-events: none;
   z-index: 60;
+  transition:
+    left var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    border-color var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing);
+}
+
+.replica-app-with-diff-sidebar::before {
+  border-bottom: 1px solid var(--border-light);
 }
 
 .replica-app:has(.sidebar-collapsed)::before {
@@ -54,10 +62,15 @@
   background: var(--border-light);
   pointer-events: none;
   z-index: 60;
+  opacity: 1;
+  transition:
+    left var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing);
 }
 
 .replica-app:has(.sidebar-collapsed)::after {
-  display: none;
+  left: 0;
+  opacity: 0;
 }
 
 .replica-sidebar {
@@ -69,7 +82,12 @@
   background: var(--surface-panel);
   min-width: 0;
   overflow: hidden;
-  transition: all 0.3s ease;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    padding var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    visibility 0s linear 0s;
   grid-row: 1 / -1;
 }
 
@@ -77,6 +95,13 @@
   padding: 0;
   overflow: hidden;
   width: 0;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    padding var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    visibility 0s linear var(--replica-sidebar-transition-duration);
 }
 .sidebar-nav {
   display: grid;
@@ -96,10 +121,29 @@
   font-size: var(--app-ui-font-size-base);
   text-align: left;
 }
+.sidebar-nav,
+.thread-section,
+.settings-slot {
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    transform var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    visibility 0s linear 0s;
+}
+
 .sidebar-collapsed .sidebar-nav,
 .sidebar-collapsed .thread-section,
 .sidebar-collapsed .settings-slot {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-8px);
+  visibility: hidden;
+  transition:
+    opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
+    transform var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing),
+    visibility 0s linear var(--replica-sidebar-transition-duration);
 }
 .sidebar-nav-item:hover,
 .sidebar-settings:hover {
@@ -517,7 +561,7 @@
 @media (max-width: 1080px) {
   .replica-app {
     --replica-sidebar-width: 236px;
-    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr);
+    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) 0;
   }
 
   .replica-app-with-diff-sidebar {
