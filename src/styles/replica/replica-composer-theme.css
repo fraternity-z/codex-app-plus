@@ -139,9 +139,12 @@ html[data-theme="dark"] .composer-area {
 .composer-queue-promote:hover,
 .composer-attachment-item:hover,
 .composer-attachment-row:hover,
-.composer-attachment-folder-trigger:hover,
-.attachment-clip-remove:hover {
+.composer-attachment-folder-trigger:hover {
   background: var(--surface-hover);
+}
+
+.attachment-clip-remove:hover {
+  background: transparent;
 }
 
 .composer-attachment-service-menu {
