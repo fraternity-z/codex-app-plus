@@ -125,7 +125,6 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
     selectedRootPath: props.selectedRootPath,
   });
   const { attachments, clearAttachments, openFilePicker, removeAttachment, handlePaste } = useComposerAttachments({
-    selectedThreadId: props.selectedThreadId,
     onInsertFilePaths: appendWorkspaceFilePaths,
   });
   const localCodeCommentAttachments = props.localCodeCommentAttachments ?? [];

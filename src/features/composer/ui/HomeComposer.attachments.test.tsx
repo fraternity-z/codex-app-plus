@@ -1,4 +1,4 @@
-import { createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, createEvent, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { useState, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -90,14 +90,18 @@ function createCommandBridge(): ComposerCommandBridge {
 
 function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>) {
   const onSendTurn = vi.fn().mockResolvedValue(undefined);
+  const controls: { setSelectedThreadId?: (threadId: string | null) => void } = {};
   const {
     inputText: initialInputText = "",
+    selectedThreadId: initialSelectedThreadId = null,
     onInputChange: _ignoredOnInputChange,
     ...composerOverrides
   } = overrides ?? {};
 
   function ComposerHarness(): JSX.Element {
     const [inputText, setInputText] = useState(initialInputText);
+    const [selectedThreadId, setSelectedThreadId] = useState(initialSelectedThreadId);
+    controls.setSelectedThreadId = setSelectedThreadId;
 
     return (
       <HomeComposer
@@ -112,7 +116,7 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
         composerEnterBehavior="enter"
         permissionLevel="default"
         gitController={createGitController()}
-        selectedThreadId={null}
+        selectedThreadId={selectedThreadId}
         selectedThreadBranch={null}
         isResponding={false}
         interruptPending={false}
@@ -148,7 +152,15 @@ function renderComposer(overrides?: Partial<ComponentProps<typeof HomeComposer>>
     { wrapper: createI18nWrapper("en-US") },
   );
 
-  return { onSendTurn };
+  return {
+    onSendTurn,
+    setSelectedThreadId: (threadId: string | null) => {
+      if (controls.setSelectedThreadId === undefined) {
+        throw new Error("Composer harness is not mounted");
+      }
+      act(() => controls.setSelectedThreadId?.(threadId));
+    },
+  };
 }
 
 beforeEach(() => {
@@ -238,6 +250,41 @@ describe("HomeComposer attachments", () => {
 
     await waitFor(() => expect(screen.getByText("clipboard.png")).toBeInTheDocument());
     expect((textarea as HTMLTextAreaElement).value).toBe("");
+  });
+
+  it("keeps pasted image clips when switching threads", async () => {
+    const fileReader = {
+      result: null as string | null,
+      error: null,
+      onload: null as null | (() => void),
+      onerror: null as null | (() => void),
+      readAsDataURL() {
+        this.result = "data:image/png;base64,aGVsbG8=";
+        this.onload?.();
+      },
+    };
+    vi.stubGlobal("FileReader", vi.fn(() => fileReader));
+    const { setSelectedThreadId } = renderComposer({
+      inputText: "keep this draft",
+      selectedThreadId: "thread-1",
+    });
+
+    const textarea = screen.getByPlaceholderText("Describe the task, ask a question, or queue a follow-up");
+    const file = new File(["hello"], "clipboard.png", { type: "image/png" });
+    const pasteEvent = createEvent.paste(textarea);
+    Object.defineProperty(pasteEvent, "clipboardData", {
+      value: { items: [{ type: "image/png", getAsFile: () => file }] },
+    });
+
+    fireEvent(textarea, pasteEvent);
+
+    await waitFor(() => expect(screen.getByText("clipboard.png")).toBeInTheDocument());
+    expect((textarea as HTMLTextAreaElement).value).toBe("keep this draft");
+
+    setSelectedThreadId("thread-2");
+
+    expect(screen.getByText("clipboard.png")).toBeInTheDocument();
+    expect((textarea as HTMLTextAreaElement).value).toBe("keep this draft");
   });
 
   it("keeps managed file chips when send fails and preserves them for retry", async () => {

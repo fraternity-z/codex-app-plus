@@ -1,5 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { useCallback, useEffect, useRef, useState, type ClipboardEvent } from "react";
+import { useCallback, useState, type ClipboardEvent } from "react";
 import {
   createComposerAttachmentsFromPaths,
   partitionComposerPaths,
@@ -10,7 +10,6 @@ import type { ComposerAttachment } from "../../../domain/timeline";
 
 interface UseComposerAttachmentsOptions {
   readonly onInsertFilePaths?: (paths: ReadonlyArray<string>) => void;
-  readonly selectedThreadId: string | null;
 }
 
 interface ComposerAttachmentsState {
@@ -27,15 +26,6 @@ const DIALOG_TITLE = "Add files and photos";
 export function useComposerAttachments(options: UseComposerAttachmentsOptions): ComposerAttachmentsState {
   const { notifyError } = useUiBannerNotifications("composer-attachments");
   const [attachments, setAttachments] = useState<ReadonlyArray<ComposerAttachment>>([]);
-  const previousThreadIdRef = useRef(options.selectedThreadId);
-
-  useEffect(() => {
-    if (previousThreadIdRef.current === options.selectedThreadId) {
-      return;
-    }
-    previousThreadIdRef.current = options.selectedThreadId;
-    setAttachments([]);
-  }, [options.selectedThreadId]);
 
   const appendPaths = useCallback((paths: ReadonlyArray<string>) => {
     if (paths.length === 0) {
