@@ -19,6 +19,7 @@ export interface HomeViewUiState {
   readonly canShowDiffSidebar: boolean;
   readonly closeDiffSidebar: () => void;
   readonly diffSidebarClosing: boolean;
+  readonly diffSidebarOpening: boolean;
   readonly diffSidebarOpen: boolean;
   readonly hideTerminalPanel: () => void;
   readonly openDiffSidebar: () => void;
@@ -31,8 +32,10 @@ export interface HomeViewUiState {
 export function useHomeViewUiState(selectedRootPath: string | null, sidebarCollapsed: boolean): HomeViewUiState {
   const [diffSidebarOpen, setDiffSidebarOpen] = useState(false);
   const [diffSidebarClosing, setDiffSidebarClosing] = useState(false);
+  const [diffSidebarOpening, setDiffSidebarOpening] = useState(false);
   const [terminalOpen, setTerminalOpen] = useState(false);
   const closeTimerRef = useRef<number | null>(null);
+  const openTimerRef = useRef<number | null>(null);
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimerRef.current !== null && typeof window !== "undefined") {
@@ -41,8 +44,30 @@ export function useHomeViewUiState(selectedRootPath: string | null, sidebarColla
     closeTimerRef.current = null;
   }, []);
 
+  const clearOpenTimer = useCallback(() => {
+    if (openTimerRef.current !== null && typeof window !== "undefined") {
+      window.clearTimeout(openTimerRef.current);
+    }
+    openTimerRef.current = null;
+  }, []);
+
+  const startOpenAnimation = useCallback(() => {
+    clearOpenTimer();
+    if (typeof window === "undefined") {
+      setDiffSidebarOpening(false);
+      return;
+    }
+    setDiffSidebarOpening(true);
+    openTimerRef.current = window.setTimeout(() => {
+      openTimerRef.current = null;
+      setDiffSidebarOpening(false);
+    }, DIFF_SIDEBAR_TRANSITION_MS);
+  }, [clearOpenTimer]);
+
   const startCloseAnimation = useCallback(() => {
     clearCloseTimer();
+    clearOpenTimer();
+    setDiffSidebarOpening(false);
     if (typeof window === "undefined") {
       setDiffSidebarClosing(false);
       return;
@@ -52,13 +77,16 @@ export function useHomeViewUiState(selectedRootPath: string | null, sidebarColla
       closeTimerRef.current = null;
       setDiffSidebarClosing(false);
     }, DIFF_SIDEBAR_TRANSITION_MS);
-  }, [clearCloseTimer]);
+  }, [clearCloseTimer, clearOpenTimer]);
 
   const openDiffSidebar = useCallback(() => {
     clearCloseTimer();
     setDiffSidebarClosing(false);
+    if (!diffSidebarOpen) {
+      startOpenAnimation();
+    }
     setDiffSidebarOpen(true);
-  }, [clearCloseTimer]);
+  }, [clearCloseTimer, diffSidebarOpen, startOpenAnimation]);
 
   const closeDiffSidebar = useCallback(() => {
     if (!diffSidebarOpen && !diffSidebarClosing) {
@@ -79,19 +107,25 @@ export function useHomeViewUiState(selectedRootPath: string | null, sidebarColla
   useEffect(() => {
     if (selectedRootPath === null) {
       clearCloseTimer();
+      clearOpenTimer();
       setDiffSidebarOpen(false);
       setDiffSidebarClosing(false);
+      setDiffSidebarOpening(false);
     }
-  }, [clearCloseTimer, selectedRootPath]);
+  }, [clearCloseTimer, clearOpenTimer, selectedRootPath]);
 
-  useEffect(() => clearCloseTimer, [clearCloseTimer]);
+  useEffect(() => () => {
+    clearCloseTimer();
+    clearOpenTimer();
+  }, [clearCloseTimer, clearOpenTimer]);
 
-  const canShowDiffSidebar = (diffSidebarOpen || diffSidebarClosing) && selectedRootPath !== null;
+  const canShowDiffSidebar = (diffSidebarOpen || diffSidebarClosing || diffSidebarOpening) && selectedRootPath !== null;
 
   return {
     canShowDiffSidebar,
     closeDiffSidebar,
     diffSidebarClosing,
+    diffSidebarOpening,
     diffSidebarOpen: diffSidebarOpen && selectedRootPath !== null,
     hideTerminalPanel: useCallback(() => setTerminalOpen(false), []),
     openDiffSidebar,

@@ -82,6 +82,7 @@ interface WorkspaceDiffSidebarProps {
   readonly localCodeComments?: ReadonlyArray<LocalCodeComment>;
   readonly onCreateLocalCodeComment?: (input: CreateLocalCodeCommentInput) => void;
   readonly onDeleteLocalCodeComment?: (commentId: string) => void;
+  readonly opening?: boolean;
   readonly closing?: boolean;
   readonly onResizeStart?: (event: ReactMouseEvent) => void;
   readonly canResize?: boolean;
@@ -997,6 +998,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
     "workspace-diff-sidebar",
     "workspace-diff-sidebar-open",
     expanded ? "workspace-diff-sidebar-expanded" : "",
+    props.opening === true ? "workspace-diff-sidebar-opening" : "",
     props.closing === true ? "workspace-diff-sidebar-closing" : "",
   ].filter(Boolean).join(" ");
   const reviewContent = viewState !== null ? (

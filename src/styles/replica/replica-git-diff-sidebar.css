@@ -21,7 +21,7 @@
     visibility 0s linear 0s;
 }
 
-.workspace-diff-sidebar-open {
+.workspace-diff-sidebar-opening {
   animation: replica-sidebar-fade-in var(--replica-sidebar-transition-duration) var(--replica-sidebar-transition-easing) both;
 }
 

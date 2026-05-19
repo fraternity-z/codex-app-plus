@@ -31,6 +31,7 @@ interface WorkspaceDiffSidebarHostProps {
   readonly localCodeComments?: ReadonlyArray<LocalCodeComment>;
   readonly onCreateLocalCodeComment?: (input: CreateLocalCodeCommentInput) => void;
   readonly onDeleteLocalCodeComment?: (commentId: string) => void;
+  readonly opening?: boolean;
   readonly closing?: boolean;
   readonly onResizeStart?: (event: ReactMouseEvent) => void;
   readonly canResize?: boolean;
@@ -65,6 +66,7 @@ export function WorkspaceDiffSidebarHost(props: WorkspaceDiffSidebarHostProps): 
         localCodeComments={props.localCodeComments}
         onCreateLocalCodeComment={props.onCreateLocalCodeComment}
         onDeleteLocalCodeComment={props.onDeleteLocalCodeComment}
+        opening={props.opening}
         closing={props.closing}
         onResizeStart={props.onResizeStart}
         canResize={props.canResize}

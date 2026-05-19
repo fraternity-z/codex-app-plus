@@ -184,6 +184,40 @@ describe("WorkspaceDiffSidebar", () => {
     expect(screen.getByText("当前工作区还不是 Git 仓库")).toBeInTheDocument();
   });
 
+  it("only applies the enter animation class while opening", () => {
+    const { container, rerender } = render(
+      <I18nProvider language="zh-CN" setLanguage={vi.fn()}>
+        <WorkspaceDiffSidebar
+          hostBridge={createHostBridge(vi.fn().mockResolvedValue([]))}
+          open
+          selectedRootName="codex-app-plus"
+          selectedRootPath="E:/code/project"
+          controller={createController()}
+          onClose={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(container.querySelector(".workspace-diff-sidebar-open")).not.toBeNull();
+    expect(container.querySelector(".workspace-diff-sidebar-opening")).toBeNull();
+
+    rerender(
+      <I18nProvider language="zh-CN" setLanguage={vi.fn()}>
+        <WorkspaceDiffSidebar
+          hostBridge={createHostBridge(vi.fn().mockResolvedValue([]))}
+          open
+          opening
+          selectedRootName="codex-app-plus"
+          selectedRootPath="E:/code/project"
+          controller={createController()}
+          onClose={vi.fn()}
+        />
+      </I18nProvider>,
+    );
+
+    expect(container.querySelector(".workspace-diff-sidebar-opening")).not.toBeNull();
+  });
+
   it("renders compact scope selector", () => {
     renderSidebar(
       createController({ status: createStatus({ unstaged: [{ path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" }] }) }),

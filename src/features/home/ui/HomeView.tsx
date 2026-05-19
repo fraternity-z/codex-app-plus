@@ -381,6 +381,7 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
           selectedDiffPath={diffLayout.selectedDiffPath}
           onSelectDiffPath={diffLayout.setSelectedDiffPath}
           onDiffItemsChange={setDiffItems}
+          opening={uiState.diffSidebarOpening}
           closing={uiState.diffSidebarClosing}
           browserOpenRequest={browserOpenRequest}
           previewOpenRequest={previewOpenRequest}
