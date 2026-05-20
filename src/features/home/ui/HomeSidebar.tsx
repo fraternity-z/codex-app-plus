@@ -304,6 +304,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
   const cleanupError = cleanupRetentionDays === null
     ? t("home.workspaceSection.cleanupSessionsInvalidDays")
     : null;
+  const settingsSlotClassName = settingsMenuOpen ? "settings-slot settings-slot-open" : "settings-slot";
 
   const clearSelectedThread = useCallback((threadId: string) => {
     if (threadId === selectedThreadId) {
@@ -503,7 +504,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
           onConfirm={handleConfirmCleanupSessions}
         />
       ) : null}
-      <div className="settings-slot">
+      <div className={settingsSlotClassName}>
         {settingsMenuOpen ? (
           <SettingsPopover
             authStatus={authStatus}

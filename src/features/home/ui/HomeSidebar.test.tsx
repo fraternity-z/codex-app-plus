@@ -1,5 +1,5 @@
 import { Profiler, useEffect, useState } from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../../bridge/types";
 import type { ThreadSummary } from "../../../domain/types";
@@ -96,6 +96,8 @@ function renderSidebar(threadOrThreads: ThreadSummary | ReadonlyArray<ThreadSumm
   readonly openWorkspace?: ReturnType<typeof vi.fn>;
   readonly searchCodexSessions?: ReturnType<typeof vi.fn>;
   readonly request?: ReturnType<typeof vi.fn>;
+  readonly settingsMenuOpen?: boolean;
+  readonly onOpenSettings?: () => void;
   readonly initializeStore?: (dispatch: AppStoreApi["dispatch"]) => void;
   readonly codexSessionsError?: string | null;
   readonly renderMainContainer?: boolean;
@@ -110,6 +112,7 @@ function renderSidebar(threadOrThreads: ThreadSummary | ReadonlyArray<ThreadSumm
   const openWorkspace = options?.openWorkspace ?? vi.fn().mockResolvedValue(undefined);
   const searchCodexSessions = options?.searchCodexSessions ?? vi.fn().mockResolvedValue([]);
   const request = options?.request ?? vi.fn().mockResolvedValue({});
+  const onOpenSettings = options?.onOpenSettings ?? vi.fn();
   const appServerClient = { request } as AppServerClient;
   const hostBridge = { app: { deleteCodexSession, openWorkspace, searchCodexSessions }, rpc: { request } } as unknown as HostBridge;
 
@@ -135,11 +138,11 @@ function renderSidebar(threadOrThreads: ThreadSummary | ReadonlyArray<ThreadSumm
           authLoginPending={false}
           rateLimits={null}
           account={null}
-          settingsMenuOpen={false}
+          settingsMenuOpen={options?.settingsMenuOpen ?? false}
           collapsed={false}
           onToggleSettingsMenu={vi.fn()}
           onDismissSettingsMenu={vi.fn()}
-          onOpenSettings={vi.fn()}
+          onOpenSettings={onOpenSettings}
           onOpenSkills={onOpenSkills}
           onOpenAutomation={onOpenAutomation}
           onLogin={vi.fn().mockResolvedValue(undefined)}
@@ -157,7 +160,7 @@ function renderSidebar(threadOrThreads: ThreadSummary | ReadonlyArray<ThreadSumm
   }
 
   render(<Harness />, { wrapper: createI18nWrapper() });
-  return { onArchiveThread, onCreateThread, onOpenSkills, onOpenAutomation, deleteCodexSession, openWorkspace, searchCodexSessions, request };
+  return { onArchiveThread, onCreateThread, onOpenSkills, onOpenAutomation, onOpenSettings, deleteCodexSession, openWorkspace, searchCodexSessions, request };
 }
 
 function DispatchRecorder(props: { readonly onReady: (dispatch: AppStoreApi["dispatch"]) => void }): null {
@@ -251,6 +254,20 @@ describe("HomeSidebar", () => {
 
     expect(onOpenAutomation).toHaveBeenCalledTimes(1);
     expect(screen.getByText("实验性")).toBeInTheDocument();
+  });
+
+  it("keeps the settings popover actions active while the dismissal backdrop is mounted", () => {
+    const { onOpenSettings } = renderSidebar(createThread("codexData"), { settingsMenuOpen: true });
+
+    const menu = screen.getByRole("menu", { name: "设置菜单" });
+    const settingsSlot = menu.closest(".settings-slot");
+
+    expect(screen.getByRole("button", { name: "关闭菜单" })).toBeInTheDocument();
+    expect(settingsSlot).toHaveClass("settings-slot-open");
+
+    fireEvent.click(within(menu).getByRole("button", { name: "设置" }));
+
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
   it("forwards the workspace row new thread button", async () => {

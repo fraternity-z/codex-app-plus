@@ -340,6 +340,9 @@
   margin-top: auto;
   flex-shrink: 0;
 }
+.settings-slot-open {
+  z-index: 31;
+}
 .settings-backdrop {
   position: fixed;
   inset: 0;
