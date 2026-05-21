@@ -21,6 +21,7 @@ export function mergeConversation(existing: ConversationState | undefined, nextC
   return {
     ...nextConversation,
     title: pickConversationTitle(nextConversation.title, existing.title),
+    goal: nextConversation.goal ?? existing.goal ?? null,
     turns: nextConversation.turns.length > 0 ? nextConversation.turns : existing.turns,
     queuedFollowUps: existing.queuedFollowUps,
     interruptRequestedTurnId: existing.interruptRequestedTurnId,

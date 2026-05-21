@@ -2,6 +2,7 @@ import type { AgentEnvironment, HostBridge } from "../../../bridge/types";
 import type { ComposerSelection } from "../../composer/model/composerPreferences";
 import type { CollaborationModePreset, CollaborationPreset, ComposerAttachment, ConversationAttachment, FollowUpMode, QueuedFollowUp, ThreadSummary, TimelineEntry } from "../../../domain/timeline";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
+import type { ThreadGoal } from "../../../protocol/generated/v2/ThreadGoal";
 import type { ComposerPermissionLevel, ComposerPermissionSettings } from "../../composer/model/composerPermission";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 
@@ -49,6 +50,9 @@ export interface WorkspaceConversationController {
   sendTurn: (options: SendTurnOptions) => Promise<void>;
   regenerateFromEditedUserMessage: (options: RegenerateEditedUserMessageOptions) => Promise<void>;
   interruptActiveTurn: () => Promise<void>;
+  editThreadGoal: (goal: ThreadGoal) => Promise<void>;
+  toggleThreadGoalStatus: (goal: ThreadGoal) => Promise<void>;
+  clearThreadGoal: (goal: ThreadGoal) => Promise<void>;
   updateThreadBranch: (branch: string) => Promise<void>;
   promoteQueuedFollowUp: (followUpId: string) => Promise<void>;
   removeQueuedFollowUp: (followUpId: string) => void;

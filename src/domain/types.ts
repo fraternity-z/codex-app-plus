@@ -9,6 +9,7 @@ import type { FileUpdateChange } from "../protocol/generated/v2/FileUpdateChange
 import type { McpServerStatus } from "../protocol/generated/v2/McpServerStatus";
 import type { RateLimitSnapshot } from "../protocol/generated/v2/RateLimitSnapshot";
 import type { ThreadRealtimeAudioChunk } from "../protocol/generated/v2/ThreadRealtimeAudioChunk";
+import type { ThreadGoal } from "../protocol/generated/v2/ThreadGoal";
 import type { Thread } from "../protocol/generated/v2/Thread";
 import type { ThreadItem } from "../protocol/generated/v2/ThreadItem";
 import type { Turn } from "../protocol/generated/v2/Turn";
@@ -20,6 +21,7 @@ import type {
   ConversationTextDelta,
   ConversationTurnParams,
   DraftConversationState,
+  GoalSubmissionHistoryEntry,
 } from "./conversation";
 import type {
   CollaborationPreset,
@@ -186,7 +188,10 @@ export type AppAction =
   | { type: "conversation/loaded"; conversationId: string; thread: Thread }
   | { type: "conversation/touched"; conversationId: string; updatedAt: string }
   | { type: "conversation/statusChanged"; conversationId: string; status: ConversationState["status"]; activeFlags: ConversationState["activeFlags"] }
-  | { type: "conversation/turnPlaceholderAdded"; conversationId: string; params: ConversationTurnParams }
+  | { type: "conversation/goalUpdated"; conversationId: string; goal: ThreadGoal }
+  | { type: "conversation/goalCleared"; conversationId: string }
+  | { type: "conversation/goalSubmissionHistoryLoaded"; conversationId: string; entries: ReadonlyArray<GoalSubmissionHistoryEntry> }
+  | { type: "conversation/turnPlaceholderAdded"; conversationId: string; params: ConversationTurnParams; goalSubmission?: boolean; goalSubmissionId?: string }
   | { type: "conversation/turnStarted"; conversationId: string; turn: Turn }
   | { type: "conversation/turnCompleted"; conversationId: string; turn: Turn }
   | { type: "conversation/itemStarted"; conversationId: string; turnId: string; item: ThreadItem }

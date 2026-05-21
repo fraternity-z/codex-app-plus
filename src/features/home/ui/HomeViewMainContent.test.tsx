@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../../bridge/types";
 import type { ThreadSummary, WorkspaceSwitchState } from "../../../domain/types";
@@ -8,6 +8,7 @@ import type { WorkspaceGitController } from "../../git/model/types";
 import { HomeViewMainContent } from "./HomeViewMainContent";
 
 vi.mock("../../../state/store", () => ({
+  useAppDispatch: () => vi.fn(),
   useAppSelector: (selector: (state: { readonly inputText: string; readonly banners: readonly unknown[] }) => unknown) => (
     selector({ inputText: "", banners: [] })
   ),
@@ -36,7 +37,12 @@ vi.mock("../../conversation/ui/HomeUserInputPrompt", () => ({
 }));
 
 vi.mock("../../composer/ui/HomeComposer", () => ({
-  HomeComposer: () => <div data-testid="home-composer">composer</div>,
+  HomeComposer: (props: { readonly goalStatusBar?: ReactNode }) => (
+    <div data-testid="home-composer">
+      {props.goalStatusBar}
+      <div data-testid="composer-card">composer</div>
+    </div>
+  ),
 }));
 
 vi.mock("../../composer/ui/HomePlanRequestComposer", () => ({
@@ -142,8 +148,11 @@ function createProps(
     onInputChange: vi.fn(),
     onSendTurn: vi.fn().mockResolvedValue(undefined),
     onRegenerateFromEditedUserMessage: vi.fn().mockResolvedValue(undefined),
-    onPersistComposerSelection: vi.fn().mockResolvedValue(undefined),
-    onSelectComposerPermissionLevel: vi.fn(),
+	    onPersistComposerSelection: vi.fn().mockResolvedValue(undefined),
+	    onEditThreadGoal: vi.fn().mockResolvedValue(undefined),
+	    onToggleThreadGoalStatus: vi.fn().mockResolvedValue(undefined),
+	    onClearThreadGoal: vi.fn().mockResolvedValue(undefined),
+	    onSelectComposerPermissionLevel: vi.fn(),
     onUpdateThreadBranch: vi.fn().mockResolvedValue(undefined),
     onInterruptTurn: vi.fn().mockResolvedValue(undefined),
     onLogout: vi.fn().mockResolvedValue(undefined),
@@ -248,5 +257,31 @@ describe("HomeViewMainContent", () => {
     );
 
     expect(screen.queryByTestId("plan-drawer")).toBeNull();
+  });
+
+  it("renders the goal status bar above the composer instead of at the main panel top", () => {
+    const { container } = render(
+      <HomeViewMainContent
+        {...createProps({
+          selectedThread: createSelectedThread({
+            goal: {
+              threadId: "thread-1",
+              objective: "Keep the goal near the composer",
+              status: "active",
+              tokenBudget: null,
+              tokensUsed: 0,
+              timeUsedSeconds: 72,
+              createdAt: 0,
+              updatedAt: 0,
+            },
+          }),
+        })}
+      />,
+    );
+
+    const composer = screen.getByTestId("home-composer");
+    const goalBar = screen.getByLabelText("当前目标");
+    expect(composer.firstElementChild).toBe(goalBar);
+    expect(container.querySelector(".replica-main > .home-goal-status-bar")).toBeNull();
   });
 });

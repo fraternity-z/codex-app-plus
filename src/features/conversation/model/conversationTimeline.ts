@@ -31,6 +31,10 @@ function createEntryId(
   return `${conversationId}:${turnId ?? "turn"}:${itemId ?? suffix}:${suffix}`;
 }
 
+function getTurnEntryKey(turn: ConversationTurnState): string | null {
+  return turn.turnId ?? turn.localId;
+}
+
 function createUserInputMessage(
   conversationId: string,
   turn: ConversationTurnState,
@@ -41,7 +45,7 @@ function createUserInputMessage(
   }
 
   return {
-    id: createEntryId(conversationId, turn.turnId, "user", "user"),
+    id: createEntryId(conversationId, getTurnEntryKey(turn), "user", "user"),
     kind: "userMessage",
     role: "user",
     threadId: conversationId,
@@ -49,6 +53,7 @@ function createUserInputMessage(
     itemId: "user",
     text: normalizeConversationMessageText("user", summary.text),
     status: "done",
+    ...(turn.goalSubmission === true ? { submissionKind: "goal" as const } : {}),
     attachments: summary.attachments,
   };
 }
@@ -108,7 +113,7 @@ function mapMessageLikeEntry(
 
   if (item.type === "userMessage") {
     const summary = summarizeUserInputs(item.content);
-    return { id: createEntryId(conversationId, turn.turnId, item.id, "user"), kind: "userMessage", role: "user", threadId: conversationId, turnId: turn.turnId, itemId: item.id, text: normalizeConversationMessageText("user", summary.text), status: "done", attachments: summary.attachments };
+    return { id: createEntryId(conversationId, turn.turnId, item.id, "user"), kind: "userMessage", role: "user", threadId: conversationId, turnId: turn.turnId, itemId: item.id, text: normalizeConversationMessageText("user", summary.text), status: "done", ...(turn.goalSubmission === true ? { submissionKind: "goal" as const } : {}), attachments: summary.attachments };
   }
   if (item.type === "agentMessage") {
     return { id: createEntryId(conversationId, turn.turnId, item.id, "agent"), kind: "agentMessage", role: "assistant", threadId: conversationId, turnId: turn.turnId, itemId: item.id, text: normalizeConversationMessageText("assistant", item.text), status };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { ComposerPermissionLevel } from "../model/composerPermission";
 import type { ComposerModelOption, ComposerSelection } from "../model/composerPreferences";
 import {
@@ -46,6 +46,7 @@ import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismis
 import { useUiBannerNotifications } from "../../shared/hooks/useUiBannerNotifications";
 import { useI18n } from "../../../i18n/useI18n";
 import { ComposerSkillBadgeOverlay, detectSkillBadge } from "./ComposerSkillBadge";
+import { parseThreadGoalSlashCommand } from "../../conversation/model/threadGoal";
 import type { CommandExecParams } from "../../../protocol/generated/v2/CommandExecParams";
 import type { CommandExecResponse } from "../../../protocol/generated/v2/CommandExecResponse";
 
@@ -65,6 +66,7 @@ export interface HomeComposerProps {
   readonly defaultServiceTier?: ComposerSelection["serviceTier"];
   readonly selectedRootPath: string | null;
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
+  readonly goalStatusBar?: ReactNode;
   readonly localCodeCommentAttachments?: ReadonlyArray<ComposerAttachment>;
   readonly followUpQueueMode: FollowUpMode;
   readonly composerEnterBehavior: ComposerEnterBehavior;
@@ -375,6 +377,7 @@ export function HomeComposer(props: HomeComposerProps): JSX.Element {
           onRemoveQueuedFollowUp={props.onRemoveQueuedFollowUp}
           onClearQueuedFollowUps={props.onClearQueuedFollowUps}
         />
+        {props.goalStatusBar ?? null}
         <div className="composer-card" ref={containerRef}>
           {multiAgentPending ? <ComposerReloadOverlay /> : null}
           {menuOpen ? <button type="button" className="composer-popover-backdrop" aria-label={t("home.composer.closeAttachmentMenu")} onClick={() => setMenuOpen(false)} /> : null}
@@ -614,10 +617,27 @@ function handleInputKeyDown(
   handlePaletteKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => boolean,
   submit: (followUpOverride?: FollowUpMode) => void,
 ): void {
+  if (isGoalSlashEnter(event, props.inputText, props.composerEnterBehavior)) {
+    handleComposerEnterKey(event, props.inputText, props.composerEnterBehavior, props.isResponding, hasDraftContent(props.inputText, hasAttachments), submit, () => void props.onInterruptTurn());
+    return;
+  }
   if (handlePaletteKeyDown(event)) {
     return;
   }
   handleComposerEnterKey(event, props.inputText, props.composerEnterBehavior, props.isResponding, hasDraftContent(props.inputText, hasAttachments), submit, () => void props.onInterruptTurn());
+}
+
+function isGoalSlashEnter(
+  event: KeyboardEvent<HTMLTextAreaElement>,
+  inputText: string,
+  composerEnterBehavior: ComposerEnterBehavior,
+): boolean {
+  if (event.key !== "Enter" || event.shiftKey) {
+    return false;
+  }
+  const metaPressed = event.metaKey || event.ctrlKey;
+  return parseThreadGoalSlashCommand(inputText) !== null
+    && shouldSendOnEnter(inputText, composerEnterBehavior, metaPressed);
 }
 
 function handleComposerEnterKey(

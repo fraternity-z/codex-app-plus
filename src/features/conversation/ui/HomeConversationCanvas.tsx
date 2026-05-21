@@ -31,6 +31,7 @@ interface HomeConversationCanvasProps {
   readonly activities: ReadonlyArray<TimelineEntry>;
   readonly selectedThread: ThreadSummary | null;
   readonly activeTurnId: string | null;
+  readonly showProgress?: boolean;
   readonly turnStatuses?: Readonly<Record<string, TurnStatus>>;
   readonly threadDetailLevel: ThreadDetailLevel;
   readonly placeholder: { readonly title: string; readonly body: string } | null;
@@ -51,6 +52,7 @@ interface RenderGroup {
   readonly key: string;
   readonly nodes: ReturnType<typeof flattenConversationRenderGroup>;
   readonly showThinkingIndicator: boolean;
+  readonly progressFallback: boolean;
   readonly turnStatus: TurnStatus | null;
 }
 
@@ -164,10 +166,11 @@ export function HomeConversationCanvas(
     () => createRenderGroups(
       props.activities,
       props.activeTurnId,
+      props.showProgress === true,
       props.turnStatuses ?? {},
       props.threadDetailLevel,
     ),
-    [props.activities, props.activeTurnId, props.turnStatuses, props.threadDetailLevel],
+    [props.activities, props.activeTurnId, props.showProgress, props.turnStatuses, props.threadDetailLevel],
   );
   const scrollKey = useMemo(() => createScrollKey(renderGroups), [renderGroups]);
   const { rowVirtualizer, scrollRef, setGroupRef } = useMeasuredRenderGroups(
@@ -254,6 +257,7 @@ export function HomeConversationCanvas(
                 assistantNodes,
                 group.turnStatus,
                 group.showThinkingIndicator,
+                group.progressFallback,
               );
               const assistantCopyText = createAssistantCopyText(group.nodes);
               const assistantCopyId = `assistant:${group.key}`;
@@ -426,14 +430,18 @@ function createAssistantToolGroupBodyNodes(nodes: ReadonlyArray<AssistantTraceNo
 function createRenderGroups(
   activities: ReadonlyArray<TimelineEntry>,
   activeTurnId: string | null,
+  showProgress: boolean,
   turnStatuses: Readonly<Record<string, TurnStatus>>,
   threadDetailLevel: ThreadDetailLevel,
 ): Array<RenderGroup> {
-  return splitActivitiesIntoRenderGroups(activities, activeTurnId, threadDetailLevel)
+  const displayActiveTurnId = resolveDisplayActiveTurnId(activities, activeTurnId, showProgress);
+  const progressFallbackTurnId = activeTurnId === null && showProgress ? displayActiveTurnId : null;
+  return splitActivitiesIntoRenderGroups(activities, displayActiveTurnId, threadDetailLevel)
     .map((group) => ({
       key: group.key,
       nodes: flattenConversationRenderGroup(group),
       showThinkingIndicator: group.showThinkingIndicator,
+      progressFallback: progressFallbackTurnId !== null && group.turnId === progressFallbackTurnId,
       turnStatus: group.turnId === null ? null : turnStatuses[group.turnId] ?? null,
     }))
     .filter((group) => group.nodes.length > 0 || group.showThinkingIndicator);
@@ -443,8 +451,9 @@ function createAssistantDisplayNodes(
   nodes: ReadonlyArray<AssistantFlowRenderNode>,
   turnStatus: TurnStatus | null,
   showThinkingIndicator: boolean,
+  progressFallback: boolean,
 ): Array<AssistantDisplayNode> {
-  if (!shouldFoldAssistantToolGroups(nodes, turnStatus, showThinkingIndicator)) {
+  if (!shouldFoldAssistantToolGroups(nodes, turnStatus, showThinkingIndicator, progressFallback)) {
     return [...nodes];
   }
 
@@ -521,10 +530,30 @@ function shouldFoldAssistantToolGroups(
   nodes: ReadonlyArray<AssistantFlowRenderNode>,
   turnStatus: TurnStatus | null,
   showThinkingIndicator: boolean,
+  progressFallback: boolean,
 ): boolean {
-  const streamStillActive = turnStatus === "inProgress" || (turnStatus === null && showThinkingIndicator);
+  const streamStillActive = turnStatus === "inProgress"
+    || progressFallback
+    || (turnStatus === null && showThinkingIndicator);
   return streamStillActive === false
     && nodes.every((node) => node.kind !== "assistantMessage" || node.message.status !== "streaming");
+}
+
+function resolveDisplayActiveTurnId(
+  activities: ReadonlyArray<TimelineEntry>,
+  activeTurnId: string | null,
+  showProgress: boolean,
+): string | null {
+  if (activeTurnId !== null || !showProgress) {
+    return activeTurnId;
+  }
+  for (let index = activities.length - 1; index >= 0; index -= 1) {
+    const entry = activities[index];
+    if (entry.kind === "userMessage") {
+      return entry.turnId;
+    }
+  }
+  return null;
 }
 
 function createAssistantTextBeforeMap(nodes: ReadonlyArray<AssistantFlowRenderNode>): ReadonlyArray<boolean> {

@@ -5,6 +5,7 @@ import type { Turn } from "../../../protocol/generated/v2/Turn";
 import type { ThreadTokenUsage } from "../../../protocol/generated/v2/ThreadTokenUsage";
 import {
   addConversationMcpProgress,
+  addGoalSubmissionHistoryEntries,
   appendConversationContextCompaction,
   createConversationFromThread,
   hydrateConversationFromThread,
@@ -153,6 +154,29 @@ describe("conversationState", () => {
     expect(diff).toContain("--- a/src/App.tsx");
     expect(diff).toContain("+++ b/src/App.tsx");
     expect(diff).toContain("+another");
+  });
+
+  it("rehydrates persisted goal submissions beside restored assistant turns", () => {
+    const thread = createThread({
+      turns: [
+        createNotificationTurn({
+          startedAt: 3,
+          items: [{ type: "agentMessage", id: "assistant-1", text: "working", phase: null, memoryCitation: null }],
+        }),
+      ],
+    });
+    const conversation = addGoalSubmissionHistoryEntries(
+      createConversationFromThread(thread, { resumeState: "resumed" }),
+      [{ id: "goal-1", threadId: "thread-1", objective: "finish the migration", createdAtMs: 2_000 }],
+    );
+
+    expect(conversation.turns[0]?.goalSubmission).toBe(true);
+    expect(conversation.turns[0]?.params?.input).toEqual([{ type: "text", text: "finish the migration", text_elements: [] }]);
+
+    const hydrated = hydrateConversationFromThread(conversation, thread);
+
+    expect(hydrated.turns.map((turn) => turn.goalSubmissionId ?? turn.turnId)).toEqual(["goal-1", "turn-1"]);
+    expect(hydrated.turns[0]?.params?.input).toEqual([{ type: "text", text: "finish the migration", text_elements: [] }]);
   });
 
   it("sets token usage without changing the existing turn content", () => {

@@ -6,6 +6,7 @@ import { AppStoreProvider, useAppStore } from "../../../state/store";
 import { applyAppServerNotification } from "../../../app/controller/appControllerNotifications";
 import type { ComposerAttachment } from "../../../domain/timeline";
 import { createConversationFromThread } from "../model/conversationState";
+import { readGoalSubmissionHistory } from "../model/goalSubmissionHistory";
 import { FrameTextDeltaQueue } from "../model/frameTextDeltaQueue";
 import { OutputDeltaQueue } from "../model/outputDeltaQueue";
 import { useWorkspaceConversation } from "./useWorkspaceConversation";
@@ -68,6 +69,20 @@ function createTurn(status: "inProgress" | "completed" = "inProgress") {
 
 function createTurnWithId(id: string, status: "inProgress" | "completed" = "completed") {
   return { ...createTurn(status), id };
+}
+
+function createGoal(overrides: Record<string, unknown> = {}) {
+  return {
+    threadId: "thread-1",
+    objective: "finish the migration",
+    status: "active" as const,
+    tokenBudget: null,
+    tokensUsed: 0,
+    timeUsedSeconds: 0,
+    createdAt: 1,
+    updatedAt: 1,
+    ...overrides,
+  };
 }
 
 function createThreadStartResponse(threadOverrides: Record<string, unknown> = {}) {
@@ -437,6 +452,165 @@ describe("useWorkspaceConversation", () => {
     expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({ method: "turn/start", params: expect.not.objectContaining({ approvalPolicy: expect.anything(), sandboxPolicy: expect.anything() }) }));
     expect(result.current.conversation.draftActive).toBe(false);
     expect(result.current.conversation.selectedThreadId).toBe("thread-1");
+  });
+
+  it("creates a thread goal from /goal without starting a turn", async () => {
+    window.localStorage.clear();
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/start") {
+        return createThreadStartResponse();
+      }
+      if (input.method === "thread/goal/set") {
+        return { requestId: "request-2", result: { goal: createGoal() } };
+      }
+      throw new Error(`unexpected method: ${input.method}`);
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({ type: "input/changed", value: "/goal finish the migration" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.sendTurn(createSendOptions("/goal finish the migration"));
+    });
+
+    expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({ method: "thread/start" }));
+    expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      method: "thread/goal/set",
+      params: {
+        threadId: "thread-1",
+        objective: "finish the migration",
+      },
+    }));
+    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "turn/start" }));
+    expect(result.current.conversation.selectedThreadId).toBe("thread-1");
+    expect(result.current.conversation.selectedThread?.goal?.objective).toBe("finish the migration");
+    expect(result.current.conversation.activities).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "userMessage",
+        text: "finish the migration",
+        submissionKind: "goal",
+      }),
+    ]));
+    expect(result.current.conversation.isResponding).toBe(true);
+    expect(result.current.store.state.inputText).toBe("");
+    expect(readGoalSubmissionHistory("thread-1")).toEqual([
+      expect.objectContaining({
+        objective: "finish the migration",
+        threadId: "thread-1",
+      }),
+    ]);
+  });
+
+  it("updates the selected thread goal from /goal without sending a user turn", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/goal/set") {
+        return { requestId: "request-1", result: { goal: createGoal({ objective: "stabilize long task mode" }) } };
+      }
+      throw new Error(`unexpected method: ${input.method}`);
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread(), { resumeState: "resumed" }) });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.sendTurn(createSendOptions("/goal stabilize long task mode"));
+    });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({
+      method: "thread/goal/set",
+      params: {
+        threadId: "thread-1",
+        objective: "stabilize long task mode",
+      },
+    }));
+    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "turn/start" }));
+    expect(result.current.conversation.selectedThread?.goal?.objective).toBe("stabilize long task mode");
+    expect(result.current.conversation.activities).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "userMessage",
+        text: "stabilize long task mode",
+        submissionKind: "goal",
+      }),
+    ]));
+    expect(result.current.conversation.isResponding).toBe(true);
+  });
+
+  it("resumes the thread runtime before resuming a paused goal from the status bar", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/resume") {
+        return { requestId: "request-1", result: { thread: createThread() } };
+      }
+      if (input.method === "thread/goal/set") {
+        return { requestId: "request-2", result: { goal: createGoal({ status: "active" }) } };
+      }
+      throw new Error(`unexpected method: ${input.method}`);
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread(), { resumeState: "needs_resume" }) });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.toggleThreadGoalStatus(createGoal({ status: "paused" }));
+    });
+
+    expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({ method: "thread/resume" }));
+    expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      method: "thread/goal/set",
+      params: {
+        threadId: "thread-1",
+        status: "active",
+      },
+    }));
+    expect(result.current.conversation.selectedThread?.goal?.status).toBe("active");
+    expect(result.current.conversation.selectedThread?.status).toBe("active");
+    expect(result.current.conversation.isResponding).toBe(true);
+  });
+
+  it("pauses an active goal and interrupts the running goal turn", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/goal/set") {
+        return { requestId: "request-1", result: { goal: createGoal({ status: "paused" }) } };
+      }
+      if (input.method === "turn/interrupt") {
+        return { requestId: "request-2", result: {} };
+      }
+      if (input.method === "thread/backgroundTerminals/clean") {
+        return { requestId: "request-3", result: {} };
+      }
+      if (input.method === "thread/unsubscribe") {
+        return { requestId: "request-4", result: { status: "unsubscribed" } };
+      }
+      throw new Error(`unexpected method: ${input.method}`);
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({
+        type: "conversation/upserted",
+        conversation: createConversationFromThread(createThread({ status: { type: "active" as const, activeFlags: [] }, turns: [createTurn()] }), { resumeState: "resumed" }),
+      });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.toggleThreadGoalStatus(createGoal({ status: "active" }));
+    });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/goal/set", params: { threadId: "thread-1", status: "paused" } }));
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/interrupt", params: { threadId: "thread-1", turnId: "turn-1" } }));
+    expect(result.current.conversation.selectedThread?.status).toBe("notLoaded");
   });
 
   it("expands custom prompts before sending the turn", async () => {
@@ -891,6 +1065,39 @@ describe("useWorkspaceConversation", () => {
     expect(result.current.conversation.selectedThread?.status).toBe("notLoaded");
     expect(result.current.conversation.isResponding).toBe(false);
     expect(result.current.conversation.interruptPending).toBe(false);
+  });
+
+  it("interrupts an active thread startup before a turn id is available", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "turn/interrupt") {
+        return { requestId: "request-1", result: {} };
+      }
+      if (input.method === "thread/backgroundTerminals/clean") {
+        return { requestId: "request-2", result: {} };
+      }
+      if (input.method === "thread/unsubscribe") {
+        return { requestId: "request-3", result: { status: "unsubscribed" } };
+      }
+      throw new Error(`unexpected method: ${input.method}`);
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({
+        type: "conversation/upserted",
+        conversation: createConversationFromThread(createThread({ status: { type: "active" as const, activeFlags: [] }, turns: [] }), { resumeState: "resumed" }),
+      });
+      result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-1" });
+    });
+
+    await act(async () => {
+      await result.current.conversation.interruptActiveTurn();
+    });
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "turn/interrupt", params: { threadId: "thread-1", turnId: "" } }));
+    expect(result.current.conversation.selectedThread?.status).toBe("notLoaded");
+    expect(result.current.conversation.isResponding).toBe(false);
   });
 
   it("queues follow-ups when selected conversation is active", async () => {

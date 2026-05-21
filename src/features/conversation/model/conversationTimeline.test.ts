@@ -86,6 +86,49 @@ describe("conversationTimeline", () => {
     expect(entries[0]?.kind === "userMessage" ? entries[0].text : null).toBe("fallback input");
   });
 
+  it("保留目标发送占位 turn 的用户气泡标记", () => {
+    const conversation = createConversation([
+      createTurn({
+        turnId: null,
+        goalSubmission: true,
+        params: { input: [{ type: "text", text: "finish the migration", text_elements: [] }], cwd: null, model: null, effort: null, serviceTier: null, collaborationMode: null },
+      }),
+    ]);
+
+    const entries = mapConversationToTimelineEntries(conversation, []);
+    const [entry] = entries;
+
+    expect(entry?.kind).toBe("userMessage");
+    expect(entry?.kind === "userMessage" ? entry.text : null).toBe("finish the migration");
+    expect(entry?.kind === "userMessage" ? entry.submissionKind : null).toBe("goal");
+  });
+
+  it("为多个本地目标发送气泡生成不同 timeline id", () => {
+    const conversation = createConversation([
+      createTurn({
+        localId: "local-goal-1",
+        turnId: null,
+        goalSubmission: true,
+        goalSubmissionId: "goal-1",
+        params: { input: [{ type: "text", text: "first goal", text_elements: [] }], cwd: null, model: null, effort: null, serviceTier: null, collaborationMode: null },
+      }),
+      createTurn({
+        localId: "local-goal-2",
+        turnId: null,
+        goalSubmission: true,
+        goalSubmissionId: "goal-2",
+        params: { input: [{ type: "text", text: "second goal", text_elements: [] }], cwd: null, model: null, effort: null, serviceTier: null, collaborationMode: null },
+      }),
+    ]);
+
+    const userEntries = mapConversationToTimelineEntries(conversation, []).filter((entry) => entry.kind === "userMessage");
+
+    expect(userEntries.map((entry) => entry.id)).toEqual([
+      "thread-1:local-goal-1:user:user",
+      "thread-1:local-goal-2:user:user",
+    ]);
+  });
+
   it("保留 turn.items 中 assistant、工具与 webSearch 的原始顺序", () => {
     const conversation = createConversation([
       createTurn({

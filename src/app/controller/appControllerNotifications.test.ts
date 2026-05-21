@@ -120,7 +120,7 @@ describe("applyAppServerNotification", () => {
     }));
   });
 
-  it("surfaces thread goal updates as banners", () => {
+  it("stores thread goal updates on the conversation", () => {
     const dispatch = vi.fn<(action: AppAction) => void>();
 
     applyAppServerNotification(createContext(dispatch), "thread/goal/updated", {
@@ -138,14 +138,27 @@ describe("applyAppServerNotification", () => {
       },
     });
 
-    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({
-      type: "banner/pushed",
-      banner: expect.objectContaining({
-        source: "thread-goal",
-        title: "Goal updated",
-        detail: expect.stringContaining("finish the migration"),
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "conversation/goalUpdated",
+      conversationId: "thread-1",
+      goal: expect.objectContaining({
+        objective: "finish the migration",
+        status: "active",
       }),
-    }));
+    });
+  });
+
+  it("clears thread goal state from notifications", () => {
+    const dispatch = vi.fn<(action: AppAction) => void>();
+
+    applyAppServerNotification(createContext(dispatch), "thread/goal/cleared", {
+      threadId: "thread-1",
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "conversation/goalCleared",
+      conversationId: "thread-1",
+    });
   });
 
   it("flushes pending text deltas before completing an item", () => {

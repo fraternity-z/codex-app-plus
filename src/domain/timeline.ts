@@ -7,6 +7,7 @@ import type { ModeKind } from "../protocol/generated/ModeKind";
 import type { MessagePhase } from "../protocol/generated/MessagePhase";
 import type { FuzzyFileSearchResult } from "../protocol/generated/FuzzyFileSearchResult";
 import type { ThreadRealtimeAudioChunk } from "../protocol/generated/v2/ThreadRealtimeAudioChunk";
+import type { ThreadGoal } from "../protocol/generated/v2/ThreadGoal";
 import type { CollabAgentState } from "../protocol/generated/v2/CollabAgentState";
 import type { CollabAgentTool } from "../protocol/generated/v2/CollabAgentTool";
 import type { CollabAgentToolCallStatus } from "../protocol/generated/v2/CollabAgentToolCallStatus";
@@ -52,6 +53,7 @@ export interface ThreadSummary {
   readonly agentEnvironment: AgentEnvironment;
   readonly status: ThreadRuntimeStatus;
   readonly activeFlags: Array<ThreadActiveFlag>;
+  readonly goal?: ThreadGoal | null;
   readonly queuedCount: number;
   readonly requiresUserAttention?: boolean;
 }
@@ -113,6 +115,7 @@ export interface ConversationMessage extends TimelineBase {
   readonly role: "user" | "assistant";
   readonly text: string;
   readonly status: MessageStatus;
+  readonly submissionKind?: "goal";
   readonly attachments?: ReadonlyArray<ConversationAttachment>;
 }
 export interface PlanEntry extends TimelineBase {

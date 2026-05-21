@@ -231,9 +231,12 @@ function renderHomeView(overrides?: Partial<ComponentProps<typeof HomeView>>) {
       onSelectCollaborationPreset={vi.fn()}
       onInputChange={vi.fn()}
       onCreateThread={vi.fn().mockResolvedValue(undefined)}
-      onSendTurn={vi.fn().mockResolvedValue(undefined)}
-      onPersistComposerSelection={vi.fn().mockResolvedValue(undefined)}
-      onInterruptTurn={vi.fn().mockResolvedValue(undefined)}
+	      onSendTurn={vi.fn().mockResolvedValue(undefined)}
+	      onPersistComposerSelection={vi.fn().mockResolvedValue(undefined)}
+	      onEditThreadGoal={vi.fn().mockResolvedValue(undefined)}
+	      onToggleThreadGoalStatus={vi.fn().mockResolvedValue(undefined)}
+	      onClearThreadGoal={vi.fn().mockResolvedValue(undefined)}
+	      onInterruptTurn={vi.fn().mockResolvedValue(undefined)}
       onPromoteQueuedFollowUp={vi.fn().mockResolvedValue(undefined)}
       onAddRoot={vi.fn()}
       onRemoveRoot={vi.fn()}

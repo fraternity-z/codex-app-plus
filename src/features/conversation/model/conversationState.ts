@@ -8,12 +8,14 @@ import type {
   ConversationTextDelta,
   ConversationTurnParams,
   ConversationTurnState,
+  GoalSubmissionHistoryEntry,
 } from "../../../domain/conversation";
 import type { ThreadSummary } from "../../../domain/types";
 import type { NoticeLevel } from "../../../domain/timeline";
 import type { ResponseItem } from "../../../protocol/generated/ResponseItem";
 import type { FileUpdateChange } from "../../../protocol/generated/v2/FileUpdateChange";
 import type { Thread } from "../../../protocol/generated/v2/Thread";
+import type { ThreadGoal } from "../../../protocol/generated/v2/ThreadGoal";
 import type { ThreadItem } from "../../../protocol/generated/v2/ThreadItem";
 import type { ThreadTokenUsage } from "../../../protocol/generated/v2/ThreadTokenUsage";
 import type { Turn } from "../../../protocol/generated/v2/Turn";
@@ -186,7 +188,11 @@ export function createSkeletonItem(itemId: string, target: ConversationTextDelta
   return { type: "reasoning", id: itemId, summary: [], content: [] };
 }
 
-function createTurnState(turn: Turn, params: ConversationTurnParams | null): ConversationTurnState {
+function createTurnState(
+  turn: Turn,
+  params: ConversationTurnParams | null,
+  options?: { readonly goalSubmission?: boolean; readonly goalSubmissionId?: string },
+): ConversationTurnState {
   return {
     localId: turn.id,
     turnId: turn.id,
@@ -204,10 +210,12 @@ function createTurnState(turn: Turn, params: ConversationTurnParams | null): Con
     reviewStates: [],
     contextCompactions: [],
     tokenUsage: null,
+    goalSubmission: options?.goalSubmission,
+    goalSubmissionId: options?.goalSubmissionId,
   };
 }
 
-function createEmptyTurn(turnId: string | null): ConversationTurnState {
+function createEmptyTurn(turnId: string | null, options?: { readonly goalSubmission?: boolean; readonly goalSubmissionId?: string }): ConversationTurnState {
   return {
     localId: turnId ?? createLocalTurnId(),
     turnId,
@@ -225,6 +233,8 @@ function createEmptyTurn(turnId: string | null): ConversationTurnState {
     reviewStates: [],
     contextCompactions: [],
     tokenUsage: null,
+    goalSubmission: options?.goalSubmission,
+    goalSubmissionId: options?.goalSubmissionId,
   };
 }
 
@@ -304,7 +314,64 @@ function mergeSparseTurnState(currentTurn: ConversationTurnState, turn: Turn): C
     reviewStates: currentTurn.reviewStates,
     contextCompactions: currentTurn.contextCompactions,
     tokenUsage: currentTurn.tokenUsage,
+    goalSubmission: currentTurn.goalSubmission,
+    goalSubmissionId: currentTurn.goalSubmissionId,
   };
+}
+
+function createGoalSubmissionInput(objective: string): ConversationTurnParams["input"] {
+  return [{ type: "text", text: objective, text_elements: [] }];
+}
+
+function createGoalSubmissionTurn(
+  conversation: Pick<ConversationState, "cwd">,
+  entry: GoalSubmissionHistoryEntry,
+): ConversationTurnState {
+  return {
+    ...createEmptyTurn(null, { goalSubmission: true, goalSubmissionId: entry.id }),
+    status: "completed",
+    params: {
+      input: createGoalSubmissionInput(entry.objective),
+      cwd: conversation.cwd,
+      model: null,
+      effort: null,
+      serviceTier: null,
+      collaborationMode: null,
+    },
+    turnStartedAtMs: entry.createdAtMs,
+  };
+}
+
+function mergeTurnsByStartTime(turns: ReadonlyArray<ConversationTurnState>): Array<ConversationTurnState> {
+  return [...turns]
+    .map((turn, index) => ({ turn, index }))
+    .sort((left, right) => {
+      const leftTime = left.turn.turnStartedAtMs;
+      const rightTime = right.turn.turnStartedAtMs;
+      if (leftTime !== null && rightTime !== null && leftTime !== rightTime) {
+        return leftTime - rightTime;
+      }
+      if (leftTime !== null && rightTime === null) {
+        return -1;
+      }
+      if (leftTime === null && rightTime !== null) {
+        return 1;
+      }
+      return left.index - right.index;
+    })
+    .map(({ turn }) => turn);
+}
+
+function mergeGoalSubmissionTurns(
+  turns: ReadonlyArray<ConversationTurnState>,
+  goalSubmissionTurns: ReadonlyArray<ConversationTurnState>,
+): Array<ConversationTurnState> {
+  const existingIds = new Set(turns.map((turn) => turn.goalSubmissionId).filter((id): id is string => typeof id === "string"));
+  const missingGoalSubmissions = goalSubmissionTurns.filter((turn) => turn.goalSubmission === true && typeof turn.goalSubmissionId === "string" && !existingIds.has(turn.goalSubmissionId));
+  if (missingGoalSubmissions.length === 0) {
+    return [...turns];
+  }
+  return mergeTurnsByStartTime([...turns, ...missingGoalSubmissions]);
 }
 
 export function updateTurn(conversation: ConversationState, turnId: string | null, updater: (turn: ConversationTurnState) => ConversationTurnState): ConversationState {
@@ -322,7 +389,7 @@ export function createConversationFromThread(
   }
 ): ConversationState {
   const activeFlags = thread.status.type === "active" ? thread.status.activeFlags : [];
-  return { id: thread.id, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, ...createThreadSubagentFields(thread), agentEnvironment: options?.agentEnvironment ?? "windowsNative", status: thread.status.type, activeFlags, resumeState: options?.resumeState ?? "needs_resume", turns: thread.turns.map((turn) => createTurnState(turn, null)), queuedFollowUps: [], interruptRequestedTurnId: null, hidden: options?.hidden ?? false };
+  return { id: thread.id, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, ...createThreadSubagentFields(thread), agentEnvironment: options?.agentEnvironment ?? "windowsNative", status: thread.status.type, activeFlags, goal: null, resumeState: options?.resumeState ?? "needs_resume", turns: thread.turns.map((turn) => createTurnState(turn, null)), queuedFollowUps: [], interruptRequestedTurnId: null, hidden: options?.hidden ?? false };
 }
 
 export function createConversationFromThreadSummary(thread: ThreadSummary): ConversationState {
@@ -337,6 +404,7 @@ export function createConversationFromThreadSummary(thread: ThreadSummary): Conv
     agentEnvironment: thread.agentEnvironment,
     status: thread.status,
     activeFlags: [...thread.activeFlags],
+    goal: thread.goal ?? null,
     resumeState: "needs_resume",
     turns: [],
     queuedFollowUps: [],
@@ -348,7 +416,11 @@ export function createConversationFromThreadSummary(thread: ThreadSummary): Conv
 export function hydrateConversationFromThread(conversation: ConversationState, thread: Thread): ConversationState {
   const activeFlags = thread.status.type === "active" ? thread.status.activeFlags : [];
   const { isSubagent: _isSubagent, agentNickname: _agentNickname, agentRole: _agentRole, ...baseConversation } = conversation;
-  return { ...baseConversation, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, ...createThreadSubagentFields(thread), status: thread.status.type, activeFlags, resumeState: "resumed", turns: thread.turns.map((turn) => createTurnState(turn, conversation.turns.find((item) => item.turnId === turn.id)?.params ?? null)) };
+  const hydratedTurns = thread.turns.map((turn) => {
+    const existingTurn = conversation.turns.find((item) => item.turnId === turn.id) ?? null;
+    return createTurnState(turn, existingTurn?.params ?? null, { goalSubmission: existingTurn?.goalSubmission, goalSubmissionId: existingTurn?.goalSubmissionId });
+  });
+  return { ...baseConversation, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, ...createThreadSubagentFields(thread), status: thread.status.type, activeFlags, goal: conversation.goal ?? null, resumeState: "resumed", turns: mergeGoalSubmissionTurns(hydratedTurns, conversation.turns) };
 }
 
 export function setConversationHidden(conversation: ConversationState, hidden: boolean): ConversationState {
@@ -367,12 +439,34 @@ export function setConversationStatus(conversation: ConversationState, status: C
   return { ...conversation, status, activeFlags };
 }
 
+export function setConversationGoal(conversation: ConversationState, goal: ThreadGoal | null): ConversationState {
+  return { ...conversation, goal };
+}
+
 export function touchConversation(conversation: ConversationState, updatedAt: string): ConversationState {
   return { ...conversation, updatedAt };
 }
 
-export function addPlaceholderTurn(conversation: ConversationState, params: ConversationTurnParams): ConversationState {
-  return { ...conversation, turns: [...conversation.turns, { ...createEmptyTurn(null), params }] };
+export function addPlaceholderTurn(
+  conversation: ConversationState,
+  params: ConversationTurnParams,
+  options?: { readonly goalSubmission?: boolean; readonly goalSubmissionId?: string },
+): ConversationState {
+  return { ...conversation, turns: [...conversation.turns, { ...createEmptyTurn(null, options), params }] };
+}
+
+export function addGoalSubmissionHistoryEntries(
+  conversation: ConversationState,
+  entries: ReadonlyArray<GoalSubmissionHistoryEntry>,
+): ConversationState {
+  const currentIds = new Set(conversation.turns.map((turn) => turn.goalSubmissionId).filter((id): id is string => typeof id === "string"));
+  const historyTurns = entries
+    .filter((entry) => entry.threadId === conversation.id && entry.objective.trim().length > 0 && !currentIds.has(entry.id))
+    .map((entry) => createGoalSubmissionTurn(conversation, entry));
+  if (historyTurns.length === 0) {
+    return conversation;
+  }
+  return { ...conversation, turns: mergeTurnsByStartTime([...conversation.turns, ...historyTurns]) };
 }
 
 export function syncStartedTurn(conversation: ConversationState, turn: Turn): ConversationState {

@@ -117,7 +117,6 @@ vi.mock("../../features/workspace", () => ({
 import {
   ensureChatgptModeForLogin,
   isChatgptLoginDisabledError,
-  loginWithStoredTokens,
   logoutWithLocalCleanup,
   openChatgptLogin,
   refreshAccountState,
@@ -206,7 +205,7 @@ function createRequestStub() {
   return vi.fn(async (method: string) => {
     switch (method) {
       case "account/login/start":
-        return { type: "chatgptAuthTokens" };
+        return { type: "chatgpt", loginId: "login-1", authUrl: "https://example.com/auth" };
       case "account/logout":
         return {};
       case "getAuthStatus":
@@ -302,18 +301,6 @@ describe("useAppController auth helpers", () => {
     vi.mocked(readConfigSnapshot).mockResolvedValue(createConfigSnapshot("u1") as never);
     vi.mocked(startWindowsSandboxSetupRequest).mockReset();
     vi.mocked(startWindowsSandboxSetupRequest).mockResolvedValue({ started: true });
-  });
-
-  it("logs in with stored ChatGPT tokens when available", async () => {
-    const client = { request: vi.fn().mockResolvedValue({ type: "chatgptAuthTokens" }) };
-    const hostBridge = createHostBridge();
-
-    const success = await loginWithStoredTokens(client as never, hostBridge as never);
-
-    expect(success).toBe(true);
-    expect(hostBridge.app.readChatgptAuthTokens).toHaveBeenCalledTimes(1);
-    expect(hostBridge.app.writeChatgptAuthTokens).toHaveBeenCalledTimes(1);
-    expect(client.request).toHaveBeenCalledWith("account/login/start", expect.objectContaining({ type: "chatgptAuthTokens" }));
   });
 
   it("opens the browser for ChatGPT OAuth when required", async () => {
@@ -438,7 +425,7 @@ describe("useAppController auth helpers", () => {
 
     await waitFor(() => {
       expect(protocolState.request).toHaveBeenCalledWith("getAuthStatus", { includeToken: false, refreshToken: false });
-      expect(protocolState.request).toHaveBeenCalledWith("account/read", { refreshToken: false });
+      expect(protocolState.request).toHaveBeenCalledWith("account/read", { refreshToken: true });
       expect(protocolState.request).toHaveBeenCalledWith("account/rateLimits/read", undefined);
     });
   });
@@ -611,7 +598,6 @@ describe("useAppController auth helpers", () => {
         activeProviderKey: "right_code",
         oauthSnapshotAvailable: false,
       }),
-      readChatgptAuthTokens: vi.fn().mockRejectedValue(new Error("missing tokens")),
     });
     protocolState.request = vi.fn(async (method: string) => {
       switch (method) {
@@ -658,6 +644,7 @@ describe("useAppController auth helpers", () => {
     expect(protocolState.request).toHaveBeenCalledWith("account/login/start", {
       type: "chatgpt",
     });
+    expect(hostBridge.app.readChatgptAuthTokens).not.toHaveBeenCalled();
   });
 
   it("waits for app-server initialization before controller login requests", async () => {
@@ -689,7 +676,7 @@ describe("useAppController auth helpers", () => {
 
     expect(protocolState.request).toHaveBeenCalledWith(
       "account/login/start",
-      expect.objectContaining({ type: "chatgptAuthTokens" }),
+      expect.objectContaining({ type: "chatgpt" }),
     );
   });
 });

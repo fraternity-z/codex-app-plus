@@ -27,6 +27,119 @@
   flex: 1 1 auto;
 }
 
+.home-goal-status-bar {
+  width: min(calc(100% - 64px), 100%);
+  box-sizing: border-box;
+  margin: 0 auto -1px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-light);
+  border-bottom: 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--surface-panel);
+  color: var(--text-main);
+  box-shadow: var(--shadow-sm);
+}
+
+.home-goal-status-bar + .composer-card {
+  position: relative;
+}
+
+.home-goal-status-row {
+  min-height: 26px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.home-goal-status-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  color: var(--text-subtle);
+}
+
+.home-goal-status-main {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.home-goal-status-title {
+  flex: 0 0 auto;
+  font-size: var(--app-ui-font-size-md);
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--text-main);
+}
+
+.home-goal-status-time {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-md);
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-goal-status-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.home-goal-status-action {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.home-goal-status-action:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--text-main);
+}
+
+.home-goal-status-action:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.home-goal-status-action-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.home-goal-status-expand .home-goal-status-action-icon {
+  transition: transform 160ms ease;
+}
+
+.home-goal-status-bar[data-expanded="true"] .home-goal-status-expand .home-goal-status-action-icon {
+  transform: rotate(180deg);
+}
+
+.home-goal-status-objective {
+  margin: 5px 0 0;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-base);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .home-main-overlay {
   position: absolute;
   inset: 0;
@@ -292,6 +405,32 @@
   transform: translateY(0);
 }
 
+.home-chat-message-footer {
+  position: absolute;
+  right: 2px;
+  bottom: 8px;
+  max-width: 100%;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  z-index: 2;
+}
+
+.home-chat-message-actions-inline {
+  position: static;
+  right: auto;
+  bottom: auto;
+  height: 28px;
+  transform: none;
+}
+
+.home-chat-message-stack:hover .home-chat-message-actions-inline,
+.home-chat-message-stack:focus-within .home-chat-message-actions-inline {
+  transform: none;
+}
+
 .home-chat-message-action {
   width: 28px;
   height: 28px;
@@ -326,6 +465,26 @@
   background-color: currentColor;
   -webkit-mask: url("../../assets/icons/copy.svg") no-repeat center / contain;
   mask: url("../../assets/icons/copy.svg") no-repeat center / contain;
+}
+
+.home-chat-message-meta {
+  align-self: flex-end;
+  max-width: 100%;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  color: var(--home-text-muted);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 28px;
+  white-space: nowrap;
+}
+
+.home-chat-message-meta-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
 }
 
 .home-chat-message-editor {
@@ -729,6 +888,19 @@
 }
 
 @media (max-width: 900px) {
+  .home-goal-status-bar {
+    width: min(calc(100% - 28px), 100%);
+  }
+
+  .home-goal-status-row {
+    align-items: flex-start;
+  }
+
+  .home-goal-status-main {
+    flex-direction: column;
+    gap: 2px;
+  }
+
   .home-main-overlay {
     padding: 12px 14px 16px;
   }

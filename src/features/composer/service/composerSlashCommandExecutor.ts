@@ -11,13 +11,16 @@ import type { ThreadForkResponse } from "../../../protocol/generated/v2/ThreadFo
 import type { ThreadGoalClearResponse } from "../../../protocol/generated/v2/ThreadGoalClearResponse";
 import type { ThreadGoalGetResponse } from "../../../protocol/generated/v2/ThreadGoalGetResponse";
 import type { ThreadGoalSetResponse } from "../../../protocol/generated/v2/ThreadGoalSetResponse";
-import type { ThreadGoalStatus } from "../../../protocol/generated/v2/ThreadGoalStatus";
 import type { ThreadResumeResponse } from "../../../protocol/generated/v2/ThreadResumeResponse";
 import type { ConfigRequirementsReadResponse } from "../../../protocol/generated/v2/ConfigRequirementsReadResponse";
 import type { ServiceTier } from "../../../protocol/ServiceTier";
 import type { ComposerSlashCapabilitySnapshot } from "../model/composerSlashCommandCatalog";
 import { readUserConfigWriteTarget } from "../../settings/config/configWriteTarget";
 import { createConversationFromThread } from "../../conversation/model/conversationState";
+import {
+  parseThreadGoalControl,
+  resolveEditedThreadGoalStatus,
+} from "../../conversation/model/threadGoal";
 import type { ComposerPermissionLevel } from "../model/composerPermission";
 import type { ComposerCommandBridge } from "./composerCommandBridge";
 import type { Dispatch } from "react";
@@ -269,9 +272,12 @@ async function manageThreadGoal(selectedThreadId: string | null, argumentsText: 
     await showThreadGoal(selectedThreadId, deps);
     return;
   }
-  const control = parseGoalControl(trimmed);
-  if (control === "clear") {
+  const control = parseThreadGoalControl(trimmed);
+  if (control?.type === "clear") {
     const response = (await deps.composerCommandBridge.request("thread/goal/clear", { threadId: selectedThreadId })) as ThreadGoalClearResponse;
+    if (response.cleared) {
+      deps.dispatch({ type: "conversation/goalCleared", conversationId: selectedThreadId });
+    }
     pushThreadNotice(
       deps.dispatch,
       selectedThreadId,
@@ -282,18 +288,24 @@ async function manageThreadGoal(selectedThreadId: string | null, argumentsText: 
     );
     return;
   }
-  if (control !== null) {
+  if (control?.type === "edit") {
+    await editThreadGoal(selectedThreadId, deps);
+    return;
+  }
+  if (control?.type === "setStatus") {
     const response = (await deps.composerCommandBridge.request("thread/goal/set", {
       threadId: selectedThreadId,
-      status: control,
+      status: control.status,
     })) as ThreadGoalSetResponse;
-    pushThreadNotice(deps.dispatch, selectedThreadId, control === "paused" ? "目标已暂停" : "目标已恢复", formatGoalSummary(response.goal), "info", "thread/goal/set");
+    deps.dispatch({ type: "conversation/goalUpdated", conversationId: selectedThreadId, goal: response.goal });
+    pushThreadNotice(deps.dispatch, selectedThreadId, control.status === "paused" ? "目标已暂停" : "目标已恢复", formatGoalSummary(response.goal), "info", "thread/goal/set");
     return;
   }
   const response = (await deps.composerCommandBridge.request("thread/goal/set", {
     threadId: selectedThreadId,
     objective: trimmed,
   })) as ThreadGoalSetResponse;
+  deps.dispatch({ type: "conversation/goalUpdated", conversationId: selectedThreadId, goal: response.goal });
   pushThreadNotice(deps.dispatch, selectedThreadId, "目标已设置", formatGoalSummary(response.goal), "info", "thread/goal/set");
 }
 
@@ -305,15 +317,36 @@ async function showThreadGoal(selectedThreadId: string, deps: SlashExecutionDepe
     pushThreadNotice(deps.dispatch, selectedThreadId, "当前没有目标", "用法：/goal <目标>。例如：/goal improve benchmark coverage", "info", "thread/goal/get");
     return;
   }
+  deps.dispatch({ type: "conversation/goalUpdated", conversationId: selectedThreadId, goal: response.goal });
   pushThreadNotice(deps.dispatch, selectedThreadId, "当前目标", formatGoalSummary(response.goal), "info", "thread/goal/get");
 }
 
-function parseGoalControl(argumentsText: string): "clear" | ThreadGoalStatus | null {
-  const normalized = argumentsText.toLowerCase();
-  if (normalized === "clear") return "clear";
-  if (normalized === "pause") return "paused";
-  if (normalized === "resume" || normalized === "unpause") return "active";
-  return null;
+async function editThreadGoal(selectedThreadId: string, deps: SlashExecutionDependencies): Promise<void> {
+  const current = (await deps.composerCommandBridge.request("thread/goal/get", {
+    threadId: selectedThreadId,
+  })) as ThreadGoalGetResponse;
+  if (current.goal === null) {
+    throw new Error("当前没有可编辑的目标。请使用 /goal <目标> 创建。");
+  }
+  if (typeof globalThis.prompt !== "function") {
+    throw new Error("当前环境不支持目标编辑弹窗。");
+  }
+  const nextObjective = globalThis.prompt("编辑目标", current.goal.objective);
+  if (nextObjective === null) {
+    return;
+  }
+  const objective = nextObjective.trim();
+  if (objective.length === 0) {
+    throw new Error("目标不能为空。");
+  }
+  const response = (await deps.composerCommandBridge.request("thread/goal/set", {
+    threadId: selectedThreadId,
+    objective,
+    status: resolveEditedThreadGoalStatus(current.goal),
+    tokenBudget: current.goal.tokenBudget,
+  })) as ThreadGoalSetResponse;
+  deps.dispatch({ type: "conversation/goalUpdated", conversationId: selectedThreadId, goal: response.goal });
+  pushThreadNotice(deps.dispatch, selectedThreadId, "目标已更新", formatGoalSummary(response.goal), "info", "thread/goal/set");
 }
 
 function enablePlanPreset(currentPreset: CollaborationPreset, argumentsText: string, deps: SlashExecutionDependencies): void {
@@ -328,7 +361,7 @@ function enablePlanPreset(currentPreset: CollaborationPreset, argumentsText: str
 
 async function showStatus(context: SlashExecutionContext, deps: SlashExecutionDependencies): Promise<void> {
   const [accountResponse, limitsResponse, config] = await Promise.all([
-    deps.composerCommandBridge.request("account/read", { refreshToken: false }) as Promise<GetAccountResponse>,
+    deps.composerCommandBridge.request("account/read", { refreshToken: true }) as Promise<GetAccountResponse>,
     deps.composerCommandBridge.request("account/rateLimits/read", undefined) as Promise<GetAccountRateLimitsResponse>,
     refreshSlashConfig(deps.composerCommandBridge, deps.dispatch),
   ]);

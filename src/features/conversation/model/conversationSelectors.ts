@@ -36,6 +36,7 @@ export function mapConversationToThreadSummary(conversation: ConversationState):
     agentEnvironment: conversation.agentEnvironment,
     status: conversation.status,
     activeFlags: [...conversation.activeFlags],
+    goal: conversation.goal ?? null,
     queuedCount: conversation.queuedFollowUps.length,
   };
 }

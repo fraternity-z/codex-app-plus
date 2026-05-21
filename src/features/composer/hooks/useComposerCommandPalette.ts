@@ -385,6 +385,21 @@ async function selectRootSlashItem(itemKey: string, options: UseComposerCommandP
     await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff, onTogglePet: options.onTogglePet }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
     return;
   }
+  if (itemKey === "goal") {
+    await options.onSendTurn({
+      text: options.inputText,
+      attachments: [],
+      selection: {
+        model: options.selectedModel,
+        effort: options.selectedEffort,
+        serviceTier: options.selectedServiceTier,
+      },
+      permissionLevel: options.permissionLevel,
+      collaborationPreset: options.collaborationPreset,
+    });
+    await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff, onTogglePet: options.onTogglePet }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
+    return;
+  }
   await executeDirectSlashCommand(itemKey, parsed.argumentsText, slashContext, slashDeps);
   await executeSlashCommand(itemKey, { inputText: options.inputText, activeTrigger: trigger.activeTrigger, onInputChange: options.onInputChange, onCreateThread: options.onCreateThread, onToggleDiff: options.onToggleDiff, onTogglePet: options.onTogglePet }, trigger.textareaRef, trigger.setManualMode, trigger.setSuppressedTriggerKey);
 }

@@ -212,6 +212,31 @@ describe("HomeChatMessage", () => {
     expect(screen.getByRole("button", { name: "编辑消息" })).toBeInTheDocument();
   });
 
+  it("marks goal submissions under the normal user bubble", () => {
+    const { container } = renderMessage(
+      <HomeChatMessage
+        message={{
+          id: "user-goal-1",
+          kind: "userMessage",
+          role: "user",
+          threadId: "thread-1",
+          turnId: null,
+          itemId: "user-goal",
+          text: "完成 Flutter 重构",
+          status: "done",
+          submissionKind: "goal",
+        }}
+        onCopyMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("完成 Flutter 重构")).toBeInTheDocument();
+    expect(screen.getByText("已作为目标发送")).toBeInTheDocument();
+    const footer = container.querySelector(".home-chat-message-footer");
+    expect(footer?.querySelector(".home-chat-message-meta")).not.toBeNull();
+    expect(footer?.querySelector(".home-chat-message-actions-inline")).not.toBeNull();
+  });
+
   it("shows only copy for assistant messages", () => {
     renderMessage(
       <HomeChatMessage

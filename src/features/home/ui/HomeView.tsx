@@ -36,6 +36,7 @@ import type {
 import type { ResolvedTheme } from "../../../domain/theme";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
+import type { ThreadGoal } from "../../../protocol/generated/v2/ThreadGoal";
 import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
 import { useWorkspaceGit } from "../../git/hooks/useWorkspaceGit";
 import { useDiffSidebarLayout } from "../../git/hooks/useDiffSidebarLayout";
@@ -143,6 +144,9 @@ export interface HomeViewProps {
   readonly multiAgentEnabled?: boolean;
   readonly onSetMultiAgentEnabled?: (enabled: boolean) => Promise<void>;
   readonly onSelectComposerPermissionLevel: (level: ComposerPermissionLevel) => void;
+  readonly onEditThreadGoal: (goal: ThreadGoal) => Promise<void>;
+  readonly onToggleThreadGoalStatus: (goal: ThreadGoal) => Promise<void>;
+  readonly onClearThreadGoal: (goal: ThreadGoal) => Promise<void>;
   readonly onUpdateThreadBranch: (branch: string) => Promise<void>;
   readonly onInterruptTurn: () => Promise<void>;
   readonly onAddRoot: () => void;

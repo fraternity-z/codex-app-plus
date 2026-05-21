@@ -50,7 +50,6 @@ import type { TurnStartedNotification } from "../../protocol/generated/v2/TurnSt
 import type { WindowsSandboxSetupCompletedNotification } from "../../protocol/generated/v2/WindowsSandboxSetupCompletedNotification";
 import type { WindowsWorldWritableWarningNotification } from "../../protocol/generated/v2/WindowsWorldWritableWarningNotification";
 import { createConversationFromThread } from "../../features/conversation";
-import { formatGoalSummary } from "../../features/composer/service/composerSlashCommandSummary";
 
 interface NotificationContext {
   readonly dispatch: Dispatch<AppAction>;
@@ -194,12 +193,12 @@ export function applyAppServerNotification(context: NotificationContext, method:
   }
   if (method === "thread/goal/updated") {
     const payload = params as ThreadGoalUpdatedNotification;
-    pushBanner(dispatch, "info", "Goal updated", formatGoalSummary(payload.goal), "thread-goal");
+    dispatch({ type: "conversation/goalUpdated", conversationId: payload.threadId, goal: payload.goal });
     return;
   }
   if (method === "thread/goal/cleared") {
     const payload = params as ThreadGoalClearedNotification;
-    pushBanner(dispatch, "info", "Goal cleared", `Thread: ${payload.threadId}`, "thread-goal");
+    dispatch({ type: "conversation/goalCleared", conversationId: payload.threadId });
     return;
   }
   if (method === "thread/tokenUsage/updated") {

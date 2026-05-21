@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import type { ConversationState } from "../../../domain/conversation";
+import type { ConversationState, GoalSubmissionHistoryEntry } from "../../../domain/conversation";
 import type { CollaborationPreset } from "../../../domain/timeline";
+import type { ThreadGoal } from "../../../protocol/generated/v2/ThreadGoal";
 import type { ThreadMetadataUpdateResponse } from "../../../protocol/generated/v2/ThreadMetadataUpdateResponse";
+import type { ThreadGoalClearResponse } from "../../../protocol/generated/v2/ThreadGoalClearResponse";
+import type { ThreadGoalGetResponse } from "../../../protocol/generated/v2/ThreadGoalGetResponse";
+import type { ThreadGoalSetResponse } from "../../../protocol/generated/v2/ThreadGoalSetResponse";
 import type { ThreadResumeResponse } from "../../../protocol/generated/v2/ThreadResumeResponse";
 import type { ThreadRollbackResponse } from "../../../protocol/generated/v2/ThreadRollbackResponse";
 import type { ThreadStartResponse } from "../../../protocol/generated/v2/ThreadStartResponse";
@@ -21,6 +25,8 @@ import { resolveAgentWorkspacePath } from "../../workspace/model/workspacePath";
 import { createConversationFromThread } from "../model/conversationState";
 import { deriveConversationPreviewTitle, pickConversationTitle } from "../model/conversationTitle";
 import { getActiveTurnId, isConversationStreaming } from "../model/conversationSelectors";
+import { createGoalSubmissionHistoryEntry, readGoalSubmissionHistory, saveGoalSubmissionHistoryEntry } from "../model/goalSubmissionHistory";
+import { parseThreadGoalSlashCommand, resolveEditedThreadGoalStatus, resolveToggledThreadGoalStatus } from "../model/threadGoal";
 import { consumePrewarmedThread } from "../service/prewarmedThreadManager";
 import { collectDescendantThreadIds, createRpcThreadRuntimeCleanupTransport, forceCloseThreadRuntime, reportThreadCleanupError } from "../service/threadRuntimeCleanup";
 import { ThreadLifecycleCoordinator } from "../service/threadLifecycleCoordinator";
@@ -46,7 +52,9 @@ interface UseWorkspaceConversationControllerArgs {
 type WorkspaceConversationActions = Pick<
   WorkspaceConversationController,
   | "clearQueuedFollowUps"
+  | "clearThreadGoal"
   | "createThread"
+  | "editThreadGoal"
   | "interruptActiveTurn"
   | "promoteQueuedFollowUp"
   | "regenerateFromEditedUserMessage"
@@ -54,11 +62,14 @@ type WorkspaceConversationActions = Pick<
   | "selectCollaborationPreset"
   | "selectThread"
   | "sendTurn"
+  | "toggleThreadGoalStatus"
   | "updateThreadBranch"
 >;
 
 const APP_SERVER_NOT_READY_MESSAGE = "Codex is still starting or not connected. Wait for the connection before sending.";
 const STEER_UNAVAILABLE_MESSAGE = "当前 Codex 配置未启用 steer，无法发送活动中的后续消息。";
+const GOAL_ATTACHMENTS_UNSUPPORTED_MESSAGE = "目标命令不支持附件。请只发送 /goal <目标>。";
+const GOAL_THREAD_REQUIRED_MESSAGE = "当前没有线程。请使用 /goal <目标> 创建新的长任务目标。";
 const SKILL_MENTION_PATTERN = /(?:^|[\s])\$[A-Za-z0-9_-]+/;
 
 function createAppServerNotReadyError(): Error {
@@ -148,7 +159,7 @@ export function useWorkspaceConversationController({
       const conversation = getConversation(conversationId);
       if (
         conversation === null
-        || conversation.resumeState === "resumed"
+        || (conversation.resumeState === "resumed" && conversation.status !== "notLoaded")
         || conversation.resumeState === "resume_failed"
         || resumingConversationIds.current.has(conversationId)
       ) {
@@ -162,6 +173,7 @@ export function useWorkspaceConversationController({
           persistExtendedHistory: false,
         }) as ThreadResumeResponse;
         dispatch({ type: "conversation/loaded", conversationId, thread: response.thread });
+        dispatch({ type: "conversation/goalSubmissionHistoryLoaded", conversationId, entries: readGoalSubmissionHistory(conversationId) });
       } catch (error) {
         dispatch({ type: "conversation/resumeStateChanged", conversationId, resumeState: "resume_failed" });
         dispatch({
@@ -191,6 +203,14 @@ export function useWorkspaceConversationController({
     }
     void ensureConversationResumed(selectedConversation.id);
   }, [appServerReady, ensureConversationResumed, selectedConversation]);
+
+  const ensureConversationReadyForGoalMutation = useCallback(async (conversationId: string) => {
+    await ensureConversationResumed(conversationId);
+    const conversation = getConversation(conversationId);
+    if (conversation === null || conversation.resumeState === "resume_failed") {
+      throw new Error("线程恢复失败，目标操作没有执行。");
+    }
+  }, [ensureConversationResumed, getConversation]);
 
   const createThread = useCallback(async (createOptions?: CreateThreadOptions) => {
     const workspacePath = createOptions?.workspacePath ?? options.selectedRootPath;
@@ -237,7 +257,10 @@ export function useWorkspaceConversationController({
     });
   }, [appServerClient, appServerReady, dispatch, lifecycle, options.agentEnvironment, options.collaborationModes, options.permissionSettings, options.selectedRootPath, resolveInputSkills]);
 
-  const startNewConversation = useCallback(async (sendOptions: SendTurnOptions) => {
+  const materializeConversation = useCallback(async (
+    sendOptions: SendTurnOptions,
+    previewText: string,
+  ): Promise<{ readonly conversation: ConversationState; readonly cwd: string | null }> => {
     if (!appServerReady) {
       throw createAppServerNotReadyError();
     }
@@ -258,10 +281,10 @@ export function useWorkspaceConversationController({
       }) as ThreadStartResponse
     );
     const conversation = createConversationFromThread(response.thread, { hidden: false, resumeState: "resumed", agentEnvironment: options.agentEnvironment });
-    const availableSkills = await resolveInputSkills(sendOptions.text, workspacePath);
+    const availableSkills = await resolveInputSkills(previewText, workspacePath);
     const localPreviewTitle = pickConversationTitle(
       conversation.title,
-      deriveConversationPreviewTitle(createInput(sendOptions.text, sendOptions.attachments, options.agentEnvironment, availableSkills)),
+      deriveConversationPreviewTitle(createInput(previewText, sendOptions.attachments, options.agentEnvironment, availableSkills)),
     );
     dispatch({ type: "conversation/upserted", conversation });
     if (localPreviewTitle !== null && localPreviewTitle !== conversation.title) {
@@ -269,8 +292,13 @@ export function useWorkspaceConversationController({
     }
     dispatch({ type: "composer/draftCollaborationPresetTransferred", conversationId: conversation.id });
     dispatch({ type: "conversation/selected", conversationId: conversation.id });
-    await startTurn(conversation.id, sendOptions, response.thread.cwd || response.cwd || agentWorkspacePath);
-  }, [appServerClient, appServerReady, dispatch, options.agentEnvironment, options.permissionSettings, options.selectedRootPath, resolveInputSkills, startTurn, store]);
+    return { conversation, cwd: response.thread.cwd || response.cwd || agentWorkspacePath };
+  }, [appServerClient, appServerReady, dispatch, options.agentEnvironment, options.permissionSettings, options.selectedRootPath, resolveInputSkills, store]);
+
+  const startNewConversation = useCallback(async (sendOptions: SendTurnOptions) => {
+    const materialized = await materializeConversation(sendOptions, sendOptions.text);
+    await startTurn(materialized.conversation.id, sendOptions, materialized.cwd);
+  }, [materializeConversation, startTurn]);
 
   const interruptTurn = useCallback(async (conversationId: string, turnId: string) => {
     if (!appServerReady) {
@@ -314,6 +342,158 @@ export function useWorkspaceConversationController({
     return response.turnId;
   }, [appServerClient, appServerReady, dispatch, options.selectedRootPath, options.steerAvailable, resolveInputSkills]);
 
+  const showThreadGoal = useCallback(async (conversationId: string) => {
+    if (!appServerReady) {
+      throw createAppServerNotReadyError();
+    }
+    const response = await appServerClient.request("thread/goal/get", {
+      threadId: conversationId,
+    }) as ThreadGoalGetResponse;
+    if (response.goal === null) {
+      dispatch({
+        type: "conversation/systemNoticeAdded",
+        conversationId,
+        turnId: null,
+        title: "当前没有目标",
+        detail: "用法：/goal <目标>。",
+        level: "info",
+        source: "thread/goal/get",
+      });
+      return;
+    }
+    dispatch({ type: "conversation/goalUpdated", conversationId, goal: response.goal });
+  }, [appServerClient, appServerReady, dispatch]);
+
+  const markConversationActiveForGoal = useCallback((conversationId: string, goal: ThreadGoal) => {
+    if (goal.status !== "active") {
+      return;
+    }
+    const conversation = getConversation(conversationId);
+    dispatch({
+      type: "conversation/statusChanged",
+      conversationId,
+      status: "active",
+      activeFlags: conversation?.status === "active" ? conversation.activeFlags : [],
+    });
+  }, [dispatch, getConversation]);
+
+  const clearThreadGoal = useCallback(async (conversationId: string) => {
+    await lifecycle.runWithActivity(conversationId, async () => {
+      if (!appServerReady) {
+        throw createAppServerNotReadyError();
+      }
+      await ensureConversationReadyForGoalMutation(conversationId);
+      const response = await appServerClient.request("thread/goal/clear", {
+        threadId: conversationId,
+      }) as ThreadGoalClearResponse;
+      if (response.cleared) {
+        dispatch({ type: "conversation/goalCleared", conversationId });
+      }
+      dispatch({
+        type: "conversation/systemNoticeAdded",
+        conversationId,
+        turnId: null,
+        title: response.cleared ? "已清除目标" : "当前没有目标",
+        detail: response.cleared ? null : "可用 /goal <目标> 创建新的长任务目标。",
+        level: "info",
+        source: "thread/goal/clear",
+      });
+    });
+  }, [appServerClient, appServerReady, dispatch, ensureConversationReadyForGoalMutation, lifecycle]);
+
+  const setThreadGoalStatus = useCallback(async (conversationId: string, status: "active" | "paused") => {
+    await lifecycle.runWithActivity(conversationId, async () => {
+      if (!appServerReady) {
+        throw createAppServerNotReadyError();
+      }
+      await ensureConversationReadyForGoalMutation(conversationId);
+      const response = await appServerClient.request("thread/goal/set", {
+        threadId: conversationId,
+        status,
+      }) as ThreadGoalSetResponse;
+      dispatch({ type: "conversation/goalUpdated", conversationId, goal: response.goal });
+      markConversationActiveForGoal(conversationId, response.goal);
+      dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });
+    });
+  }, [appServerClient, appServerReady, dispatch, ensureConversationReadyForGoalMutation, lifecycle, markConversationActiveForGoal]);
+
+  const setThreadGoalObjective = useCallback(async (
+    conversationId: string,
+    objective: string,
+    options?: { readonly status?: "active" | "paused"; readonly tokenBudget?: number | null },
+  ): Promise<ThreadGoal> => {
+    let goal: ThreadGoal | null = null;
+    await lifecycle.runWithActivity(conversationId, async () => {
+      if (!appServerReady) {
+        throw createAppServerNotReadyError();
+      }
+      await ensureConversationReadyForGoalMutation(conversationId);
+      const response = await appServerClient.request("thread/goal/set", {
+        threadId: conversationId,
+        objective,
+        ...(options?.status === undefined ? {} : { status: options.status }),
+        ...(options === undefined || !("tokenBudget" in options) ? {} : { tokenBudget: options.tokenBudget }),
+      }) as ThreadGoalSetResponse;
+      goal = response.goal;
+      dispatch({ type: "conversation/goalUpdated", conversationId, goal: response.goal });
+      markConversationActiveForGoal(conversationId, response.goal);
+      dispatch({ type: "conversation/touched", conversationId, updatedAt: new Date().toISOString() });
+    });
+    if (goal === null) {
+      throw createAppServerNotReadyError();
+    }
+    return goal;
+  }, [appServerClient, appServerReady, dispatch, ensureConversationReadyForGoalMutation, lifecycle, markConversationActiveForGoal]);
+
+  const addGoalSubmissionPlaceholder = useCallback(async (
+    conversationId: string,
+    sendOptions: SendTurnOptions,
+    objective: string,
+    cwdOverride: string | null,
+    submission: GoalSubmissionHistoryEntry,
+  ) => {
+    const availableSkills = await resolveInputSkills(objective, cwdOverride ?? options.selectedRootPath);
+    const collaborationMode = resolveRequestedCollaborationMode(options.collaborationModes, sendOptions);
+    dispatch({
+      type: "conversation/turnPlaceholderAdded",
+      conversationId,
+      goalSubmission: true,
+      goalSubmissionId: submission.id,
+      params: {
+        input: createInput(objective, [], options.agentEnvironment, availableSkills),
+        cwd: resolveConversationCwd(cwdOverride, options.agentEnvironment),
+        model: sendOptions.selection.model,
+        effort: sendOptions.selection.effort,
+        serviceTier: sendOptions.selection.serviceTier,
+        collaborationMode: collaborationMode ?? null,
+      },
+    });
+  }, [dispatch, options.agentEnvironment, options.collaborationModes, options.selectedRootPath, resolveInputSkills]);
+
+  const editThreadGoalFromPrompt = useCallback(async (conversationId: string) => {
+    if (typeof globalThis.prompt !== "function") {
+      throw new Error("当前环境不支持目标编辑弹窗。");
+    }
+    const response = await appServerClient.request("thread/goal/get", {
+      threadId: conversationId,
+    }) as ThreadGoalGetResponse;
+    if (response.goal === null) {
+      throw new Error("当前没有可编辑的目标。请使用 /goal <目标> 创建。");
+    }
+    const nextObjective = globalThis.prompt("编辑目标", response.goal.objective);
+    if (nextObjective === null) {
+      return;
+    }
+    const objective = nextObjective.trim();
+    if (objective.length === 0) {
+      throw new Error("目标不能为空。");
+    }
+    await setThreadGoalObjective(conversationId, objective, {
+      status: resolveEditedThreadGoalStatus(response.goal),
+      tokenBudget: response.goal.tokenBudget,
+    });
+  }, [appServerClient, setThreadGoalObjective]);
+
   const interruptAndUnloadConversation = useCallback(async (conversationId: string, turnId: string) => {
     const descendantThreadIds = collectDescendantThreadIds(conversationId, store.getState().conversationsById);
     try {
@@ -334,6 +514,36 @@ export function useWorkspaceConversationController({
     dispatch({ type: "conversation/statusChanged", conversationId, status: "notLoaded", activeFlags: [] });
     dispatch({ type: "conversation/resumeStateChanged", conversationId, resumeState: "needs_resume" });
   }, [cleanupTransport, dispatch, getConversation, store]);
+
+  const interruptGoalRunIfActive = useCallback(async (conversationId: string) => {
+    const conversation = getConversation(conversationId);
+    if (conversation === null) {
+      return;
+    }
+    const currentActiveTurnId = getActiveTurnId(conversation);
+    const turnId = currentActiveTurnId ?? (conversation.status === "active" ? "" : null);
+    if (turnId === null || conversation.interruptRequestedTurnId === turnId) {
+      return;
+    }
+    await interruptAndUnloadConversation(conversationId, turnId);
+  }, [getConversation, interruptAndUnloadConversation]);
+
+  const editThreadGoal = useCallback(async (goal: ThreadGoal) => {
+    await editThreadGoalFromPrompt(goal.threadId);
+  }, [editThreadGoalFromPrompt]);
+
+  const toggleThreadGoalStatus = useCallback(async (goal: ThreadGoal) => {
+    const status = resolveToggledThreadGoalStatus(goal);
+    await setThreadGoalStatus(goal.threadId, status);
+    if (status === "paused") {
+      await interruptGoalRunIfActive(goal.threadId);
+    }
+  }, [interruptGoalRunIfActive, setThreadGoalStatus]);
+
+  const clearThreadGoalFromBar = useCallback(async (goal: ThreadGoal) => {
+    await clearThreadGoal(goal.threadId);
+    await interruptGoalRunIfActive(goal.threadId);
+  }, [clearThreadGoal, interruptGoalRunIfActive]);
 
   const processQueuedFollowUp = useCallback(async (conversationId: string) => {
     if (!appServerReady) {
@@ -370,11 +580,95 @@ export function useWorkspaceConversationController({
     }
   }, [nextQueuedConversationId, processQueuedFollowUp]);
 
+  const executeGoalSlashCommand = useCallback(async (
+    command: NonNullable<ReturnType<typeof parseThreadGoalSlashCommand>>,
+    sendOptions: SendTurnOptions,
+  ) => {
+    if (sendOptions.attachments.length > 0) {
+      throw new Error(GOAL_ATTACHMENTS_UNSUPPORTED_MESSAGE);
+    }
+    if (command.type === "setObjective" && selectedConversation === null) {
+      const materialized = await materializeConversation(sendOptions, command.objective);
+      const submission = createGoalSubmissionHistoryEntry(materialized.conversation.id, command.objective);
+      await addGoalSubmissionPlaceholder(
+        materialized.conversation.id,
+        sendOptions,
+        command.objective,
+        materialized.cwd,
+        submission,
+      );
+      await setThreadGoalObjective(materialized.conversation.id, command.objective);
+      saveGoalSubmissionHistoryEntry(submission);
+      dispatch({ type: "input/changed", value: "" });
+      return;
+    }
+    if (selectedConversation === null) {
+      throw new Error(GOAL_THREAD_REQUIRED_MESSAGE);
+    }
+
+    await ensureConversationResumed(selectedConversation.id);
+    if (command.type === "show") {
+      await showThreadGoal(selectedConversation.id);
+      dispatch({ type: "input/changed", value: "" });
+      return;
+    }
+    if (command.type === "edit") {
+      await editThreadGoalFromPrompt(selectedConversation.id);
+      dispatch({ type: "input/changed", value: "" });
+      return;
+    }
+    if (command.type === "clear") {
+      await clearThreadGoal(selectedConversation.id);
+      await interruptGoalRunIfActive(selectedConversation.id);
+      dispatch({ type: "input/changed", value: "" });
+      return;
+    }
+    if (command.type === "setStatus") {
+      await setThreadGoalStatus(selectedConversation.id, command.status);
+      if (command.status === "paused") {
+        await interruptGoalRunIfActive(selectedConversation.id);
+      }
+      dispatch({ type: "input/changed", value: "" });
+      return;
+    }
+    const currentConversation = getConversation(selectedConversation.id) ?? selectedConversation;
+    const submission = createGoalSubmissionHistoryEntry(selectedConversation.id, command.objective);
+    await addGoalSubmissionPlaceholder(
+      selectedConversation.id,
+      sendOptions,
+      command.objective,
+      currentConversation.cwd ?? options.selectedRootPath,
+      submission,
+    );
+    await setThreadGoalObjective(selectedConversation.id, command.objective);
+    saveGoalSubmissionHistoryEntry(submission);
+    dispatch({ type: "input/changed", value: "" });
+  }, [
+    addGoalSubmissionPlaceholder,
+    clearThreadGoal,
+    dispatch,
+    editThreadGoalFromPrompt,
+    ensureConversationResumed,
+    getConversation,
+    interruptGoalRunIfActive,
+    materializeConversation,
+    options.selectedRootPath,
+    selectedConversation,
+    setThreadGoalObjective,
+    setThreadGoalStatus,
+    showThreadGoal,
+  ]);
+
   const sendTurn = useCallback(async (sendOptions: SendTurnOptions) => {
     const expandedText = expandCustomPromptCommand(sendOptions.text, store.getState().customPrompts);
     const normalizedSendOptions = expandedText === null ? sendOptions : { ...sendOptions, text: expandedText };
     const text = normalizedSendOptions.text.trim();
     if (text.length === 0 && sendOptions.attachments.length === 0) {
+      return;
+    }
+    const goalCommand = parseThreadGoalSlashCommand(normalizedSendOptions.text);
+    if (goalCommand !== null) {
+      await executeGoalSlashCommand(goalCommand, normalizedSendOptions);
       return;
     }
     if (selectedConversation === null) {
@@ -398,7 +692,7 @@ export function useWorkspaceConversationController({
     const followUp = createQueuedFollowUp({ ...normalizedSendOptions, followUpOverride: mode });
     dispatch({ type: "followUp/enqueued", conversationId: selectedConversation.id, followUp });
     dispatch({ type: "input/changed", value: "" });
-  }, [dispatch, ensureConversationResumed, getConversation, options.followUpQueueMode, options.selectedRootPath, selectedConversation, startNewConversation, startTurn, steerTurn]);
+  }, [dispatch, ensureConversationResumed, executeGoalSlashCommand, getConversation, options.followUpQueueMode, options.selectedRootPath, selectedConversation, startNewConversation, startTurn, steerTurn, store]);
 
   const regenerateFromEditedUserMessage = useCallback(async (regenerateOptions: RegenerateEditedUserMessageOptions) => {
     if (!appServerReady) {
@@ -446,10 +740,14 @@ export function useWorkspaceConversationController({
   }, [appServerClient, appServerReady, dispatch, ensureConversationResumed, getConversation, options.selectedRootPath, startTurn, store]);
 
   const interruptActiveTurn = useCallback(async () => {
-    if (selectedConversation === null || activeTurnId === null || selectedConversation.interruptRequestedTurnId === activeTurnId) {
+    if (selectedConversation === null) {
       return;
     }
-    await interruptAndUnloadConversation(selectedConversation.id, activeTurnId);
+    const turnId = activeTurnId ?? (selectedConversation.status === "active" ? "" : null);
+    if (turnId === null || selectedConversation.interruptRequestedTurnId === turnId) {
+      return;
+    }
+    await interruptAndUnloadConversation(selectedConversation.id, turnId);
   }, [activeTurnId, interruptAndUnloadConversation, selectedConversation]);
 
   const selectThread = useCallback((threadId: string | null) => {
@@ -559,7 +857,9 @@ export function useWorkspaceConversationController({
 
   return {
     clearQueuedFollowUps,
+    clearThreadGoal: clearThreadGoalFromBar,
     createThread,
+    editThreadGoal,
     interruptActiveTurn,
     promoteQueuedFollowUp,
     regenerateFromEditedUserMessage,
@@ -567,6 +867,7 @@ export function useWorkspaceConversationController({
     selectCollaborationPreset,
     selectThread,
     sendTurn,
+    toggleThreadGoalStatus,
     updateThreadBranch,
   };
 }

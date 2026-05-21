@@ -4,6 +4,7 @@ import type { ResponseItem } from "../protocol/generated/ResponseItem";
 import type { CollaborationMode } from "../protocol/generated/CollaborationMode";
 import type { ServiceTier } from "../protocol/ServiceTier";
 import type { ThreadItem } from "../protocol/generated/v2/ThreadItem";
+import type { ThreadGoal } from "../protocol/generated/v2/ThreadGoal";
 import type { ThreadTokenUsage } from "../protocol/generated/v2/ThreadTokenUsage";
 import type { TurnError } from "../protocol/generated/v2/TurnError";
 import type { TurnPlanStep } from "../protocol/generated/v2/TurnPlanStep";
@@ -70,6 +71,15 @@ export interface ConversationTurnState {
   reviewStates: Array<ConversationReviewState>;
   contextCompactions: Array<ConversationContextCompaction>;
   tokenUsage: ThreadTokenUsage | null;
+  goalSubmission?: boolean;
+  goalSubmissionId?: string;
+}
+
+export interface GoalSubmissionHistoryEntry {
+  readonly id: string;
+  readonly threadId: string;
+  readonly objective: string;
+  readonly createdAtMs: number;
 }
 
 export type ConversationResumeState = "needs_resume" | "resuming" | "resumed" | "resume_failed";
@@ -87,6 +97,7 @@ export interface ConversationState {
   agentEnvironment: AgentEnvironment;
   status: ThreadRuntimeStatus;
   activeFlags: Array<ThreadActiveFlag>;
+  goal?: ThreadGoal | null;
   resumeState: ConversationResumeState;
   turns: Array<ConversationTurnState>;
   queuedFollowUps: Array<QueuedFollowUp>;

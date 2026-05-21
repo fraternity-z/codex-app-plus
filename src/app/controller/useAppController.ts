@@ -29,7 +29,6 @@ import { useWindowsSandboxSetup } from "./useWindowsSandboxSetup";
 export {
   ensureChatgptModeForLogin,
   isChatgptLoginDisabledError,
-  loginWithStoredTokens,
   logoutWithLocalCleanup,
   openChatgptLogin,
   refreshAccountState,

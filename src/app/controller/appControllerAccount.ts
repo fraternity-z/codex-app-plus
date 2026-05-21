@@ -83,7 +83,7 @@ async function loadAuthStatus(client: AccountRequestClient): Promise<AuthSnapsho
 
 async function loadAccountSnapshot(client: AccountRequestClient, dispatch: Dispatch): Promise<AuthSnapshot | null> {
   try {
-    const response = (await client.request("account/read", { refreshToken: false })) as GetAccountResponse;
+    const response = (await client.request("account/read", { refreshToken: true })) as GetAccountResponse;
     const account = mapAccountSummary(response);
     if (account === null) {
       dispatch({ type: "account/updated", account: null });
@@ -123,7 +123,7 @@ export async function refreshAccountState(client: AccountRequestClient, dispatch
     loadAccountSnapshot(client, dispatch),
     loadRateLimits(client, dispatch),
   ]);
-  const auth = authStatus ?? accountAuthStatus ?? { status: "unknown", mode: null };
+  const auth = accountAuthStatus ?? authStatus ?? { status: "unknown", mode: null };
   dispatch({ type: "auth/changed", status: auth.status, mode: auth.mode });
 }
 
@@ -140,22 +140,6 @@ export async function openChatgptLogin(
   dispatch({ type: "authLogin/started", loginId: response.loginId, authUrl: response.authUrl });
   await hostBridge.app.openExternal(response.authUrl);
   return true;
-}
-
-export async function loginWithStoredTokens(client: AccountRequestClient, hostBridge: AppHostBridge): Promise<boolean> {
-  try {
-    const tokens = await hostBridge.app.readChatgptAuthTokens();
-    await hostBridge.app.writeChatgptAuthTokens(tokens);
-    const response = (await client.request("account/login/start", {
-      type: "chatgptAuthTokens",
-      accessToken: tokens.accessToken,
-      chatgptAccountId: tokens.chatgptAccountId,
-      chatgptPlanType: tokens.chatgptPlanType,
-    })) as LoginAccountResponse;
-    return response.type === "chatgptAuthTokens";
-  } catch {
-    return false;
-  }
 }
 
 export async function logoutWithLocalCleanup(

@@ -4,6 +4,8 @@ import type { CollaborationModeListResponse } from "../../protocol/generated/v2/
 import type { ConfigReadResponse } from "../../protocol/generated/v2/ConfigReadResponse";
 import { listAllExperimentalFeatures } from "../../features/settings";
 import { createConversationFromThreadSummary } from "../../features/conversation";
+import { addGoalSubmissionHistoryEntries } from "../../features/conversation/model/conversationState";
+import { readGoalSubmissionHistory } from "../../features/conversation/model/goalSubmissionHistory";
 import { listAllThreads, loadThreadCatalog } from "../../features/workspace";
 import { ProtocolClient } from "../../protocol/client";
 import { refreshAccountState } from "./appControllerAccount";
@@ -26,7 +28,13 @@ export async function loadConversationCatalog(
     () => hostBridge.app.listCodexSessions({ agentEnvironment }),
     agentEnvironment,
   );
-  dispatch({ type: "conversations/catalogLoaded", conversations: threads.map(createConversationFromThreadSummary) });
+  dispatch({
+    type: "conversations/catalogLoaded",
+    conversations: threads.map((thread) => addGoalSubmissionHistoryEntries(
+      createConversationFromThreadSummary(thread),
+      readGoalSubmissionHistory(thread.id),
+    )),
+  });
 }
 
 export async function loadBootstrapSnapshot(

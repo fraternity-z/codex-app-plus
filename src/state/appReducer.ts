@@ -3,6 +3,7 @@ import { INITIAL_STATE } from "../domain/types";
 import {
   addConversationMcpProgress,
   addConversationSystemNotice,
+  addGoalSubmissionHistoryEntries,
   addPlaceholderTurn,
   appendConversationContextCompaction,
   appendConversationRawResponse,
@@ -12,6 +13,7 @@ import {
   attachConversationRawResponse,
   hydrateConversationFromThread,
   setConversationDiff,
+  setConversationGoal,
   setConversationHidden,
   setConversationPlan,
   setConversationResumeState,
@@ -166,8 +168,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return updateConversation(state, action.conversationId, (conversation) => touchConversation(conversation, action.updatedAt));
     case "conversation/statusChanged":
       return updateConversation(state, action.conversationId, (conversation) => setConversationStatus(conversation, action.status, action.activeFlags));
+    case "conversation/goalUpdated":
+      return updateConversation(state, action.conversationId, (conversation) => setConversationGoal(conversation, action.goal));
+    case "conversation/goalCleared":
+      return updateConversation(state, action.conversationId, (conversation) => setConversationGoal(conversation, null));
+    case "conversation/goalSubmissionHistoryLoaded":
+      return updateConversation(state, action.conversationId, (conversation) => addGoalSubmissionHistoryEntries(conversation, action.entries));
     case "conversation/turnPlaceholderAdded":
-      return updateConversation(state, action.conversationId, (conversation) => addPlaceholderTurn(conversation, action.params));
+      return updateConversation(state, action.conversationId, (conversation) => addPlaceholderTurn(conversation, action.params, { goalSubmission: action.goalSubmission, goalSubmissionId: action.goalSubmissionId }));
     case "conversation/turnStarted":
       return updateConversation(state, action.conversationId, (conversation) => syncStartedTurn(conversation, action.turn));
     case "conversation/turnCompleted":

@@ -34,6 +34,22 @@ export function HomeChatMessage(props: HomeChatMessageProps): JSX.Element {
   const hasText = props.message.text.trim().length > 0;
   const hasContent = attachments.length > 0 || hasText;
   const canSubmitEdit = draftText.trim().length > 0 || attachments.length > 0;
+  const isGoalSubmission = !assistant && props.message.submissionKind === "goal";
+  const actions = (
+    <HomeChatMessageActions
+      assistant={assistant}
+      copied={props.copied === true}
+      canEdit={canEdit}
+      inline={isGoalSubmission}
+      labels={{
+        copy: t("app.conversation.copyMessage"),
+        copied: t("app.conversation.messageCopied"),
+        edit: t("app.conversation.editMessage"),
+      }}
+      onCopy={props.onCopyMessage === undefined ? undefined : () => props.onCopyMessage?.(props.message)}
+      onEdit={canEdit ? () => setEditing(true) : undefined}
+    />
+  );
 
   useEffect(() => {
     setEditing(false);
@@ -99,18 +115,15 @@ export function HomeChatMessage(props: HomeChatMessageProps): JSX.Element {
                 />
               </div>
             ) : null}
-            <HomeChatMessageActions
-              assistant={assistant}
-              copied={props.copied === true}
-              canEdit={canEdit}
-              labels={{
-                copy: t("app.conversation.copyMessage"),
-                copied: t("app.conversation.messageCopied"),
-                edit: t("app.conversation.editMessage"),
-              }}
-              onCopy={props.onCopyMessage === undefined ? undefined : () => props.onCopyMessage?.(props.message)}
-              onEdit={canEdit ? () => setEditing(true) : undefined}
-            />
+            {isGoalSubmission ? (
+              <div className="home-chat-message-footer">
+                <div className="home-chat-message-meta">
+                  <GoalSentIcon className="home-chat-message-meta-icon" />
+                  <span>已作为目标发送</span>
+                </div>
+                {actions}
+              </div>
+            ) : actions}
           </>}
         </div>
       ) : null}
@@ -122,6 +135,7 @@ export function HomeChatMessageActions(props: {
   readonly assistant: boolean;
   readonly copied: boolean;
   readonly canEdit: boolean;
+  readonly inline?: boolean;
   readonly labels: {
     readonly copy: string;
     readonly copied: string;
@@ -135,7 +149,7 @@ export function HomeChatMessageActions(props: {
   }
 
   return (
-    <div className="home-chat-message-actions">
+    <div className={`home-chat-message-actions${props.inline === true ? " home-chat-message-actions-inline" : ""}`}>
       {props.onCopy === undefined ? null : (
         <button
           type="button"
@@ -179,6 +193,10 @@ function EditActionIcon(): JSX.Element {
       <path d="M11.7 5.6 14.5 8.4" fill="none" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
+}
+
+function GoalSentIcon(props: { readonly className?: string }): JSX.Element {
+  return <svg className={props.className} viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.4" fill="none" stroke="currentColor" strokeWidth="1.15" /><circle cx="8" cy="8" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.15" /><path d="M8 1.7v2M8 12.3v2M1.7 8h2M12.3 8h2" stroke="currentColor" strokeWidth="1.15" strokeLinecap="round" /></svg>;
 }
 
 function MessageAttachmentStrip(props: { readonly attachments: ReadonlyArray<ConversationAttachment> }): JSX.Element {

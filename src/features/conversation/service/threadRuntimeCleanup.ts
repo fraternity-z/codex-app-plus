@@ -93,6 +93,8 @@ export async function forceCloseThreadRuntime(
   const activeTurnId = getActiveTurnId(conversation);
   if (activeTurnId !== null && conversation?.interruptRequestedTurnId !== activeTurnId) {
     await ignoreThreadCleanupError(() => transport.interruptTurn(threadId, activeTurnId), INTERRUPT_IGNORED_PATTERNS);
+  } else if (activeTurnId === null && conversation?.status === "active" && conversation.interruptRequestedTurnId !== "") {
+    await ignoreThreadCleanupError(() => transport.interruptTurn(threadId, ""), INTERRUPT_IGNORED_PATTERNS);
   }
   await ignoreThreadCleanupError(() => transport.cleanBackgroundTerminals(threadId), CLEANUP_IGNORED_PATTERNS);
   await closeThreadSubscription(threadId, transport);

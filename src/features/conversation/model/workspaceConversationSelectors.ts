@@ -42,6 +42,7 @@ interface ThreadSummaryCacheEntry {
   readonly agentEnvironment: ConversationState["agentEnvironment"];
   readonly status: ConversationState["status"];
   readonly activeFlags: ConversationState["activeFlags"];
+  readonly goal: ConversationState["goal"];
   readonly queuedCount: number;
   readonly requiresUserAttention: boolean;
   readonly summary: ThreadSummary;
@@ -111,6 +112,7 @@ export function createThreadSummaryMemo(): (
       && cached.agentRole === conversation.agentRole
       && cached.agentEnvironment === conversation.agentEnvironment
       && cached.status === conversation.status
+      && cached.goal === conversation.goal
       && cached.queuedCount === conversation.queuedFollowUps.length
       && cached.requiresUserAttention === requiresUserAttention
       && hasSameActiveFlags(cached.activeFlags, conversation.activeFlags)
@@ -135,6 +137,7 @@ export function createThreadSummaryMemo(): (
       agentEnvironment: conversation.agentEnvironment,
       status: conversation.status,
       activeFlags: conversation.activeFlags,
+      goal: conversation.goal,
       queuedCount: conversation.queuedFollowUps.length,
       requiresUserAttention,
       summary,

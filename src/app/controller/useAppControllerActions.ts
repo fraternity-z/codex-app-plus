@@ -21,7 +21,6 @@ import { listArchivedThreads as listArchivedThreadsForEnvironment } from "./appC
 import {
   ensureChatgptModeForLogin,
   isChatgptLoginDisabledError,
-  loginWithStoredTokens,
   logoutWithLocalCleanup,
   openChatgptLogin,
   refreshAccountState,
@@ -107,15 +106,6 @@ export function useAppControllerActions({
       }
       await runBusy(async () => {
         await ensureChatgptModeForLogin(client, hostBridge, agentEnvironment);
-        const loggedInWithTokens = await loginWithStoredTokens(client, hostBridge);
-        if (loggedInWithTokens) {
-          dispatch({ type: "authLogin/completed", success: true, error: null });
-          await refreshAccountState(client, dispatch);
-          await hostBridge.app.captureCodexOauthSnapshot({
-            agentEnvironment,
-          });
-          return;
-        }
         let openedBrowser: boolean;
         try {
           openedBrowser = await openChatgptLogin(client, hostBridge, dispatch);

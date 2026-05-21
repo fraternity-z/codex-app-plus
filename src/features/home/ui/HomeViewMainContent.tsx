@@ -30,6 +30,7 @@ import type {
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import type { FsGetMetadataResponse } from "../../../protocol/generated/v2/FsGetMetadataResponse";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
+import type { ThreadGoal } from "../../../protocol/generated/v2/ThreadGoal";
 import { useAppSelector } from "../../../state/store";
 import { HomeConversationCanvas } from "../../conversation/ui/HomeConversationCanvas";
 import { HomeTurnPlanDrawer } from "../../conversation/ui/HomeTurnPlanDrawer";
@@ -48,6 +49,7 @@ import {
   deriveHomeViewMainContentState,
 } from "../model/homeViewMainContentModel";
 import { HomeBannerStack, selectVisibleHomeBanners } from "./HomeBannerStack";
+import { HomeGoalStatusBar } from "./HomeGoalStatusBar";
 import { HomeMainToolbar } from "./HomeMainToolbar";
 import { HomeWorkspaceEmptyState } from "./HomeWorkspaceEmptyState";
 
@@ -111,6 +113,9 @@ export interface HomeViewMainContentProps {
   readonly multiAgentAvailable?: boolean;
   readonly multiAgentEnabled?: boolean;
   readonly onSetMultiAgentEnabled?: (enabled: boolean) => Promise<void>;
+  readonly onEditThreadGoal: (goal: ThreadGoal) => Promise<void>;
+  readonly onToggleThreadGoalStatus: (goal: ThreadGoal) => Promise<void>;
+  readonly onClearThreadGoal: (goal: ThreadGoal) => Promise<void>;
   readonly onSelectComposerPermissionLevel: (level: ComposerPermissionLevel) => void;
   readonly onUpdateThreadBranch: (branch: string) => Promise<void>;
   readonly onInterruptTurn: () => Promise<void>;
@@ -242,6 +247,7 @@ interface HomeConversationSectionProps {
   readonly activities: ReadonlyArray<TimelineEntry>;
   readonly activeTurnId: string | null;
   readonly busy: boolean;
+  readonly showProgress: boolean;
   readonly connectionRetryInfo: ReturnType<typeof extractConnectionRetryInfo>["retryInfo"];
   readonly connectionStatus: ConnectionStatus;
   readonly conversationActive: boolean;
@@ -284,6 +290,7 @@ const HomeConversationSection = memo(function HomeConversationSection(
       activities={props.activities}
       selectedThread={props.selectedThread}
       activeTurnId={props.activeTurnId}
+      showProgress={props.showProgress}
       turnStatuses={props.turnStatuses}
       threadDetailLevel={props.threadDetailLevel}
       placeholder={props.placeholder}
@@ -326,6 +333,9 @@ interface HomeComposerSectionProps {
   readonly onLogout: () => Promise<void>;
   readonly onOpenCodexWeb: () => Promise<void>;
   readonly onPersistComposerSelection: (selection: ComposerSelection) => Promise<void>;
+  readonly onEditThreadGoal: (goal: ThreadGoal) => Promise<void>;
+  readonly onToggleThreadGoalStatus: (goal: ThreadGoal) => Promise<void>;
+  readonly onClearThreadGoal: (goal: ThreadGoal) => Promise<void>;
   readonly onPromoteQueuedFollowUp: (followUpId: string) => Promise<void>;
   readonly onRemoveQueuedFollowUp: (followUpId: string) => void;
   readonly onRemoveLocalCodeCommentAttachment?: (attachmentId: string) => void;
@@ -373,6 +383,16 @@ const HomeComposerSection = memo(function HomeComposerSection(
       isResponding={props.isResponding}
       interruptPending={props.interruptPending}
       composerCommandBridge={composerCommandBridge}
+      goalStatusBar={(
+        <HomeGoalStatusBar
+          appServerReady={props.appServerReady}
+          goal={props.selectedThread?.goal ?? null}
+          isResponding={props.isResponding}
+          onEditGoal={props.onEditThreadGoal}
+          onToggleGoalStatus={props.onToggleThreadGoalStatus}
+          onClearGoal={props.onClearThreadGoal}
+        />
+      )}
       onSelectCollaborationPreset={props.onSelectCollaborationPreset}
       onInputChange={props.onInputChange}
       onCreateThread={props.onCreateThread}
@@ -535,6 +555,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           activities={derivedState.renderableActivities}
           activeTurnId={props.activeTurnId}
           busy={props.busy}
+          showProgress={props.isResponding}
           connectionRetryInfo={props.connectionRetryInfo}
           connectionStatus={props.connectionStatus}
           conversationActive={derivedState.conversationActive}
@@ -618,6 +639,9 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           onLogout={props.onLogout}
           onOpenCodexWeb={openCodexWeb}
           onPersistComposerSelection={props.onPersistComposerSelection}
+          onEditThreadGoal={props.onEditThreadGoal}
+          onToggleThreadGoalStatus={props.onToggleThreadGoalStatus}
+          onClearThreadGoal={props.onClearThreadGoal}
           onPromoteQueuedFollowUp={props.onPromoteQueuedFollowUp}
           onRemoveQueuedFollowUp={props.onRemoveQueuedFollowUp}
           onRemoveLocalCodeCommentAttachment={props.onRemoveLocalCodeCommentAttachment}

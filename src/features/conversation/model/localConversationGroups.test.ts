@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { TimelineEntry } from "../../../domain/timeline";
+import type { ConversationMessage, TimelineEntry } from "../../../domain/timeline";
 import { flattenConversationRenderGroup, splitActivitiesIntoRenderGroups } from "./localConversationGroups";
 
-function createUserMessage(): TimelineEntry {
+function createUserMessage(): ConversationMessage {
   return {
     id: "user-1",
     kind: "userMessage",
@@ -206,6 +206,21 @@ describe("localConversationGroups", () => {
 
     expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble"]);
     expect(group.assistantFlow).toEqual([]);
+    expect(group.showThinkingIndicator).toBe(true);
+  });
+
+  it("marks a local goal submission without a server turn id as thinking", () => {
+    const [group] = splitActivitiesIntoRenderGroups([
+      {
+        ...createUserMessage(),
+        id: "goal-user-1",
+        turnId: null,
+        submissionKind: "goal",
+        text: "完成 Flutter 重构",
+      },
+    ], null);
+
+    expect(flattenConversationRenderGroup(group).map((node) => node.kind)).toEqual(["userBubble"]);
     expect(group.showThinkingIndicator).toBe(true);
   });
 

@@ -60,6 +60,7 @@ function createCanvasElement(
   options?: {
     readonly status?: ThreadSummary["status"];
     readonly activeTurnId?: string | null;
+    readonly showProgress?: boolean;
     readonly turnStatuses?: Readonly<Record<string, TurnStatus>>;
     readonly threadDetailLevel?: ThreadDetailLevel;
     readonly canEditMessages?: boolean;
@@ -71,6 +72,7 @@ function createCanvasElement(
       activities={activities}
       selectedThread={createThread(options?.status ?? "idle")}
       activeTurnId={options?.activeTurnId ?? null}
+      showProgress={options?.showProgress}
       turnStatuses={options?.turnStatuses ?? {}}
       threadDetailLevel={options?.threadDetailLevel ?? "commands"}
       placeholder={null}
@@ -379,6 +381,26 @@ describe("HomeConversationCanvas", () => {
     expect(screen.getByText(/正在思考|Thinking/)).toBeInTheDocument();
     expect(container.querySelector(".home-turn-thinking-indicator")).not.toBeNull();
     expect(container.querySelector(".home-assistant-transcript-thinking")).toBeNull();
+  });
+
+  it("renders thinking while a resumed goal is active before a new turn id arrives", () => {
+    const { container } = renderCanvas([USER_MESSAGE, COMMAND_ENTRY], {
+      activeTurnId: null,
+      showProgress: true,
+      turnStatuses: { "turn-1": "completed" },
+    });
+
+    expect(screen.getByText(/正在思考|Thinking/)).toBeInTheDocument();
+    expect(container.querySelector(".home-turn-thinking-indicator")).not.toBeNull();
+  });
+
+  it("keeps pending user input from showing fallback thinking during goal resume", () => {
+    renderCanvas([USER_MESSAGE, REQUEST_ENTRY], {
+      activeTurnId: null,
+      showProgress: true,
+    });
+
+    expect(screen.queryByText(/正在思考|Thinking/)).toBeNull();
   });
 
   it("keeps user input requests out of the timeline while suppressing the thinking indicator", () => {
