@@ -1,4 +1,4 @@
-import type { ServerRequestResolution } from "../../../domain/types";
+import type { ServerRequestResolution, ThreadSummary } from "../../../domain/types";
 import type { ConversationMessage } from "../../../domain/timeline";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
 import { HomeAssistantTranscriptEntry } from "./HomeAssistantTranscriptEntry";
@@ -14,6 +14,8 @@ interface HomeTimelineEntryProps {
   readonly canEditMessages: boolean;
   readonly onCopyMessage: (message: ConversationMessage) => void;
   readonly onEditUserMessage: (message: ConversationMessage, text: string) => Promise<void>;
+  readonly threads?: ReadonlyArray<ThreadSummary>;
+  readonly onSelectThread?: (threadId: string) => void;
 }
 
 export function HomeTimelineEntry(props: HomeTimelineEntryProps): JSX.Element | null {
@@ -38,6 +40,8 @@ export function HomeTimelineEntry(props: HomeTimelineEntryProps): JSX.Element | 
     <HomeAssistantTranscriptEntry
       node={props.node}
       turnStatus={props.turnStatus}
+      threads={props.threads}
+      onSelectThread={props.onSelectThread}
     />
   );
 }

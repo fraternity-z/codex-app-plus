@@ -12,10 +12,25 @@ export interface TurnPlanModel {
 
 export interface TurnPlanOverview {
   readonly additions: number | null;
+  readonly backgroundTasks: ReadonlyArray<TurnPlanBackgroundTask>;
   readonly changedFiles: number;
   readonly deletions: number | null;
   readonly generatedImages: number;
 }
+
+export type TurnPlanBackgroundTask =
+  | {
+    readonly id: string;
+    readonly kind: "command";
+    readonly label: string;
+  }
+  | {
+    readonly detail: string | null;
+    readonly id: string;
+    readonly kind: "subagent";
+    readonly label: string;
+    readonly threadId: string;
+  };
 
 type TranslateFn = (key: MessageKey, params?: TranslationParams) => string;
 

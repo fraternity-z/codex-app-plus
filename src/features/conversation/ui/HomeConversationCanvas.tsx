@@ -33,6 +33,7 @@ interface HomeConversationCanvasProps {
   readonly activeTurnId: string | null;
   readonly showProgress?: boolean;
   readonly turnStatuses?: Readonly<Record<string, TurnStatus>>;
+  readonly threads?: ReadonlyArray<ThreadSummary>;
   readonly threadDetailLevel: ThreadDetailLevel;
   readonly placeholder: { readonly title: string; readonly body: string } | null;
   readonly onResolveServerRequest: (
@@ -46,6 +47,7 @@ interface HomeConversationCanvasProps {
   readonly onRetryConnection: () => Promise<void>;
   readonly canEditMessages?: boolean;
   readonly onEditUserMessage?: (message: ConversationMessage, text: string) => Promise<void>;
+  readonly onSelectThread?: (threadId: string) => void;
 }
 
 interface RenderGroup {
@@ -284,6 +286,7 @@ export function HomeConversationCanvas(
                         onResolveServerRequest={props.onResolveServerRequest}
                         copiedMessageId={copiedMessageId}
                         canEditMessages={props.canEditMessages === true && props.onEditUserMessage !== undefined}
+                        threads={props.threads}
                         onCopyMessage={(message) => void handleCopyMessage(message)}
                         onEditUserMessage={handleEditUserMessage}
                       />
@@ -297,6 +300,8 @@ export function HomeConversationCanvas(
                           copiedMessageId,
                           onCopyMessage: (message) => void handleCopyMessage(message),
                           onEditUserMessage: handleEditUserMessage,
+                          threads: props.threads,
+                          onSelectThread: props.onSelectThread,
                         }))}
                         {assistantCopyText !== null ? (
                           <HomeChatMessageActions
@@ -340,6 +345,8 @@ function renderAssistantDisplayNode(props: {
   readonly copiedMessageId: string | null;
   readonly onCopyMessage: (message: ConversationMessage) => void;
   readonly onEditUserMessage: (message: ConversationMessage, text: string) => Promise<void>;
+  readonly threads?: ReadonlyArray<ThreadSummary>;
+  readonly onSelectThread?: (threadId: string) => void;
 }): JSX.Element {
   if (props.node.kind === "assistantToolGroup") {
     return (
@@ -359,6 +366,8 @@ function renderAssistantDisplayNode(props: {
       <HomeSubagentTranscriptEntry
         key={props.node.key}
         entries={props.node.nodes.map((node) => node.item)}
+        threads={props.threads}
+        onSelectThread={props.onSelectThread}
       />
     );
   }
@@ -373,6 +382,8 @@ function renderAssistantDisplayNode(props: {
       canEditMessages={false}
       onCopyMessage={props.onCopyMessage}
       onEditUserMessage={props.onEditUserMessage}
+      threads={props.threads}
+      onSelectThread={props.onSelectThread}
     />
   );
 }

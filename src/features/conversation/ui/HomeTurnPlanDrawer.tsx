@@ -1,4 +1,4 @@
-import type { TurnPlanModel, TurnPlanOverview } from "../model/homeTurnPlanModel";
+import type { TurnPlanBackgroundTask, TurnPlanModel, TurnPlanOverview } from "../model/homeTurnPlanModel";
 import { formatTurnPlanStatusLabel } from "../model/homeTurnPlanModel";
 import { OfficialPinIcon } from "../../shared/ui/officialIcons";
 import type { WorkspaceGitController } from "../../git/model/types";
@@ -15,6 +15,7 @@ interface HomeTurnPlanDrawerProps {
   readonly visible: boolean;
   readonly gitController?: WorkspaceGitController;
   readonly onOpenDiff?: () => void;
+  readonly onSelectThread?: (threadId: string) => void;
   readonly onTogglePinned: () => void;
 }
 
@@ -89,6 +90,7 @@ export function HomeTurnPlanDrawer(props: HomeTurnPlanDrawerProps): JSX.Element 
         <OverviewSections
           gitController={props.gitController}
           onOpenDiff={props.onOpenDiff}
+          onSelectThread={props.onSelectThread}
           overview={props.overview}
         />
       </div>
@@ -117,11 +119,13 @@ function PlanStepMarker(props: { readonly status: TurnPlanStep["status"] }): JSX
 function OverviewSections(props: {
   readonly gitController?: WorkspaceGitController;
   readonly onOpenDiff?: () => void;
+  readonly onSelectThread?: (threadId: string) => void;
   readonly overview?: TurnPlanOverview;
 }): JSX.Element {
   const { t } = useI18n();
   const overview = props.overview ?? {
     additions: null,
+    backgroundTasks: [],
     changedFiles: 0,
     deletions: null,
     generatedImages: 0,
@@ -163,12 +167,65 @@ function OverviewSections(props: {
           label={t("home.turnPlan.githubCliUnauthenticated")}
         />
       </section>
+      {overview.backgroundTasks.length > 0 ? (
+        <>
+          <div className="home-turn-progress-divider" />
+          <section className="home-turn-progress-section" aria-label={t("home.turnPlan.backgroundTasks")}>
+            <h3>{t("home.turnPlan.backgroundTasks")}</h3>
+            <div className="home-turn-background-task-list">
+              {overview.backgroundTasks.map((task) => (
+                <BackgroundTaskRow key={task.id} task={task} onSelectThread={props.onSelectThread} />
+              ))}
+            </div>
+          </section>
+        </>
+      ) : null}
       <div className="home-turn-progress-divider" />
       <section className="home-turn-progress-section" aria-label={t("home.turnPlan.generatedResults")}>
         <h3>{t("home.turnPlan.generatedResults")}</h3>
         <OverviewRow icon={<ImageResultIcon className="home-turn-progress-row-icon" />} label={formatGeneratedImages(overview.generatedImages, t)} />
       </section>
     </>
+  );
+}
+
+function BackgroundTaskRow(props: {
+  readonly onSelectThread?: (threadId: string) => void;
+  readonly task: TurnPlanBackgroundTask;
+}): JSX.Element {
+  const { t } = useI18n();
+  const task = props.task;
+  const content = (
+    <>
+      <span className="home-turn-background-task-spinner" aria-hidden="true" />
+      <span className="home-turn-background-task-copy">
+        <span className="home-turn-background-task-label">{task.label}</span>
+        {task.kind === "subagent" && task.detail !== null ? (
+          <span className="home-turn-background-task-detail"> ({task.detail})</span>
+        ) : null}
+      </span>
+    </>
+  );
+
+  if (task.kind === "subagent" && props.onSelectThread !== undefined) {
+    const threadLabel = t("home.conversation.transcript.subagents.openThreadAria", { label: task.label });
+    return (
+      <button
+        type="button"
+        className="home-turn-background-task-row home-turn-background-task-row-action"
+        aria-label={threadLabel}
+        title={threadLabel}
+        onClick={() => props.onSelectThread?.(task.threadId)}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className="home-turn-background-task-row" title={task.label}>
+      {content}
+    </div>
   );
 }
 

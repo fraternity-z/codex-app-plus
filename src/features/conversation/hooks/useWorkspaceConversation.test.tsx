@@ -279,6 +279,83 @@ describe("useWorkspaceConversation", () => {
     });
   });
 
+  it("keeps a selected subagent linked from the current workspace active", async () => {
+    const request = vi.fn(async () => ({ requestId: "noop", result: {} }));
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({
+        type: "conversation/upserted",
+        conversation: createConversationFromThread(createThread({
+          id: "thread-1",
+          cwd: "E:/code/FPGA",
+          turns: [createCollabTurn("thread-helper", "completed")],
+        }), { resumeState: "resumed" }),
+      });
+      result.current.store.dispatch({
+        type: "conversation/upserted",
+        conversation: createConversationFromThread(createThread({
+          id: "thread-helper",
+          cwd: null,
+          threadSource: "subagent",
+          source: createSubAgentSource("thread-1"),
+          preview: "helper result",
+        }), { resumeState: "resumed" }),
+      });
+      result.current.conversation.selectThread("thread-helper");
+    });
+
+    await waitFor(() => {
+      expect(result.current.conversation.selectedThreadId).toBe("thread-helper");
+      expect(result.current.conversation.selectedThread?.title).toBe("helper result");
+      expect(result.current.conversation.workspaceThreads.map((thread) => thread.id)).toEqual(["thread-1"]);
+    });
+  });
+
+  it("loads an unknown subagent thread before selecting it", async () => {
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/resume") {
+        return {
+          requestId: "resume-1",
+          result: {
+            thread: createThread({
+              id: "thread-helper",
+              cwd: null,
+              threadSource: "subagent",
+              source: createSubAgentSource("thread-1"),
+              preview: "helper result",
+            }),
+          },
+        };
+      }
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    act(() => {
+      result.current.store.dispatch({
+        type: "conversation/upserted",
+        conversation: createConversationFromThread(createThread({
+          id: "thread-1",
+          cwd: "E:/code/FPGA",
+          turns: [createCollabTurn("thread-helper", "completed")],
+        }), { resumeState: "resumed" }),
+      });
+      result.current.conversation.selectThread("thread-helper");
+    });
+
+    await waitFor(() => {
+      expect(request).toHaveBeenCalledWith({
+        method: "thread/resume",
+        params: { threadId: "thread-helper", persistExtendedHistory: false },
+      });
+      expect(result.current.conversation.selectedThreadId).toBe("thread-helper");
+      expect(result.current.store.state.conversationsById["thread-helper"]?.resumeState).toBe("resumed");
+    });
+  });
+
   it("filters composer-owned fuzzy search sessions from timeline activities", () => {
     const request = vi.fn(async () => ({ requestId: "noop", result: {} }));
     const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;

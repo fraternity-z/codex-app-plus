@@ -1029,6 +1029,8 @@ export const zhCN = {
           rowWaitFailedPrefix: "等待失败 ",
           promptSuffix: "：",
           inputSuffix: " 发送：",
+          genericAgent: "智能体",
+          openThreadAria: "打开智能体会话 {label}",
           status: {
             pendingInit: "待启动",
             running: "运行中",
@@ -1123,6 +1125,7 @@ export const zhCN = {
       title: "任务清单",
       progressCardLabel: "进度卡片",
       progressTitle: "进度",
+      backgroundTasks: "后台任务",
       branchDetails: "分支详情",
       changes: "更改",
       gitOperation: "Git 操作",

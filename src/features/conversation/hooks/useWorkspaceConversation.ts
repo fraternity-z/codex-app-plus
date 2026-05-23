@@ -1,7 +1,10 @@
 import { useEffect, useMemo } from "react";
 import { DEFAULT_COLLABORATION_PRESET } from "../../../domain/timeline";
 import type { ThreadSummary } from "../../../domain/timeline";
+import type { ConversationState } from "../../../domain/conversation";
+import type { AppState } from "../../../domain/types";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
+import type { ThreadItem } from "../../../protocol/generated/v2/ThreadItem";
 import { createConversationTimelineMemo } from "../model/conversationTimelineMemo";
 import { getActiveTurnId, hasInProgressTurn } from "../model/conversationSelectors";
 import {
@@ -11,11 +14,57 @@ import {
   createThreadSummaryMemo,
 } from "../model/workspaceConversationSelectors";
 import { listThreadsForWorkspace, threadBelongsToWorkspace } from "../../workspace/model/workspaceThread";
+import { isThreadLikeSubagent, readSubagentParentThreadId } from "../../../domain/subagentSource";
 import { useAppDispatch, useAppSelector, useAppStoreApi } from "../../../state/store";
 import { useWorkspaceConversationController } from "./useWorkspaceConversationController";
 import type { UseWorkspaceConversationOptions, WorkspaceConversationController } from "./workspaceConversationTypes";
 
 const EMPTY_REQUESTS: ReadonlyArray<import("../../../domain/serverRequests").ReceivedServerRequest> = [];
+
+function collabItemTargetsThread(item: ThreadItem, threadId: string): boolean {
+  return item.type === "collabAgentToolCall"
+    && (
+      item.receiverThreadIds.includes(threadId)
+      || Object.prototype.hasOwnProperty.call(item.agentsStates, threadId)
+    );
+}
+
+function isLinkedToWorkspaceConversation(
+  conversation: ConversationState,
+  conversationsById: AppState["conversationsById"],
+  workspacePath: string | null,
+  visited: Set<string>,
+): boolean {
+  if (threadBelongsToWorkspace(conversation.cwd, workspacePath)) {
+    return true;
+  }
+  if (!isThreadLikeSubagent(conversation) || visited.has(conversation.id)) {
+    return false;
+  }
+  visited.add(conversation.id);
+
+  const sourceParentThreadId = readSubagentParentThreadId(conversation.source);
+  if (sourceParentThreadId !== null) {
+    const parent = conversationsById[sourceParentThreadId] ?? null;
+    if (parent !== null && isLinkedToWorkspaceConversation(parent, conversationsById, workspacePath, visited)) {
+      return true;
+    }
+  }
+
+  for (const candidateParent of Object.values(conversationsById)) {
+    if (candidateParent === undefined) {
+      continue;
+    }
+    const linksToConversation = candidateParent.turns.some((turn) => (
+      turn.items.some((itemState) => collabItemTargetsThread(itemState.item, conversation.id))
+    ));
+    if (linksToConversation && isLinkedToWorkspaceConversation(candidateParent, conversationsById, workspacePath, visited)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 export type { RegenerateEditedUserMessageOptions, SendTurnOptions, UseWorkspaceConversationOptions, WorkspaceConversationController } from "./workspaceConversationTypes";
 
@@ -42,7 +91,12 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
       if (conversation?.agentEnvironment !== options.agentEnvironment) {
         return null;
       }
-      return threadBelongsToWorkspace(conversation.cwd, options.selectedRootPath) ? conversation : null;
+      return isLinkedToWorkspaceConversation(
+        conversation,
+        currentState.conversationsById,
+        options.selectedRootPath,
+        new Set(),
+      ) ? conversation : null;
     },
     [options.agentEnvironment, options.selectedRootPath, store],
   );
@@ -115,7 +169,7 @@ export function useWorkspaceConversation(options: UseWorkspaceConversationOption
     if (current?.agentEnvironment !== options.agentEnvironment) {
       return;
     }
-    if (threadBelongsToWorkspace(current.cwd, options.selectedRootPath)) {
+    if (isLinkedToWorkspaceConversation(current, store.getState().conversationsById, options.selectedRootPath, new Set())) {
       return;
     }
     dispatch({ type: "conversation/selected", conversationId: null });

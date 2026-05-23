@@ -1030,6 +1030,8 @@ export const enUS = {
           rowWaitFailedPrefix: "Wait failed for ",
           promptSuffix: ":",
           inputSuffix: ":",
+          genericAgent: "agent",
+          openThreadAria: "Open agent thread {label}",
           status: {
             pendingInit: "pending",
             running: "running",
@@ -1124,6 +1126,7 @@ export const enUS = {
       title: "Task list",
       progressCardLabel: "Progress card",
       progressTitle: "Progress",
+      backgroundTasks: "Background tasks",
       branchDetails: "Branch details",
       changes: "Changes",
       gitOperation: "Git operations",

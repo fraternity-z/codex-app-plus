@@ -752,14 +752,68 @@ export function useWorkspaceConversationController({
   }, [activeTurnId, interruptAndUnloadConversation, selectedConversation]);
 
   const selectThread = useCallback((threadId: string | null) => {
-    if (threadId !== null) {
-      lifecycle.noteThreadActivity(threadId);
-    }
-    if (threadId !== null && getConversation(threadId)?.resumeState === "resume_failed") {
+    if (threadId === null) {
+      dispatch({ type: "conversation/selected", conversationId: null });
+      return;
+	    }
+	    lifecycle.noteThreadActivity(threadId);
+	    const existingConversation = getConversation(threadId);
+	    if (existingConversation === null) {
+	      if (!appServerReady) {
+	        dispatch({
+	          type: "banner/pushed",
+	          banner: {
+	            id: `thread-open:not-ready:${threadId}`,
+	            level: "warning",
+	            title: "Codex is still starting",
+	            detail: "Wait for the connection before opening this conversation.",
+	            source: "thread/resume",
+	          },
+	        });
+	        return;
+	      }
+	      if (resumingConversationIds.current.has(threadId)) {
+	        return;
+	      }
+      resumingConversationIds.current.add(threadId);
+      void (async () => {
+        try {
+          const response = await appServerClient.request("thread/resume", {
+            threadId,
+            persistExtendedHistory: false,
+          }) as ThreadResumeResponse;
+          dispatch({
+            type: "conversation/upserted",
+            conversation: createConversationFromThread(response.thread, {
+              resumeState: "resumed",
+              agentEnvironment: options.agentEnvironment,
+            }),
+          });
+          dispatch({ type: "conversation/goalSubmissionHistoryLoaded", conversationId: threadId, entries: readGoalSubmissionHistory(threadId) });
+          dispatch({ type: "conversation/selected", conversationId: threadId });
+	        } catch (error) {
+	          const detail = toErrorMessage(error);
+	          dispatch({
+	            type: "banner/pushed",
+	            banner: {
+	              id: `thread-open:${threadId}:${detail}`,
+	              level: "error",
+	              title: "Failed to open workspace conversation",
+	              detail,
+	              source: "thread/resume",
+	            },
+	          });
+        } finally {
+          resumingConversationIds.current.delete(threadId);
+        }
+	      })();
+	      return;
+	    }
+	    if (existingConversation.resumeState === "resume_failed") {
       dispatch({ type: "conversation/resumeStateChanged", conversationId: threadId, resumeState: "needs_resume" });
     }
     dispatch({ type: "conversation/selected", conversationId: threadId });
-  }, [dispatch, getConversation, lifecycle]);
+  }, [appServerClient, appServerReady, dispatch, getConversation, lifecycle, options.agentEnvironment]);
 
   const selectCollaborationPreset = useCallback((preset: CollaborationPreset) => {
     if (selectedConversation === null) {

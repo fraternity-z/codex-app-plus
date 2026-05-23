@@ -443,6 +443,26 @@
   font-weight: 600;
 }
 
+.home-assistant-transcript-subagent-id-button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+}
+
+.home-assistant-transcript-subagent-id-button:hover,
+.home-assistant-transcript-subagent-id-button:focus-visible {
+  text-decoration: underline;
+}
+
+.home-assistant-transcript-subagent-id-button:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .home-assistant-transcript-subagent-status {
   flex: 0 0 auto;
   color: var(--text-subtle);

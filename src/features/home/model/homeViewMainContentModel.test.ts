@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GitStatusOutput, GitWorkspaceDiffOutput } from "../../../bridge/types";
+import type { ThreadSummary } from "../../../domain/types";
 import type { TimelineEntry } from "../../../domain/timeline";
 import { createTurnPlanModel } from "../../conversation/model/homeTurnPlanModel";
 import { createTurnPlanOverview } from "./homeViewMainContentModel";
@@ -49,6 +50,26 @@ function createPlanEntry(): Extract<TimelineEntry, { kind: "turnPlanSnapshot" }>
     itemId: null,
     explanation: null,
     plan: [{ step: "Build UI", status: "inProgress" }],
+  };
+}
+
+function createThreadSummary(overrides?: Partial<ThreadSummary>): ThreadSummary {
+  return {
+    id: "thread-agent",
+    title: "Meitner",
+    branch: null,
+    cwd: "E:/code/codex-app-plus",
+    archived: false,
+    updatedAt: "2026-04-18T12:00:00.000Z",
+    source: "rpc",
+    isSubagent: true,
+    agentNickname: "Meitner",
+    agentRole: "explorer",
+    agentEnvironment: "windowsNative",
+    status: "active",
+    activeFlags: [],
+    queuedCount: 0,
+    ...overrides,
   };
 }
 
@@ -106,6 +127,7 @@ describe("createTurnPlanOverview", () => {
 
     expect(overview).toEqual({
       additions: 2,
+      backgroundTasks: [],
       changedFiles: 1,
       deletions: 1,
       generatedImages: 1,
@@ -133,8 +155,77 @@ describe("createTurnPlanOverview", () => {
 
     expect(statusOverview).toMatchObject({
       additions: null,
+      backgroundTasks: [],
       changedFiles: 1,
       deletions: null,
     });
+  });
+
+  it("lists running commands and active subagents from the plan turn", () => {
+    const plan = createTurnPlanModel(createPlanEntry());
+    const activities: ReadonlyArray<TimelineEntry> = [
+      {
+        id: "thread-1:turn-1:command",
+        kind: "commandExecution",
+        threadId: "thread-1",
+        turnId: "turn-1",
+        itemId: "command-1",
+        command: "pnpm test",
+        cwd: "E:/code/codex-app-plus",
+        processId: "proc-1",
+        status: "inProgress",
+        commandActions: [],
+        output: "",
+        exitCode: null,
+        durationMs: null,
+        terminalInteractions: [],
+        approvalRequestId: null,
+      },
+      {
+        id: "thread-1:turn-1:agent",
+        kind: "collabAgentToolCall",
+        threadId: "thread-1",
+        turnId: "turn-1",
+        itemId: "agent-1",
+        tool: "spawnAgent",
+        status: "completed",
+        senderThreadId: "thread-1",
+        receiverThreadIds: ["thread-agent"],
+        prompt: "inspect the UI",
+        agentsStates: {
+          "thread-agent": { status: "running", message: null },
+        },
+      },
+      {
+        id: "thread-1:turn-0:command",
+        kind: "commandExecution",
+        threadId: "thread-1",
+        turnId: "turn-0",
+        itemId: "command-old",
+        command: "pnpm build",
+        cwd: "E:/code/codex-app-plus",
+        processId: "proc-old",
+        status: "inProgress",
+        commandActions: [],
+        output: "",
+        exitCode: null,
+        durationMs: null,
+        terminalInteractions: [],
+        approvalRequestId: null,
+      },
+    ];
+
+    const overview = createTurnPlanOverview({
+      activities,
+      diffItems: [],
+      gitStatus: null,
+      plan,
+      threads: [createThreadSummary()],
+    });
+
+    expect(overview.backgroundTasks).toEqual([
+      { id: "thread-1:turn-1:command", kind: "command", label: "pnpm test" },
+      { id: "thread-1:turn-1:agent:thread-agent", kind: "subagent", label: "Meitner", detail: "explorer", threadId: "thread-agent" },
+    ]);
   });
 });

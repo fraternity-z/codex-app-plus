@@ -92,6 +92,7 @@ export interface HomeViewMainContentProps {
   readonly selectedRootName: string;
   readonly selectedRootPath: string | null;
   readonly selectedThread: ThreadSummary | null;
+  readonly threads: ReadonlyArray<ThreadSummary>;
   readonly activeTurnId: string | null;
   readonly turnStatuses?: Readonly<Record<string, TurnStatus>>;
   readonly threadDetailLevel: ThreadDetailLevel;
@@ -111,6 +112,7 @@ export interface HomeViewMainContentProps {
   readonly retryScheduledAt: number | null;
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
   readonly onSelectRoot: (rootId: string) => void;
+  readonly onSelectThread: (threadId: string | null) => void;
   readonly onSelectCollaborationPreset: (preset: CollaborationPreset) => void;
   readonly onInputChange: (text: string) => void;
   readonly onSendTurn: (options: SendTurnOptions) => Promise<void>;
@@ -265,6 +267,7 @@ interface HomeConversationSectionProps {
   readonly onEditUserMessage: (message: ConversationMessage, text: string) => Promise<void>;
   readonly onRetryConnection: () => Promise<void>;
   readonly onSelectRoot: (rootId: string) => void;
+  readonly onSelectThread: (threadId: string | null) => void;
   readonly placeholder: { readonly title: string; readonly body: string } | null;
   readonly retryScheduledAt: number | null;
   readonly roots: ReadonlyArray<WorkspaceRoot>;
@@ -272,6 +275,7 @@ interface HomeConversationSectionProps {
   readonly selectedRootName: string;
   readonly selectedRootPath: string | null;
   readonly selectedThread: ThreadSummary | null;
+  readonly threads: ReadonlyArray<ThreadSummary>;
   readonly threadDetailLevel: ThreadDetailLevel;
   readonly turnStatuses?: Readonly<Record<string, TurnStatus>>;
   readonly workspaceSwitch: WorkspaceSwitchState;
@@ -301,11 +305,13 @@ const HomeConversationSection = memo(function HomeConversationSection(
       activeTurnId={props.activeTurnId}
       showProgress={props.showProgress}
       turnStatuses={props.turnStatuses}
+      threads={props.threads}
       threadDetailLevel={props.threadDetailLevel}
       placeholder={props.placeholder}
       onResolveServerRequest={props.onResolveServerRequest}
       canEditMessages={props.canEditMessages}
       onEditUserMessage={props.onEditUserMessage}
+      onSelectThread={props.onSelectThread}
       connectionStatus={props.connectionStatus}
       connectionRetryInfo={props.connectionRetryInfo}
       fatalError={props.fatalError}
@@ -499,8 +505,9 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
       diffItems: props.diffItems,
       gitStatus: props.gitController.status,
       plan: derivedState.currentTurnPlan,
+      threads: props.threads,
     }),
-    [derivedState.currentTurnPlan, props.activities, props.diffItems, props.gitController.status],
+    [derivedState.currentTurnPlan, props.activities, props.diffItems, props.gitController.status, props.threads],
   );
   const { openFileLink } = useFileLinkOpener(
     props.hostBridge,
@@ -629,6 +636,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           onEditUserMessage={editUserMessage}
           onRetryConnection={props.onRetryConnection}
           onSelectRoot={props.onSelectRoot}
+          onSelectThread={props.onSelectThread}
           placeholder={derivedState.placeholder}
           retryScheduledAt={props.retryScheduledAt}
           roots={props.roots}
@@ -636,6 +644,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           selectedRootName={props.selectedRootName}
           selectedRootPath={props.selectedRootPath}
           selectedThread={props.selectedThread}
+          threads={props.threads}
           threadDetailLevel={props.threadDetailLevel}
           turnStatuses={props.turnStatuses}
           workspaceSwitch={props.workspaceSwitch}
@@ -649,6 +658,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           visible={showTurnPlanDrawer}
           gitController={props.gitController}
           onOpenDiff={props.selectedRootPath === null ? undefined : props.onToggleDiff}
+          onSelectThread={props.onSelectThread}
           onTogglePinned={() => setPlanDrawerPinned((value) => !value)}
         />
       </div>

@@ -39,7 +39,7 @@ const TOKEN_USAGE: ThreadTokenUsage = {
   modelContextWindow: 200000,
 };
 
-function createThread(status: ThreadSummary["status"]): ThreadSummary {
+function createThread(status: ThreadSummary["status"], overrides?: Partial<ThreadSummary>): ThreadSummary {
   return {
     id: "thread-1",
     title: "Thread",
@@ -52,6 +52,7 @@ function createThread(status: ThreadSummary["status"]): ThreadSummary {
     status,
     activeFlags: [],
     queuedCount: 0,
+    ...overrides,
   };
 }
 
@@ -62,9 +63,11 @@ function createCanvasElement(
     readonly activeTurnId?: string | null;
     readonly showProgress?: boolean;
     readonly turnStatuses?: Readonly<Record<string, TurnStatus>>;
+    readonly threads?: ReadonlyArray<ThreadSummary>;
     readonly threadDetailLevel?: ThreadDetailLevel;
     readonly canEditMessages?: boolean;
     readonly onEditUserMessage?: ComponentProps<typeof HomeConversationCanvas>["onEditUserMessage"];
+    readonly onSelectThread?: ComponentProps<typeof HomeConversationCanvas>["onSelectThread"];
   },
 ) {
   return (
@@ -74,6 +77,7 @@ function createCanvasElement(
       activeTurnId={options?.activeTurnId ?? null}
       showProgress={options?.showProgress}
       turnStatuses={options?.turnStatuses ?? {}}
+      threads={options?.threads}
       threadDetailLevel={options?.threadDetailLevel ?? "commands"}
       placeholder={null}
       onResolveServerRequest={vi.fn().mockResolvedValue(undefined)}
@@ -85,6 +89,7 @@ function createCanvasElement(
       onRetryConnection={vi.fn().mockResolvedValue(undefined)}
       canEditMessages={options?.canEditMessages}
       onEditUserMessage={options?.onEditUserMessage}
+      onSelectThread={options?.onSelectThread}
     />
   );
 }
@@ -626,7 +631,14 @@ describe("HomeConversationCanvas", () => {
     ];
     const { container } = renderCanvas(
       [USER_MESSAGE, ASSISTANT_MESSAGE, ...createdAgents, ...failedAgents, SECOND_ASSISTANT_MESSAGE],
-      { turnStatuses: { "turn-1": "completed" } },
+      {
+        threads: [
+          createThread("idle", { id: "agent-alpha", title: "Alpha thread", isSubagent: true, agentNickname: "Epicurus", agentRole: "explorer" }),
+          createThread("idle", { id: "agent-beta", title: "Beta thread", isSubagent: true, agentNickname: "Aristotle", agentRole: "explorer" }),
+          createThread("idle", { id: "agent-gamma", title: "Gamma thread", isSubagent: true, agentNickname: "Heisenberg", agentRole: "explorer" }),
+        ],
+        turnStatuses: { "turn-1": "completed" },
+      },
     );
 
     expect(container.querySelector(".home-assistant-transcript-tool-group")).toBeNull();
@@ -636,13 +648,25 @@ describe("HomeConversationCanvas", () => {
       (element) => element.textContent,
     );
     expect(highlightedAgentIds).toEqual([
-      "agent-alpha",
-      "agent-beta",
-      "agent-gamma",
+      "Epicurus (explorer)",
+      "Aristotle (explorer)",
+      "Heisenberg (explorer)",
       "agent-delta",
       "agent-epsilon",
       "agent-zeta",
     ]);
+  });
+
+  it("selects grouped subagent threads from the agent id", () => {
+    const onSelectThread = vi.fn();
+    renderCanvas(
+      [USER_MESSAGE, ASSISTANT_MESSAGE, createCollabAgentEntry("collab-1", "agent-alpha", "completed")],
+      { onSelectThread },
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "打开智能体会话 agent-alpha" }));
+
+    expect(onSelectThread).toHaveBeenCalledWith("agent-alpha");
   });
 
   it("keeps the context compaction divider between assistant messages", () => {

@@ -519,17 +519,15 @@
 }
 
 .home-turn-progress-step-marker[data-status="inProgress"] {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-color) 12%, transparent);
-  animation: home-turn-progress-marker-pulse 1.4s ease-in-out infinite;
+  border-color: color-mix(in srgb, var(--accent-color) 24%, transparent);
+  border-top-color: var(--accent-color);
+  border-right-color: var(--accent-color);
+  background: transparent;
+  animation: home-turn-progress-spinner-spin 760ms linear infinite;
 }
 
 .home-turn-progress-step-marker[data-status="inProgress"]::after {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border-radius: inherit;
-  background: var(--accent-color);
+  display: none;
 }
 
 .home-turn-progress-step-marker[data-status="completed"] {
@@ -634,6 +632,65 @@
   white-space: nowrap;
 }
 
+.home-turn-background-task-list {
+  display: grid;
+  gap: 8px;
+}
+
+.home-turn-background-task-row {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-main);
+  padding: 3px 4px;
+  font: inherit;
+  font-size: var(--app-ui-font-size-xl);
+  line-height: 1.3;
+  text-align: left;
+}
+
+.home-turn-background-task-row-action {
+  cursor: pointer;
+}
+
+.home-turn-background-task-row-action:hover {
+  background: var(--surface-hover);
+}
+
+.home-turn-background-task-spinner {
+  width: 18px;
+  height: 18px;
+  border: 1.8px solid color-mix(in srgb, var(--accent-color) 24%, transparent);
+  border-top-color: var(--accent-color);
+  border-right-color: var(--accent-color);
+  border-radius: 999px;
+  animation: home-turn-progress-spinner-spin 760ms linear infinite;
+}
+
+.home-turn-background-task-copy {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-main);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-turn-background-task-row-action .home-turn-background-task-label {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.home-turn-background-task-detail {
+  color: var(--text-muted);
+}
+
 .home-turn-progress-change-counts {
   display: inline-flex;
   align-items: center;
@@ -659,14 +716,9 @@ html[data-theme="dark"] .home-turn-progress-card .home-turn-progress-card-surfac
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34);
 }
 
-@keyframes home-turn-progress-marker-pulse {
-  0%,
+@keyframes home-turn-progress-spinner-spin {
   100% {
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 10%, transparent);
-  }
-
-  50% {
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-color) 18%, transparent);
+    transform: rotate(360deg);
   }
 }
 
@@ -703,13 +755,15 @@ html[data-theme="dark"] .home-turn-progress-card .home-turn-progress-card-surfac
 @media (max-width: 560px) {
   .home-turn-progress-step,
   .home-turn-progress-row,
+  .home-turn-background-task-row,
   .home-turn-progress-change-counts,
   .home-turn-progress-heading h2,
   .home-turn-progress-section h3 {
     font-size: var(--app-ui-font-size-lg);
   }
 
-  .home-turn-progress-row {
+  .home-turn-progress-row,
+  .home-turn-background-task-row {
     grid-template-columns: 22px minmax(0, 1fr);
   }
 
@@ -724,7 +778,8 @@ html[data-theme="dark"] .home-turn-progress-card .home-turn-progress-card-surfac
   .home-turn-progress-card .home-turn-progress-card-surface,
   .home-turn-progress-step,
   .home-turn-progress-step-marker,
-  .home-turn-progress-step-check {
+  .home-turn-progress-step-check,
+  .home-turn-background-task-spinner {
     animation: none;
     transition-duration: 1ms;
   }

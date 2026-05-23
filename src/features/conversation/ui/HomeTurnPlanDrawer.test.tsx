@@ -86,7 +86,7 @@ describe("HomeTurnPlanDrawer", () => {
     const { container } = render(
       <HomeTurnPlanDrawer
         plan={plan}
-        overview={{ additions: 12, changedFiles: 2, deletions: 4, generatedImages: 1 }}
+        overview={{ additions: 12, backgroundTasks: [], changedFiles: 2, deletions: 4, generatedImages: 1 }}
         pinned={false}
         visible
         onTogglePinned={() => undefined}
@@ -177,7 +177,7 @@ describe("HomeTurnPlanDrawer", () => {
     render(
       <HomeTurnPlanDrawer
         plan={plan}
-        overview={{ additions: 7, changedFiles: 2, deletions: 3, generatedImages: 0 }}
+        overview={{ additions: 7, backgroundTasks: [], changedFiles: 2, deletions: 3, generatedImages: 0 }}
         pinned={false}
         showProgress={false}
         visible
@@ -216,6 +216,41 @@ describe("HomeTurnPlanDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Changes" }));
 
     expect(onOpenDiff).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders running background command and subagent tasks", () => {
+    const onSelectThread = vi.fn();
+    render(
+      <HomeTurnPlanDrawer
+        plan={null}
+        overview={{
+          additions: null,
+          backgroundTasks: [
+            { id: "command-1", kind: "command", label: "pnpm test" },
+            { id: "agent-1", kind: "subagent", label: "Meitner", detail: "explorer", threadId: "thread-agent-1" },
+          ],
+          changedFiles: 0,
+          deletions: null,
+          generatedImages: 0,
+        }}
+        pinned={false}
+        showProgress={false}
+        visible
+        onSelectThread={onSelectThread}
+        onTogglePinned={() => undefined}
+      />,
+      {
+        wrapper: createI18nWrapper("en-US"),
+      },
+    );
+
+    expect(screen.getByText("Background tasks")).toBeInTheDocument();
+    expect(screen.getByText("pnpm test")).toBeInTheDocument();
+    expect(screen.getByText("Meitner")).toBeInTheDocument();
+    expect(screen.getByText(/explorer/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open agent thread Meitner" }));
+    expect(onSelectThread).toHaveBeenCalledWith("thread-agent-1");
   });
 
   it("opens git operations from the Git row", () => {

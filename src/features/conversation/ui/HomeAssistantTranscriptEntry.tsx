@@ -6,6 +6,7 @@ import { ConversationMessageContent } from "./ConversationMessageContent";
 import { ConversationQuickOpenCards } from "./ConversationQuickOpenCards";
 import { HomeImagePreviewDialog } from "./HomeImagePreviewDialog";
 import type { ConversationRenderNode } from "../model/localConversationGroups";
+import { createSubagentDisplayMetadata, isThreadLikeSubagent } from "../../../domain/subagentSource";
 import { createAssistantTranscriptEntryModel, createCommandSummaryParts } from "../model/assistantTranscript";
 import { createDetailPanel } from "../model/assistantTranscriptDetailModel";
 import { createFileChangeSummaryParts } from "../model/fileChangeSummary";
@@ -13,6 +14,7 @@ import { HomeAssistantTranscriptDetailBlock } from "./HomeAssistantTranscriptDet
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { HomePlanDraftCard } from "../../composer/ui/HomePlanDraftCard";
 import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
+import type { ThreadSummary } from "../../../domain/types";
 import type { TurnStatus } from "../../../protocol/generated/v2/TurnStatus";
 import type { CollabAgentToolCallEntry, CommandExecutionEntry, ImageGenerationEntry, ImageViewEntry } from "../../../domain/timeline";
 import { useI18n } from "../../../i18n/useI18n";
@@ -20,11 +22,19 @@ import type { FileUpdateChange } from "../../../protocol/generated/v2/FileUpdate
 import { parseFileUpdateChangeDiff } from "../model/fileChangeDiffModel";
 
 type AssistantNode = Extract<ConversationRenderNode, { kind: "assistantMessage" | "reasoningBlock" | "traceItem" | "auxiliaryBlock" }>;
-type CollabAgentTarget = { readonly id: string; readonly state: CollabAgentToolCallEntry["agentsStates"][string] | null };
+type CollabAgentTarget = {
+  readonly detail: string | null;
+  readonly id: string;
+  readonly label: string;
+  readonly state: CollabAgentToolCallEntry["agentsStates"][string] | null;
+  readonly threadId: string | null;
+};
 
 interface HomeAssistantTranscriptEntryProps {
   readonly node: AssistantNode;
   readonly turnStatus?: TurnStatus | null;
+  readonly threads?: ReadonlyArray<ThreadSummary>;
+  readonly onSelectThread?: (threadId: string) => void;
 }
 
 type ImageMenuAction = "openFolder" | "copyImage";
@@ -92,7 +102,7 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
   }
 
   if (props.node.kind === "traceItem" && props.node.item.kind === "collabAgentToolCall") {
-    return <HomeSubagentTranscriptEntry entries={[props.node.item]} />;
+    return <HomeSubagentTranscriptEntry entries={[props.node.item]} threads={props.threads} onSelectThread={props.onSelectThread} />;
   }
 
   if (model.kind === "message" && model.message) {
@@ -131,12 +141,26 @@ export function HomeAssistantTranscriptEntry(props: HomeAssistantTranscriptEntry
   return <p className={`home-assistant-transcript-entry home-assistant-transcript-line${traceEntry ? " home-assistant-transcript-line-trace" : ""}`}>{summaryContent}</p>;
 }
 
-export function HomeSubagentTranscriptEntry(props: { readonly entries: ReadonlyArray<CollabAgentToolCallEntry> }): JSX.Element {
+export function HomeSubagentTranscriptEntry(props: {
+  readonly entries: ReadonlyArray<CollabAgentToolCallEntry>;
+  readonly threads?: ReadonlyArray<ThreadSummary>;
+  readonly onSelectThread?: (threadId: string) => void;
+}): JSX.Element {
   const { t } = useI18n();
-  const rows = props.entries.flatMap((entry) => getCollabAgentTargets(entry).map((target) => ({ entry, target })));
+  const threadById = useMemo(() => new Map((props.threads ?? []).map((thread) => [thread.id, thread])), [props.threads]);
+  const rows = props.entries.flatMap((entry) => getCollabAgentTargets(entry, threadById).map((target) => ({ entry, target })));
   const fallbackEntry = props.entries[0] ?? null;
-  const visibleRows = rows.length > 0 ? rows : fallbackEntry === null ? [] : [{ entry: fallbackEntry, target: { id: fallbackEntry.senderThreadId, state: null } }];
-  const count = Math.max(rows.length, 1);
+  const visibleRows = rows.length > 0
+    ? rows
+    : fallbackEntry === null
+      ? []
+      : [{
+        entry: fallbackEntry,
+        target: fallbackEntry.tool === "wait"
+          ? createCollabAgentPlaceholderTarget(t("home.conversation.transcript.subagents.genericAgent"))
+          : createCollabAgentTarget(fallbackEntry.senderThreadId, null, threadById),
+      }];
+  const count = Math.max(visibleRows.length, 1);
   if (fallbackEntry === null) {
     return <></>;
   }
@@ -151,7 +175,12 @@ export function HomeSubagentTranscriptEntry(props: { readonly entries: ReadonlyA
         </summary>
         <div className="home-assistant-transcript-subagents-body">
           {visibleRows.map(({ entry, target }, index) => (
-            <CollabAgentRow key={`${entry.id}:${target.id}:${index}`} entry={entry} target={target} />
+            <CollabAgentRow
+              key={`${entry.id}:${target.id}:${index}`}
+              entry={entry}
+              target={target}
+              onSelectThread={props.onSelectThread}
+            />
           ))}
         </div>
       </details>
@@ -162,16 +191,37 @@ export function HomeSubagentTranscriptEntry(props: { readonly entries: ReadonlyA
 function CollabAgentRow(props: {
   readonly entry: CollabAgentToolCallEntry;
   readonly target: CollabAgentTarget;
+  readonly onSelectThread?: (threadId: string) => void;
 }): JSX.Element {
   const { t } = useI18n();
   const prompt = shouldShowCollabPrompt(props.entry) ? props.entry.prompt?.trim() ?? "" : "";
   const message = props.target.state?.message?.trim() ?? "";
+  const threadLabel = t("home.conversation.transcript.subagents.openThreadAria", { label: props.target.label });
+  const canSelectThread = props.onSelectThread !== undefined && props.target.threadId !== null && props.target.state?.status !== "notFound";
   return (
     <div className="home-assistant-transcript-subagent-row">
       <div className="home-assistant-transcript-subagent-line">
         <span>
           {formatCollabAgentRowPrefix(props.entry, t)}
-          <span className="home-assistant-transcript-subagent-id">{props.target.id}</span>
+          {!canSelectThread ? (
+            <span className="home-assistant-transcript-subagent-id">
+              <CollabAgentTargetLabel target={props.target} />
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="home-assistant-transcript-subagent-id home-assistant-transcript-subagent-id-button"
+              aria-label={threadLabel}
+              title={threadLabel}
+              onClick={() => {
+                if (props.target.threadId !== null) {
+                  props.onSelectThread?.(props.target.threadId);
+                }
+              }}
+            >
+              <CollabAgentTargetLabel target={props.target} />
+            </button>
+          )}
           {formatCollabAgentRowSuffix(props.entry, prompt, t)}
         </span>
         {props.target.state === null ? null : (
@@ -190,7 +240,43 @@ function CollabAgentRow(props: {
   );
 }
 
-function getCollabAgentTargets(entry: CollabAgentToolCallEntry): ReadonlyArray<CollabAgentTarget> {
+function CollabAgentTargetLabel(props: {
+  readonly target: Pick<CollabAgentTarget, "detail" | "label">;
+}): JSX.Element {
+  return (
+    <>
+      <span className="home-assistant-transcript-subagent-name">{props.target.label}</span>
+      {props.target.detail === null ? null : (
+        <span className="home-assistant-transcript-subagent-detail"> ({props.target.detail})</span>
+      )}
+    </>
+  );
+}
+
+function createCollabAgentTarget(
+  id: string,
+  state: CollabAgentTarget["state"],
+  threadById: ReadonlyMap<string, ThreadSummary>,
+  options?: { readonly useTitleFallback?: boolean },
+): CollabAgentTarget {
+  const thread = threadById.get(id);
+  const metadata = options?.useTitleFallback === false
+    ? createSubagentDisplayMetadata(
+      thread === undefined ? null : { title: "", agentNickname: thread.agentNickname, agentRole: thread.agentRole },
+      id,
+    )
+    : createSubagentDisplayMetadata(thread, id);
+  return { id, state, detail: metadata.detail, label: metadata.label, threadId: id };
+}
+
+function createCollabAgentPlaceholderTarget(label: string): CollabAgentTarget {
+  return { id: "unknown-agent", state: null, detail: null, label, threadId: null };
+}
+
+function getCollabAgentTargets(
+  entry: CollabAgentToolCallEntry,
+  threadById: ReadonlyMap<string, ThreadSummary>,
+): ReadonlyArray<CollabAgentTarget> {
   const ids: string[] = [];
   for (const id of entry.receiverThreadIds) {
     if (!ids.includes(id)) {
@@ -202,7 +288,52 @@ function getCollabAgentTargets(entry: CollabAgentToolCallEntry): ReadonlyArray<C
       ids.push(id);
     }
   }
-  return ids.map((id) => ({ id, state: entry.agentsStates[id] ?? null }));
+  const explicitTargets = ids.map((id) => createCollabAgentTarget(
+    id,
+    entry.agentsStates[id] ?? null,
+    threadById,
+    { useTitleFallback: entry.tool !== "wait" },
+  ));
+  if (entry.tool !== "wait") {
+    return explicitTargets;
+  }
+  const validExplicitTargets = explicitTargets.filter((target) => (
+    isSubagentTarget(target, threadById) || (!threadById.has(target.id) && isPlausibleThreadId(target.id))
+  ));
+  if (validExplicitTargets.length > 0) {
+    return validExplicitTargets;
+  }
+  const implicitTargets = createImplicitWaitTargets(entry, threadById);
+  return implicitTargets.length > 0 ? implicitTargets : validExplicitTargets;
+}
+
+function isPlausibleThreadId(value: string): boolean {
+  return value.trim().length > 0 && value.length <= 120 && /^[A-Za-z0-9_:/.-]+$/.test(value);
+}
+
+function isSubagentTarget(
+  target: Pick<CollabAgentTarget, "id">,
+  threadById: ReadonlyMap<string, ThreadSummary>,
+): boolean {
+  const thread = threadById.get(target.id);
+  return thread !== undefined && isThreadLikeSubagent(thread);
+}
+
+function createImplicitWaitTargets(
+  entry: CollabAgentToolCallEntry,
+  threadById: ReadonlyMap<string, ThreadSummary>,
+): ReadonlyArray<CollabAgentTarget> {
+  const subagentThreads = [...threadById.values()].filter((thread) => (
+    thread.id !== entry.senderThreadId && isThreadLikeSubagent(thread)
+  ));
+  const activeSubagentThreads = subagentThreads.filter((thread) => thread.status === "active");
+  const candidates = activeSubagentThreads.length > 0 ? activeSubagentThreads : subagentThreads;
+  return candidates.map((thread) => createCollabAgentTarget(
+    thread.id,
+    entry.agentsStates[thread.id] ?? null,
+    threadById,
+    { useTitleFallback: false },
+  ));
 }
 
 function shouldShowCollabPrompt(entry: CollabAgentToolCallEntry): boolean {

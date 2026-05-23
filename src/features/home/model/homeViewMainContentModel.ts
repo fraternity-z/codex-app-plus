@@ -1,8 +1,10 @@
 import type { GitStatusOutput, GitWorkspaceDiffOutput } from "../../../bridge/types";
+import { createSubagentDisplayMetadata } from "../../../domain/subagentSource";
 import type { PendingUserInputEntry, TimelineEntry } from "../../../domain/timeline";
 import type { ThreadSummary } from "../../../domain/types";
 import {
   createTurnPlanModel,
+  type TurnPlanBackgroundTask,
   type TurnPlanModel,
   type TurnPlanOverview,
 } from "../../conversation/model/homeTurnPlanModel";
@@ -88,6 +90,7 @@ export function createTurnPlanOverview(options: {
   readonly diffItems: ReadonlyArray<GitWorkspaceDiffOutput>;
   readonly gitStatus: GitStatusOutput | null | undefined;
   readonly plan: TurnPlanModel | null;
+  readonly threads?: ReadonlyArray<ThreadSummary>;
 }): TurnPlanOverview {
   const turnId = options.plan?.entry.turnId ?? null;
   const scopedActivities = turnId === null
@@ -108,6 +111,7 @@ export function createTurnPlanOverview(options: {
 
   return {
     additions: diffSummary?.additions ?? null,
+    backgroundTasks: createTurnPlanBackgroundTasks(scopedActivities, options.threads ?? []),
     changedFiles: diffSummary?.changedFiles ?? fallbackChangedFiles,
     deletions: diffSummary?.deletions ?? null,
     generatedImages: countGeneratedImages(scopedActivities),
@@ -157,4 +161,80 @@ function countGeneratedImages(entries: ReadonlyArray<TimelineEntry>): number {
     entry.kind === "imageGeneration"
     && (entry.savedPath !== null || entry.result.trim().length > 0)
   )).length;
+}
+
+function createTurnPlanBackgroundTasks(
+  entries: ReadonlyArray<TimelineEntry>,
+  threads: ReadonlyArray<ThreadSummary>,
+): Array<TurnPlanBackgroundTask> {
+  const threadById = new Map(threads.map((thread) => [thread.id, thread]));
+  const tasks: Array<TurnPlanBackgroundTask> = [];
+  const seenSubagentIds = new Set<string>();
+
+  for (const entry of entries) {
+    if (entry.kind === "commandExecution" && entry.status === "inProgress") {
+      const label = entry.command.trim();
+      tasks.push({
+        id: entry.id,
+        kind: "command",
+        label: label.length > 0 ? label : entry.id,
+      });
+      continue;
+    }
+
+    if (entry.kind !== "collabAgentToolCall") {
+      continue;
+    }
+
+    for (const threadId of getCollabAgentThreadIds(entry)) {
+      const state = entry.agentsStates[threadId] ?? null;
+      if ((state === null && entry.status !== "inProgress") || (state !== null && !isRunningCollabAgentStatus(state.status))) {
+        continue;
+      }
+      if (seenSubagentIds.has(threadId)) {
+        continue;
+      }
+      seenSubagentIds.add(threadId);
+      tasks.push(createSubagentBackgroundTask(entry.id, threadId, threadById.get(threadId) ?? null));
+    }
+  }
+
+  return tasks;
+}
+
+function getCollabAgentThreadIds(entry: Extract<TimelineEntry, { kind: "collabAgentToolCall" }>): Array<string> {
+  const ids: string[] = [];
+  for (const id of entry.receiverThreadIds) {
+    if (!ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+  for (const id of Object.keys(entry.agentsStates)) {
+    if (!ids.includes(id)) {
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
+function isRunningCollabAgentStatus(
+  status: NonNullable<Extract<TimelineEntry, { kind: "collabAgentToolCall" }>["agentsStates"][string]>["status"],
+): boolean {
+  return status === "pendingInit" || status === "running";
+}
+
+function createSubagentBackgroundTask(
+  entryId: string,
+  threadId: string,
+  thread: ThreadSummary | null,
+): TurnPlanBackgroundTask {
+  const metadata = createSubagentDisplayMetadata(thread, threadId);
+
+  return {
+    detail: metadata.detail,
+    id: `${entryId}:${threadId}`,
+    kind: "subagent",
+    label: metadata.label,
+    threadId,
+  };
 }

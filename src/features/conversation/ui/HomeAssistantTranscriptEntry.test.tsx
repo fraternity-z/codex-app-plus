@@ -13,6 +13,7 @@ import type {
   PlanEntry,
   TurnPlanSnapshotEntry,
 } from "../../../domain/timeline";
+import type { ThreadSummary } from "../../../domain/types";
 import { FileLinkProvider, type FileLinkActions } from "../hooks/fileLinkContext";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { HomeAssistantTranscriptEntry } from "./HomeAssistantTranscriptEntry";
@@ -192,6 +193,45 @@ function createCollabToolNode(): Extract<AssistantNode, { kind: "traceItem" }> {
   };
 
   return createTraceNode(item);
+}
+
+function createWaitCollabToolNode(overrides?: Partial<CollabAgentToolCallEntry>): Extract<AssistantNode, { kind: "traceItem" }> {
+  const item: CollabAgentToolCallEntry = {
+    id: "collab-wait-1",
+    kind: "collabAgentToolCall",
+    threadId: "thread-1",
+    turnId: "turn-1",
+    itemId: "item-collab-wait",
+    tool: "wait",
+    status: "inProgress",
+    senderThreadId: "thread-main",
+    receiverThreadIds: [],
+    prompt: null,
+    agentsStates: {},
+    ...overrides,
+  };
+
+  return createTraceNode(item);
+}
+
+function createThreadSummary(overrides?: Partial<ThreadSummary>): ThreadSummary {
+  return {
+    id: "thread-helper",
+    title: "Helper thread",
+    branch: null,
+    cwd: "E:/code/codex-app-plus",
+    archived: false,
+    updatedAt: "2026-03-07T04:00:00.000Z",
+    source: "rpc",
+    isSubagent: true,
+    agentNickname: "Epicurus",
+    agentRole: "explorer",
+    agentEnvironment: "windowsNative",
+    status: "idle",
+    activeFlags: [],
+    queuedCount: 0,
+    ...overrides,
+  };
 }
 
 function createTurnPlanNode(): Extract<AssistantNode, { kind: "auxiliaryBlock" }> {
@@ -575,6 +615,65 @@ describe("HomeAssistantTranscriptEntry", () => {
     expect(screen.getByText("inspect the command UI")).toBeInTheDocument();
     expect(screen.getByText("completed")).toBeInTheDocument();
     expect(container.querySelector('summary[data-truncate-summary="true"]')).toBeNull();
+  });
+
+  it("selects the collab agent thread from the subagent row", () => {
+    const onSelectThread = vi.fn();
+    render(<HomeAssistantTranscriptEntry node={createCollabToolNode()} onSelectThread={onSelectThread} />, {
+      wrapper: createI18nWrapper("en-US"),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Open agent thread thread-helper" }));
+
+    expect(onSelectThread).toHaveBeenCalledWith("thread-helper");
+  });
+
+  it("uses the agent nickname and role when rendering collab agent rows", () => {
+    const onSelectThread = vi.fn();
+    render(
+      <HomeAssistantTranscriptEntry
+        node={createCollabToolNode()}
+        threads={[createThreadSummary()]}
+        onSelectThread={onSelectThread}
+      />,
+      { wrapper: createI18nWrapper("en-US") },
+    );
+
+    expect(screen.getByText("Epicurus")).toBeInTheDocument();
+    expect(screen.getByText(/explorer/)).toBeInTheDocument();
+    expect(screen.queryByText("thread-helper")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open agent thread Epicurus" }));
+
+    expect(onSelectThread).toHaveBeenCalledWith("thread-helper");
+  });
+
+  it("does not use the parent thread title as the wait target", () => {
+    render(
+      <HomeAssistantTranscriptEntry
+        node={createWaitCollabToolNode({
+          receiverThreadIds: ["thread-main", "采用多智能体并行搜索项目可优化点，特别是会话加载速度等，给一份分析报告，不要修改任何代码"],
+        })}
+        threads={[
+          createThreadSummary({
+            id: "thread-main",
+            title: "采用多智能体并行搜索项目可优化点，特别是会话加载速度等，给一份分析报告，不要修改任何代码",
+            isSubagent: false,
+            agentNickname: null,
+            agentRole: null,
+            status: "active",
+          }),
+          createThreadSummary({ id: "thread-agent-1", agentNickname: "Epicurus", agentRole: "explorer", status: "active" }),
+          createThreadSummary({ id: "thread-agent-2", agentNickname: "Aristotle", agentRole: "explorer", status: "active" }),
+        ]}
+      />,
+      { wrapper: createI18nWrapper("zh-CN") },
+    );
+
+    expect(screen.getByText("正在等待2个智能体")).toBeInTheDocument();
+    expect(screen.getByText("Epicurus")).toBeInTheDocument();
+    expect(screen.getByText("Aristotle")).toBeInTheDocument();
+    expect(screen.queryByText(/采用多智能体并行搜索/)).toBeNull();
   });
 
   it("does not mark turn plan summaries for collapsed truncation", () => {
