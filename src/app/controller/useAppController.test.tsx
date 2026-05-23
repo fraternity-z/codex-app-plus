@@ -448,9 +448,12 @@ describe("useAppController auth helpers", () => {
       if (method === "config/read") {
         return initialSnapshot;
       }
-      if (method === "config/value/write") {
-        const input = params as { readonly keyPath?: string; readonly expectedVersion?: string | null };
-        if (input.keyPath === "features.multi_agent" && input.expectedVersion === "u1") {
+      if (method === "config/batchWrite") {
+        const input = params as {
+          readonly edits?: ReadonlyArray<{ readonly keyPath?: string }>;
+          readonly expectedVersion?: string | null;
+        };
+        if (input.edits?.some((edit) => edit.keyPath === "features.multi_agent") === true && input.expectedVersion === "u1") {
           throw new Error("协议错误: [-32600] Configuration was modified since last read. Fetch latest version and retry.");
         }
         return {
@@ -477,12 +480,26 @@ describe("useAppController auth helpers", () => {
     });
 
     const writes = protocolState.request.mock.calls.filter(([method, params]) => (
-      method === "config/value/write"
-      && (params as { readonly keyPath?: string }).keyPath === "features.multi_agent"
+      method === "config/batchWrite"
+      && (params as { readonly edits?: ReadonlyArray<{ readonly keyPath?: string }> }).edits?.some((edit) => edit.keyPath === "features.multi_agent") === true
     ));
     expect(writes).toHaveLength(2);
-    expect(writes[0]?.[1]).toMatchObject({ expectedVersion: "u1", value: true });
-    expect(writes[1]?.[1]).toMatchObject({ expectedVersion: "u2", value: true });
+    expect(writes[0]?.[1]).toMatchObject({
+      expectedVersion: "u1",
+      edits: [
+        { keyPath: "features.multi_agent", value: true, mergeStrategy: "replace" },
+        { keyPath: "features.multi_agent_v2", value: true, mergeStrategy: "replace" },
+      ],
+      reloadUserConfig: true,
+    });
+    expect(writes[1]?.[1]).toMatchObject({
+      expectedVersion: "u2",
+      edits: [
+        { keyPath: "features.multi_agent", value: true, mergeStrategy: "replace" },
+        { keyPath: "features.multi_agent_v2", value: true, mergeStrategy: "replace" },
+      ],
+      reloadUserConfig: true,
+    });
     expect(readConfigSnapshot).toHaveBeenCalledTimes(1);
     expect(protocolState.restartAppServer).toHaveBeenCalledTimes(1);
   });

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { ConversationState } from "../../../domain/conversation";
 import type { AppAction, AppState } from "../../../domain/types";
+import { isThreadLikeSubagent } from "../../../domain/subagentSource";
 import type { AppServerClient } from "../../../protocol/appServerClient";
 import type { AppStoreApi } from "../../../state/store";
-import type { SessionSource } from "../../../protocol/generated/v2/SessionSource";
 import type { CollabAgentStatus } from "../../../protocol/generated/v2/CollabAgentStatus";
 import { isConversationStreaming } from "../model/conversationSelectors";
 import {
@@ -27,14 +27,6 @@ type CleanupMode = "soft" | "force";
 
 export const MAIN_THREAD_SOFT_DETACH_DELAY_MS = 2 * 60 * 1000;
 export const FINAL_SUBAGENT_CLEANUP_DELAY_MS = 30 * 1000;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function isSubAgentSource(source: ConversationState["source"]): source is { subAgent: SessionSource } {
-  return isRecord(source) && "subAgent" in source;
-}
 
 function isFinalCollabAgentStatus(status: CollabAgentStatus): boolean {
   return status === "completed" || status === "errored" || status === "shutdown";
@@ -76,7 +68,7 @@ function shouldUnloadMainConversation(
   pendingRequestsByConversationId: PendingRequestsByConversationId,
 ): boolean {
   return conversation.hidden === false
-    && isSubAgentSource(conversation.source) === false
+    && isThreadLikeSubagent(conversation) === false
     && isUnloadableConversation(conversation, selectedConversationId, pendingRequestsByConversationId);
 }
 
@@ -86,14 +78,14 @@ function shouldUnloadHiddenMainConversation(
 ): boolean {
   return conversation.hidden
     && conversation.id !== selectedConversationId
-    && isSubAgentSource(conversation.source) === false
+    && isThreadLikeSubagent(conversation) === false
     && conversation.resumeState === "resumed"
     && hasTurnHistory(conversation);
 }
 
 function shouldCleanupClosedMainConversation(conversation: ConversationState): boolean {
   return conversation.hidden === false
-    && isSubAgentSource(conversation.source) === false
+    && isThreadLikeSubagent(conversation) === false
     && conversation.status === "notLoaded"
     && conversation.resumeState === "needs_resume"
     && hasTurnHistory(conversation);

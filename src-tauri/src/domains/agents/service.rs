@@ -35,6 +35,7 @@ pub fn set_agents_core(input: SetAgentsCoreInput) -> AppResult<AgentsSettingsOut
     let mut table = read_config_table(&config.host_path)?;
 
     set_feature_flag(&mut table, "multi_agent", input.multi_agent_enabled);
+    set_feature_flag(&mut table, "multi_agent_v2", input.multi_agent_enabled);
     let agents = ensure_table_mut(&mut table, "agents")?;
     agents.insert(
         "max_threads".to_string(),
@@ -340,12 +341,17 @@ fn set_feature_flag(table: &mut Map<String, Value>, key: &str, enabled: bool) {
 }
 
 fn read_multi_agent_enabled(table: &Map<String, Value>) -> bool {
-    table
-        .get("features")
-        .and_then(Value::as_table)
-        .and_then(|features| features.get("multi_agent"))
+    let Some(features) = table.get("features").and_then(Value::as_table) else {
+        return false;
+    };
+    features
+        .get("multi_agent")
         .and_then(Value::as_bool)
         .unwrap_or(false)
+        || features
+            .get("multi_agent_v2")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
 }
 
 fn read_max_threads(table: &Map<String, Value>) -> u32 {
@@ -584,7 +590,10 @@ fn build_agent_config_template() -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{normalize_agent_name, normalize_relative_path, read_max_depth, read_max_threads};
+    use super::{
+        normalize_agent_name, normalize_relative_path, read_max_depth, read_max_threads,
+        read_multi_agent_enabled,
+    };
     use toml::{map::Map, Value};
 
     #[test]
@@ -616,5 +625,15 @@ mod tests {
         table.insert("agents".to_string(), Value::Table(agents));
         assert_eq!(read_max_threads(&table), 8);
         assert_eq!(read_max_depth(&table), 3);
+    }
+
+    #[test]
+    fn read_multi_agent_enabled_accepts_v2_flag() {
+        let mut features = Map::new();
+        features.insert("multi_agent_v2".to_string(), Value::Boolean(true));
+        let mut table = Map::new();
+        table.insert("features".to_string(), Value::Table(features));
+
+        assert!(read_multi_agent_enabled(&table));
     }
 }

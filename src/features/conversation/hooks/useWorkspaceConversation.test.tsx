@@ -1418,6 +1418,7 @@ describe("useWorkspaceConversation", () => {
     expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({
       method: "thread/start",
       params: expect.objectContaining({
+        threadSource: "user",
         approvalPolicy: "on-request",
         approvalsReviewer: "auto_review",
       }),
@@ -1683,6 +1684,52 @@ describe("useWorkspaceConversation", () => {
       expect(request).toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
       expect(result.current.store.state.conversationsById["thread-1"]?.resumeState).toBe("needs_resume");
       expect(result.current.store.state.conversationsById["thread-1"]?.status).toBe("notLoaded");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not soft detach protocol subagent sessions as main threads", async () => {
+    vi.useFakeTimers();
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/unsubscribe") {
+        return { requestId: "unsubscribe-1", result: { status: "unsubscribed" } };
+      }
+      return { requestId: "noop", result: {} };
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    try {
+      act(() => {
+        result.current.store.dispatch({
+          type: "conversation/upserted",
+          conversation: createConversationFromThread(createThread({
+            id: "thread-1",
+            source: {
+              subagent: {
+                thread_spawn: {
+                  parent_thread_id: "parent",
+                  depth: 1,
+                  agent_path: null,
+                  agent_nickname: null,
+                  agent_role: "explorer",
+                },
+              },
+            },
+            turns: [createTurn("completed")],
+          }), { resumeState: "resumed" }),
+        });
+        result.current.store.dispatch({ type: "conversation/upserted", conversation: createConversationFromThread(createThread({ id: "thread-2", preview: "thread 2" }), { resumeState: "resumed" }) });
+        result.current.store.dispatch({ type: "conversation/selected", conversationId: "thread-2" });
+      });
+
+      await act(async () => {
+        await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(MAIN_THREAD_SOFT_DETACH_DELAY_MS);
+      });
+
+      expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "thread/unsubscribe", params: { threadId: "thread-1" } }));
     } finally {
       vi.useRealTimers();
     }

@@ -310,11 +310,11 @@ export const enUS = {
     },
     agents: {
       title: "Agents",
-      subtitle: "Configure multi-agent mode, limits, and custom roles.",
+      subtitle: "Turn multi-agent mode on or off.",
       configFile: "Config file",
       openConfig: "Open config",
       enable: "Enable Multi-Agent",
-      enableDesc: "Writes features.multi_agent in config.toml and keeps the composer toggle in sync.",
+      enableDesc: "Writes the official multi_agent and multi_agent_v2 config flags and keeps the composer toggle in sync.",
       enabled: "Enabled",
       disabled: "Disabled",
       maxThreads: "Max Threads",

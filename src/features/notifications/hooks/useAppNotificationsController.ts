@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { HostBridge } from "../../../bridge/types";
-import type { ConversationState } from "../../../domain/conversation";
 import type {
   AppState,
   ReceivedNotification,
 } from "../../../domain/types";
 import type { ReceivedServerRequest } from "../../../domain/serverRequests";
+import { isThreadLikeSubagent } from "../../../domain/subagentSource";
 import type { AppStoreApi } from "../../../state/store";
 import type {
   AppPreferencesController,
@@ -67,12 +67,6 @@ function basename(path: string): string {
   return segments[segments.length - 1] ?? normalized;
 }
 
-function isSubAgentSource(
-  source: ConversationState["source"],
-): source is { subAgent: unknown } {
-  return typeof source === "object" && source !== null && "subAgent" in source;
-}
-
 function isSubagentThread(
   conversationsById: AppState["conversationsById"],
   threadId: string | null,
@@ -82,7 +76,7 @@ function isSubagentThread(
   }
 
   const conversation = conversationsById[threadId];
-  if (conversation && isSubAgentSource(conversation.source)) {
+  if (conversation && isThreadLikeSubagent(conversation)) {
     return true;
   }
 

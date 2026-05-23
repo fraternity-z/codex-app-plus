@@ -309,11 +309,11 @@ export const zhCN = {
     },
     agents: {
       title: "Agents",
-      subtitle: "配置多代理模式、限制和自定义角色。",
+      subtitle: "开启或关闭多代理模式。",
       configFile: "配置文件",
       openConfig: "打开配置",
       enable: "启用 Multi-Agent",
-      enableDesc: "写入 config.toml 中的 features.multi_agent，并与对话框开关保持同步。",
+      enableDesc: "写入 config.toml 中的官方 multi_agent 与 multi_agent_v2 开关，并与对话框开关保持同步。",
       enabled: "已启用",
       disabled: "已关闭",
       maxThreads: "最大线程数",

@@ -100,12 +100,7 @@ function createBaseProps(
     }),
     deleteManagedPrompt: vi.fn().mockResolvedValue(undefined),
     setUserModelInstructionsFile: vi.fn().mockResolvedValue(undefined),
-    getAgentsSettings: vi.fn().mockResolvedValue({ configPath: "", multiAgentEnabled: false, maxThreads: 6, maxDepth: 1, agents: [] }),
-    createAgent: vi.fn().mockResolvedValue({ configPath: "", multiAgentEnabled: false, maxThreads: 6, maxDepth: 1, agents: [] }),
-    updateAgent: vi.fn().mockResolvedValue({ configPath: "", multiAgentEnabled: false, maxThreads: 6, maxDepth: 1, agents: [] }),
-    deleteAgent: vi.fn().mockResolvedValue({ configPath: "", multiAgentEnabled: false, maxThreads: 6, maxDepth: 1, agents: [] }),
-    readAgentConfig: vi.fn().mockResolvedValue({ content: "" }),
-    writeAgentConfig: vi.fn().mockResolvedValue({ content: "" }),
+    setMultiAgentEnabled: vi.fn().mockResolvedValue(undefined),
     readProxySettings: vi.fn().mockResolvedValue({
       settings: {
         mode: "disabled",

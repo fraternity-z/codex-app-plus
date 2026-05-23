@@ -110,12 +110,7 @@ export interface SettingsViewProps {
   ) => Promise<ManagedPromptOutput>;
   deleteManagedPrompt: (name: string) => Promise<void>;
   setUserModelInstructionsFile: (path: string | null) => Promise<void>;
-  getAgentsSettings: () => Promise<import("../../../bridge/types").AgentsSettingsOutput>;
-  createAgent: (input: import("../../../bridge/types").CreateAgentInput) => Promise<import("../../../bridge/types").AgentsSettingsOutput>;
-  updateAgent: (input: import("../../../bridge/types").UpdateAgentInput) => Promise<import("../../../bridge/types").AgentsSettingsOutput>;
-  deleteAgent: (input: import("../../../bridge/types").DeleteAgentInput) => Promise<import("../../../bridge/types").AgentsSettingsOutput>;
-  readAgentConfig: (name: string) => Promise<import("../../../bridge/types").ReadAgentConfigOutput>;
-  writeAgentConfig: (name: string, content: string) => Promise<import("../../../bridge/types").WriteAgentConfigOutput>;
+  setMultiAgentEnabled: (enabled: boolean) => Promise<void>;
   readProxySettings: (input: { readonly agentEnvironment: AgentEnvironment }) => Promise<ReadProxySettingsOutput>;
   writeGlobalAgentInstructions: (
     input: UpdateGlobalAgentInstructionsInput
@@ -307,15 +302,8 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
           busy={props.busy}
           configSnapshot={props.configSnapshot}
           experimentalFeatures={props.experimentalFeatures}
-          onOpenConfigToml={props.onOpenConfigToml}
           refreshConfigSnapshot={props.refreshConfigSnapshot}
-          getAgentsSettings={props.getAgentsSettings}
-          createAgent={props.createAgent}
-          updateAgent={props.updateAgent}
-          deleteAgent={props.deleteAgent}
-          readAgentConfig={props.readAgentConfig}
-          writeAgentConfig={props.writeAgentConfig}
-          batchWriteConfig={props.batchWriteConfig}
+          setMultiAgentEnabled={props.setMultiAgentEnabled}
         />
       </>
     );

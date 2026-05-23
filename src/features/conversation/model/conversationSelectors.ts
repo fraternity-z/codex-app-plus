@@ -1,27 +1,13 @@
 import type { ConversationState } from "../../../domain/conversation";
 import type { ThreadSummary } from "../../../domain/types";
+import { hasText, isThreadLikeSubagent } from "../../../domain/subagentSource";
 
 function mapConversationSource(source: ConversationState["source"]): ThreadSummary["source"] {
   return source === "codexData" ? "codexData" : "rpc";
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function hasText(value: string | null | undefined): value is string {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function isConversationSourceSubagent(source: ConversationState["source"]): boolean {
-  return isRecord(source) && ("subAgent" in source || "subagent" in source);
-}
-
 export function mapConversationToThreadSummary(conversation: ConversationState): ThreadSummary {
-  const isSubagent = conversation.isSubagent === true
-    || isConversationSourceSubagent(conversation.source)
-    || hasText(conversation.agentNickname)
-    || hasText(conversation.agentRole);
+  const isSubagent = isThreadLikeSubagent(conversation);
   return {
     id: conversation.id,
     title: conversation.title ?? conversation.id,

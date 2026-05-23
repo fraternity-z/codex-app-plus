@@ -2,6 +2,7 @@ import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigRe
 import type { ExperimentalFeature } from "../../../protocol/generated/v2/ExperimentalFeature";
 
 const MULTI_AGENT_FEATURE_NAME = "multi_agent";
+const MULTI_AGENT_V2_FEATURE_NAME = "multi_agent_v2";
 const STEER_FEATURE_NAME = "steer";
 
 export interface MultiAgentFeatureState {
@@ -18,7 +19,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function readMultiAgentEnabledFromConfig(configSnapshot: ConfigReadResponse | null): boolean {
-  return readFeatureEnabledFromConfig(configSnapshot, MULTI_AGENT_FEATURE_NAME);
+  return readFeatureEnabledFromConfig(configSnapshot, MULTI_AGENT_FEATURE_NAME)
+    || readFeatureEnabledFromConfig(configSnapshot, MULTI_AGENT_V2_FEATURE_NAME);
 }
 
 function readFeatureEnabledFromConfig(

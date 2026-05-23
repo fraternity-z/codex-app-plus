@@ -275,6 +275,7 @@ export function useWorkspaceConversationController({
         model: sendOptions.selection.model ?? undefined,
         serviceTier: sendOptions.selection.serviceTier ?? null,
         cwd: agentWorkspacePath,
+        threadSource: "user",
         experimentalRawEvents: false,
         persistExtendedHistory: false,
         ...createThreadPermissionOverrides(sendOptions.permissionLevel, options.permissionSettings),

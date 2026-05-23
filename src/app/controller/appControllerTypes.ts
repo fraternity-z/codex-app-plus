@@ -29,14 +29,6 @@ import type { SkillsListParams } from "../../protocol/generated/v2/SkillsListPar
 import type { SkillsListResponse } from "../../protocol/generated/v2/SkillsListResponse";
 import type { ThreadMemoryMode } from "../../protocol/generated/ThreadMemoryMode";
 import type { McpServerStatus } from "../../protocol/generated/v2/McpServerStatus";
-import type {
-  AgentsSettingsOutput,
-  CreateAgentInput,
-  DeleteAgentInput,
-  ReadAgentConfigOutput,
-  UpdateAgentInput,
-  WriteAgentConfigOutput,
-} from "../../bridge/types";
 import {
   type ConfigMutationResult,
   type ConfigSnapshotMutationResult,
@@ -101,12 +93,6 @@ export interface AppController {
   setAppEnabled: (appId: string, enabled: boolean) => Promise<ConfigWriteResponse>;
   setMarketplacePluginEnabled: (pluginId: string, enabled: boolean) => Promise<ConfigWriteResponse>;
   setMultiAgentEnabled: (enabled: boolean) => Promise<void>;
-  getAgentsSettings: () => Promise<AgentsSettingsOutput>;
-  createAgent: (input: CreateAgentInput) => Promise<AgentsSettingsOutput>;
-  updateAgent: (input: UpdateAgentInput) => Promise<AgentsSettingsOutput>;
-  deleteAgent: (input: DeleteAgentInput) => Promise<AgentsSettingsOutput>;
-  readAgentConfig: (name: string) => Promise<ReadAgentConfigOutput>;
-  writeAgentConfig: (name: string, content: string) => Promise<WriteAgentConfigOutput>;
   checkForAppUpdate: () => Promise<void>;
   installAppUpdate: () => Promise<void>;
   login: () => Promise<void>;

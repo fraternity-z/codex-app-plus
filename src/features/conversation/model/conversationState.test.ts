@@ -125,6 +125,24 @@ describe("conversationState", () => {
     expect(hydrated.branch).toBe("feature/next-branch");
   });
 
+  it("recognizes official and legacy subagent thread metadata", () => {
+    expect(createConversationFromThread(createThread({ threadSource: "user" })).isSubagent).toBeUndefined();
+    expect(createConversationFromThread(createThread({ threadSource: "subagent" })).isSubagent).toBe(true);
+    expect(createConversationFromThread(createThread({
+      source: {
+        subagent: {
+          thread_spawn: {
+            parent_thread_id: "parent",
+            depth: 1,
+            agent_path: null,
+            agent_nickname: "Atlas",
+            agent_role: "worker",
+          },
+        },
+      } as never,
+    })).isSubagent).toBe(true);
+  });
+
   it("rebuilds turn diff snapshots from persisted file change items", () => {
     const thread = createThread({
       turns: [

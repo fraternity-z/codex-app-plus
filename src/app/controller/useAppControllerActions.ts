@@ -58,19 +58,28 @@ function isConfigVersionConflictError(error: unknown): boolean {
   return message.includes(CONFIG_VERSION_CONFLICT_MESSAGE);
 }
 
-async function writeMultiAgentConfigValue(
+function createMultiAgentConfigWriteParams(
+  snapshot: ConfigReadResponse | null,
+  enabled: boolean,
+): ConfigBatchWriteParams {
+  const writeTarget = readUserConfigWriteTarget(snapshot);
+  return {
+    edits: [
+      { keyPath: "features.multi_agent", value: enabled, mergeStrategy: "replace" },
+      { keyPath: "features.multi_agent_v2", value: enabled, mergeStrategy: "replace" },
+    ],
+    filePath: writeTarget.filePath,
+    expectedVersion: writeTarget.expectedVersion,
+    reloadUserConfig: true,
+  };
+}
+
+async function writeMultiAgentConfigValues(
   client: ProtocolClient,
   snapshot: ConfigReadResponse | null,
   enabled: boolean,
 ): Promise<void> {
-  const writeTarget = readUserConfigWriteTarget(snapshot);
-  await client.request("config/value/write", {
-    keyPath: "features.multi_agent",
-    value: enabled,
-    mergeStrategy: "replace",
-    filePath: writeTarget.filePath,
-    expectedVersion: writeTarget.expectedVersion,
-  });
+  await client.request("config/batchWrite", createMultiAgentConfigWriteParams(snapshot, enabled));
 }
 
 export function useAppControllerActions({
@@ -176,35 +185,16 @@ export function useAppControllerActions({
   const setMultiAgentEnabled = useCallback(async (enabled: boolean) => {
     await runBusy(async () => {
       try {
-        await writeMultiAgentConfigValue(client, configSnapshot, enabled);
+        await writeMultiAgentConfigValues(client, configSnapshot, enabled);
       } catch (error) {
         if (!isConfigVersionConflictError(error)) {
           throw error;
         }
-        await writeMultiAgentConfigValue(client, await readConfigSnapshot(client, dispatch), enabled);
+        await writeMultiAgentConfigValues(client, await readConfigSnapshot(client, dispatch), enabled);
       }
       await bootstrap(true);
     });
   }, [bootstrap, client, configSnapshot, dispatch, runBusy]);
-  const getAgentsSettings = useCallback(() => (
-    hostBridge.app.getAgentsSettings({ agentEnvironment })
-  ), [agentEnvironment, hostBridge.app]);
-  const createAgent = useCallback((input: Parameters<HostBridge["app"]["createAgent"]>[0]) => (
-    hostBridge.app.createAgent({ ...input, agentEnvironment })
-  ), [agentEnvironment, hostBridge.app]);
-  const updateAgent = useCallback((input: Parameters<HostBridge["app"]["updateAgent"]>[0]) => (
-    hostBridge.app.updateAgent({ ...input, agentEnvironment })
-  ), [agentEnvironment, hostBridge.app]);
-  const deleteAgent = useCallback((input: Parameters<HostBridge["app"]["deleteAgent"]>[0]) => (
-    hostBridge.app.deleteAgent({ ...input, agentEnvironment })
-  ), [agentEnvironment, hostBridge.app]);
-  const readAgentConfig = useCallback((name: string) => (
-    hostBridge.app.readAgentConfig({ agentEnvironment, name })
-  ), [agentEnvironment, hostBridge.app]);
-  const writeAgentConfig = useCallback((name: string, content: string) => (
-    hostBridge.app.writeAgentConfig({ agentEnvironment, name, content })
-  ), [agentEnvironment, hostBridge.app]);
-
   const resolveServerRequest = useCallback(async (resolution: ServerRequestResolution) => {
     const request = pendingRequestsRef.current[resolution.requestId];
     if (request === undefined) {
@@ -253,12 +243,6 @@ export function useAppControllerActions({
     resetMemories,
     setMultiAgentEnabled,
     setThreadMemoryMode,
-    getAgentsSettings,
-    createAgent,
-    updateAgent,
-    deleteAgent,
-    readAgentConfig,
-    writeAgentConfig,
     unarchiveThread,
     writeConfigValue,
     ...pluginActions,

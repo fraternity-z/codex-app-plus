@@ -5,11 +5,10 @@ import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigRe
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import { AgentsSettingsSection } from "./AgentsSettingsSection";
 
-function createConfigSnapshot(): ConfigReadResponse {
+function createConfigSnapshot(enabled = false): ConfigReadResponse {
   return {
     config: {
-      features: { multi_agent: false },
-      agents: { max_threads: 6, max_depth: 1 },
+      features: { multi_agent: enabled, multi_agent_v2: enabled },
     },
     layers: [{ name: { type: "user", file: "C:/Users/Administrator/.codex/config.toml" }, version: "u1", config: {}, disabledReason: null }],
     origins: {},
@@ -23,51 +22,33 @@ function createProps(
     busy: false,
     configSnapshot: createConfigSnapshot(),
     experimentalFeatures: [],
-    onOpenConfigToml: vi.fn().mockResolvedValue(undefined),
-    refreshConfigSnapshot: vi.fn().mockResolvedValue({ config: {}, layers: [], origins: {} }),
-    getAgentsSettings: vi.fn().mockResolvedValue({
-      configPath: "C:/Users/Administrator/.codex/config.toml",
-      multiAgentEnabled: false,
-      maxThreads: 6,
-      maxDepth: 1,
-      agents: [],
-    }),
-    createAgent: vi.fn().mockResolvedValue({ configPath: "", multiAgentEnabled: false, maxThreads: 6, maxDepth: 1, agents: [] }),
-    updateAgent: vi.fn().mockResolvedValue({ configPath: "", multiAgentEnabled: false, maxThreads: 6, maxDepth: 1, agents: [] }),
-    deleteAgent: vi.fn().mockResolvedValue({ configPath: "", multiAgentEnabled: false, maxThreads: 6, maxDepth: 1, agents: [] }),
-    readAgentConfig: vi.fn().mockResolvedValue({ content: "model = \"gpt-5-codex\"\n" }),
-    writeAgentConfig: vi.fn().mockResolvedValue({ content: "model = \"gpt-5-codex\"\n" }),
-    batchWriteConfig: vi.fn().mockResolvedValue({ config: { config: {} }, statuses: [], write: {} }),
+    refreshConfigSnapshot: vi.fn().mockResolvedValue(createConfigSnapshot(true)),
+    setMultiAgentEnabled: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
 
 describe("AgentsSettingsSection", () => {
-  it("loads agents settings on mount", async () => {
-    const getAgentsSettings = vi.fn().mockResolvedValue({
-      configPath: "C:/Users/Administrator/.codex/config.toml",
-      multiAgentEnabled: false,
-      maxThreads: 6,
-      maxDepth: 1,
-      agents: [],
-    });
-    render(<AgentsSettingsSection {...createProps({ getAgentsSettings })} />, {
+  it("renders only the multi-agent switch", () => {
+    render(<AgentsSettingsSection {...createProps()} />, {
       wrapper: createI18nWrapper("zh-CN"),
     });
 
-    expect(await screen.findByText("Agents")).toBeInTheDocument();
-    await waitFor(() => expect(getAgentsSettings).toHaveBeenCalled());
+    expect(screen.getByText("Agents")).toBeInTheDocument();
+    expect(screen.getByRole("switch", { name: "启用 Multi-Agent" })).toBeInTheDocument();
+    expect(screen.queryByText("最大线程数")).not.toBeInTheDocument();
+    expect(screen.queryByText("创建 Agent")).not.toBeInTheDocument();
+    expect(screen.queryByText("已配置 Agents")).not.toBeInTheDocument();
   });
 
-  it("writes max threads via batchWriteConfig", async () => {
-    const batchWriteConfig = vi.fn().mockResolvedValue({ config: { config: {} }, statuses: [], write: {} });
-    render(<AgentsSettingsSection {...createProps({ batchWriteConfig })} />, {
+  it("toggles multi-agent through the controller so the app-server restarts", async () => {
+    const setMultiAgentEnabled = vi.fn().mockResolvedValue(undefined);
+    render(<AgentsSettingsSection {...createProps({ setMultiAgentEnabled })} />, {
       wrapper: createI18nWrapper("zh-CN"),
     });
 
-    await screen.findByText("Agents");
-    const plusButtons = screen.getAllByRole("button", { name: "+" });
-    fireEvent.click(plusButtons[0]);
-    await waitFor(() => expect(batchWriteConfig).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("switch", { name: "启用 Multi-Agent" }));
+
+    await waitFor(() => expect(setMultiAgentEnabled).toHaveBeenCalledWith(true));
   });
 });

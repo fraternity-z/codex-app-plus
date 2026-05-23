@@ -19,6 +19,7 @@ import type { ThreadGoal } from "../../../protocol/generated/v2/ThreadGoal";
 import type { ThreadItem } from "../../../protocol/generated/v2/ThreadItem";
 import type { ThreadTokenUsage } from "../../../protocol/generated/v2/ThreadTokenUsage";
 import type { Turn } from "../../../protocol/generated/v2/Turn";
+import { hasText, isThreadLikeSubagent } from "../../../domain/subagentSource";
 
 export const MAX_MCP_PROGRESS_MESSAGES_PER_ITEM = 50;
 
@@ -34,18 +35,10 @@ function toIsoFromUnixSeconds(value: number): string {
   return new Date(value * 1000).toISOString();
 }
 
-function hasText(value: string | null | undefined): value is string {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function isThreadSourceSubagent(source: Thread["source"]): boolean {
-  return typeof source === "object" && source !== null && "subAgent" in source;
-}
-
 function createThreadSubagentFields(
-  thread: Pick<Thread, "source" | "agentNickname" | "agentRole">,
+  thread: Pick<Thread, "source" | "threadSource" | "agentNickname" | "agentRole">,
 ): Pick<ConversationState, "isSubagent" | "agentNickname" | "agentRole"> {
-  const isSubagent = isThreadSourceSubagent(thread.source) || hasText(thread.agentNickname) || hasText(thread.agentRole);
+  const isSubagent = isThreadLikeSubagent(thread);
   return {
     ...(isSubagent ? { isSubagent: true } : {}),
     ...(hasText(thread.agentNickname) ? { agentNickname: thread.agentNickname } : {}),

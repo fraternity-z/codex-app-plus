@@ -9,6 +9,7 @@ function createRpcThread(overrides?: Partial<{
   readonly name: string | null;
   readonly cwd: string | null;
   readonly source: Thread["source"];
+  readonly threadSource: Thread["threadSource"];
   readonly agentNickname: string | null;
   readonly agentRole: string | null;
 }>): Thread {
@@ -26,7 +27,7 @@ function createRpcThread(overrides?: Partial<{
     cwd: overrides?.cwd ?? "E:/code/project-a",
     cliVersion: "0.0.1",
     source: overrides?.source ?? "appServer",
-    threadSource: null,
+    threadSource: overrides?.threadSource ?? null,
     agentNickname: overrides?.agentNickname ?? null,
     agentRole: overrides?.agentRole ?? null,
     gitInfo: { branch: "feature/rpc-branch", sha: null, originUrl: null },
@@ -139,6 +140,15 @@ describe("listAllThreads", () => {
       isSubagent: true,
       agentNickname: "Atlas",
       agentRole: "worker",
+    });
+  });
+
+  it("marks rpc subagent threads from official threadSource metadata", () => {
+    const thread = createRpcThread({ threadSource: "subagent" });
+
+    expect(mapThreadToSummary(thread, { archived: false, agentEnvironment: "windowsNative" })).toMatchObject({
+      id: "thread-1",
+      isSubagent: true,
     });
   });
 
