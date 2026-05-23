@@ -973,6 +973,7 @@ export const enUS = {
         taskList: "Task list",
         toolCall: "Tool call: {tool}",
         toolGroupCommands: "Ran {count} commands",
+        toolGroupDeletedFiles: "Deleted {count} files",
         toolGroupEditedFiles: "Edited {count} files",
         toolGroupReadFiles: "Read {count} files",
         toolGroupSeparator: ", ",

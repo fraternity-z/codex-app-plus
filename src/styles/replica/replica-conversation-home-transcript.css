@@ -354,6 +354,36 @@
   white-space: nowrap;
 }
 
+.home-assistant-transcript-tool-group-summary-content {
+  display: inline-flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: 100%;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.home-assistant-transcript-tool-group-summary-part {
+  display: inline-flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.home-assistant-transcript-tool-group-summary-separator {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
+.home-assistant-transcript-tool-group-summary-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
 .home-assistant-transcript-tool-group-summary-text {
   min-width: 0;
   flex: 0 1 auto;

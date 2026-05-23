@@ -58,6 +58,12 @@ interface RenderGroup {
 
 type AssistantFlowRenderNode = Exclude<RenderGroup["nodes"][number], { readonly kind: "userBubble" }>;
 type AssistantTraceNode = Extract<AssistantFlowRenderNode, { readonly kind: "traceItem" }>;
+type AssistantToolGroupSummaryIcon = "edit" | "terminal";
+
+interface AssistantToolGroupSummaryPart {
+  readonly icon: AssistantToolGroupSummaryIcon | null;
+  readonly label: string;
+}
 type AssistantSubagentTraceNode = AssistantTraceNode & { readonly item: CollabAgentToolCallEntry };
 type AssistantDisplayNode =
   | AssistantFlowRenderNode
@@ -381,13 +387,12 @@ function HomeAssistantToolGroup(props: {
 }): JSX.Element {
   const { t } = useI18n();
   const bodyNodes = createAssistantToolGroupBodyNodes(props.node.nodes);
+  const summaryParts = createAssistantToolGroupSummaryParts(props.node.nodes, t);
   return (
     <section className="home-assistant-transcript-entry home-assistant-transcript-tool-group">
       <details>
         <summary className="home-assistant-transcript-line home-assistant-transcript-summary home-assistant-transcript-tool-group-summary">
-          <span className="home-assistant-transcript-tool-group-summary-text">
-            {createAssistantToolGroupSummary(props.node.nodes, t)}
-          </span>
+          <AssistantToolGroupSummary parts={summaryParts} separator={t("home.conversation.transcript.toolGroupSeparator")} />
           <span className="home-assistant-transcript-tool-group-chevron" aria-hidden="true" />
         </summary>
         <div className="home-assistant-transcript-tool-group-body">
@@ -406,6 +411,64 @@ function HomeAssistantToolGroup(props: {
         </div>
       </details>
     </section>
+  );
+}
+
+function AssistantToolGroupSummary(props: {
+  readonly parts: ReadonlyArray<AssistantToolGroupSummaryPart>;
+  readonly separator: string;
+}): JSX.Element {
+  return (
+    <span className="home-assistant-transcript-tool-group-summary-content">
+      {props.parts.map((part, index) => (
+        <span key={`${index}:${part.label}`} className="home-assistant-transcript-tool-group-summary-part">
+          {index > 0 ? <span className="home-assistant-transcript-tool-group-summary-separator">{props.separator}</span> : null}
+          {part.icon === null ? null : <AssistantToolGroupSummaryIcon kind={part.icon} />}
+          <span className="home-assistant-transcript-tool-group-summary-text">{part.label}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function AssistantToolGroupSummaryIcon(props: { readonly kind: AssistantToolGroupSummaryIcon }): JSX.Element {
+  if (props.kind === "terminal") {
+    return (
+      <svg
+        className="home-assistant-transcript-tool-group-summary-icon"
+        data-summary-icon="terminal"
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.4"
+      >
+        <rect x="2.25" y="3" width="11.5" height="10" rx="1.75" />
+        <path d="m5.1 6.35 1.8 1.65-1.8 1.65" />
+        <path d="M8.5 10.1h2.4" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      className="home-assistant-transcript-tool-group-summary-icon"
+      data-summary-icon="edit"
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.4"
+    >
+      <path d="M10.8 2.8a1.45 1.45 0 0 1 2.05 2.05l-7.1 7.1-2.75.75.75-2.75 7.05-7.15Z" />
+      <path d="m9.75 3.85 2.4 2.4" />
+    </svg>
   );
 }
 
@@ -618,42 +681,54 @@ function shouldCreateAssistantToolGroup(nodes: ReadonlyArray<AssistantTraceNode>
   return false;
 }
 
-function createAssistantToolGroupSummary(
+function createAssistantToolGroupSummaryParts(
   nodes: ReadonlyArray<AssistantTraceNode>,
   t: ReturnType<typeof useI18n>["t"],
-): string {
-  const editedFileCount = countEditedFiles(nodes);
-  if (editedFileCount > 0 && nodes.every((node) => node.item.kind === "fileChange")) {
-    return t("home.conversation.transcript.toolGroupEditedFiles", { count: String(editedFileCount) });
+): ReadonlyArray<AssistantToolGroupSummaryPart> {
+  const fileChangePart = createFileChangeToolGroupSummaryPart(nodes, t);
+  if (fileChangePart !== null && nodes.every((node) => node.item.kind === "fileChange")) {
+    return [fileChangePart];
   }
 
   const readFileCount = countReadFiles(nodes);
   if (readFileCount > 0 && nodes.every((node) => node.item.kind === "commandExecution" && getCommandReadPaths(node.item.command).length > 0)) {
-    return t("home.conversation.transcript.toolGroupReadFiles", { count: String(readFileCount) });
+    return [{ icon: "terminal", label: t("home.conversation.transcript.toolGroupReadFiles", { count: String(readFileCount) }) }];
   }
 
   const commandCount = nodes.filter((node) => node.item.kind === "commandExecution").length;
   if (commandCount === nodes.length) {
-    return t("home.conversation.transcript.toolGroupCommands", { count: String(commandCount) });
+    return [{ icon: "terminal", label: t("home.conversation.transcript.toolGroupCommands", { count: String(commandCount) }) }];
   }
 
   const fileChangeNodeCount = nodes.filter((node) => node.item.kind === "fileChange").length;
   const otherToolCount = nodes.length - commandCount - fileChangeNodeCount;
   const parts = [
-    editedFileCount > 0
-      ? t("home.conversation.transcript.toolGroupEditedFiles", { count: String(editedFileCount) })
-      : null,
+    fileChangePart,
     commandCount > 0
-      ? t("home.conversation.transcript.toolGroupCommands", { count: String(commandCount) })
+      ? { icon: "terminal", label: t("home.conversation.transcript.toolGroupCommands", { count: String(commandCount) }) }
       : null,
     otherToolCount > 0
-      ? t("home.conversation.transcript.toolGroupTools", { count: String(otherToolCount) })
+      ? { icon: null, label: t("home.conversation.transcript.toolGroupTools", { count: String(otherToolCount) }) }
       : null,
-  ].filter((part): part is string => part !== null);
+  ].filter((part): part is AssistantToolGroupSummaryPart => part !== null);
 
   return parts.length > 0
-    ? parts.join(t("home.conversation.transcript.toolGroupSeparator"))
-    : t("home.conversation.transcript.toolGroupTools", { count: String(nodes.length) });
+    ? parts
+    : [{ icon: null, label: t("home.conversation.transcript.toolGroupTools", { count: String(nodes.length) }) }];
+}
+
+function createFileChangeToolGroupSummaryPart(
+  nodes: ReadonlyArray<AssistantTraceNode>,
+  t: ReturnType<typeof useI18n>["t"],
+): AssistantToolGroupSummaryPart | null {
+  const editedFileCount = countEditedFiles(nodes);
+  if (editedFileCount <= 0) {
+    return null;
+  }
+  const labelKey = areAllFileChangesDeleted(nodes)
+    ? "home.conversation.transcript.toolGroupDeletedFiles"
+    : "home.conversation.transcript.toolGroupEditedFiles";
+  return { icon: "edit", label: t(labelKey, { count: String(editedFileCount) }) };
 }
 
 function countEditedFiles(nodes: ReadonlyArray<AssistantTraceNode>): number {
@@ -673,6 +748,22 @@ function countEditedFiles(nodes: ReadonlyArray<AssistantTraceNode>): number {
     }
   }
   return paths.size + fallbackCount;
+}
+
+function areAllFileChangesDeleted(nodes: ReadonlyArray<AssistantTraceNode>): boolean {
+  let hasFileChange = false;
+  for (const node of nodes) {
+    if (node.item.kind !== "fileChange") {
+      continue;
+    }
+    for (const change of node.item.changes) {
+      hasFileChange = true;
+      if (change.kind.type !== "delete") {
+        return false;
+      }
+    }
+  }
+  return hasFileChange;
 }
 
 function countReadFiles(nodes: ReadonlyArray<AssistantTraceNode>): number {

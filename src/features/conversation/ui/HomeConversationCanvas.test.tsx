@@ -479,6 +479,7 @@ describe("HomeConversationCanvas", () => {
     );
 
     expect(container.querySelector(".home-assistant-transcript-tool-group summary")?.textContent).toBe("已执行2个命令");
+    expect(container.querySelector('[data-summary-icon="terminal"]')).not.toBeNull();
   });
 
   it("does not fold tools below a single assistant text block", () => {
@@ -501,6 +502,7 @@ describe("HomeConversationCanvas", () => {
     const groupSummary = container.querySelector(".home-assistant-transcript-tool-group summary");
 
     expect(groupSummary?.textContent).toBe("已读取2个文件");
+    expect(groupSummary?.querySelector('[data-summary-icon="terminal"]')).not.toBeNull();
   });
 
   it("summarizes folded file changes by edited file count", () => {
@@ -520,6 +522,27 @@ describe("HomeConversationCanvas", () => {
     const groupSummary = container.querySelector(".home-assistant-transcript-tool-group summary");
 
     expect(groupSummary?.textContent).toBe("已编辑2个文件");
+    expect(groupSummary?.querySelector('[data-summary-icon="edit"]')).not.toBeNull();
+  });
+
+  it("summarizes folded deleted file changes with the edit icon", () => {
+    const fileChange = createFileChangeEntry([
+      {
+        path: "src/App.tsx",
+        kind: { type: "delete" },
+        diff: ["@@ -1 +0 @@", "-old"].join("\n"),
+      },
+      {
+        path: "src/main.tsx",
+        kind: { type: "delete" },
+        diff: ["@@ -1 +0 @@", "-old"].join("\n"),
+      },
+    ]);
+    const { container } = renderCanvas([USER_MESSAGE, ASSISTANT_MESSAGE, fileChange, SECOND_ASSISTANT_MESSAGE]);
+    const groupSummary = container.querySelector(".home-assistant-transcript-tool-group summary");
+
+    expect(groupSummary?.textContent).toBe("已删除2个文件");
+    expect(groupSummary?.querySelector('[data-summary-icon="edit"]')).not.toBeNull();
   });
 
   it("expands folded multi-file changes into one row per edited file", () => {
@@ -586,6 +609,8 @@ describe("HomeConversationCanvas", () => {
     const groupSummary = container.querySelector(".home-assistant-transcript-tool-group summary");
 
     expect(groupSummary?.textContent).toBe("已编辑2个文件，已执行4个命令");
+    expect(groupSummary?.querySelector('[data-summary-icon="edit"]')).not.toBeNull();
+    expect(groupSummary?.querySelector('[data-summary-icon="terminal"]')).not.toBeNull();
   });
 
   it("keeps subagent activity out of generic tool groups and merges matching calls", () => {
