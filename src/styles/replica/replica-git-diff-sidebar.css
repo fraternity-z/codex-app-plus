@@ -82,6 +82,44 @@
   display: none;
 }
 
+.workspace-diff-sidebar-expanded {
+  grid-column: 2 / 4;
+  grid-row: 1 / -1;
+  z-index: var(--z-layer-inline-overlay);
+  border-left: 1px solid var(--border-light);
+  background: var(--surface-canvas);
+}
+
+.workspace-diff-sidebar-expanded::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--replica-top-toolbar-height);
+  border: 1px solid var(--border-light);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.replica-app:has(.sidebar-collapsed) .workspace-diff-sidebar-expanded {
+  grid-column: 1 / 4;
+  border-left: 0;
+}
+
+.workspace-diff-sidebar-expanded .workspace-side-panel-header {
+  position: relative;
+  z-index: 1;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.workspace-diff-sidebar-expanded .workspace-diff-sidebar-content-stream {
+  padding: 0;
+  background: var(--surface-canvas);
+}
+
 .workspace-side-panel-header {
   min-height: var(--replica-top-toolbar-height);
   height: auto;
@@ -1249,11 +1287,67 @@ html[data-theme="dark"] .workspace-diff-git-asset-icon {
 }
 
 .workspace-diff-sidebar-expanded .workspace-diff-sidebar-content-stream {
-  padding: 8px 10px 16px;
+  padding: 0;
   gap: 0;
+  background: var(--surface-canvas);
 }
 
-/* Conversation preview (main area, covers conversation canvas when expanded) */
+.workspace-diff-sidebar-expanded .workspace-diff-viewer {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.workspace-diff-sidebar-expanded .workspace-diff-viewer-scroll {
+  padding: 0;
+}
+
+.workspace-diff-sidebar-expanded .workspace-diff-viewer-row {
+  padding-bottom: 0;
+}
+
+.workspace-diff-sidebar-expanded .workspace-diff-file-card {
+  border-bottom: 1px solid var(--border-light);
+  background: transparent;
+}
+
+.workspace-diff-sidebar-expanded .workspace-diff-file-header {
+  min-height: 42px;
+  padding: 5px 12px 5px 16px;
+  background: var(--surface-canvas);
+}
+
+.workspace-diff-sidebar-expanded .workspace-diff-file-title-wrap {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+
+.workspace-diff-sidebar-expanded .workspace-diff-file-title {
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.workspace-diff-sidebar-expanded .workspace-diff-file-summary {
+  justify-self: end;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.workspace-diff-sidebar-expanded .workspace-diff-file-body {
+  background: var(--surface-canvas);
+}
+
+.workspace-diff-sidebar-expanded .workspace-diff-file-body .workspace-diff-code-frame {
+  border-radius: 0;
+}
+
+.workspace-diff-sidebar-expanded .workspace-diff-code-scroll {
+  border-radius: 0;
+}
+
+/* Conversation preview */
 .workspace-diff-conversation-preview {
   position: relative;
   margin: 0 20px 14px;

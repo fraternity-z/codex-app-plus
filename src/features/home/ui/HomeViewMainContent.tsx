@@ -5,10 +5,15 @@ import type { ThreadDetailLevel } from "../../settings/hooks/useAppPreferences";
 import type { RegenerateEditedUserMessageOptions, SendTurnOptions } from "../../conversation/hooks/useWorkspaceConversation";
 import { FileLinkProvider, type FileLinkActions } from "../../conversation/hooks/fileLinkContext";
 import { useFileLinkOpener } from "../../conversation/hooks/useFileLinkOpener";
+import { BrowserSidebarPanel } from "../../browser/ui/BrowserSidebarPanel";
 import type { AgentEnvironment, GitWorkspaceDiffOutput, HostBridge, WorkspaceOpener } from "../../../bridge/types";
 import type { DiffDisplayOptions, DiffViewStyle } from "../../git/hooks/useDiffSidebarLayout";
 import { WorkspaceDiffConversationPreview } from "../../git/ui/WorkspaceDiffConversationPreview";
+import { QuickPreviewPanel } from "../../preview/ui/QuickPreviewPanel";
 import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
+import type { CreateLocalCodeCommentInput, LocalCodeComment } from "../../workspace/model/localCodeComments";
+import type { WorkspaceSidePanelExpandedTarget } from "../../workspace/model/workspaceSidePanelExpansion";
+import { WorkspaceFileViewer } from "../../workspace/ui/WorkspaceFileViewer";
 import type {
   AccountSummary,
   AppState,
@@ -75,6 +80,7 @@ export interface HomeViewMainContentProps {
   readonly rateLimitSummary: string | null;
   readonly queuedFollowUps: ReadonlyArray<QueuedFollowUp>;
   readonly localCodeCommentAttachments?: ReadonlyArray<ComposerAttachment>;
+  readonly localCodeComments?: ReadonlyArray<LocalCodeComment>;
   readonly collaborationPreset: CollaborationPreset;
   readonly models: ReadonlyArray<ComposerModelOption>;
   readonly defaultModel: string | null;
@@ -126,6 +132,8 @@ export interface HomeViewMainContentProps {
   readonly onClearQueuedFollowUps: () => void;
   readonly onRemoveLocalCodeCommentAttachment?: (attachmentId: string) => void;
   readonly onClearLocalCodeCommentAttachments?: () => void;
+  readonly onCreateLocalCodeComment?: (input: CreateLocalCodeCommentInput) => void;
+  readonly onDeleteLocalCodeComment?: (commentId: string) => void;
   readonly onCreateThread: () => Promise<void>;
   readonly onTogglePetAwake: () => void;
   readonly onToggleDiff: () => void;
@@ -137,6 +145,7 @@ export interface HomeViewMainContentProps {
   readonly diffPreviewStyle: DiffViewStyle;
   readonly diffPreviewDisplayOptions?: DiffDisplayOptions;
   readonly diffPreviewSelectedPath: string | null;
+  readonly expandedSidePanelTarget?: WorkspaceSidePanelExpandedTarget | null;
   readonly onOpenPreviewTarget: (target: QuickPreviewTarget) => void;
 }
 
@@ -417,6 +426,62 @@ const HomeComposerSection = memo(function HomeComposerSection(
   );
 });
 
+interface ExpandedSidePanelOverlayProps {
+  readonly displayOptions?: DiffDisplayOptions;
+  readonly diffItems: ReadonlyArray<GitWorkspaceDiffOutput>;
+  readonly diffStyle: DiffViewStyle;
+  readonly hostBridge: HostBridge;
+  readonly localCodeComments?: ReadonlyArray<LocalCodeComment>;
+  readonly onCreateLocalCodeComment?: (input: CreateLocalCodeCommentInput) => void;
+  readonly onDeleteLocalCodeComment?: (commentId: string) => void;
+  readonly selectedDiffPath: string | null;
+  readonly selectedRootPath: string | null;
+  readonly target: WorkspaceSidePanelExpandedTarget;
+}
+
+function ExpandedSidePanelOverlay(props: ExpandedSidePanelOverlayProps): JSX.Element {
+  if (props.target.kind === "file") {
+    return (
+      <WorkspaceFileViewer
+        hostBridge={props.hostBridge}
+        rootPath={props.selectedRootPath}
+        path={props.target.path}
+        comments={props.localCodeComments}
+        onCreateComment={props.onCreateLocalCodeComment}
+        onDeleteComment={props.onDeleteLocalCodeComment}
+      />
+    );
+  }
+
+  if (props.target.kind === "preview") {
+    return (
+      <QuickPreviewPanel
+        hostBridge={props.hostBridge}
+        target={props.target.target}
+      />
+    );
+  }
+
+  if (props.target.kind === "browser") {
+    return (
+      <BrowserSidebarPanel
+        active
+        hostBridge={props.hostBridge}
+        openRequest={props.target.openRequest}
+      />
+    );
+  }
+
+  return (
+    <WorkspaceDiffConversationPreview
+      items={props.diffItems}
+      selectedDiffPath={props.selectedDiffPath}
+      diffStyle={props.diffStyle}
+      displayOptions={props.displayOptions}
+    />
+  );
+}
+
 export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Element {
   const derivedState = useMemo(
     () => deriveHomeViewMainContentState({
@@ -659,11 +724,17 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
       )}
       {props.diffPreviewVisible ? (
         <div className="home-main-overlay">
-          <WorkspaceDiffConversationPreview
-            items={props.diffItems}
-            selectedDiffPath={props.diffPreviewSelectedPath}
-            diffStyle={props.diffPreviewStyle}
+          <ExpandedSidePanelOverlay
+            diffItems={props.diffItems}
             displayOptions={props.diffPreviewDisplayOptions}
+            diffStyle={props.diffPreviewStyle}
+            hostBridge={props.hostBridge}
+            localCodeComments={props.localCodeComments}
+            onCreateLocalCodeComment={props.onCreateLocalCodeComment}
+            onDeleteLocalCodeComment={props.onDeleteLocalCodeComment}
+            selectedDiffPath={props.diffPreviewSelectedPath}
+            selectedRootPath={props.selectedRootPath}
+            target={props.expandedSidePanelTarget ?? { kind: "review" }}
           />
         </div>
       ) : null}

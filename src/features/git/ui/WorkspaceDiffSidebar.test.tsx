@@ -333,6 +333,36 @@ describe("WorkspaceDiffSidebar", () => {
     expect(screen.getByRole("button", { name: "切换为统一差异" })).toBeInTheDocument();
   });
 
+  it("renders the continuous collapsible diff viewer inside the expanded side panel", async () => {
+    const { container } = renderSidebar(
+      createController({
+        status: createStatus({
+          unstaged: [
+            { path: "src/App.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" },
+            { path: "src/HomeView.tsx", originalPath: null, indexStatus: " ", worktreeStatus: "M" },
+          ],
+        }),
+      }),
+      createHostBridge(vi.fn().mockResolvedValue([
+        createViewerDiff(),
+        createViewerDiff({ path: "src/HomeView.tsx", displayPath: "src/HomeView.tsx" }),
+      ])),
+      {
+        expanded: true,
+        onToggleExpanded: vi.fn(),
+      },
+    );
+
+    await screen.findByRole("button", { name: "折叠 src/App.tsx" });
+    expect(screen.getByRole("button", { name: "折叠 src/HomeView.tsx" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "折叠 src/App.tsx" }));
+    expect(screen.getByRole("button", { name: "展开 src/App.tsx" })).toBeInTheDocument();
+    expect(container.querySelector(".workspace-diff-sidebar-expanded .workspace-diff-viewer")).not.toBeNull();
+    expect(container.querySelector(".workspace-diff-sidebar-expanded .workspace-diff-file-card")).not.toBeNull();
+    expect(container.querySelector(".workspace-diff-sidebar-expanded .workspace-diff-conversation-preview")).toBeNull();
+    expect(container.querySelector(".workspace-diff-compact-list")).toBeNull();
+  });
+
   it("copies a git apply command for the current diff group", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {
@@ -775,5 +805,53 @@ describe("WorkspaceDiffSidebar", () => {
     fireEvent.click(screen.getByRole("button", { name: "在外部打开文件" }));
 
     await waitFor(() => expect(openExternal).toHaveBeenCalledWith("E:/code/project/网站设计报告.pptx"));
+  });
+
+  it("reports the active preview tab as the expanded target", async () => {
+    const onExpandedTargetChange = vi.fn();
+    const target = {
+      kind: "file" as const,
+      fileKind: "document" as const,
+      path: "E:/code/project/网站设计报告.pptx",
+      name: "网站设计报告.pptx",
+      extension: "PPTX",
+    };
+    const hostBridge = {
+      app: {
+        openExternal: vi.fn().mockResolvedValue(undefined),
+        revealPathInFolder: vi.fn().mockResolvedValue(undefined),
+        openBrowserSidebar: vi.fn().mockResolvedValue(undefined),
+        updateBrowserSidebarBounds: vi.fn().mockResolvedValue(undefined),
+        hideBrowserSidebar: vi.fn().mockResolvedValue(undefined),
+        openFileInEditor: vi.fn().mockResolvedValue(undefined),
+      },
+      git: {
+        getWorkspaceDiffs: vi.fn().mockResolvedValue([]),
+      },
+      rpc: {
+        request: vi.fn(),
+      },
+    } as unknown as HostBridge;
+
+    renderSidebar(
+      createController(),
+      hostBridge,
+      {
+        expanded: true,
+        onToggleExpanded: vi.fn(),
+        onExpandedTargetChange,
+        previewOpenRequest: {
+          id: 1,
+          target,
+        },
+      },
+    );
+
+    await waitFor(() => expect(screen.getByRole("tab", { name: "网站设计报告.pptx" })).toHaveAttribute("aria-selected", "true"));
+    await waitFor(() => expect(onExpandedTargetChange).toHaveBeenLastCalledWith({
+      kind: "preview",
+      target,
+    }));
+    expect(screen.getByRole("button", { name: "收起预览 网站设计报告.pptx" })).toBeInTheDocument();
   });
 });

@@ -61,6 +61,18 @@ vi.mock("../../git/ui/WorkspaceDiffConversationPreview", () => ({
   WorkspaceDiffConversationPreview: () => <div data-testid="diff-preview">diff preview</div>,
 }));
 
+vi.mock("../../preview/ui/QuickPreviewPanel", () => ({
+  QuickPreviewPanel: (props: { readonly target: { readonly name: string } }) => (
+    <div data-testid="quick-preview">quick preview {props.target.name}</div>
+  ),
+}));
+
+vi.mock("../../workspace/ui/WorkspaceFileViewer", () => ({
+  WorkspaceFileViewer: (props: { readonly path: string }) => (
+    <div data-testid="file-viewer">file viewer {props.path}</div>
+  ),
+}));
+
 vi.mock("./HomeMainToolbar", () => ({
   HomeMainToolbar: () => <div data-testid="home-toolbar">toolbar</div>,
 }));
@@ -204,6 +216,49 @@ describe("HomeViewMainContent", () => {
     expect(screen.queryByTestId("plan-drawer")).toBeNull();
     expect(container.querySelector(".replica-main-diff-preview-active")).not.toBeNull();
     expect(container.querySelector(".home-main-overlay")).not.toBeNull();
+  });
+
+  it("expands the active quick preview instead of the review diff", () => {
+    render(
+      <HomeViewMainContent
+        {...createProps({
+          diffOpen: true,
+          diffPreviewVisible: true,
+          expandedSidePanelTarget: {
+            kind: "preview",
+            target: {
+              kind: "file",
+              fileKind: "image",
+              path: "E:/code/project/assets/logo.png",
+              name: "logo.png",
+              extension: "PNG",
+            },
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId("quick-preview")).toHaveTextContent("logo.png");
+    expect(screen.queryByTestId("diff-preview")).toBeNull();
+  });
+
+  it("expands the active file viewer instead of the review diff", () => {
+    render(
+      <HomeViewMainContent
+        {...createProps({
+          diffOpen: true,
+          diffPreviewVisible: true,
+          expandedSidePanelTarget: {
+            kind: "file",
+            path: "E:/code/project/src/App.tsx",
+            name: "App.tsx",
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId("file-viewer")).toHaveTextContent("E:/code/project/src/App.tsx");
+    expect(screen.queryByTestId("diff-preview")).toBeNull();
   });
 
   it("hides the progress card while the right sidebar is open", () => {

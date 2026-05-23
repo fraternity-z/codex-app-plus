@@ -53,6 +53,7 @@ import {
   writeLocalCodeComments,
   type CreateLocalCodeCommentInput,
 } from "../../workspace/model/localCodeComments";
+import type { WorkspaceSidePanelExpandedTarget } from "../../workspace/model/workspaceSidePanelExpansion";
 import { extractConnectionRetryInfo } from "../model/homeConnectionRetry";
 import { HomeSidebar, type HomeNavItem } from "./HomeSidebar";
 import { HomeViewMainContent } from "./HomeViewMainContent";
@@ -171,6 +172,7 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
   const uiState = useHomeViewUiState(props.selectedRootPath, props.sidebarCollapsed ?? false);
   const diffLayout = useDiffSidebarLayout();
   const [diffItems, setDiffItems] = useState<ReadonlyArray<GitWorkspaceDiffOutput>>([]);
+  const [expandedSidePanelTarget, setExpandedSidePanelTarget] = useState<WorkspaceSidePanelExpandedTarget | null>(null);
   const [localCodeComments, setLocalCodeComments] = useState(readLocalCodeComments);
   const [draftLocalCodeCommentIds, setDraftLocalCodeCommentIds] = useState<ReadonlyArray<string>>([]);
   const [browserOpenRequest, setBrowserOpenRequest] = useState<{
@@ -227,6 +229,12 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
   useEffect(() => {
     writeLocalCodeComments(localCodeComments);
   }, [localCodeComments]);
+
+  useEffect(() => {
+    if (!uiState.canShowDiffSidebar || !diffLayout.expanded) {
+      setExpandedSidePanelTarget(null);
+    }
+  }, [diffLayout.expanded, uiState.canShowDiffSidebar]);
 
   useEffect(() => {
     if (draftLocalCodeCommentIds.length === 0) {
@@ -339,8 +347,9 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
       handleOpenPreviewTarget,
       diffLayout,
       diffItems,
+      expandedSidePanelTarget,
     ),
-    [props, gitController, launchState, filteredActivities, retryInfo, uiState.openTerminal, uiState.canShowDiffSidebar, toggleTerminal, uiState.toggleDiffSidebar, handleOpenPreviewTarget, diffLayout, diffItems],
+    [props, gitController, launchState, filteredActivities, retryInfo, uiState.openTerminal, uiState.canShowDiffSidebar, toggleTerminal, uiState.toggleDiffSidebar, handleOpenPreviewTarget, diffLayout, diffItems, expandedSidePanelTarget],
   );
   const mainContentOverride = props.mainContentOverride ?? null;
   const diffSidebarOpen = mainContentOverride === null && uiState.diffSidebarOpen;
@@ -356,6 +365,9 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
         <HomeViewMainContent
           {...contentProps}
           localCodeCommentAttachments={draftLocalCodeCommentAttachments}
+          localCodeComments={localCodeComments}
+          onCreateLocalCodeComment={handleCreateLocalCodeComment}
+          onDeleteLocalCodeComment={handleDeleteLocalCodeComment}
           onRemoveLocalCodeCommentAttachment={handleRemoveLocalCodeCommentAttachment}
           onClearLocalCodeCommentAttachments={handleClearLocalCodeCommentAttachments}
         />
@@ -378,6 +390,7 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
             }
             diffLayout.toggleExpanded();
           }}
+          onExpandedTargetChange={setExpandedSidePanelTarget}
           diffStyle={diffLayout.diffStyle}
           onToggleDiffStyle={diffLayout.toggleDiffStyle}
           diffDisplayOptions={diffLayout.diffDisplayOptions}

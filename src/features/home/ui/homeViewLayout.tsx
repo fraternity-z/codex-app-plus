@@ -10,6 +10,7 @@ import type { HomeViewMainContentProps } from "./HomeViewMainContent";
 import type { HomeViewProps } from "./HomeView";
 import type { DiffSidebarLayoutState } from "../../git/hooks/useDiffSidebarLayout";
 import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
+import type { WorkspaceSidePanelExpandedTarget } from "../../workspace/model/workspaceSidePanelExpansion";
 
 const NOOP_ARCHIVE_THREAD = async () => undefined;
 const NOOP_REGENERATE_EDITED_MESSAGE = async () => undefined;
@@ -213,6 +214,7 @@ export function createHomeMainContentProps(
   onOpenPreviewTarget: (target: QuickPreviewTarget) => void,
   diffLayout: DiffSidebarLayoutState,
   diffItems: ReadonlyArray<GitWorkspaceDiffOutput>,
+  expandedSidePanelTarget: WorkspaceSidePanelExpandedTarget | null,
 ): HomeViewMainContentProps {
   return {
     account: props.account,
@@ -284,10 +286,11 @@ export function createHomeMainContentProps(
     workspaceOpener: props.workspaceOpener,
     workspaceSwitch: props.workspaceSwitch,
     diffItems,
-    diffPreviewVisible: diffOpen && diffLayout.expanded,
+    diffPreviewVisible: false,
     diffPreviewStyle: diffLayout.diffStyle,
     diffPreviewDisplayOptions: diffLayout.diffDisplayOptions,
     diffPreviewSelectedPath: diffLayout.selectedDiffPath,
+    expandedSidePanelTarget,
   };
 }
 

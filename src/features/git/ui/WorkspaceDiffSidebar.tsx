@@ -21,6 +21,11 @@ import {
   type QuickPreviewTarget,
 } from "../../preview/model/previewTargets";
 import type { CreateLocalCodeCommentInput, LocalCodeComment } from "../../workspace/model/localCodeComments";
+import type {
+  WorkspaceSidePanelBrowserOpenRequest,
+  WorkspaceSidePanelExpandedTarget,
+  WorkspaceSidePanelTab,
+} from "../../workspace/model/workspaceSidePanelExpansion";
 import { WorkspaceFileViewer } from "../../workspace/ui/WorkspaceFileViewer";
 import { useWorkspaceDiffViewer } from "../hooks/useWorkspaceDiffViewer";
 import { getGitViewState, type GitViewState } from "../model/gitViewState";
@@ -49,11 +54,9 @@ import {
 } from "./gitIcons";
 import { WorkspaceDiffScopeSelector } from "./WorkspaceDiffScopeSelector";
 import { WorkspaceDiffViewer } from "./WorkspaceDiffViewer";
-import { WorkspaceDiffFileList } from "./WorkspaceDiffFileList";
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
 
-type WorkspaceSidePanelTab = "review" | "file" | "browser" | "preview";
-type BrowserOpenRequest = { readonly id: number; readonly url: string | null };
+type BrowserOpenRequest = WorkspaceSidePanelBrowserOpenRequest;
 type PreviewOpenRequest = { readonly id: number; readonly target: Extract<QuickPreviewTarget, { readonly kind: "file" }> };
 
 interface OpenedFileTab {
@@ -70,6 +73,7 @@ interface WorkspaceDiffSidebarProps {
   readonly onClose: () => void;
   readonly expanded?: boolean;
   readonly onToggleExpanded?: () => void;
+  readonly onExpandedTargetChange?: (target: WorkspaceSidePanelExpandedTarget | null) => void;
   readonly diffStyle?: DiffViewStyle;
   readonly onToggleDiffStyle?: () => void;
   readonly diffDisplayOptions?: DiffDisplayOptions;
@@ -199,6 +203,23 @@ function getPreviewTabName(target: PreviewOpenRequest["target"] | null): string 
   return target?.name ?? "预览";
 }
 
+function getExpandedTargetLabel(
+  activeTab: WorkspaceSidePanelTab,
+  fileTab: OpenedFileTab | null,
+  previewTab: PreviewOpenRequest["target"] | null,
+): string {
+  if (activeTab === "file" && fileTab !== null) {
+    return `文件 ${fileTab.name}`;
+  }
+  if (activeTab === "preview" && previewTab !== null) {
+    return `预览 ${previewTab.name}`;
+  }
+  if (activeTab === "browser") {
+    return "浏览器";
+  }
+  return "审查预览";
+}
+
 function SidePanelHeader(props: SidePanelHeaderProps): JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -209,7 +230,8 @@ function SidePanelHeader(props: SidePanelHeaderProps): JSX.Element {
     ...(props.previewTab === null ? [] : [{ id: "preview" as const, label: getPreviewTabName(props.previewTab) }]),
     ...(props.browserTabOpen ? [{ id: "browser" as const, label: "浏览器" }] : []),
   ];
-  const expandLabel = props.expanded ? "收起侧边栏预览" : "展开侧边栏预览";
+  const expandedTargetLabel = getExpandedTargetLabel(props.activeTab, props.fileTab, props.previewTab);
+  const expandLabel = props.expanded ? `收起${expandedTargetLabel}` : `展开${expandedTargetLabel}`;
   const ExpandIcon = props.expanded ? GitDiffCollapseIcon : GitDiffExpandIcon;
 
   useToolbarMenuDismissal(menuOpen, menuRef, closeMenu);
@@ -767,6 +789,24 @@ async function writeClipboardText(text: string): Promise<void> {
   await navigator.clipboard.writeText(text);
 }
 
+function createExpandedTarget(options: {
+  readonly activeTab: WorkspaceSidePanelTab;
+  readonly browserOpenRequest: BrowserOpenRequest | null;
+  readonly fileTab: OpenedFileTab | null;
+  readonly previewTab: PreviewOpenRequest["target"] | null;
+}): WorkspaceSidePanelExpandedTarget | null {
+  if (options.activeTab === "file") {
+    return options.fileTab === null ? null : { kind: "file", path: options.fileTab.path, name: options.fileTab.name };
+  }
+  if (options.activeTab === "preview") {
+    return options.previewTab === null ? null : { kind: "preview", target: options.previewTab };
+  }
+  if (options.activeTab === "browser") {
+    return { kind: "browser", openRequest: options.browserOpenRequest };
+  }
+  return { kind: "review" };
+}
+
 export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Element | null {
   const [scope, setScope] = useDiffScope(props.open, props.controller);
   const [activeTab, setActiveTab] = useState<WorkspaceSidePanelTab>("review");
@@ -846,7 +886,35 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
   }, [diffViewer.items, onDiffItemsChange]);
 
   useEffect(() => {
-    if (!expanded) {
+    if (props.onExpandedTargetChange === undefined) {
+      return;
+    }
+    if (!props.open || !expanded) {
+      props.onExpandedTargetChange(null);
+      return;
+    }
+    props.onExpandedTargetChange(createExpandedTarget({
+      activeTab,
+      browserOpenRequest: props.browserOpenRequest ?? null,
+      fileTab,
+      previewTab,
+    }));
+  }, [
+    activeTab,
+    expanded,
+    fileTab,
+    previewTab,
+    props.browserOpenRequest,
+    props.onExpandedTargetChange,
+    props.open,
+  ]);
+
+  useEffect(() => () => {
+    props.onExpandedTargetChange?.(null);
+  }, [props.onExpandedTargetChange]);
+
+  useEffect(() => {
+    if (!expanded || activeTab !== "review") {
       return;
     }
     if (selectedDiffPath !== null && diffViewer.items.some((item) => item.path === selectedDiffPath)) {
@@ -854,10 +922,10 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
     }
     const next = diffViewer.items[0]?.path ?? null;
     onSelectDiffPath?.(next);
-  }, [diffViewer.items, expanded, onSelectDiffPath, selectedDiffPath]);
+  }, [activeTab, diffViewer.items, expanded, onSelectDiffPath, selectedDiffPath]);
 
   useEffect(() => {
-    if (!expanded || selectedDiffPath === null) {
+    if (!expanded || activeTab !== "review" || selectedDiffPath === null) {
       return;
     }
     const selectedItem = diffViewer.items.find((item) => item.path === selectedDiffPath);
@@ -868,14 +936,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
       return;
     }
     void diffViewer.loadDiff(selectedItem);
-  }, [diffViewer.items, diffViewer.loadDiff, expanded, selectedDiffPath]);
-
-  const handleSelectFile = useCallback(
-    (path: string) => {
-      onSelectDiffPath?.(path);
-    },
-    [onSelectDiffPath],
-  );
+  }, [activeTab, diffViewer.items, diffViewer.loadDiff, expanded, selectedDiffPath]);
 
   const handleOpenFile = useCallback(() => {
     setActionError(null);
@@ -991,6 +1052,28 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
     }
   }, [activeTab, fileTab, previewTab]);
 
+  const handleToggleExpanded = useCallback(() => {
+    if (expanded) {
+      props.onExpandedTargetChange?.(null);
+    } else {
+      props.onExpandedTargetChange?.(createExpandedTarget({
+        activeTab,
+        browserOpenRequest: props.browserOpenRequest ?? null,
+        fileTab,
+        previewTab,
+      }));
+    }
+    props.onToggleExpanded?.();
+  }, [
+    activeTab,
+    expanded,
+    fileTab,
+    previewTab,
+    props.browserOpenRequest,
+    props.onExpandedTargetChange,
+    props.onToggleExpanded,
+  ]);
+
   if (!props.open || props.selectedRootPath === null) {
     return null;
   }
@@ -1050,11 +1133,19 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
           </div>
         ) : null}
         {expanded ? (
-          <WorkspaceDiffFileList
+          <WorkspaceDiffViewer
+            busy={busy}
+            collapseAllSignal={collapseAllSignal}
+            displayOptions={displayOptions}
+            error={diffViewer.error}
             items={diffViewer.items}
-            onSelect={handleSelectFile}
-            selectedDiffPath={selectedDiffPath}
+            loading={diffViewer.loading}
+            onDiscardPaths={props.controller.discardPaths}
+            onLoadDiff={diffViewer.loadDiff}
+            onStagePaths={props.controller.stagePaths}
+            onUnstagePaths={props.controller.unstagePaths}
             showSectionLabel={false}
+            viewStyle={effectiveDiffStyle}
           />
         ) : (
           <WorkspaceDiffViewer
@@ -1113,7 +1204,7 @@ export function WorkspaceDiffSidebar(props: WorkspaceDiffSidebarProps): JSX.Elem
         onCloseBrowserTab={handleCloseBrowserTab}
         onClosePreviewTab={handleClosePreviewTab}
         onClose={props.onClose}
-        onToggleExpanded={props.onToggleExpanded}
+        onToggleExpanded={props.onToggleExpanded === undefined ? undefined : handleToggleExpanded}
       />
       {actionError === null ? null : (
         <div className="workspace-side-panel-action-error" role="alert">

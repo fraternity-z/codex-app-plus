@@ -5,6 +5,7 @@ import type { WorkspaceGitController } from "../../git/model/types";
 import type { DiffDisplayOptionKey, DiffDisplayOptions, DiffViewStyle } from "../../git/hooks/useDiffSidebarLayout";
 import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
 import type { CreateLocalCodeCommentInput, LocalCodeComment } from "../model/localCodeComments";
+import type { WorkspaceSidePanelExpandedTarget } from "../model/workspaceSidePanelExpansion";
 
 const LazyWorkspaceDiffSidebar = lazy(async () => {
   const module = await import("../../git/ui/WorkspaceDiffSidebar");
@@ -19,6 +20,7 @@ interface WorkspaceDiffSidebarHostProps {
   readonly selectedRootPath: string | null;
   readonly expanded?: boolean;
   readonly onToggleExpanded?: () => void;
+  readonly onExpandedTargetChange?: (target: WorkspaceSidePanelExpandedTarget | null) => void;
   readonly diffStyle?: DiffViewStyle;
   readonly onToggleDiffStyle?: () => void;
   readonly diffDisplayOptions?: DiffDisplayOptions;
@@ -54,6 +56,7 @@ export function WorkspaceDiffSidebarHost(props: WorkspaceDiffSidebarHostProps): 
         selectedRootPath={props.selectedRootPath}
         expanded={props.expanded}
         onToggleExpanded={props.onToggleExpanded}
+        onExpandedTargetChange={props.onExpandedTargetChange}
         diffStyle={props.diffStyle}
         onToggleDiffStyle={props.onToggleDiffStyle}
         diffDisplayOptions={props.diffDisplayOptions}

@@ -156,6 +156,21 @@
   margin: 0;
 }
 
+.home-main-overlay > .quick-preview-panel,
+.home-main-overlay > .workspace-file-viewer,
+.home-main-overlay > .workspace-side-browser {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(20, 20, 20, 0.04);
+}
+
 .home-conversation-scroll {
   flex: 1;
   min-height: 0;
