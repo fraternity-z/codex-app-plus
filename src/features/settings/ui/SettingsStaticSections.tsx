@@ -227,6 +227,94 @@ export function WorktreeContent(props: {
   );
 }
 
+function PlaceholderTodoBadge(): JSX.Element {
+  const { t } = useI18n();
+
+  return <span className="settings-placeholder-todo">{t("settings.placeholder.todo")}</span>;
+}
+
+function RefreshIcon(): JSX.Element {
+  return (
+    <svg className="settings-placeholder-action-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M12.6 7.1a4.7 4.7 0 0 0-8.1-2.8L3.3 5.5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3.2 2.7v2.9h2.9" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3.4 8.9a4.7 4.7 0 0 0 8.1 2.8l1.2-1.2" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12.8 13.3v-2.9H9.9" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LocalDeviceIcon(): JSX.Element {
+  return (
+    <svg className="settings-connection-placeholder-icon" viewBox="0 0 28 28" aria-hidden="true">
+      <path d="M6.5 8.5h15v9h-15z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M4 20h20M12 17.5v2.5M16 17.5v2.5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function RemoteDeviceIcon(): JSX.Element {
+  return (
+    <svg className="settings-connection-placeholder-icon" viewBox="0 0 28 28" aria-hidden="true">
+      <rect x="6.5" y="5.5" width="15" height="17" rx="1.8" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M6.5 11h15M6.5 16.5h15" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="17.6" cy="8.3" r="0.9" fill="currentColor" />
+      <circle cx="17.6" cy="13.8" r="0.9" fill="currentColor" />
+      <circle cx="17.6" cy="19.2" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function HooksPlaceholderContent(): JSX.Element {
+  const { t } = useI18n();
+
+  return (
+    <div className="settings-panel-group settings-hooks-page">
+      <header className="settings-title-wrap settings-title-wrap-with-action">
+        <div>
+          <h1 className="settings-page-title">{t("settings.hooks.title")}</h1>
+          <p className="settings-subtitle">
+            {t("settings.hooks.subtitle")} <span className="settings-placeholder-link">{t("settings.hooks.learnMore")}</span>
+          </p>
+        </div>
+        <button type="button" className="settings-placeholder-icon-button" aria-label={t("settings.hooks.refreshAction")} disabled>
+          <RefreshIcon />
+        </button>
+      </header>
+      <section className="settings-card settings-hooks-placeholder-card">
+        <div className="settings-placeholder-stack">
+          <strong>{t("settings.hooks.emptyTitle")}</strong>
+          <span>{t("settings.hooks.emptyDescription")}</span>
+          <PlaceholderTodoBadge />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export function ConnectionsPlaceholderContent(): JSX.Element {
+  const { t } = useI18n();
+
+  return (
+    <div className="settings-panel-group settings-connections-page">
+      <SectionHeader title={t("settings.connections.title")} />
+      <section className="settings-page-section">
+        <h2 className="settings-section-title">{t("settings.connections.sshTitle")}</h2>
+        <section className="settings-card settings-connection-placeholder-card">
+          <div className="settings-connection-placeholder-visual">
+            <LocalDeviceIcon />
+            <span className="settings-connection-placeholder-dots">...</span>
+            <RemoteDeviceIcon />
+          </div>
+          <p className="settings-connection-placeholder-copy">{t("settings.connections.emptyDescription")}</p>
+          <button type="button" className="settings-placeholder-pill" disabled>{t("settings.connections.addAction")}</button>
+          <PlaceholderTodoBadge />
+        </section>
+      </section>
+    </div>
+  );
+}
+
 export function PlaceholderContent(props: { readonly sectionTitle: string }): JSX.Element {
   const { t } = useI18n();
 

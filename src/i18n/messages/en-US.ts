@@ -43,6 +43,8 @@ export const enUS = {
       config: "Config",
       personalization: "Personalization",
       mcp: "MCP Services",
+      hooks: "Hooks",
+      connections: "Connections",
       git: "Git",
       environment: "Environment",
       worktree: "Worktree",
@@ -52,6 +54,21 @@ export const enUS = {
     },
     placeholder: {
       message: "This page still uses the official placeholder layout and can be wired to real settings data later.",
+      todo: "TODO",
+    },
+    hooks: {
+      title: "Hooks",
+      subtitle: "Manage lifecycle hooks through configuration and enabled plugins",
+      learnMore: "Learn more",
+      refreshAction: "Refresh hooks",
+      emptyTitle: "No hooks found",
+      emptyDescription: "Projects with configured hooks will appear here",
+    },
+    connections: {
+      title: "Connections",
+      sshTitle: "SSH connections from this PC",
+      emptyDescription: "Connect to a remote device through SSH connection",
+      addAction: "Add",
     },
     appearance: {
       title: "Appearance",

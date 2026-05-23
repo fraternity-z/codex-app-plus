@@ -268,6 +268,32 @@ describe("SettingsView", () => {
     expect(screen.getByText("清除所有浏览数据")).toBeInTheDocument();
   });
 
+  it("renders hooks as a TODO placeholder section", () => {
+    render(<SettingsView {...createBaseProps({ section: "hooks" })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.getByRole("button", { name: "钩子" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "钩子" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "刷新钩子" })).toBeDisabled();
+    expect(screen.getByText("No hooks found")).toBeInTheDocument();
+    expect(screen.getByText("Projects with configured hooks will appear here")).toBeInTheDocument();
+    expect(screen.getByText("TODO")).toBeInTheDocument();
+  });
+
+  it("renders connections as a TODO placeholder section", () => {
+    render(<SettingsView {...createBaseProps({ section: "connections" })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.getByRole("button", { name: "连接" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "连接" })).toBeInTheDocument();
+    expect(screen.getByText("SSH connections from this PC")).toBeInTheDocument();
+    expect(screen.getByText("Connect to a remote device through SSH connection")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByText("TODO")).toBeInTheDocument();
+  });
+
   it("expands browser use browsing data cleanup details separately from the clear all button", async () => {
     const clearBrowserBrowsingDataByKind = vi.fn().mockResolvedValue(undefined);
     render(<SettingsView {...createBaseProps({

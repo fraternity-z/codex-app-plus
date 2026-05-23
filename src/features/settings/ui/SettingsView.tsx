@@ -43,7 +43,9 @@ import { PersonalizationSettingsSection } from "./PersonalizationSettingsSection
 import { ProxySettingsCard } from "./ProxySettingsCard";
 import { SettingsNavIcon, type SettingsNavIconKind } from "./settingsNavIcons";
 import {
+  ConnectionsPlaceholderContent,
   EnvironmentContent,
+  HooksPlaceholderContent,
   PlaceholderContent,
   WorktreeContent,
 } from "./SettingsStaticSections";
@@ -54,6 +56,8 @@ export type SettingsSection =
   | "agents"
   | "personalization"
   | "mcp"
+  | "hooks"
+  | "connections"
   | "git"
   | "environment"
   | "worktree"
@@ -157,6 +161,8 @@ const NAV_ITEM_DEFINITIONS: ReadonlyArray<{
   { key: "config", labelKey: "settings.nav.config", icon: "config" },
   { key: "personalization", labelKey: "settings.nav.personalization", icon: "personalization" },
   { key: "mcp", labelKey: "settings.nav.mcp", icon: "mcp" },
+  { key: "hooks", labelKey: "settings.nav.hooks", icon: "hooks" },
+  { key: "connections", labelKey: "settings.nav.connections", icon: "connections" },
   { key: "git", labelKey: "settings.nav.git", icon: "git" },
   { key: "environment", labelKey: "settings.nav.environment", icon: "environment" },
   { key: "worktree", labelKey: "settings.nav.worktree", icon: "worktree" },
@@ -210,6 +216,8 @@ function SettingsSidebar(props: {
         {renderNavItem("config")}
         {renderNavItem("personalization")}
         {renderNavItem("mcp")}
+        {renderNavItem("hooks")}
+        {renderNavItem("connections")}
         {renderNavItem("git")}
         {renderNavItem("environment")}
         {renderNavItem("worktree")}
@@ -323,6 +331,12 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
         onOpenMcpDocs={props.onOpenMcpDocs}
       />
     );
+  }
+  if (section === "hooks") {
+    return <HooksPlaceholderContent />;
+  }
+  if (section === "connections") {
+    return <ConnectionsPlaceholderContent />;
   }
   if (section === "about") {
     return (

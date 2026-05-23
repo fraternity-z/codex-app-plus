@@ -4,6 +4,8 @@ export type SettingsNavIconKind =
   | "config"
   | "personalization"
   | "mcp"
+  | "hooks"
+  | "connections"
   | "git"
   | "environment"
   | "worktree"
@@ -70,6 +72,27 @@ export function SettingsNavIcon(props: {
         <path d="M6.1 5.2h3.8v5.6H6.1z" {...common} />
         <path d="M5.2 6.8H3.8M5.2 9.2H3.8M10.8 6.8h1.4M10.8 9.2h1.4" {...common} />
         <path d="M7 4V2.8M9 4V2.8M7.4 12.8h1.2" {...common} />
+      </svg>
+    );
+  }
+
+  if (props.kind === "hooks") {
+    return (
+      <svg className={props.className} viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M8 2.2v8.2" {...common} />
+        <path d="M4.4 7.1a3.6 3.6 0 1 0 7.2 0" {...common} />
+        <path d="M5.8 3.8h4.4" {...common} />
+        <path d="M4.5 10.4H2.8M13.2 10.4h-1.7" {...common} />
+      </svg>
+    );
+  }
+
+  if (props.kind === "connections") {
+    return (
+      <svg className={props.className} viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="8" cy="8" r="5.7" {...common} />
+        <path d="M2.8 8h10.4" {...common} />
+        <path d="M8 2.3a8.2 8.2 0 0 1 0 11.4M8 2.3a8.2 8.2 0 0 0 0 11.4" {...common} />
       </svg>
     );
   }

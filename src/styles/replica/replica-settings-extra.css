@@ -1620,6 +1620,136 @@
   line-height: 1.6;
 }
 
+.settings-title-wrap-with-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.settings-title-wrap-with-action > div {
+  min-width: 0;
+}
+
+.settings-placeholder-link {
+  color: var(--accent-color);
+}
+
+.settings-placeholder-icon-button {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.settings-placeholder-icon-button:disabled {
+  cursor: default;
+  opacity: 0.82;
+}
+
+.settings-placeholder-action-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.settings-hooks-placeholder-card {
+  margin-top: 52px;
+}
+
+.settings-placeholder-stack {
+  padding: 16px 18px 18px;
+  display: grid;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.settings-placeholder-stack strong {
+  color: var(--text-main);
+  font-size: 15px;
+  font-weight: 550;
+}
+
+.settings-placeholder-todo {
+  width: fit-content;
+  margin-top: 8px;
+  padding: 2px 7px;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  color: var(--text-subtle);
+  background: var(--surface-panel-soft);
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
+.settings-connections-page {
+  width: min(100%, 840px);
+}
+
+.settings-connection-placeholder-card {
+  min-height: 210px;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.settings-connection-placeholder-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--text-main);
+}
+
+.settings-connection-placeholder-icon {
+  width: 34px;
+  height: 34px;
+  display: block;
+}
+
+.settings-connection-placeholder-dots {
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.settings-connection-placeholder-copy {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-lg);
+  line-height: 1.5;
+}
+
+.settings-placeholder-pill {
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 13px;
+  background: var(--surface-hover);
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-md);
+  line-height: 1.2;
+}
+
+.settings-placeholder-pill:disabled {
+  cursor: default;
+  opacity: 0.78;
+}
+
 .mcp-settings-page {
   width: min(100%, 840px);
 }

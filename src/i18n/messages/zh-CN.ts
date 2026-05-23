@@ -42,6 +42,8 @@ export const zhCN = {
       config: "配置",
       personalization: "个性化",
       mcp: "MCP 服务",
+      hooks: "钩子",
+      connections: "连接",
       git: "Git",
       environment: "环境",
       worktree: "工作树",
@@ -51,6 +53,21 @@ export const zhCN = {
     },
     placeholder: {
       message: "该页面仍保留官方布局占位，后续可接入真实设置数据。",
+      todo: "TODO",
+    },
+    hooks: {
+      title: "钩子",
+      subtitle: "通过配置和已启用的插件管理生命周期钩子",
+      learnMore: "了解更多",
+      refreshAction: "刷新钩子",
+      emptyTitle: "No hooks found",
+      emptyDescription: "Projects with configured hooks will appear here",
+    },
+    connections: {
+      title: "连接",
+      sshTitle: "SSH connections from this PC",
+      emptyDescription: "Connect to a remote device through SSH connection",
+      addAction: "Add",
     },
     appearance: {
       title: "外观",
