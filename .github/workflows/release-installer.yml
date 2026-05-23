@@ -175,7 +175,7 @@ jobs:
         env:
           EXPECTED_CODEX_CLI_VERSION: ${{ steps.codex_cli.outputs.version }}
         run: |
-          $codex = "src-tauri/bundled/codex-cli/npm/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/codex/codex.exe"
+          $codex = "src-tauri/bundled/codex-cli/npm/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe"
           if (-not (Test-Path $codex)) {
             throw "Bundled Codex CLI binary missing: $codex"
           }
