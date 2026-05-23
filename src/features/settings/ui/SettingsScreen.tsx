@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import type { HostBridge } from "../../../bridge/types";
 import { readUserConfigWriteTarget } from "../config/configWriteTarget";
 import type { AppPreferencesController } from "../hooks/useAppPreferences";
@@ -50,10 +51,13 @@ interface SettingsScreenProps {
   readonly resolvedTheme: ResolvedTheme;
   readonly section: SettingsSection;
   readonly sidebarCollapsed: boolean;
+  readonly sidebarWidth?: number;
+  readonly sidebarResizing?: boolean;
   readonly workspace: WorkspaceRootController;
   readonly petAwake: boolean;
   readonly onBackHome: () => void;
   readonly onSelectSection: (section: SettingsSection) => void;
+  readonly onSidebarResizeStart?: (event: ReactMouseEvent) => void;
   readonly onTogglePetAwake: () => void;
 }
 
@@ -185,6 +189,8 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     appUpdate: state.appUpdate,
     section: props.section,
     sidebarCollapsed: props.sidebarCollapsed,
+    sidebarWidth: props.sidebarWidth,
+    sidebarResizing: props.sidebarResizing,
     roots: props.workspace.roots,
     selectedRoot: props.workspace.selectedRoot,
     worktrees: worktreeController.worktrees,
@@ -204,6 +210,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     petAwake: props.petAwake,
     onBackHome: props.onBackHome,
     onSelectSection: props.onSelectSection,
+    onSidebarResizeStart: props.onSidebarResizeStart,
     onTogglePetAwake: props.onTogglePetAwake,
     onAddRoot: () => void addRoot(),
     onOpenConfigToml: openConfigToml,

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import type { ComponentProps } from "react";
+import type { ComponentProps, MouseEventHandler } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { HostBridge } from "../../bridge/types";
 import { INITIAL_APP_UPDATE_STATE } from "../../domain/appUpdate";
@@ -18,8 +18,22 @@ vi.mock("../../features/automation", () => ({
 }));
 
 vi.mock("../../features/settings", () => ({
-  SettingsScreen: (props: { readonly sidebarCollapsed: boolean }) => (
-    <div data-testid="settings-screen">settings collapsed:{String(props.sidebarCollapsed)}</div>
+  SettingsScreen: (props: {
+    readonly sidebarCollapsed: boolean;
+    readonly sidebarWidth?: number;
+    readonly sidebarResizing?: boolean;
+    readonly onSidebarResizeStart?: MouseEventHandler;
+  }) => (
+    <div data-testid="settings-screen">
+      <span>settings collapsed:{String(props.sidebarCollapsed)}</span>
+      <span data-testid="settings-sidebar-width">{String(props.sidebarWidth)}</span>
+      <span data-testid="settings-sidebar-resizing">{String(props.sidebarResizing)}</span>
+      <div
+        role="separator"
+        aria-label="resize settings sidebar"
+        onMouseDown={props.onSidebarResizeStart}
+      />
+    </div>
   ),
 }));
 
@@ -108,8 +122,11 @@ vi.mock("../../features/home", async () => {
   return {
     HomeScreen: (props: {
       readonly sidebarCollapsed: boolean;
+      readonly sidebarWidth?: number;
+      readonly sidebarResizing?: boolean;
       readonly activeNavItem?: "skills" | "automation" | null;
       readonly mainContentOverride?: React.ReactNode;
+      readonly onSidebarResizeStart?: MouseEventHandler;
     }) => {
       const [count, setCount] = React.useState(0);
 
@@ -117,6 +134,13 @@ vi.mock("../../features/home", async () => {
         <div data-testid="home-screen">
           <span>count:{count}</span>
           <span data-testid="home-sidebar-state">{String(props.sidebarCollapsed)}</span>
+          <span data-testid="home-sidebar-width">{String(props.sidebarWidth)}</span>
+          <span data-testid="home-sidebar-resizing">{String(props.sidebarResizing)}</span>
+          <div
+            role="separator"
+            aria-label="resize home sidebar"
+            onMouseDown={props.onSidebarResizeStart}
+          />
           <button type="button" onClick={() => setCount((value) => value + 1)}>
             increment
           </button>
@@ -284,6 +308,24 @@ describe("AppScreenContent", () => {
 
     expect(screen.getByTestId("settings-screen")).toHaveTextContent("settings collapsed:true");
     expect(screen.getByRole("button", { name: "展开设置侧边栏" })).toBeInTheDocument();
+  });
+
+  it("shares resized sidebar width between home and settings", async () => {
+    const { rerender } = renderAppScreenContent("home");
+
+    expect(screen.getByTestId("home-sidebar-width")).toHaveTextContent("300");
+
+    fireEvent.mouseDown(screen.getByRole("separator", { name: "resize home sidebar" }), {
+      clientX: 300,
+    });
+    fireEvent.mouseMove(window, { clientX: 340 });
+    fireEvent.mouseUp(window);
+
+    expect(await screen.findByText("340")).toBeInTheDocument();
+
+    rerender(<AppScreenContent {...createProps({ screen: "general" })} />);
+
+    expect(screen.getByTestId("settings-sidebar-width")).toHaveTextContent("340");
   });
 
   it("passes navigation actions to the titlebar", () => {

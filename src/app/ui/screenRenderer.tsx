@@ -5,10 +5,12 @@ import {
 import { HomeScreen } from "../../features/home";
 import { SettingsScreen, type SettingsSection } from "../../features/settings";
 import { SkillsScreen } from "../../features/skills";
+import type { AppSidebarLayoutState } from "./useAppSidebarLayout";
 
 export type AppScreenRenderProps = AppScreenContentProps & {
   readonly homeSidebarCollapsed: boolean;
   readonly settingsSidebarCollapsed: boolean;
+  readonly appSidebarLayout: AppSidebarLayoutState;
 };
 
 export function renderScreen(props: AppScreenRenderProps): JSX.Element {
@@ -51,10 +53,13 @@ function renderOverlayScreen(props: AppScreenRenderProps): JSX.Element | null {
       resolvedTheme={props.resolvedTheme}
       section={props.screen}
       sidebarCollapsed={props.settingsSidebarCollapsed}
+      sidebarWidth={props.appSidebarLayout.width}
+      sidebarResizing={props.appSidebarLayout.isResizing}
       workspace={props.workspace}
       petAwake={props.petAwake}
       onBackHome={props.onBackHome}
       onSelectSection={props.onOpenSettingsSection}
+      onSidebarResizeStart={props.appSidebarLayout.startResize}
       onTogglePetAwake={props.onTogglePetAwake}
     />
   );
@@ -70,6 +75,8 @@ function renderHomeScreen(props: AppScreenRenderProps): JSX.Element {
       settingsMenuOpen={props.settingsMenuOpen}
       activeNavItem={props.screen === "skills" || props.screen === "automation" ? props.screen : null}
       sidebarCollapsed={props.homeSidebarCollapsed}
+      sidebarWidth={props.appSidebarLayout.width}
+      sidebarResizing={props.appSidebarLayout.isResizing}
       workspace={props.workspace}
       automations={props.automations}
       onTogglePetAwake={props.onTogglePetAwake}
@@ -79,6 +86,7 @@ function renderHomeScreen(props: AppScreenRenderProps): JSX.Element {
       onOpenSkills={props.onOpenSkills}
       onOpenAutomation={props.onOpenAutomation}
       onOpenAutomationLearnMore={props.onOpenAutomationLearnMore}
+      onSidebarResizeStart={props.appSidebarLayout.startResize}
       onToggleSettingsMenu={props.onToggleSettingsMenu}
       mainContentOverride={renderMainContentOverride(props)}
     />

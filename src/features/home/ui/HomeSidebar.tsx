@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 import { collectDescendantThreadIds, createRpcThreadRuntimeCleanupTransport, forceCloseThreadRuntime, reportThreadCleanupError } from "../../conversation/service/threadRuntimeCleanup";
 import type { AgentEnvironment, HostBridge, GitWorktreeEntry } from "../../../bridge/types";
@@ -39,12 +40,14 @@ export interface HomeSidebarProps {
   readonly account: AccountSummary | null;
   readonly settingsMenuOpen: boolean;
   readonly collapsed: boolean;
+  readonly sidebarResizing?: boolean;
   readonly activeNavItem?: HomeNavItem | null;
   readonly onToggleSettingsMenu: () => void;
   readonly onDismissSettingsMenu: () => void;
   readonly onOpenSettings: () => void;
   readonly onOpenSkills: () => void;
   readonly onOpenAutomation: () => void;
+  readonly onSidebarResizeStart?: (event: ReactMouseEvent) => void;
   readonly onLogin: () => Promise<void>;
   readonly onLogout: () => Promise<void>;
   readonly onSelectRoot: (rootId: string) => void;
@@ -59,6 +62,27 @@ export interface HomeSidebarProps {
   readonly onCreateWorktree?: (root: WorkspaceRoot) => Promise<void>;
   readonly onDeleteWorktree?: (root: WorkspaceRoot) => Promise<void>;
   readonly onReorderRoots?: (fromIndex: number, toIndex: number) => void;
+}
+
+function SidebarResizeHandle(props: {
+  readonly active: boolean;
+  readonly onMouseDown?: (event: ReactMouseEvent) => void;
+}): JSX.Element | null {
+  if (props.onMouseDown === undefined) {
+    return null;
+  }
+  const className = props.active
+    ? "replica-sidebar-resize replica-sidebar-resize-active"
+    : "replica-sidebar-resize";
+  return (
+    <div
+      className={className}
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="拖动以调整侧边栏宽度"
+      onMouseDown={props.onMouseDown}
+    />
+  );
 }
 
 function SidebarNav(props: {
@@ -260,6 +284,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
     onLogout,
     onOpenSettings,
     onOpenSkills,
+    onSidebarResizeStart,
     onRemoveRoot,
     onCreateWorktree,
     onDeleteWorktree,
@@ -450,6 +475,7 @@ function HomeSidebarComponent(props: HomeSidebarProps): JSX.Element {
 
   return (
     <aside className={sidebarClassName} aria-hidden={collapsed}>
+      <SidebarResizeHandle active={props.sidebarResizing ?? false} onMouseDown={onSidebarResizeStart} />
       {settingsMenuOpen ? <button type="button" className="settings-backdrop" onClick={onDismissSettingsMenu} aria-label={t("home.sidebar.closeMenu")} /> : null}
       <SidebarNav
         activeItem={props.activeNavItem ?? null}

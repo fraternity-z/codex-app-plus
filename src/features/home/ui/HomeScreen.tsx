@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { flushSync } from "react-dom";
 import type { HostBridge } from "../../../bridge/types";
 import type { ServerRequestResolution } from "../../../domain/types";
@@ -56,6 +57,8 @@ interface HomeScreenProps {
   readonly resolvedTheme: ResolvedTheme;
   readonly settingsMenuOpen: boolean;
   readonly sidebarCollapsed: boolean;
+  readonly sidebarWidth?: number;
+  readonly sidebarResizing?: boolean;
   readonly activeNavItem?: HomeNavItem | null;
   readonly workspace: WorkspaceRootController;
   readonly automations: AutomationsController;
@@ -67,6 +70,7 @@ interface HomeScreenProps {
   readonly onOpenSkills: () => void;
   readonly onOpenAutomation: () => void;
   readonly onOpenAutomationLearnMore: () => Promise<void>;
+  readonly onSidebarResizeStart?: (event: ReactMouseEvent) => void;
   readonly onToggleSettingsMenu: () => void;
 }
 
@@ -225,6 +229,8 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       workspaceSwitch={state.workspaceSwitch}
       settingsMenuOpen={props.settingsMenuOpen}
       sidebarCollapsed={props.sidebarCollapsed}
+      sidebarWidth={props.sidebarWidth}
+      sidebarResizing={props.sidebarResizing}
       activeNavItem={props.activeNavItem ?? null}
       mainContentOverride={mainContentOverride}
       onToggleSettingsMenu={props.onToggleSettingsMenu}
@@ -232,6 +238,7 @@ export function HomeScreen(props: HomeScreenProps): JSX.Element {
       onOpenSettings={props.onOpenSettings}
       onOpenSkills={props.onOpenSkills}
       onOpenAutomation={props.onOpenAutomation}
+      onSidebarResizeStart={props.onSidebarResizeStart}
       onSelectWorkspaceOpener={props.preferences.setWorkspaceOpener}
       onSelectComposerPermissionLevel={props.preferences.setComposerPermissionLevel}
       onTogglePetAwake={props.onTogglePetAwake}

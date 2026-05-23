@@ -75,7 +75,7 @@
 
 .workspace-diff-sidebar-resize:hover::before,
 .workspace-diff-sidebar-resize-active::before {
-  background: var(--accent-color, #3370ff);
+  background: color-mix(in srgb, var(--text-subtle, #9ca3af) 58%, transparent);
 }
 
 .workspace-diff-sidebar-expanded .workspace-diff-sidebar-resize {

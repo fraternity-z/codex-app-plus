@@ -1,4 +1,5 @@
 import type { ConfigMutationResult, ConfigSnapshotMutationResult, McpRefreshResult } from "../config/configOperations";
+import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 import type { AppPreferencesController } from "../hooks/useAppPreferences";
 import type { AppUpdateState } from "../../../domain/types";
 import type { ResolvedTheme } from "../../../domain/theme";
@@ -68,6 +69,8 @@ export interface SettingsViewProps {
   readonly appUpdate: AppUpdateState;
   readonly section: SettingsSection;
   readonly sidebarCollapsed: boolean;
+  readonly sidebarWidth?: number;
+  readonly sidebarResizing?: boolean;
   readonly roots: ReadonlyArray<WorkspaceRoot>;
   readonly selectedRoot: WorkspaceRoot | null;
   readonly worktrees?: ReadonlyArray<GitWorktreeEntry>;
@@ -90,6 +93,7 @@ export interface SettingsViewProps {
   readonly petAwake: boolean;
   onBackHome: () => void;
   onSelectSection: (section: SettingsSection) => void;
+  onSidebarResizeStart?: (event: ReactMouseEvent) => void;
   onAddRoot: () => void;
   onTogglePetAwake: () => void;
   onOpenConfigToml: (filePath?: string | null) => Promise<void>;
@@ -182,9 +186,13 @@ function resolveVisibleSection(section: SettingsSection): Exclude<SettingsSectio
 }
 
 function SettingsSidebar(props: {
+  readonly backToAppLabel: string;
   readonly collapsed: boolean;
   readonly navItems: ReadonlyArray<NavItem>;
   readonly section: SettingsSection;
+  readonly sidebarResizing?: boolean;
+  onBackHome: () => void;
+  onSidebarResizeStart?: (event: ReactMouseEvent) => void;
   onSelectSection: (section: SettingsSection) => void;
 }): JSX.Element {
   const activeSection = resolveVisibleSection(props.section);
@@ -208,8 +216,24 @@ function SettingsSidebar(props: {
       </button>
     );
   };
+  const resizeClassName = props.sidebarResizing === true
+    ? "replica-sidebar-resize replica-sidebar-resize-active"
+    : "replica-sidebar-resize";
   return (
     <aside className="settings-sidebar" aria-hidden={props.collapsed}>
+      {props.onSidebarResizeStart === undefined ? null : (
+        <div
+          className={resizeClassName}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="拖动以调整侧边栏宽度"
+          onMouseDown={props.onSidebarResizeStart}
+        />
+      )}
+      <button type="button" className="settings-back-app" onClick={props.onBackHome}>
+        <span aria-hidden="true">←</span>
+        <span>{props.backToAppLabel}</span>
+      </button>
       <nav className="settings-nav">
         {renderNavItem("general")}
         {renderNavItem("appearance")}
@@ -376,13 +400,25 @@ export function SettingsView(props: SettingsViewProps): JSX.Element {
   const navItems = createNavItems(t);
   const visibleSection = resolveVisibleSection(props.section);
   const sectionTitle = navItems.find((item) => item.key === visibleSection)?.label ?? t("settings.nav.general");
+  const layoutClassName = [
+    "settings-layout",
+    props.sidebarCollapsed ? "settings-layout-sidebar-collapsed" : "",
+    props.sidebarResizing === true ? "settings-layout-sidebar-resizing" : "",
+  ].filter(Boolean).join(" ");
+  const layoutStyle = props.sidebarWidth === undefined
+    ? undefined
+    : ({ ["--replica-sidebar-width" as "width"]: `${props.sidebarWidth}px` } as CSSProperties);
 
   return (
-    <div className={props.sidebarCollapsed ? "settings-layout settings-layout-sidebar-collapsed" : "settings-layout"}>
+    <div className={layoutClassName} style={layoutStyle}>
       <SettingsSidebar
+        backToAppLabel={t("settings.sidebar.backToApp")}
         collapsed={props.sidebarCollapsed}
         navItems={navItems}
         section={props.section}
+        sidebarResizing={props.sidebarResizing}
+        onBackHome={props.onBackHome}
+        onSidebarResizeStart={props.onSidebarResizeStart}
         onSelectSection={props.onSelectSection}
       />
       <main className="settings-main">

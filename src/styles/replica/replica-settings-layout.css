@@ -298,6 +298,15 @@
 }
 
 @media (max-width: 1080px) {
+  .settings-layout {
+    --replica-sidebar-width: 236px;
+    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) 0;
+  }
+
+  .settings-layout.settings-layout-sidebar-collapsed {
+    grid-template-columns: 0 minmax(0, 1fr) 0;
+  }
+
   .settings-main {
     padding: 40px 32px 64px;
   }
@@ -305,13 +314,12 @@
 
 @media (max-width: 820px) {
   .settings-layout {
-    grid-template-columns: 1fr;
+    --replica-sidebar-width: 236px;
+    grid-template-columns: var(--replica-sidebar-width) minmax(0, 1fr) 0;
   }
 
-  .settings-sidebar {
-    border-right: 0;
-    border-bottom: 1px solid var(--border-light);
-    padding-bottom: 16px;
+  .settings-layout.settings-layout-sidebar-collapsed {
+    grid-template-columns: 0 minmax(0, 1fr) 0;
   }
 
   .settings-main {

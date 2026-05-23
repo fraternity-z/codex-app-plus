@@ -27,6 +27,15 @@
   transition: none;
 }
 
+.replica-app.replica-sidebar-resizing,
+.replica-app.replica-sidebar-resizing::before,
+.replica-app.replica-sidebar-resizing::after,
+.replica-app:has(.replica-sidebar-resize-active),
+.replica-app:has(.replica-sidebar-resize-active)::before,
+.replica-app:has(.replica-sidebar-resize-active)::after {
+  transition: none;
+}
+
 .replica-app::before {
   content: "";
   position: absolute;
@@ -89,6 +98,35 @@
     opacity var(--replica-sidebar-fade-duration) var(--replica-sidebar-transition-easing),
     visibility 0s linear 0s;
   grid-row: 1 / -1;
+}
+
+.replica-sidebar-resize {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  z-index: calc(var(--z-layer-app-chrome) + 1);
+  touch-action: none;
+}
+
+.replica-sidebar-resize::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 2px;
+  border-radius: 2px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.replica-sidebar-resize:hover::before,
+.replica-sidebar-resize-active::before {
+  background: color-mix(in srgb, var(--text-subtle, #9ca3af) 58%, transparent);
 }
 
 .sidebar-collapsed {

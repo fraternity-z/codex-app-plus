@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import type { ComposerPermissionLevel } from "../../composer/model/composerPermission";
 import type {
   ComposerModelOption,
@@ -121,6 +122,8 @@ export interface HomeViewProps {
   readonly workspaceSwitch: WorkspaceSwitchState;
   readonly settingsMenuOpen: boolean;
   readonly sidebarCollapsed?: boolean;
+  readonly sidebarWidth?: number;
+  readonly sidebarResizing?: boolean;
   readonly activeNavItem?: HomeNavItem | null;
   readonly mainContentOverride?: JSX.Element | null;
   readonly onToggleSettingsMenu: () => void;
@@ -128,6 +131,7 @@ export interface HomeViewProps {
   readonly onOpenSettings: () => void;
   readonly onOpenSkills: () => void;
   readonly onOpenAutomation: () => void;
+  readonly onSidebarResizeStart?: (event: ReactMouseEvent) => void;
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
   readonly onSelectRoot: (rootId: string) => void;
   readonly onSelectThread: (threadId: string | null) => void;
@@ -357,8 +361,8 @@ export const HomeView = memo(function HomeView(props: HomeViewProps): JSX.Elemen
 
   return (
     <div
-      className={createReplicaAppClassName(diffSidebarOpen, diffLayout.expanded)}
-      style={createReplicaAppStyle(diffSidebarOpen, diffLayout.width)}
+      className={createReplicaAppClassName(diffSidebarOpen, diffLayout.expanded, props.sidebarResizing ?? false)}
+      style={createReplicaAppStyle(diffSidebarOpen, diffLayout.width, props.sidebarWidth)}
     >
       <HomeSidebar {...sidebarProps} />
       {mainContentOverride === null ? (

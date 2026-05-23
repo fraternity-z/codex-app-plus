@@ -137,24 +137,37 @@ export function useHomeViewUiState(selectedRootPath: string | null, sidebarColla
   };
 }
 
-export function createReplicaAppClassName(diffSidebarOpen: boolean, diffSidebarExpanded: boolean): string {
-  if (!diffSidebarOpen) {
-    return "replica-app";
+export function createReplicaAppClassName(
+  diffSidebarOpen: boolean,
+  diffSidebarExpanded: boolean,
+  sidebarResizing = false,
+): string {
+  const classNames = ["replica-app"];
+  if (diffSidebarOpen) {
+    classNames.push("replica-app-with-diff-sidebar");
   }
-  if (diffSidebarExpanded) {
-    return "replica-app replica-app-with-diff-sidebar replica-app-with-diff-sidebar-expanded";
+  if (diffSidebarOpen && diffSidebarExpanded) {
+    classNames.push("replica-app-with-diff-sidebar-expanded");
   }
-  return "replica-app replica-app-with-diff-sidebar";
+  if (sidebarResizing) {
+    classNames.push("replica-sidebar-resizing");
+  }
+  return classNames.join(" ");
 }
 
 export function createReplicaAppStyle(
   diffSidebarOpen: boolean,
   width: number,
+  sidebarWidth?: number,
 ): CSSProperties {
-  if (!diffSidebarOpen) {
-    return {};
+  const style: CSSProperties = {};
+  if (sidebarWidth !== undefined) {
+    style["--replica-sidebar-width" as "width"] = `${sidebarWidth}px`;
   }
-  return { ["--replica-diff-sidebar-width" as "width"]: `${width}px` } as CSSProperties;
+  if (diffSidebarOpen) {
+    style["--replica-diff-sidebar-width" as "width"] = `${width}px`;
+  }
+  return style;
 }
 
 export function createHomeSidebarProps(
@@ -173,6 +186,7 @@ export function createHomeSidebarProps(
     codexSessionsError: null,
     collapsed,
     activeNavItem: props.activeNavItem ?? null,
+    sidebarResizing: props.sidebarResizing ?? false,
     hostBridge: props.hostBridge,
     onAddRoot: props.onAddRoot,
     onArchiveThread: props.onArchiveThread ?? NOOP_ARCHIVE_THREAD,
@@ -184,6 +198,7 @@ export function createHomeSidebarProps(
     onOpenSettings: props.onOpenSettings,
     onOpenSkills: props.onOpenSkills,
     onOpenAutomation: props.onOpenAutomation,
+    onSidebarResizeStart: props.onSidebarResizeStart,
     onRemoveRoot: props.onRemoveRoot,
     onCreateWorktree: props.onCreateWorktree,
     onDeleteWorktree: props.onDeleteWorktree,

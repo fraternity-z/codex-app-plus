@@ -10,6 +10,7 @@ import type { WorkspaceRootController } from "../../features/workspace";
 import type { AppController } from "../controller/appControllerTypes";
 import { WindowTitlebar } from "./WindowTitlebar";
 import { renderScreen } from "./screenRenderer";
+import { useAppSidebarLayout } from "./useAppSidebarLayout";
 
 export type AppScreen = "home" | "skills" | "automation" | SettingsSection;
 
@@ -48,6 +49,7 @@ export interface AppScreenContentProps {
 export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
   const [homeSidebarCollapsed, setHomeSidebarCollapsed] = useState(false);
   const [settingsSidebarCollapsed, setSettingsSidebarCollapsed] = useState(false);
+  const appSidebarLayout = useAppSidebarLayout();
   const toggleHomeSidebarCollapsed = useCallback(() => {
     setHomeSidebarCollapsed((currentValue) => !currentValue);
   }, []);
@@ -113,6 +115,7 @@ export function AppScreenContent(props: AppScreenContentProps): JSX.Element {
           ...props,
           homeSidebarCollapsed,
           settingsSidebarCollapsed,
+          appSidebarLayout,
         })}
       </div>
       <CodexPetLayer
