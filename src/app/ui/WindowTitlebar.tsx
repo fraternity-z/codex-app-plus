@@ -189,8 +189,8 @@ function ForwardIcon(): JSX.Element {
 function AboutDropdown(props: {
   readonly appUpdate: AppUpdateState;
   onCheckForUpdate: () => Promise<void>;
+  onOpenLicenses: () => void;
 }): JSX.Element {
-  const [licensesOpen, setLicensesOpen] = useState(false);
   const currentVersion = props.appUpdate.currentVersion ?? "未知版本";
   const checkedAt = formatCheckedAt(props.appUpdate.lastCheckedAt);
   const progressLabel = createProgressLabel(props.appUpdate);
@@ -251,24 +251,17 @@ function AboutDropdown(props: {
       <button
         type="button"
         className="window-titlebar-popover-button window-titlebar-popover-button-full"
-        onClick={() => setLicensesOpen(true)}
+        onClick={props.onOpenLicenses}
       >
         查看许可
       </button>
-      {licensesOpen ? (
-        <Suspense fallback={null}>
-          <LazyOpenSourceLicensesDialog
-            open={licensesOpen}
-            onClose={() => setLicensesOpen(false)}
-          />
-        </Suspense>
-      ) : null}
     </div>
   );
 }
 
 export function WindowTitlebar(props: WindowTitlebarProps): JSX.Element | null {
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [licensesOpen, setLicensesOpen] = useState(false);
   const aboutContainerRef = useRef<HTMLDivElement | null>(null);
   const startWindowDragging = useCallback(() => {
     void props.hostBridge.app.startWindowDragging().catch((error: unknown) => {
@@ -295,6 +288,13 @@ export function WindowTitlebar(props: WindowTitlebarProps): JSX.Element | null {
     }
     sendWindowAction("toggleMaximize");
   }, [sendWindowAction]);
+  const handleOpenLicenses = useCallback(() => {
+    setAboutOpen(false);
+    setLicensesOpen(true);
+  }, []);
+  const handleCloseLicenses = useCallback(() => {
+    setLicensesOpen(false);
+  }, []);
 
   useEffect(() => {
     if (!aboutOpen) {
@@ -383,6 +383,7 @@ export function WindowTitlebar(props: WindowTitlebarProps): JSX.Element | null {
             <AboutDropdown
               appUpdate={props.aboutControl.appUpdate}
               onCheckForUpdate={props.aboutControl.onCheckForUpdate}
+              onOpenLicenses={handleOpenLicenses}
             />
           ) : null}
         </div>
@@ -403,6 +404,14 @@ export function WindowTitlebar(props: WindowTitlebarProps): JSX.Element | null {
           <OfficialCloseIcon className="window-titlebar-close-icon" />
         </ChromeButton>
       </div>
+      {licensesOpen ? (
+        <Suspense fallback={null}>
+          <LazyOpenSourceLicensesDialog
+            open={licensesOpen}
+            onClose={handleCloseLicenses}
+          />
+        </Suspense>
+      ) : null}
     </header>
   );
 }

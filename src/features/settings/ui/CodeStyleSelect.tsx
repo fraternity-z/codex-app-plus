@@ -60,7 +60,7 @@ function createMenuStyle(layout: MenuLayout) {
     bottom: "auto",
     width: `${layout.width}px`,
     maxHeight: `${layout.maxHeight}px`,
-    zIndex: 120,
+    zIndex: "var(--z-layer-context-menu)",
   };
 }
 

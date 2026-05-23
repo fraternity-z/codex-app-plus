@@ -46,6 +46,18 @@
   --replica-sidebar-transition-duration: 260ms;
   --replica-sidebar-fade-duration: 180ms;
   --replica-sidebar-transition-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --z-layer-dismiss-backdrop: 20;
+  --z-layer-popover: 30;
+  --z-layer-popover-raised: 40;
+  --z-layer-app-chrome: 60;
+  --z-layer-floating-widget: 70;
+  --z-layer-dropdown: 80;
+  --z-layer-inline-overlay: 90;
+  --z-layer-chrome-popover: 110;
+  --z-layer-context-menu: 120;
+  --z-layer-toast: 140;
+  --z-layer-modal: 240;
+  --z-layer-blocking-modal: 260;
   --app-code-style-surface: #0f1720;
   --app-code-style-surface-elevated: #162230;
   --app-code-style-border: #26384a;

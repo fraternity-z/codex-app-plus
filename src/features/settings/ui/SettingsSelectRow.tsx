@@ -50,7 +50,7 @@ function SettingsSelectMenu<T extends string>(props: {
     bottom: "auto",
     width: `${props.layout.width}px`,
     maxHeight: `${props.layout.maxHeight}px`,
-    zIndex: 120,
+    zIndex: "var(--z-layer-context-menu)",
   };
 
   return (

@@ -30,7 +30,7 @@
   border-radius: 16px;
   background: var(--surface-panel);
   box-shadow: var(--shadow-lg);
-  z-index: 90;
+  z-index: var(--z-layer-inline-overlay);
 }
 
 .launch-script-title {

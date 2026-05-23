@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import rawLicenses from "../../../assets/third-party-licenses.json";
 import "../../../styles/replica/replica-settings-extra.css";
+import { OverlayPortal } from "./OverlayPortal";
 
 type LicensePackage = {
   name: string;
@@ -100,7 +101,7 @@ export function OpenSourceLicensesDialog(props: OpenSourceLicensesDialogProps): 
     return null;
   }
 
-  return (
+  const dialog = (
     <div className="settings-dialog-backdrop" role="presentation" onClick={onClose}>
       <section
         className="settings-dialog"
@@ -178,4 +179,6 @@ export function OpenSourceLicensesDialog(props: OpenSourceLicensesDialogProps): 
       </section>
     </div>
   );
+
+  return <OverlayPortal>{dialog}</OverlayPortal>;
 }

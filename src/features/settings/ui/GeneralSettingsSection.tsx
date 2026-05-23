@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type {
   AppPreferencesController,
   NotificationDeliveryMode,
@@ -114,6 +115,7 @@ function createNotificationTriggerOptions(
 interface GeneralSettingsSectionProps {
   readonly preferences: AppPreferencesController;
   readonly steerAvailable: boolean;
+  readonly runtimeSettings?: ReactNode;
   readonly onTestNotificationSound?: () => void;
   readonly onTestSystemNotification?: () => void;
   readonly notificationTestFeedback?: {
@@ -155,137 +157,152 @@ export function GeneralSettingsSection(props: GeneralSettingsSectionProps): JSX.
   const notificationTriggerOptions = createNotificationTriggerOptions(t);
 
   return (
-    <section className="settings-page-section">
-      <h2 className="settings-section-title">{t("settings.general.title")}</h2>
-      <section className="settings-card">
-        <SettingsSelectRow
-          label={t("settings.general.agentEnvironment.label")}
-          description={t("settings.general.agentEnvironment.description")}
-          value={preferences.agentEnvironment}
-          options={agentEnvironmentOptions}
-          onChange={preferences.setAgentEnvironment}
-        />
-        <SettingsSelectRow
-          label={t("settings.general.workspaceOpener.label")}
-          description={t("settings.general.workspaceOpener.description")}
-          value={preferences.workspaceOpener}
-          options={workspaceOpenerOptions}
-          onChange={preferences.setWorkspaceOpener}
-        />
-        <SettingsSelectRow
-          label={t("settings.general.embeddedTerminalShell.label")}
-          description={t("settings.general.embeddedTerminalShell.description")}
-          value={preferences.embeddedTerminalShell}
-          options={terminalShellOptions}
-          onChange={preferences.setEmbeddedTerminalShell}
-        />
-        <div className="settings-row">
-          <div className="settings-row-copy">
-            <strong>{t("settings.general.embeddedTerminalUtf8.label")}</strong>
-            <p>{t("settings.general.embeddedTerminalUtf8.description")}</p>
-          </div>
-          <div className="settings-row-control">
-            <ToggleSwitch
-              checked={preferences.embeddedTerminalUtf8}
-              label={t("settings.general.embeddedTerminalUtf8.label")}
-              onToggle={() => preferences.setEmbeddedTerminalUtf8(!preferences.embeddedTerminalUtf8)}
-            />
-          </div>
-        </div>
-        <SettingsSelectRow
-          label={t("settings.general.language.label")}
-          description={t("settings.general.language.description")}
-          value={preferences.uiLanguage}
-          options={languageOptions}
-          onChange={preferences.setUiLanguage}
-        />
-        <SettingsSelectRow
-          label={t("settings.general.threadDetailLevel.label")}
-          description={t("settings.general.threadDetailLevel.description")}
-          value={preferences.threadDetailLevel}
-          options={threadDetailOptions}
-          onChange={preferences.setThreadDetailLevel}
-        />
-        <SettingsToggleButtonGroup
-          label={t("settings.general.followUpQueueMode.label")}
-          description={t("settings.general.followUpQueueMode.description")}
-          value={preferences.followUpQueueMode}
-          options={followUpModeOptions}
-          onChange={preferences.setFollowUpQueueMode}
-        />
-        <SettingsSelectRow
-          label={t("settings.general.composerEnterBehavior.label")}
-          description={t("settings.general.composerEnterBehavior.description")}
-          value={preferences.composerEnterBehavior}
-          options={composerEnterOptions}
-          onChange={preferences.setComposerEnterBehavior}
-        />
-        <SettingsToggleButtonGroup
-          label={t("settings.general.notifications.deliveryMode.label")}
-          description={t("settings.general.notifications.deliveryMode.description")}
-          value={preferences.notificationDeliveryMode}
-          options={notificationDeliveryOptions}
-          onChange={preferences.setNotificationDeliveryMode}
-        />
-        <SettingsToggleButtonGroup
-          label={t("settings.general.notifications.triggerMode.label")}
-          description={t("settings.general.notifications.triggerMode.description")}
-          value={preferences.notificationTriggerMode}
-          options={notificationTriggerOptions}
-          onChange={preferences.setNotificationTriggerMode}
-        />
-        <div className="settings-row">
-          <div className="settings-row-copy">
-            <strong>{t("settings.general.notifications.subagents.label")}</strong>
-            <p>{t("settings.general.notifications.subagents.description")}</p>
-          </div>
-          <div className="settings-row-control">
-            <ToggleSwitch
-              checked={preferences.subagentNotificationsEnabled}
-              label={t("settings.general.notifications.subagents.label")}
-              onToggle={() =>
-                preferences.setSubagentNotificationsEnabled(
-                  !preferences.subagentNotificationsEnabled,
-                )}
-            />
-          </div>
-        </div>
-        <div className="settings-row">
-          <div className="settings-row-copy">
-            <strong>{t("settings.general.notifications.test.label")}</strong>
-            <p>{t("settings.general.notifications.test.description")}</p>
-            {props.notificationTestFeedback ? (
-              <p
-                className={
-                  props.notificationTestFeedback.tone === "error"
-                    ? "settings-status-note settings-status-note-error"
-                    : "settings-status-note settings-status-note-success"
-                }
-              >
-                {props.notificationTestFeedback.message}
-              </p>
-            ) : null}
-          </div>
-          <div className="settings-row-control">
-            <div className="settings-action-group">
-              <button
-                type="button"
-                className="settings-action-btn settings-action-btn-sm"
-                onClick={props.onTestNotificationSound}
-              >
-                {t("settings.general.notifications.test.sound")}
-              </button>
-              <button
-                type="button"
-                className="settings-action-btn settings-action-btn-sm"
-                onClick={props.onTestSystemNotification}
-              >
-                {t("settings.general.notifications.test.popup")}
-              </button>
+    <>
+      <section className="settings-page-section">
+        <h2 className="settings-section-title">{t("settings.general.sections.basics")}</h2>
+        <section className="settings-card">
+          <SettingsSelectRow
+            label={t("settings.general.workspaceOpener.label")}
+            description={t("settings.general.workspaceOpener.description")}
+            value={preferences.workspaceOpener}
+            options={workspaceOpenerOptions}
+            onChange={preferences.setWorkspaceOpener}
+          />
+          <SettingsSelectRow
+            label={t("settings.general.language.label")}
+            description={t("settings.general.language.description")}
+            value={preferences.uiLanguage}
+            options={languageOptions}
+            onChange={preferences.setUiLanguage}
+          />
+        </section>
+      </section>
+
+      <section className="settings-page-section">
+        <h2 className="settings-section-title">{t("settings.general.sections.runtime")}</h2>
+        <section className="settings-card">
+          <SettingsSelectRow
+            label={t("settings.general.agentEnvironment.label")}
+            description={t("settings.general.agentEnvironment.description")}
+            value={preferences.agentEnvironment}
+            options={agentEnvironmentOptions}
+            onChange={preferences.setAgentEnvironment}
+          />
+          <SettingsSelectRow
+            label={t("settings.general.embeddedTerminalShell.label")}
+            description={t("settings.general.embeddedTerminalShell.description")}
+            value={preferences.embeddedTerminalShell}
+            options={terminalShellOptions}
+            onChange={preferences.setEmbeddedTerminalShell}
+          />
+          <div className="settings-row">
+            <div className="settings-row-copy">
+              <strong>{t("settings.general.embeddedTerminalUtf8.label")}</strong>
+              <p>{t("settings.general.embeddedTerminalUtf8.description")}</p>
+            </div>
+            <div className="settings-row-control">
+              <ToggleSwitch
+                checked={preferences.embeddedTerminalUtf8}
+                label={t("settings.general.embeddedTerminalUtf8.label")}
+                onToggle={() => preferences.setEmbeddedTerminalUtf8(!preferences.embeddedTerminalUtf8)}
+              />
             </div>
           </div>
-        </div>
+        </section>
+        {props.runtimeSettings}
       </section>
-    </section>
+
+      <section className="settings-page-section">
+        <h2 className="settings-section-title">{t("settings.general.sections.conversation")}</h2>
+        <section className="settings-card">
+          <SettingsSelectRow
+            label={t("settings.general.threadDetailLevel.label")}
+            description={t("settings.general.threadDetailLevel.description")}
+            value={preferences.threadDetailLevel}
+            options={threadDetailOptions}
+            onChange={preferences.setThreadDetailLevel}
+          />
+          <SettingsToggleButtonGroup
+            label={t("settings.general.followUpQueueMode.label")}
+            description={t("settings.general.followUpQueueMode.description")}
+            value={preferences.followUpQueueMode}
+            options={followUpModeOptions}
+            onChange={preferences.setFollowUpQueueMode}
+          />
+          <SettingsSelectRow
+            label={t("settings.general.composerEnterBehavior.label")}
+            description={t("settings.general.composerEnterBehavior.description")}
+            value={preferences.composerEnterBehavior}
+            options={composerEnterOptions}
+            onChange={preferences.setComposerEnterBehavior}
+          />
+          <SettingsToggleButtonGroup
+            label={t("settings.general.notifications.deliveryMode.label")}
+            description={t("settings.general.notifications.deliveryMode.description")}
+            value={preferences.notificationDeliveryMode}
+            options={notificationDeliveryOptions}
+            onChange={preferences.setNotificationDeliveryMode}
+          />
+          <SettingsToggleButtonGroup
+            label={t("settings.general.notifications.triggerMode.label")}
+            description={t("settings.general.notifications.triggerMode.description")}
+            value={preferences.notificationTriggerMode}
+            options={notificationTriggerOptions}
+            onChange={preferences.setNotificationTriggerMode}
+          />
+          <div className="settings-row">
+            <div className="settings-row-copy">
+              <strong>{t("settings.general.notifications.subagents.label")}</strong>
+              <p>{t("settings.general.notifications.subagents.description")}</p>
+            </div>
+            <div className="settings-row-control">
+              <ToggleSwitch
+                checked={preferences.subagentNotificationsEnabled}
+                label={t("settings.general.notifications.subagents.label")}
+                onToggle={() =>
+                  preferences.setSubagentNotificationsEnabled(
+                    !preferences.subagentNotificationsEnabled,
+                  )}
+              />
+            </div>
+          </div>
+          <div className="settings-row">
+            <div className="settings-row-copy">
+              <strong>{t("settings.general.notifications.test.label")}</strong>
+              <p>{t("settings.general.notifications.test.description")}</p>
+              {props.notificationTestFeedback ? (
+                <p
+                  className={
+                    props.notificationTestFeedback.tone === "error"
+                      ? "settings-status-note settings-status-note-error"
+                      : "settings-status-note settings-status-note-success"
+                  }
+                >
+                  {props.notificationTestFeedback.message}
+                </p>
+              ) : null}
+            </div>
+            <div className="settings-row-control">
+              <div className="settings-action-group">
+                <button
+                  type="button"
+                  className="settings-action-btn settings-action-btn-sm"
+                  onClick={props.onTestNotificationSound}
+                >
+                  {t("settings.general.notifications.test.sound")}
+                </button>
+                <button
+                  type="button"
+                  className="settings-action-btn settings-action-btn-sm"
+                  onClick={props.onTestSystemNotification}
+                >
+                  {t("settings.general.notifications.test.popup")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </>
   );
 }

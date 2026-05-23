@@ -3,7 +3,7 @@
   left: 6px;
   right: 6px;
   bottom: calc(100% + 8px);
-  z-index: 30;
+  z-index: var(--z-layer-popover);
   box-sizing: border-box;
   border: 1px solid color-mix(in srgb, var(--border-light) 86%, transparent);
   border-radius: 12px;

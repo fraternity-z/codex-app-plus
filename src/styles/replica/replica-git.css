@@ -15,7 +15,7 @@
   justify-content: center;
   padding: 24px;
   background: rgba(15, 15, 15, 0.28);
-  z-index: 160;
+  z-index: var(--z-layer-modal);
 }
 
 .git-dialog-backdrop-main {

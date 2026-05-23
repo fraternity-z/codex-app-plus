@@ -115,7 +115,7 @@
   border-radius: 12px;
   background: var(--surface-panel);
   box-shadow: var(--shadow-lg);
-  z-index: 80;
+  z-index: var(--z-layer-dropdown);
 }
 
 .toolbar-menu-title {

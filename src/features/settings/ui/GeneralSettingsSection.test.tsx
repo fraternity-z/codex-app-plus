@@ -235,6 +235,9 @@ describe("GeneralSettingsSection", () => {
   it("renders the notification settings block", () => {
     renderSection();
 
+    expect(screen.getByText("基础设置")).toBeInTheDocument();
+    expect(screen.getByText("运行环境")).toBeInTheDocument();
+    expect(screen.getByText("对话与通知")).toBeInTheDocument();
     expect(screen.getByText("通知方式")).toBeInTheDocument();
     expect(screen.getByText("通知触发")).toBeInTheDocument();
     expect(screen.getByText("测试通知")).toBeInTheDocument();
@@ -278,7 +281,9 @@ describe("GeneralSettingsSection", () => {
   it("renders English copy when locale is en-US", () => {
     renderSection("en-US");
 
-    expect(screen.getByText("General")).toBeInTheDocument();
+    expect(screen.getByText("Basics")).toBeInTheDocument();
+    expect(screen.getByText("Runtime")).toBeInTheDocument();
+    expect(screen.getByText("Conversation and notifications")).toBeInTheDocument();
     expect(screen.getByText("Interface language")).toBeInTheDocument();
     expect(screen.getByText("Force UTF-8 for the embedded terminal")).toBeInTheDocument();
     expect(screen.getByText("Notification mode")).toBeInTheDocument();

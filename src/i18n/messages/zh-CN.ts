@@ -90,6 +90,11 @@ export const zhCN = {
     },
     general: {
       title: "常规",
+      sections: {
+        basics: "基础设置",
+        runtime: "运行环境",
+        conversation: "对话与通知",
+      },
       agentEnvironment: {
         label: "Agent 运行环境",
         description: "选择 Agent 在 Windows 上的运行环境。",

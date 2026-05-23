@@ -16,6 +16,7 @@ import {
   type MemorySettingsConfigView,
 } from "../config/personalizationConfig";
 import { readUserConfigWriteTarget } from "../config/configWriteTarget";
+import { OverlayPortal } from "../../shared/ui/OverlayPortal";
 import {
   SettingsSelectRow,
   type SettingsSelectOption,
@@ -492,7 +493,7 @@ function ManagedPromptDialog(props: {
     void props.onSave();
   };
 
-  return (
+  const dialogNode = (
     <div className="settings-dialog-backdrop" role="presentation" onClick={props.onCancel}>
       <section
         className="settings-dialog settings-prompt-dialog"
@@ -544,6 +545,8 @@ function ManagedPromptDialog(props: {
       </section>
     </div>
   );
+
+  return <OverlayPortal>{dialogNode}</OverlayPortal>;
 }
 
 function ManagedPromptManagerCard(props: {

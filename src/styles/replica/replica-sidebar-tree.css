@@ -166,6 +166,7 @@
 .workspace-thread-item:hover,
 .workspace-thread-item:focus-within {
   background: var(--surface-hover);
+  color: var(--text-main);
 }
 
 .workspace-thread-item-active,
@@ -230,6 +231,7 @@
   min-width: 0;
   flex: 1 1 auto;
   font-size: var(--app-ui-font-size-base);
+  font-weight: 500;
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -255,20 +257,26 @@
   color: var(--success-fg);
 }
 
-.workspace-thread-meta,
-.workspace-thread-empty {
-  font-size: var(--app-ui-font-size-caption);
-  color: var(--text-muted);
-}
-
 .workspace-thread-meta {
   flex: 0 0 auto;
   justify-self: end;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-caption);
   white-space: nowrap;
 }
 
 .workspace-thread-empty {
-  padding: 4px 6px 8px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 0 10px 0 34px;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-base);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .workspace-thread-toggle {

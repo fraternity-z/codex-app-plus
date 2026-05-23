@@ -2,7 +2,7 @@
   position: fixed;
   top: 56px;
   right: 20px;
-  z-index: 140;
+  z-index: var(--z-layer-toast);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -69,7 +69,7 @@
 .app-update-ready-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 260;
+  z-index: var(--z-layer-blocking-modal);
   display: grid;
   place-items: center;
   padding: 24px;

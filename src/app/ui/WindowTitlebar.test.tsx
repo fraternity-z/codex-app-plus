@@ -218,6 +218,35 @@ describe("WindowTitlebar", () => {
     expect(onCheckForUpdate).not.toHaveBeenCalled();
   });
 
+  it("opens licenses from the about popover as a global dialog", async () => {
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: "Win32",
+    });
+    const controlWindow = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <WindowTitlebar
+        hostBridge={createHostBridge(controlWindow)}
+        aboutControl={{
+          appUpdate: {
+            ...INITIAL_APP_UPDATE_STATE,
+            currentVersion: "0.1.0",
+          },
+          onCheckForUpdate: vi.fn().mockResolvedValue(undefined),
+          onInstallUpdate: vi.fn().mockResolvedValue(undefined),
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "打开关于" }));
+    fireEvent.click(screen.getByRole("button", { name: "查看许可" }));
+
+    expect(screen.queryByRole("dialog", { name: "关于" })).not.toBeInTheDocument();
+    const licensesDialog = await screen.findByRole("dialog", { name: "开源许可证" });
+    expect(document.body.querySelector(".settings-dialog-backdrop")).toContainElement(licensesDialog);
+  });
+
   it("starts dragging when pressing the titlebar content", () => {
     Object.defineProperty(window.navigator, "platform", {
       configurable: true,

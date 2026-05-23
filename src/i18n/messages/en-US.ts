@@ -91,6 +91,11 @@ export const enUS = {
     },
     general: {
       title: "General",
+      sections: {
+        basics: "Basics",
+        runtime: "Runtime",
+        conversation: "Conversation and notifications",
+      },
       agentEnvironment: {
         label: "Agent environment",
         description: "Choose where the agent runs on Windows.",

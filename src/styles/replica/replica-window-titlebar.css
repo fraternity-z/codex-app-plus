@@ -108,7 +108,7 @@
   position: absolute;
   left: 0;
   top: calc(100% + 8px);
-  z-index: 50;
+  z-index: var(--z-layer-chrome-popover);
   width: min(380px, calc(100vw - 24px));
   border: 1px solid var(--border-light);
   border-radius: 14px;

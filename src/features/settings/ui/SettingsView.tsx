@@ -228,15 +228,17 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
         <GeneralSettingsSection
           preferences={props.preferences}
           steerAvailable={props.steerAvailable}
+          runtimeSettings={
+            <ProxySettingsCard
+              agentEnvironment={props.preferences.agentEnvironment}
+              busy={props.busy}
+              readProxySettings={props.readProxySettings}
+              writeProxySettings={props.writeProxySettings}
+            />
+          }
           onTestNotificationSound={props.onTestNotificationSound}
           onTestSystemNotification={props.onTestSystemNotification}
           notificationTestFeedback={props.notificationTestFeedback}
-        />
-        <ProxySettingsCard
-          agentEnvironment={props.preferences.agentEnvironment}
-          busy={props.busy}
-          readProxySettings={props.readProxySettings}
-          writeProxySettings={props.writeProxySettings}
         />
       </div>
     );

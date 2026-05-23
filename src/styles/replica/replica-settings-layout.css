@@ -153,7 +153,7 @@
 }
 
 .settings-row-control[data-menu-open="true"] {
-  z-index: 90;
+  z-index: var(--z-layer-inline-overlay);
 }
 
 .settings-row-note {
