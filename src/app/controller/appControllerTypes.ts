@@ -117,7 +117,11 @@ export interface AppController {
 export function createInitializeParams(): InitializeParams {
   return {
     clientInfo: { name: "codex_app_plus", title: "Codex App Plus", version: APP_VERSION },
-    capabilities: { experimentalApi: true, optOutNotificationMethods: null },
+    capabilities: {
+      experimentalApi: true,
+      requestAttestation: false,
+      optOutNotificationMethods: null,
+    },
   };
 }
 

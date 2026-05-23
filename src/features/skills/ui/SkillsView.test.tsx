@@ -39,6 +39,8 @@ function createMarketplacePluginsResponse(): PluginListResponse {
       interface: { displayName: "OpenAI Curated" },
       plugins: [{
         id: "browser-use@openai-curated",
+        remotePluginId: null,
+        localVersion: null,
         name: "browser-use",
         shareContext: null,
         source: { type: "remote" },
@@ -69,6 +71,8 @@ function createMarketplacePluginsResponse(): PluginListResponse {
         },
       }, {
         id: "figma@openai-curated",
+        remotePluginId: null,
+        localVersion: null,
         name: "figma",
         shareContext: null,
         source: { type: "remote" },
@@ -104,6 +108,8 @@ function createMarketplacePluginsResponse(): PluginListResponse {
       interface: { displayName: "CLI bundled" },
       plugins: [{
         id: "hidden@openai-bundled",
+        remotePluginId: null,
+        localVersion: null,
         name: "hidden",
         shareContext: null,
         source: { type: "local", path: "C:/Users/Administrator/.codex/plugins/openai-bundled/hidden" },
@@ -137,6 +143,7 @@ function createPluginReadResponse(): PluginReadResponse {
       summary: createMarketplacePluginsResponse().marketplaces[0]!.plugins[0]!,
       description: "Control the in-app browser with Codex",
       skills: [],
+      hooks: [],
       apps: [{
         id: "browser-use",
         name: "Browser Use",

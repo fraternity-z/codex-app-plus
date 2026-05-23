@@ -261,6 +261,7 @@ describe("conversationState", () => {
         tool: "read_file",
         status: "inProgress",
         arguments: {},
+        pluginId: null,
         result: null,
         error: null,
         durationMs: null,

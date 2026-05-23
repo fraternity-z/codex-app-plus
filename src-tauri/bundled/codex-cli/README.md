@@ -21,7 +21,7 @@ pnpm sync:codex-cli -- --source E:/code/codex
 or install a published package:
 
 ```sh
-pnpm sync:codex-cli -- --npm @openai/codex@latest
+pnpm sync:codex-cli -- --npm @openai/codex@0.133.0
 ```
 
 The generated `npm/` directory is intentionally ignored by git because release

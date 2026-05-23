@@ -50,7 +50,7 @@ function createConfigSnapshot(): ConfigReadResponse {
     config: {} as ConfigReadResponse["config"],
     origins: {},
     layers: [{
-      name: { type: "user", file: "C:/Users/dev/.codex/config.toml" },
+      name: { type: "user", file: "C:/Users/dev/.codex/config.toml", profile: null },
       version: "u1",
       config: {},
       disabledReason: null,

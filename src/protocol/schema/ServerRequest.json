@@ -178,6 +178,31 @@
       "title": "Account/chatgptAuthTokens/refreshRequest"
     },
     {
+      "description": "Generate a fresh upstream attestation result on demand.",
+      "type": "object",
+      "required": [
+        "id",
+        "method",
+        "params"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/RequestId"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "attestation/generate"
+          ],
+          "title": "Attestation/generateRequestMethod"
+        },
+        "params": {
+          "$ref": "#/definitions/AttestationGenerateParams"
+        }
+      },
+      "title": "Attestation/generateRequest"
+    },
+    {
       "description": "DEPRECATED APIs below Request to approve a patch. This request is used for Turns started via the legacy APIs (i.e. SendUserTurn, SendUserMessage).",
       "type": "object",
       "required": [
@@ -348,6 +373,9 @@
           ]
         }
       }
+    },
+    "AttestationGenerateParams": {
+      "type": "object"
     },
     "ChatgptAuthTokensRefreshParams": {
       "type": "object",
@@ -571,6 +599,7 @@
       "type": "object",
       "required": [
         "itemId",
+        "startedAtMs",
         "threadId",
         "turnId"
       ],
@@ -671,6 +700,11 @@
             "string",
             "null"
           ]
+        },
+        "startedAtMs": {
+          "description": "Unix timestamp (in milliseconds) when this approval request started.",
+          "type": "integer",
+          "format": "int64"
         },
         "threadId": {
           "type": "string"
@@ -832,6 +866,7 @@
       "type": "object",
       "required": [
         "itemId",
+        "startedAtMs",
         "threadId",
         "turnId"
       ],
@@ -853,6 +888,11 @@
             "null"
           ]
         },
+        "startedAtMs": {
+          "description": "Unix timestamp (in milliseconds) when this approval request started.",
+          "type": "integer",
+          "format": "int64"
+        },
         "threadId": {
           "type": "string"
         },
@@ -866,7 +906,7 @@
       "enum": [
         "read",
         "write",
-        "none"
+        "deny"
       ]
     },
     "FileSystemPath": {
@@ -1825,6 +1865,7 @@
         "cwd",
         "itemId",
         "permissions",
+        "startedAtMs",
         "threadId",
         "turnId"
       ],
@@ -1843,6 +1884,11 @@
             "string",
             "null"
           ]
+        },
+        "startedAtMs": {
+          "description": "Unix timestamp (in milliseconds) when this approval request started.",
+          "type": "integer",
+          "format": "int64"
         },
         "threadId": {
           "type": "string"

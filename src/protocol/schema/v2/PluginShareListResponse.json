@@ -198,16 +198,56 @@
             "null"
           ]
         },
+        "discoverability": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PluginShareDiscoverability"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "remotePluginId": {
           "type": "string"
+        },
+        "remoteVersion": {
+          "description": "Version of the remote shared plugin release when available.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sharePrincipals": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/definitions/PluginSharePrincipal"
+          }
+        },
+        "shareUrl": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
+    },
+    "PluginShareDiscoverability": {
+      "type": "string",
+      "enum": [
+        "LISTED",
+        "UNLISTED",
+        "PRIVATE"
+      ]
     },
     "PluginShareListItem": {
       "type": "object",
       "required": [
-        "plugin",
-        "shareUrl"
+        "plugin"
       ],
       "properties": {
         "localPluginPath": {
@@ -222,11 +262,47 @@
         },
         "plugin": {
           "$ref": "#/definitions/PluginSummary"
-        },
-        "shareUrl": {
-          "type": "string"
         }
       }
+    },
+    "PluginSharePrincipal": {
+      "type": "object",
+      "required": [
+        "name",
+        "principalId",
+        "principalType",
+        "role"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "principalId": {
+          "type": "string"
+        },
+        "principalType": {
+          "$ref": "#/definitions/PluginSharePrincipalType"
+        },
+        "role": {
+          "$ref": "#/definitions/PluginSharePrincipalRole"
+        }
+      }
+    },
+    "PluginSharePrincipalRole": {
+      "type": "string",
+      "enum": [
+        "reader",
+        "editor",
+        "owner"
+      ]
+    },
+    "PluginSharePrincipalType": {
+      "type": "string",
+      "enum": [
+        "user",
+        "group",
+        "workspace"
+      ]
     },
     "PluginSource": {
       "oneOf": [
@@ -360,8 +436,23 @@
             "type": "string"
           }
         },
+        "localVersion": {
+          "description": "Version of the locally materialized plugin package when available.",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "name": {
           "type": "string"
+        },
+        "remotePluginId": {
+          "description": "Backend remote plugin identifier when available.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "shareContext": {
           "description": "Remote sharing context associated with this plugin when available.",

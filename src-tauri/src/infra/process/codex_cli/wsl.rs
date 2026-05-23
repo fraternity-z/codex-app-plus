@@ -123,7 +123,7 @@ fn resolve_wsl_codex_program(
         }
         if !allow_system_fallback {
             return Err(AppError::InvalidInput(
-                "未找到软件内置的 WSL/Linux Codex CLI。请先运行 `pnpm sync:codex-cli -- --source E:/code/codex` 或 `pnpm sync:codex-cli -- --npm @openai/codex@latest` 生成内置官方 npm CLI。"
+                "未找到软件内置的 WSL/Linux Codex CLI。请先运行 `pnpm sync:codex-cli -- --source E:/code/codex` 或 `pnpm sync:codex-cli -- --npm @openai/codex@0.133.0` 生成内置官方 npm CLI。"
                     .to_string(),
             ));
         }

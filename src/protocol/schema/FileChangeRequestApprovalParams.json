@@ -4,6 +4,7 @@
   "type": "object",
   "required": [
     "itemId",
+    "startedAtMs",
     "threadId",
     "turnId"
   ],
@@ -24,6 +25,11 @@
         "string",
         "null"
       ]
+    },
+    "startedAtMs": {
+      "description": "Unix timestamp (in milliseconds) when this approval request started.",
+      "type": "integer",
+      "format": "int64"
     },
     "threadId": {
       "type": "string"

@@ -206,6 +206,8 @@ function parseArgs(argv) {
     } else if (arg === "--help" || arg === "-h") {
       printHelp();
       process.exit(0);
+    } else if (arg === "--") {
+      continue;
     } else {
       throw new Error(`Unknown argument: ${arg}`);
     }
@@ -227,7 +229,7 @@ function requireValue(argv, index, flag) {
 function printHelp() {
   console.log(`Usage:
   pnpm sync:codex-cli -- --source E:/code/codex
-  pnpm sync:codex-cli -- --npm @openai/codex@latest
+  pnpm sync:codex-cli -- --npm @openai/codex@0.133.0
 
 Options:
   --source <path>   Local official openai/codex checkout. Defaults to E:/code/codex.

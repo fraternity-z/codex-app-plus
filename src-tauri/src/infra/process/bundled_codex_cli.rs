@@ -21,6 +21,8 @@ const WINDOWS_X64_TRIPLE: &str = "x86_64-pc-windows-msvc";
 const WINDOWS_ARM64_TRIPLE: &str = "aarch64-pc-windows-msvc";
 const LINUX_X64_TRIPLE: &str = "x86_64-unknown-linux-musl";
 const LINUX_ARM64_TRIPLE: &str = "aarch64-unknown-linux-musl";
+const BINARY_DIR_NAME: &str = "bin";
+const PATH_DIR_NAME: &str = "codex-path";
 const WSL_INSTALL_ROOT: &str = ".codex-app-plus/npm-codex";
 const WSL_SYNC_SHELL: &str = "bash";
 const WSL_SYNC_FLAG: &str = "-lc";
@@ -37,15 +39,15 @@ if [ ! -f "${dest_dir}/${binary_rel}" ] || ! cmp -s "${source_dir}/${binary_rel}
   if [ -f "${tmp_dir}/${binary_rel}" ]; then
     chmod 755 "${tmp_dir}/${binary_rel}"
   fi
-  if [ -f "${tmp_dir}/path/rg" ]; then
-    chmod 755 "${tmp_dir}/path/rg"
+  if [ -f "${tmp_dir}/codex-path/rg" ]; then
+    chmod 755 "${tmp_dir}/codex-path/rg"
   fi
   rm -rf "$dest_dir"
   mv "$tmp_dir" "$dest_dir"
 fi
 printf '%s\n' "${dest_dir}/${binary_rel}"
-if [ -d "${dest_dir}/path" ]; then
-  printf '%s\n' "${dest_dir}/path"
+if [ -d "${dest_dir}/codex-path" ]; then
+  printf '%s\n' "${dest_dir}/codex-path"
 fi
 "#;
 
@@ -224,7 +226,6 @@ fn resolve_npm_binary_location(
 ) -> AppResult<NpmBinaryLocation> {
     let target_triple = target_triple(platform);
     let binary_name = binary_name(platform);
-    let binary_relative_path = PathBuf::from("codex").join(binary_name);
     let package_root = resolve_manifest_directory(root, &manifest.npm_package.root)?;
     validate_meta_package_root(&package_root)?;
 
@@ -238,6 +239,7 @@ fn resolve_npm_binary_location(
 
     for package_root in candidates {
         let target_root = package_root.join("vendor").join(target_triple);
+        let binary_relative_path = PathBuf::from(BINARY_DIR_NAME).join(binary_name);
         let binary_path = target_root.join(&binary_relative_path);
         if binary_path.is_file() {
             return Ok(NpmBinaryLocation {
@@ -342,7 +344,7 @@ fn binary_name(platform: BundledPlatform) -> &'static str {
 }
 
 fn bundled_path_dirs(target_root: &Path) -> Vec<PathBuf> {
-    let path_dir = target_root.join("path");
+    let path_dir = target_root.join(PATH_DIR_NAME);
     if path_dir.is_dir() {
         vec![path_dir]
     } else {

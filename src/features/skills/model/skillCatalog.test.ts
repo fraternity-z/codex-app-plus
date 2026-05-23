@@ -10,6 +10,8 @@ function createPluginListResponse(): PluginListResponse {
       interface: { displayName: "OpenAI Bundled" },
       plugins: [{
         id: "browser-use@openai-bundled",
+        remotePluginId: null,
+        localVersion: null,
         name: "browser-use",
         shareContext: null,
         source: {
@@ -43,6 +45,8 @@ function createPluginListResponse(): PluginListResponse {
         },
       }, {
         id: "hidden@openai-bundled",
+        remotePluginId: null,
+        localVersion: null,
         name: "hidden",
         shareContext: null,
         source: {

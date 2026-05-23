@@ -13,6 +13,7 @@ describe("commandApprovalRules", () => {
       threadId: "thread-1",
       turnId: "turn-1",
       itemId: "item-1",
+      startedAtMs: 1,
       command: "Get-ChildItem \"src/features\" -Force",
     });
 
@@ -27,6 +28,7 @@ describe("commandApprovalRules", () => {
       threadId: "thread-1",
       turnId: "turn-1",
       itemId: "item-1",
+      startedAtMs: 1,
       command: "Get-Content src/app.ts",
       proposedExecpolicyAmendment: ["Get-ChildItem"],
     });
@@ -56,6 +58,7 @@ describe("commandApprovalRules", () => {
       threadId: "thread-1",
       turnId: "turn-1",
       itemId: "item-1",
+      startedAtMs: 1,
       command: "Get-ChildItem C:\\code\\codex-app-plus",
     });
 
@@ -69,6 +72,7 @@ describe("commandApprovalRules", () => {
         threadId: "thread-1",
         turnId: "turn-1",
         itemId: "item-1",
+        startedAtMs: 1,
       },
     });
 

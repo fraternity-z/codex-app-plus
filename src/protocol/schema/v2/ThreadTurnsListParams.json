@@ -13,6 +13,17 @@
         "null"
       ]
     },
+    "itemsView": {
+      "description": "How much item detail to include for each returned turn; defaults to summary.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/TurnItemsView"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "limit": {
       "description": "Optional turn page size.",
       "type": [
@@ -43,6 +54,31 @@
       "enum": [
         "asc",
         "desc"
+      ]
+    },
+    "TurnItemsView": {
+      "oneOf": [
+        {
+          "description": "`items` was not loaded for this turn. The field is intentionally empty.",
+          "type": "string",
+          "enum": [
+            "notLoaded"
+          ]
+        },
+        {
+          "description": "`items` contains only a display summary for this turn.",
+          "type": "string",
+          "enum": [
+            "summary"
+          ]
+        },
+        {
+          "description": "`items` contains every ThreadItem available from persisted app-server history for this turn.",
+          "type": "string",
+          "enum": [
+            "full"
+          ]
+        }
       ]
     }
   }

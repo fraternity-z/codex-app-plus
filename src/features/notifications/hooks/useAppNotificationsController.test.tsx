@@ -239,6 +239,7 @@ describe("useAppNotificationsRuntime", () => {
             threadId: "thread-1",
             turnId: "turn-1",
             itemId: "item-1",
+            startedAtMs: 1,
             command: "pnpm test",
           },
         },

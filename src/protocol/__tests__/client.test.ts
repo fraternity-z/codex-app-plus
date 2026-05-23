@@ -231,7 +231,7 @@ describe("ProtocolClient", () => {
 
     await client.initializeConnection({
       clientInfo: { name: "test", title: "Test", version: "1.0.0" },
-      capabilities: { experimentalApi: true, optOutNotificationMethods: null }
+      capabilities: { experimentalApi: true, requestAttestation: false, optOutNotificationMethods: null }
     });
 
     expect(client.isInitialized()).toBe(true);
@@ -240,7 +240,7 @@ describe("ProtocolClient", () => {
       method: "initialize",
       params: {
         clientInfo: { name: "test", title: "Test", version: "1.0.0" },
-        capabilities: { experimentalApi: true, optOutNotificationMethods: null }
+        capabilities: { experimentalApi: true, requestAttestation: false, optOutNotificationMethods: null }
       }
     });
     expect(hostBridge.rpc.notify).toHaveBeenCalledWith({ method: "initialized", params: {} });
@@ -269,7 +269,7 @@ describe("ProtocolClient", () => {
 
     await client.initializeConnection({
       clientInfo: { name: "test", title: "Test", version: "1.0.0" },
-      capabilities: { experimentalApi: true, optOutNotificationMethods: null }
+      capabilities: { experimentalApi: true, requestAttestation: false, optOutNotificationMethods: null }
     });
     await client.request("config/mcpServer/reload", undefined);
 
@@ -290,7 +290,7 @@ describe("ProtocolClient", () => {
 
     await client.initializeConnection({
       clientInfo: { name: "test", title: "Test", version: "1.0.0" },
-      capabilities: { experimentalApi: true, optOutNotificationMethods: null }
+      capabilities: { experimentalApi: true, requestAttestation: false, optOutNotificationMethods: null }
     });
     await client.cleanThreadBackgroundTerminals("thread-1");
     await client.unsubscribeThread("thread-1");

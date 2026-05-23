@@ -3,10 +3,14 @@
   "title": "PluginShareUpdateTargetsParams",
   "type": "object",
   "required": [
+    "discoverability",
     "remotePluginId",
     "shareTargets"
   ],
   "properties": {
+    "discoverability": {
+      "$ref": "#/definitions/PluginShareUpdateDiscoverability"
+    },
     "remotePluginId": {
       "type": "string"
     },
@@ -30,7 +34,8 @@
       "type": "object",
       "required": [
         "principalId",
-        "principalType"
+        "principalType",
+        "role"
       ],
       "properties": {
         "principalId": {
@@ -38,8 +43,25 @@
         },
         "principalType": {
           "$ref": "#/definitions/PluginSharePrincipalType"
+        },
+        "role": {
+          "$ref": "#/definitions/PluginShareTargetRole"
         }
       }
+    },
+    "PluginShareTargetRole": {
+      "type": "string",
+      "enum": [
+        "reader",
+        "editor"
+      ]
+    },
+    "PluginShareUpdateDiscoverability": {
+      "type": "string",
+      "enum": [
+        "UNLISTED",
+        "PRIVATE"
+      ]
     }
   }
 }

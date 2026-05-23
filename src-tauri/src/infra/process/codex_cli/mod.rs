@@ -216,8 +216,10 @@ mod tests {
         let path_root = unique_temp_dir("codex-app-plus", "system");
         let package_root = bundle_root.join("npm/node_modules/@openai/codex");
         let platform_root = bundle_root.join("npm/node_modules/@openai/codex-win32-x64");
-        let bundled_binary = platform_root.join("vendor/x86_64-pc-windows-msvc/codex/codex.exe");
+        let bundled_binary = platform_root.join("vendor/x86_64-pc-windows-msvc/bin/codex.exe");
+        let bundled_path_dir = platform_root.join("vendor/x86_64-pc-windows-msvc/codex-path");
         fs::create_dir_all(bundled_binary.parent().unwrap()).unwrap();
+        fs::create_dir_all(&bundled_path_dir).unwrap();
         fs::create_dir_all(package_root.join("bin")).unwrap();
         fs::create_dir_all(&path_root).unwrap();
         fs::write(&bundled_binary, []).unwrap();
@@ -251,6 +253,14 @@ mod tests {
         assert_eq!(std::path::PathBuf::from(&cli.program), bundled_binary);
         assert!(cli.prefix_args.is_empty());
         assert_eq!(std::path::PathBuf::from(&cli.display_path), bundled_binary);
+        assert!(
+            cli.environment
+                .iter()
+                .any(|(key, value)| key == "PATH"
+                    && value
+                        .as_deref()
+                        .is_some_and(|value| value.contains("codex-path")))
+        );
     }
 
     #[test]

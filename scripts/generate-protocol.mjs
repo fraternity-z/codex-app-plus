@@ -74,7 +74,7 @@ function resolveBundledCodexCli() {
       root,
       "vendor",
       target.triple,
-      "codex",
+      "bin",
       target.binaryName
     );
     if (isFile(candidate)) {

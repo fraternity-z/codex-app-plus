@@ -3,9 +3,13 @@
   "title": "PluginShareUpdateTargetsResponse",
   "type": "object",
   "required": [
+    "discoverability",
     "principals"
   ],
   "properties": {
+    "discoverability": {
+      "$ref": "#/definitions/PluginShareDiscoverability"
+    },
     "principals": {
       "type": "array",
       "items": {
@@ -14,12 +18,21 @@
     }
   },
   "definitions": {
+    "PluginShareDiscoverability": {
+      "type": "string",
+      "enum": [
+        "LISTED",
+        "UNLISTED",
+        "PRIVATE"
+      ]
+    },
     "PluginSharePrincipal": {
       "type": "object",
       "required": [
         "name",
         "principalId",
-        "principalType"
+        "principalType",
+        "role"
       ],
       "properties": {
         "name": {
@@ -30,8 +43,19 @@
         },
         "principalType": {
           "$ref": "#/definitions/PluginSharePrincipalType"
+        },
+        "role": {
+          "$ref": "#/definitions/PluginSharePrincipalRole"
         }
       }
+    },
+    "PluginSharePrincipalRole": {
+      "type": "string",
+      "enum": [
+        "reader",
+        "editor",
+        "owner"
+      ]
     },
     "PluginSharePrincipalType": {
       "type": "string",
