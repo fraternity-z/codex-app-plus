@@ -203,8 +203,10 @@ interface HomeToolbarSectionProps {
   readonly hostBridge: HostBridge;
   readonly launchState: WorkspaceLaunchScriptsState | null;
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
+  readonly onTogglePlanPrompt: () => void;
   readonly onToggleDiff: () => void;
   readonly onToggleTerminal: () => void;
+  readonly planPromptOpen: boolean;
   readonly selectedRootPath: string | null;
   readonly selectedThreadTitle: string | null;
   readonly terminalOpen: boolean;
@@ -227,8 +229,10 @@ const HomeToolbarSection = memo(function HomeToolbarSection(
         selectedThreadTitle={props.selectedThreadTitle}
         terminalOpen={props.terminalOpen}
         diffOpen={props.diffOpen}
+        planPromptOpen={props.planPromptOpen}
         workspaceSwitching={props.workspaceSwitch.phase === "switching"}
         onSelectWorkspaceOpener={props.onSelectWorkspaceOpener}
+        onTogglePlanPrompt={props.onTogglePlanPrompt}
         onToggleDiff={props.onToggleDiff}
         onToggleTerminal={props.onToggleTerminal}
       />
@@ -497,7 +501,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
     }),
     [props.activities, props.selectedConversationLoading, props.selectedThread],
   );
-  const [planDrawerPinned, setPlanDrawerPinned] = useState(false);
+  const [planDrawerOpen, setPlanDrawerOpen] = useState(false);
   const [dismissedPlanPromptId, setDismissedPlanPromptId] = useState<string | null>(null);
   const turnPlanOverview = useMemo(
     () => createTurnPlanOverview({
@@ -545,7 +549,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
   const showPlanPrompt = derivedState.latestPlanPrompt !== null
     && !props.isResponding
     && dismissedPlanPromptId !== derivedState.latestPlanPrompt.entryId;
-  const showTurnPlanDrawer = derivedState.conversationActive && !props.diffOpen;
+  const showTurnPlanDrawer = planDrawerOpen && !props.diffOpen && props.selectedRootPath !== null;
 
   const sendPlanPromptTurn = useCallback(async (options: PlanPromptTurnOptions) => {
     setDismissedPlanPromptId(derivedState.latestPlanPrompt?.entryId ?? null);
@@ -613,8 +617,10 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
         selectedThreadTitle={props.selectedThread?.title ?? null}
         terminalOpen={props.terminalOpen}
         diffOpen={props.diffOpen}
+        planPromptOpen={planDrawerOpen}
         workspaceSwitch={props.workspaceSwitch}
         onSelectWorkspaceOpener={props.onSelectWorkspaceOpener}
+        onTogglePlanPrompt={() => setPlanDrawerOpen((value) => !value)}
         onToggleDiff={props.onToggleDiff}
         onToggleTerminal={props.onToggleTerminal}
       />
@@ -653,13 +659,12 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
         <HomeTurnPlanDrawer
           plan={derivedState.currentTurnPlan}
           overview={turnPlanOverview}
-          pinned={planDrawerPinned}
+          pinned={planDrawerOpen}
           showProgress={props.isResponding}
           visible={showTurnPlanDrawer}
           gitController={props.gitController}
           onOpenDiff={props.selectedRootPath === null ? undefined : props.onToggleDiff}
           onSelectThread={props.onSelectThread}
-          onTogglePinned={() => setPlanDrawerPinned((value) => !value)}
         />
       </div>
       {derivedState.pendingUserInput !== null ? (

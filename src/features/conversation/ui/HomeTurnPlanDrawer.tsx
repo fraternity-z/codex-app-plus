@@ -1,6 +1,5 @@
 import type { TurnPlanBackgroundTask, TurnPlanModel, TurnPlanOverview } from "../model/homeTurnPlanModel";
 import { formatTurnPlanStatusLabel } from "../model/homeTurnPlanModel";
-import { OfficialPinIcon } from "../../shared/ui/officialIcons";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { GitOperationsMenu } from "../../git/ui/GitOperationsMenu";
 import { GitBranchIcon, GitHubMarkIcon } from "../../git/ui/gitIcons";
@@ -16,7 +15,6 @@ interface HomeTurnPlanDrawerProps {
   readonly gitController?: WorkspaceGitController;
   readonly onOpenDiff?: () => void;
   readonly onSelectThread?: (threadId: string) => void;
-  readonly onTogglePinned: () => void;
 }
 
 export function HomeTurnPlanDrawer(props: HomeTurnPlanDrawerProps): JSX.Element | null {
@@ -34,7 +32,6 @@ export function HomeTurnPlanDrawer(props: HomeTurnPlanDrawerProps): JSX.Element 
     : isEmpty
       ? t("home.turnPlan.cleared")
       : t("home.turnPlan.completedSummary", { completed: plan.completedSteps, total: plan.totalSteps });
-  const toggleLabel = props.pinned ? t("home.turnPlan.unpinCard") : t("home.turnPlan.pinCard");
 
   return (
     <section
@@ -42,18 +39,7 @@ export function HomeTurnPlanDrawer(props: HomeTurnPlanDrawerProps): JSX.Element 
       data-plan-state={planState}
       aria-label={t("home.turnPlan.progressCardLabel")}
     >
-      <span className="home-turn-progress-hover-zone" aria-hidden="true" />
       <div className={showProgress ? "home-turn-progress-card-surface" : "home-turn-progress-card-surface home-turn-progress-card-surface-compact"}>
-        <button
-          type="button"
-          className="home-turn-progress-pin"
-          aria-label={toggleLabel}
-          aria-pressed={props.pinned}
-          title={toggleLabel}
-          onClick={props.onTogglePinned}
-        >
-          <OfficialPinIcon className="home-turn-progress-pin-icon" />
-        </button>
         {showProgress ? (
           <>
             <header className="home-turn-progress-header">

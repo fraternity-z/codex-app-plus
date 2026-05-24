@@ -148,6 +148,29 @@ export function OfficialAlertCircleIcon(props: IconProps): JSX.Element {
   );
 }
 
+export function OfficialInfoCircleIcon(props: IconProps): JSX.Element {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={16}
+      height={16}
+      fill="none"
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      {...props}
+    >
+      <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.35" />
+      <path
+        d="M8 7.2v3.45"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeLinecap="round"
+      />
+      <circle cx="8" cy="5.25" r="0.75" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function OfficialPermissionDefaultIcon(props: IconProps): JSX.Element {
   return (
     <svg

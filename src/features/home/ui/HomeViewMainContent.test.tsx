@@ -74,7 +74,16 @@ vi.mock("../../workspace/ui/WorkspaceFileViewer", () => ({
 }));
 
 vi.mock("./HomeMainToolbar", () => ({
-  HomeMainToolbar: () => <div data-testid="home-toolbar">toolbar</div>,
+  HomeMainToolbar: (props: { readonly onTogglePlanPrompt: () => void; readonly planPromptOpen: boolean }) => (
+    <button
+      type="button"
+      data-plan-prompt-open={String(props.planPromptOpen)}
+      data-testid="home-toolbar"
+      onClick={props.onTogglePlanPrompt}
+    >
+      toolbar
+    </button>
+  ),
 }));
 
 vi.mock("./HomeBannerStack", () => ({
@@ -263,16 +272,22 @@ describe("HomeViewMainContent", () => {
     expect(screen.queryByTestId("diff-preview")).toBeNull();
   });
 
-  it("hides the progress card while the right sidebar is open", () => {
-    render(
-      <HomeViewMainContent
-        {...createProps({
-          diffOpen: true,
-        })}
-      />,
-    );
+  it("hides the prompt card while the right sidebar is open and restores it after closing", () => {
+    const initialProps = createProps();
+    const { rerender } = render(<HomeViewMainContent {...initialProps} />);
+
+    fireEvent.click(screen.getByTestId("home-toolbar"));
+
+    expect(screen.getByTestId("plan-drawer")).toBeInTheDocument();
+
+    rerender(<HomeViewMainContent {...initialProps} diffOpen />);
 
     expect(screen.queryByTestId("plan-drawer")).toBeNull();
+    expect(screen.getByTestId("home-toolbar")).toHaveAttribute("data-plan-prompt-open", "true");
+
+    rerender(<HomeViewMainContent {...initialProps} diffOpen={false} />);
+
+    expect(screen.getByTestId("plan-drawer")).toBeInTheDocument();
   });
 
   it("keeps the card overview-only when no response is running", () => {
@@ -283,6 +298,8 @@ describe("HomeViewMainContent", () => {
         })}
       />,
     );
+
+    fireEvent.click(screen.getByTestId("home-toolbar"));
 
     expect(screen.getByTestId("plan-drawer")).toHaveAttribute("data-show-progress", "false");
   });
@@ -297,12 +314,13 @@ describe("HomeViewMainContent", () => {
       />,
     );
 
+    fireEvent.click(screen.getByTestId("home-toolbar"));
     fireEvent.click(screen.getByTestId("plan-drawer"));
 
     expect(onToggleDiff).toHaveBeenCalledTimes(1);
   });
 
-  it("hides the progress card in the new conversation empty state", () => {
+  it("shows the prompt card in the new conversation empty state after toolbar toggle", () => {
     render(
       <HomeViewMainContent
         {...createProps({
@@ -314,6 +332,10 @@ describe("HomeViewMainContent", () => {
     );
 
     expect(screen.queryByTestId("plan-drawer")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("home-toolbar"));
+
+    expect(screen.getByTestId("plan-drawer")).toBeInTheDocument();
   });
 
   it("renders the goal status bar above the composer instead of at the main panel top", () => {

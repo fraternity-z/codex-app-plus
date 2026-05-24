@@ -2,7 +2,7 @@ import type { HostBridge, WorkspaceOpener } from "../../../bridge/types";
 import { useI18n } from "../../../i18n/useI18n";
 import type { WorkspaceGitController } from "../../git/model/types";
 import { WorkspaceOpenButton } from "../../workspace/ui/WorkspaceOpenButton";
-import { OfficialSidebarToggleIcon } from "../../shared/ui/officialIcons";
+import { OfficialInfoCircleIcon, OfficialSidebarToggleIcon } from "../../shared/ui/officialIcons";
 import type { WorkspaceLaunchScriptsState } from "../hooks/useWorkspaceLaunchScripts";
 import { LaunchScriptsToolbar } from "./LaunchScriptsToolbar";
 
@@ -15,11 +15,13 @@ interface HomeMainToolbarProps {
   readonly selectedThreadTitle: string | null;
   readonly terminalOpen: boolean;
   readonly diffOpen: boolean;
+  readonly planPromptOpen: boolean;
   readonly workspaceSwitching: boolean;
   readonly gitController: WorkspaceGitController;
   readonly launchState?: WorkspaceLaunchScriptsState | null;
   readonly workspaceOpener: WorkspaceOpener;
   readonly onSelectWorkspaceOpener: (opener: WorkspaceOpener) => void;
+  readonly onTogglePlanPrompt: () => void;
   readonly onToggleTerminal: () => void;
   readonly onToggleDiff: () => void;
 }
@@ -75,6 +77,7 @@ export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
   const displayTitle = title === null ? null : truncateToolbarTitle(title);
   const terminalLabel = props.terminalOpen ? t("home.toolbar.hideTerminal") : t("home.toolbar.showTerminal");
   const diffLabel = props.diffOpen ? t("home.toolbar.hideDiffSidebar") : t("home.toolbar.showDiffSidebar");
+  const planPromptLabel = props.planPromptOpen ? t("home.toolbar.hidePlanPrompt") : t("home.toolbar.showPlanPrompt");
   const toolbarClassName = props.conversationActive ? "main-toolbar main-toolbar-conversation" : "main-toolbar";
   const titleClassName = props.conversationActive ? "toolbar-title toolbar-title-compact" : "toolbar-title";
 
@@ -97,6 +100,17 @@ export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
           onSelectOpener={props.onSelectWorkspaceOpener}
         />
         <div className="toolbar-icon-row" aria-label={t("home.toolbar.quickActions")}>
+          <ToolbarIconButton active={props.terminalOpen} label={terminalLabel} onClick={props.onToggleTerminal}>
+            <TerminalIcon className="toolbar-terminal-icon" />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            active={props.planPromptOpen}
+            disabled={props.selectedRootPath === null || props.workspaceSwitching}
+            label={planPromptLabel}
+            onClick={props.onTogglePlanPrompt}
+          >
+            <OfficialInfoCircleIcon className="toolbar-terminal-icon" />
+          </ToolbarIconButton>
           <ToolbarIconButton
             active={props.diffOpen}
             disabled={props.selectedRootPath === null || props.workspaceSwitching}
@@ -104,9 +118,6 @@ export function HomeMainToolbar(props: HomeMainToolbarProps): JSX.Element {
             onClick={props.onToggleDiff}
           >
             <OfficialSidebarToggleIcon className="toolbar-terminal-icon" />
-          </ToolbarIconButton>
-          <ToolbarIconButton active={props.terminalOpen} label={terminalLabel} onClick={props.onToggleTerminal}>
-            <TerminalIcon className="toolbar-terminal-icon" />
           </ToolbarIconButton>
         </div>
       </div>

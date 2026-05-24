@@ -89,7 +89,6 @@ describe("HomeTurnPlanDrawer", () => {
         overview={{ additions: 12, backgroundTasks: [], changedFiles: 2, deletions: 4, generatedImages: 1 }}
         pinned={false}
         visible
-        onTogglePinned={() => undefined}
       />,
       {
         wrapper: createI18nWrapper("en-US"),
@@ -115,7 +114,7 @@ describe("HomeTurnPlanDrawer", () => {
 
   it("shows empty state when plan is cleared", () => {
     const plan = createTurnPlanModel(createPlanEntry({ plan: [], explanation: null, id: "plan-empty" }));
-    render(<HomeTurnPlanDrawer plan={plan} pinned={false} visible onTogglePinned={() => undefined} />, {
+    render(<HomeTurnPlanDrawer plan={plan} pinned={false} visible />, {
       wrapper: createI18nWrapper("en-US"),
     });
 
@@ -130,7 +129,7 @@ describe("HomeTurnPlanDrawer", () => {
         { step: "Wire data", status: "completed" },
       ],
     }));
-    const { container } = render(<HomeTurnPlanDrawer plan={plan} pinned={false} visible onTogglePinned={() => undefined} />, {
+    const { container } = render(<HomeTurnPlanDrawer plan={plan} pinned={false} visible />, {
       wrapper: createI18nWrapper("en-US"),
     });
 
@@ -138,32 +137,20 @@ describe("HomeTurnPlanDrawer", () => {
     expect(screen.getByText("Completed 2 / 2")).toBeInTheDocument();
   });
 
-  it("invokes toggle handler when pressing the pin button", () => {
-    const onToggle = vi.fn();
-    const plan = createTurnPlanModel(createPlanEntry({ id: "plan-pinned" }));
-    render(<HomeTurnPlanDrawer plan={plan} pinned={false} visible onTogglePinned={onToggle} />, {
-      wrapper: createI18nWrapper("en-US"),
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Pin progress card" }));
-    expect(onToggle).toHaveBeenCalledTimes(1);
-  });
-
   it("marks the card as pinned when fixed open", () => {
     const plan = createTurnPlanModel(createPlanEntry({ id: "plan-fixed" }));
     const { container } = render(
-      <HomeTurnPlanDrawer plan={plan} pinned visible onTogglePinned={() => undefined} />,
+      <HomeTurnPlanDrawer plan={plan} pinned visible />,
       {
         wrapper: createI18nWrapper("en-US"),
       },
     );
 
     expect(container.querySelector(".home-turn-progress-card-pinned")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Unpin progress card" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("renders the card without a current plan when a conversation is visible", () => {
-    render(<HomeTurnPlanDrawer plan={null} pinned={false} visible onTogglePinned={() => undefined} />, {
+    render(<HomeTurnPlanDrawer plan={null} pinned={false} visible />, {
       wrapper: createI18nWrapper("en-US"),
     });
 
@@ -181,7 +168,6 @@ describe("HomeTurnPlanDrawer", () => {
         pinned={false}
         showProgress={false}
         visible
-        onTogglePinned={() => undefined}
       />,
       {
         wrapper: createI18nWrapper("en-US"),
@@ -189,7 +175,6 @@ describe("HomeTurnPlanDrawer", () => {
     );
 
     expect(screen.getByRole("region", { name: "Progress card" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Pin progress card" })).toBeInTheDocument();
     expect(screen.queryByText("Progress")).toBeNull();
     expect(screen.queryByText("Prepare UI")).toBeNull();
     expect(screen.getByText("Branch details")).toBeInTheDocument();
@@ -206,7 +191,6 @@ describe("HomeTurnPlanDrawer", () => {
         showProgress={false}
         visible
         onOpenDiff={onOpenDiff}
-        onTogglePinned={() => undefined}
       />,
       {
         wrapper: createI18nWrapper("en-US"),
@@ -237,7 +221,6 @@ describe("HomeTurnPlanDrawer", () => {
         showProgress={false}
         visible
         onSelectThread={onSelectThread}
-        onTogglePinned={() => undefined}
       />,
       {
         wrapper: createI18nWrapper("en-US"),
@@ -263,7 +246,6 @@ describe("HomeTurnPlanDrawer", () => {
         pinned={false}
         showProgress={false}
         visible
-        onTogglePinned={() => undefined}
       />,
       {
         wrapper: createI18nWrapper("en-US"),
@@ -283,7 +265,7 @@ describe("HomeTurnPlanDrawer", () => {
   });
 
   it("stays hidden in the new conversation empty state", () => {
-    render(<HomeTurnPlanDrawer plan={null} pinned={false} visible={false} onTogglePinned={() => undefined} />, {
+    render(<HomeTurnPlanDrawer plan={null} pinned={false} visible={false} />, {
       wrapper: createI18nWrapper("en-US"),
     });
 
