@@ -721,6 +721,28 @@ pub struct BrowserUseOriginInput {
     pub origin: String,
 }
 
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ComputerUseAppKind {
+    Allowed,
+    Denied,
+}
+
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ComputerUseSettingsOutput {
+    pub config_path: String,
+    pub allowed_apps: Vec<String>,
+    pub denied_apps: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ComputerUseAppInput {
+    pub kind: ComputerUseAppKind,
+    pub app: String,
+}
+
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct BrowserSidebarOpenRequestedPayload {

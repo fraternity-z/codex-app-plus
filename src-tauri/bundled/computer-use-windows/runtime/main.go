@@ -16,12 +16,19 @@ import (
 	"time"
 )
 
-var version = "0.1.38"
+var version = "0.1.39"
 
 //go:embed runtime.ps1
 var windowsRuntimeScript string
 
-const serverInstructions = "Computer Use tools let you interact with Windows apps by performing UI actions.\n\nBegin by calling `get_app_state` every turn you want to use Computer Use to get the latest state before acting. The available tools are list_apps, get_app_state, click, perform_secondary_action, scroll, drag, type_text, press_key, and set_value.\n\nPrefer element-targeted interactions over coordinate clicks when an index for the targeted element is available. Windows actions use UI Automation patterns first and fall back to window messages when an app does not expose the needed pattern. Modifier keyboard shortcuts are delivered through foreground keyboard input so Ctrl/Alt/Shift state is preserved. The Windows runtime does not auto-launch apps, perform SetFocus, or use UIA text fallback by default, so background-capable actions do not intentionally steal the user's foreground focus."
+const (
+	maxAppQueryRunes = 120
+	maxTextRunes     = 20_000
+	maxScrollPages   = 50
+	maxClickCount    = 10
+)
+
+const serverInstructions = "Computer Use tools let you interact with Windows apps by performing UI actions.\n\nBegin by calling `get_app_state` every turn you want to use Computer Use to get the latest state before acting. The available tools are list_apps, get_app_state, click, perform_secondary_action, scroll, drag, type_text, press_key, and set_value. Cross-platform aliases list_mac_apps, get_state, and perform_accessibility_action are also accepted.\n\nPrefer element-targeted interactions over coordinate clicks when an index for the targeted element is available. Windows actions use UI Automation patterns first and fall back to window messages when an app does not expose the needed pattern. Modifier keyboard shortcuts are delivered through foreground keyboard input so Ctrl/Alt/Shift state is preserved. The Windows runtime does not auto-launch apps, perform SetFocus, or use UIA text fallback by default, so background-capable actions do not intentionally steal the user's foreground focus. App access is filtered by CODEX_HOME/computer-use/config.toml when configured; denied apps are always blocked and a non-empty allowed list restricts Computer Use to those apps."
 
 type toolDefinition struct {
 	Name        string         `json:"name"`
@@ -150,10 +157,12 @@ type psRequest struct {
 }
 
 type psResponse struct {
-	OK       bool         `json:"ok"`
-	Text     string       `json:"text,omitempty"`
-	Error    string       `json:"error,omitempty"`
-	Snapshot *appSnapshot `json:"snapshot,omitempty"`
+	OK          bool           `json:"ok"`
+	Text        string         `json:"text,omitempty"`
+	Error       string         `json:"error,omitempty"`
+	App         *appDescriptor `json:"app,omitempty"`
+	WindowTitle string         `json:"windowTitle,omitempty"`
+	Snapshot    *appSnapshot   `json:"snapshot,omitempty"`
 }
 
 type service struct {
@@ -165,7 +174,8 @@ func newService() *service {
 }
 
 func (s *service) callTool(name string, args map[string]any) toolCallResult {
-	switch name {
+	canonicalName := canonicalToolName(name)
+	switch canonicalName {
 	case "list_apps":
 		return s.listApps()
 	case "get_app_state":
@@ -211,6 +221,19 @@ func (s *service) callTool(name string, args map[string]any) toolCallResult {
 	}
 }
 
+func canonicalToolName(name string) string {
+	switch strings.TrimSpace(name) {
+	case "list_mac_apps":
+		return "list_apps"
+	case "get_state":
+		return "get_app_state"
+	case "perform_accessibility_action":
+		return "perform_secondary_action"
+	default:
+		return name
+	}
+}
+
 func (s *service) listApps() toolCallResult {
 	response, err := runPowerShell(psRequest{Tool: "list_apps"})
 	if err != nil {
@@ -226,10 +249,11 @@ func (s *service) listApps() toolCallResult {
 }
 
 func (s *service) getAppState(app string) toolCallResult {
-	if app == "" {
-		return textResult("Missing required argument: app", true)
+	resolved, _, result := s.resolveAppForUse(app)
+	if result.IsError {
+		return result
 	}
-	snapshot, result := s.refreshSnapshot(app, psRequest{Tool: "get_app_state", App: app})
+	snapshot, result := s.refreshSnapshot(app, psRequest{Tool: "get_app_state", App: strconv.Itoa(resolved.PID)})
 	if result.IsError {
 		return result
 	}
@@ -237,19 +261,27 @@ func (s *service) getAppState(app string) toolCallResult {
 }
 
 func (s *service) click(app, elementIndex string, x, y *float64, clickCount int, mouseButton string) toolCallResult {
-	if app == "" {
-		return textResult("Missing required argument: app", true)
+	resolved, _, result := s.resolveAppForUse(app)
+	if result.IsError {
+		return result
 	}
 	if elementIndex == "" && (x == nil || y == nil) {
 		return textResult("click requires either element_index or x/y", true)
 	}
-	snapshot := s.currentSnapshot(app)
+	if clickCount < 1 || clickCount > maxClickCount {
+		return textResult(fmt.Sprintf("click_count must be between 1 and %d", maxClickCount), true)
+	}
+	mouseButton = strings.ToLower(strings.TrimSpace(mouseButton))
+	if mouseButton != "left" && mouseButton != "right" && mouseButton != "middle" {
+		return textResult("mouse_button must be left, right, or middle", true)
+	}
+	snapshot := s.currentSnapshotFor(app, resolved)
 	if snapshot == nil {
 		return textResult("No app state is available for "+app+". Run get_app_state before action tools.", true)
 	}
 	request := psRequest{
 		Tool:         "click",
-		App:          app,
+		App:          strconv.Itoa(resolved.PID),
 		X:            x,
 		Y:            y,
 		ClickCount:   clickCount,
@@ -267,8 +299,9 @@ func (s *service) click(app, elementIndex string, x, y *float64, clickCount int,
 }
 
 func (s *service) performSecondaryAction(app, elementIndex, action string) toolCallResult {
-	if app == "" {
-		return textResult("Missing required argument: app", true)
+	resolved, _, result := s.resolveAppForUse(app)
+	if result.IsError {
+		return result
 	}
 	if elementIndex == "" {
 		return textResult("Missing required argument: element_index", true)
@@ -276,7 +309,7 @@ func (s *service) performSecondaryAction(app, elementIndex, action string) toolC
 	if action == "" {
 		return textResult("Missing required argument: action", true)
 	}
-	snapshot := s.currentSnapshot(app)
+	snapshot := s.currentSnapshotFor(app, resolved)
 	if snapshot == nil {
 		return textResult("No app state is available for "+app+". Run get_app_state before action tools.", true)
 	}
@@ -284,12 +317,13 @@ func (s *service) performSecondaryAction(app, elementIndex, action string) toolC
 	if err != nil {
 		return textResult(err.Error(), true)
 	}
-	return s.actionResult(app, psRequest{Tool: "perform_secondary_action", App: app, Element: record, Action: action})
+	return s.actionResult(app, psRequest{Tool: "perform_secondary_action", App: strconv.Itoa(resolved.PID), Element: record, Action: action})
 }
 
 func (s *service) scroll(app, direction, elementIndex string, pages float64) toolCallResult {
-	if app == "" {
-		return textResult("Missing required argument: app", true)
+	resolved, _, result := s.resolveAppForUse(app)
+	if result.IsError {
+		return result
 	}
 	if elementIndex == "" {
 		return textResult("Missing required argument: element_index", true)
@@ -301,7 +335,10 @@ func (s *service) scroll(app, direction, elementIndex string, pages float64) too
 	if pages <= 0 {
 		return textResult("pages must be > 0", true)
 	}
-	snapshot := s.currentSnapshot(app)
+	if pages > maxScrollPages {
+		return textResult(fmt.Sprintf("pages must be <= %d", maxScrollPages), true)
+	}
+	snapshot := s.currentSnapshotFor(app, resolved)
 	if snapshot == nil {
 		return textResult("No app state is available for "+app+". Run get_app_state before action tools.", true)
 	}
@@ -309,12 +346,13 @@ func (s *service) scroll(app, direction, elementIndex string, pages float64) too
 	if err != nil {
 		return textResult(err.Error(), true)
 	}
-	return s.actionResult(app, psRequest{Tool: "scroll", App: app, Element: record, Direction: normalized, Pages: pages})
+	return s.actionResult(app, psRequest{Tool: "scroll", App: strconv.Itoa(resolved.PID), Element: record, Direction: normalized, Pages: pages})
 }
 
 func (s *service) drag(app string, fromX, fromY, toX, toY *float64) toolCallResult {
-	if app == "" {
-		return textResult("Missing required argument: app", true)
+	resolved, _, result := s.resolveAppForUse(app)
+	if result.IsError {
+		return result
 	}
 	if fromX == nil {
 		return textResult("Missing required argument: from_x", true)
@@ -328,47 +366,56 @@ func (s *service) drag(app string, fromX, fromY, toX, toY *float64) toolCallResu
 	if toY == nil {
 		return textResult("Missing required argument: to_y", true)
 	}
-	snapshot := s.currentSnapshot(app)
+	snapshot := s.currentSnapshotFor(app, resolved)
 	if snapshot == nil {
 		return textResult("No app state is available for "+app+". Run get_app_state before action tools.", true)
 	}
-	return s.actionResult(app, psRequest{Tool: "drag", App: app, FromX: fromX, FromY: fromY, ToX: toX, ToY: toY, WindowBounds: snapshot.WindowBounds})
+	return s.actionResult(app, psRequest{Tool: "drag", App: strconv.Itoa(resolved.PID), FromX: fromX, FromY: fromY, ToX: toX, ToY: toY, WindowBounds: snapshot.WindowBounds})
 }
 
 func (s *service) typeText(app, text string) toolCallResult {
-	if app == "" {
-		return textResult("Missing required argument: app", true)
+	resolved, _, result := s.resolveAppForUse(app)
+	if result.IsError {
+		return result
 	}
 	if text == "" {
 		return textResult("Missing required argument: text", true)
 	}
-	if s.currentSnapshot(app) == nil {
+	if runeCount(text) > maxTextRunes {
+		return textResult(fmt.Sprintf("text must be <= %d characters", maxTextRunes), true)
+	}
+	if s.currentSnapshotFor(app, resolved) == nil {
 		return textResult("No app state is available for "+app+". Run get_app_state before action tools.", true)
 	}
-	return s.actionResult(app, psRequest{Tool: "type_text", App: app, Text: text})
+	return s.actionResult(app, psRequest{Tool: "type_text", App: strconv.Itoa(resolved.PID), Text: text})
 }
 
 func (s *service) pressKey(app, key string) toolCallResult {
-	if app == "" {
-		return textResult("Missing required argument: app", true)
+	resolved, _, result := s.resolveAppForUse(app)
+	if result.IsError {
+		return result
 	}
 	if key == "" {
 		return textResult("Missing required argument: key", true)
 	}
-	if s.currentSnapshot(app) == nil {
+	if s.currentSnapshotFor(app, resolved) == nil {
 		return textResult("No app state is available for "+app+". Run get_app_state before action tools.", true)
 	}
-	return s.actionResult(app, psRequest{Tool: "press_key", App: app, Key: key})
+	return s.actionResult(app, psRequest{Tool: "press_key", App: strconv.Itoa(resolved.PID), Key: key})
 }
 
 func (s *service) setValue(app, elementIndex, value string) toolCallResult {
-	if app == "" {
-		return textResult("Missing required argument: app", true)
+	resolved, _, result := s.resolveAppForUse(app)
+	if result.IsError {
+		return result
 	}
 	if elementIndex == "" {
 		return textResult("Missing required argument: element_index", true)
 	}
-	snapshot := s.currentSnapshot(app)
+	if runeCount(value) > maxTextRunes {
+		return textResult(fmt.Sprintf("value must be <= %d characters", maxTextRunes), true)
+	}
+	snapshot := s.currentSnapshotFor(app, resolved)
 	if snapshot == nil {
 		return textResult("No app state is available for "+app+". Run get_app_state before action tools.", true)
 	}
@@ -376,7 +423,7 @@ func (s *service) setValue(app, elementIndex, value string) toolCallResult {
 	if err != nil {
 		return textResult(err.Error(), true)
 	}
-	return s.actionResult(app, psRequest{Tool: "set_value", App: app, Element: record, Value: value})
+	return s.actionResult(app, psRequest{Tool: "set_value", App: strconv.Itoa(resolved.PID), Element: record, Value: value})
 }
 
 func (s *service) actionResult(app string, request psRequest) toolCallResult {
@@ -389,6 +436,58 @@ func (s *service) actionResult(app string, request psRequest) toolCallResult {
 
 func (s *service) currentSnapshot(app string) *appSnapshot {
 	return s.snapshots[strings.ToLower(app)]
+}
+
+func (s *service) currentSnapshotFor(app string, resolved *appDescriptor) *appSnapshot {
+	if snapshot := s.currentSnapshot(app); snapshot != nil {
+		return snapshot
+	}
+	if resolved == nil {
+		return nil
+	}
+	for _, key := range []string{strconv.Itoa(resolved.PID), resolved.Name, resolved.BundleIdentifier} {
+		if snapshot := s.currentSnapshot(key); snapshot != nil {
+			return snapshot
+		}
+	}
+	return nil
+}
+
+func (s *service) resolveAppForUse(app string) (*appDescriptor, string, toolCallResult) {
+	query, err := cleanAppQuery(app)
+	if err != nil {
+		return nil, "", textResult(err.Error(), true)
+	}
+
+	response, err := runPowerShell(psRequest{Tool: "resolve_app", App: query})
+	if err != nil {
+		return nil, "", textResult(err.Error(), true)
+	}
+	if !response.OK {
+		return nil, "", textResult(response.Error, true)
+	}
+	if response.App == nil {
+		return nil, "", textResult("Windows runtime did not resolve an app.", true)
+	}
+	if err := loadAppAccessPolicy().authorize(*response.App); err != nil {
+		return nil, "", textResult(err.Error(), true)
+	}
+	return response.App, response.WindowTitle, toolCallResult{}
+}
+
+func cleanAppQuery(app string) (string, error) {
+	app = strings.TrimSpace(app)
+	if app == "" {
+		return "", errors.New("Missing required argument: app")
+	}
+	if runeCount(app) > maxAppQueryRunes {
+		return "", fmt.Errorf("app must be <= %d characters", maxAppQueryRunes)
+	}
+	return app, nil
+}
+
+func runeCount(value string) int {
+	return len([]rune(value))
 }
 
 func (s *service) refreshSnapshot(app string, request psRequest) (*appSnapshot, toolCallResult) {
@@ -564,8 +663,22 @@ func toolDefinitions() []toolDefinition {
 			}, []string{"app"}),
 		},
 		{
+			Name:        "get_state",
+			Description: "Alias of get_app_state for cross-platform Computer Use prompts. This tool is part of plugin `Computer Use`.",
+			Annotations: readOnlyAnnotations(),
+			InputSchema: objectSchema(map[string]any{
+				"app": stringProperty("App name or bundle identifier"),
+			}, []string{"app"}),
+		},
+		{
 			Name:        "list_apps",
-			Description: "List the apps on this computer. Returns the set of apps that are currently running, as well as any that have been used in the last 14 days, including details on usage frequency. This tool is part of plugin `Computer Use`.",
+			Description: "List visible top-level Windows apps that are currently running. This tool is part of plugin `Computer Use`.",
+			Annotations: readOnlyAnnotations(),
+			InputSchema: objectSchema(map[string]any{}, nil),
+		},
+		{
+			Name:        "list_mac_apps",
+			Description: "Alias of list_apps for cross-platform Computer Use prompts. On Windows this returns visible Windows apps. This tool is part of plugin `Computer Use`.",
 			Annotations: readOnlyAnnotations(),
 			InputSchema: objectSchema(map[string]any{}, nil),
 		},
@@ -577,6 +690,16 @@ func toolDefinitions() []toolDefinition {
 				"app":           stringProperty("App name or bundle identifier"),
 				"element_index": stringProperty("Element identifier"),
 				"action":        stringProperty("Secondary accessibility action name"),
+			}, []string{"app", "element_index", "action"}),
+		},
+		{
+			Name:        "perform_accessibility_action",
+			Description: "Alias of perform_secondary_action for cross-platform Computer Use prompts. This tool is part of plugin `Computer Use`.",
+			Annotations: defaultAnnotations(),
+			InputSchema: objectSchema(map[string]any{
+				"app":           stringProperty("App name or bundle identifier"),
+				"element_index": stringProperty("Element identifier"),
+				"action":        stringProperty("Accessibility action name"),
 			}, []string{"app", "element_index", "action"}),
 		},
 		{

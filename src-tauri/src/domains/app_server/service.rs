@@ -229,7 +229,9 @@ async fn spawn_runtime(
     input: AppServerStartInput,
 ) -> AppResult<Arc<AppServerRuntime>> {
     let agent_environment = resolve_agent_environment(input.agent_environment);
-    bundled_computer_use::ensure_registered(&app, agent_environment)?;
+    if let Err(error) = bundled_computer_use::ensure_registered(&app, agent_environment) {
+        eprintln!("Computer Use bundled registration failed: {error}");
+    }
     bundled_browser_use::ensure_registered(&app, agent_environment)?;
 
     let mut cli = CodexCli::resolve(Some(&app), &input)?;

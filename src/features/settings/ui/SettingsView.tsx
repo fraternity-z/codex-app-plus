@@ -20,6 +20,8 @@ import type {
   BrowserBrowsingDataKind,
   BrowserUseOriginKind,
   BrowserUseSettingsOutput,
+  ComputerUseAppKind,
+  ComputerUseSettingsOutput,
   CustomPetsOutput,
   WriteProjectPermissionConfigInput,
 } from "../../../bridge/types";
@@ -38,6 +40,7 @@ import { AboutSettingsSection } from "./AboutSettingsSection";
 import { AgentsSettingsSection } from "./AgentsSettingsSection";
 import { AppearanceSettingsSection } from "./AppearanceSettingsSection";
 import { BrowserUseSettingsSection } from "./BrowserUseSettingsSection";
+import { ComputerUseSettingsSection } from "./ComputerUseSettingsSection";
 import { ConfigSettingsSection } from "./ConfigSettingsSection";
 import { GeneralSettingsSection } from "./GeneralSettingsSection";
 import { GitSettingsSection } from "./GitSettingsSection";
@@ -64,6 +67,7 @@ export type SettingsSection =
   | "environment"
   | "worktree"
   | "browserUse"
+  | "computerUse"
   | "about";
 
 export interface SettingsViewProps {
@@ -129,6 +133,13 @@ export interface SettingsViewProps {
   removeBrowserUseOrigin: (
     input: { readonly kind: BrowserUseOriginKind; readonly origin: string }
   ) => Promise<BrowserUseSettingsOutput>;
+  readComputerUseSettings: () => Promise<ComputerUseSettingsOutput>;
+  addComputerUseApp: (
+    input: { readonly kind: ComputerUseAppKind; readonly app: string }
+  ) => Promise<ComputerUseSettingsOutput>;
+  removeComputerUseApp: (
+    input: { readonly kind: ComputerUseAppKind; readonly app: string }
+  ) => Promise<ComputerUseSettingsOutput>;
   clearBrowserBrowsingData: () => Promise<void>;
   clearBrowserBrowsingDataByKind: (
     input: { readonly kind: BrowserBrowsingDataKind }
@@ -167,6 +178,7 @@ const NAV_ITEM_DEFINITIONS: ReadonlyArray<{
   { key: "environment", labelKey: "settings.nav.environment", icon: "environment" },
   { key: "worktree", labelKey: "settings.nav.worktree", icon: "worktree" },
   { key: "browserUse", labelKey: "settings.nav.browserUse", icon: "browserUse" },
+  { key: "computerUse", labelKey: "settings.nav.computerUse", icon: "computerUse" },
   { key: "about", labelKey: "settings.nav.about", icon: "about" },
 ];
 function createNavItems(t: (key: MessageKey) => string): ReadonlyArray<NavItem> {
@@ -242,6 +254,7 @@ function SettingsSidebar(props: {
         {renderNavItem("environment")}
         {renderNavItem("worktree")}
         {renderNavItem("browserUse")}
+        {renderNavItem("computerUse")}
       </nav>
     </aside>
   );
@@ -378,6 +391,15 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
         removeBrowserUseOrigin={props.removeBrowserUseOrigin}
         clearBrowserBrowsingData={props.clearBrowserBrowsingData}
         clearBrowserBrowsingDataByKind={props.clearBrowserBrowsingDataByKind}
+      />
+    );
+  }
+  if (section === "computerUse") {
+    return (
+      <ComputerUseSettingsSection
+        readComputerUseSettings={props.readComputerUseSettings}
+        addComputerUseApp={props.addComputerUseApp}
+        removeComputerUseApp={props.removeComputerUseApp}
       />
     );
   }

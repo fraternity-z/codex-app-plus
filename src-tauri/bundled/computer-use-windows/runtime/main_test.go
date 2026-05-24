@@ -14,8 +14,20 @@ import (
 )
 
 func TestToolDefinitionCount(t *testing.T) {
-	if got := len(toolDefinitions()); got != 9 {
-		t.Fatalf("toolDefinitions() count = %d, want 9", got)
+	if got := len(toolDefinitions()); got != 12 {
+		t.Fatalf("toolDefinitions() count = %d, want 12", got)
+	}
+}
+
+func TestCrossPlatformToolAliases(t *testing.T) {
+	for alias, canonical := range map[string]string{
+		"list_mac_apps":                "list_apps",
+		"get_state":                    "get_app_state",
+		"perform_accessibility_action": "perform_secondary_action",
+	} {
+		if got := canonicalToolName(alias); got != canonical {
+			t.Fatalf("canonicalToolName(%q) = %q, want %q", alias, got, canonical)
+		}
 	}
 }
 
@@ -92,6 +104,18 @@ func TestWindowsRuntimeForegroundActionsRequireOptIn(t *testing.T) {
 	}
 	if !strings.Contains(serverInstructions, "does not auto-launch apps, perform SetFocus, or use UIA text fallback by default") {
 		t.Fatal("MCP instructions must document the Windows background-focus policy")
+	}
+	if !strings.Contains(serverInstructions, "config.toml") {
+		t.Fatal("MCP instructions must document the app access policy")
+	}
+}
+
+func TestWindowsRuntimeResolvesAppsBeforeSnapshot(t *testing.T) {
+	if !strings.Contains(windowsRuntimeScript, `elseif ($operation.tool -eq "resolve_app")`) {
+		t.Fatal("Windows runtime must support resolve_app preflight")
+	}
+	if !strings.Contains(windowsRuntimeScript, "Resolve-App $operation.app $false") {
+		t.Fatal("resolve_app preflight must not auto-launch apps before authorization")
 	}
 }
 

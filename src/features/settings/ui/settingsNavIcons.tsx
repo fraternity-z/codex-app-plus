@@ -10,6 +10,7 @@ export type SettingsNavIconKind =
   | "environment"
   | "worktree"
   | "browserUse"
+  | "computerUse"
   | "about";
 
 export function SettingsNavIcon(props: {
@@ -137,6 +138,16 @@ export function SettingsNavIcon(props: {
         <path d="M2.5 5.8h11" {...common} />
         <circle cx="5.3" cy="9.2" r="2.1" {...common} />
         <path d="M3.4 9.2h3.8M5.3 7.1a4 4 0 0 1 0 4.2M5.3 7.1a4 4 0 0 0 0 4.2" {...common} />
+      </svg>
+    );
+  }
+
+  if (props.kind === "computerUse") {
+    return (
+      <svg className={props.className} viewBox="0 0 16 16" aria-hidden="true">
+        <rect x="2.4" y="3.1" width="11.2" height="8.2" rx="1.6" {...common} />
+        <path d="M6.4 13h3.2M8 11.3V13" {...common} />
+        <path d="M6.3 6.3 8 8 6.3 9.7M9.1 9.8h2" {...common} />
       </svg>
     );
   }

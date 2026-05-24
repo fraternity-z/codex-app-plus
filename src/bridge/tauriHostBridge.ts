@@ -18,6 +18,8 @@ import type {
   ChatgptAuthTokensOutput,
   CodexAuthModeStateOutput,
   CodexAuthSwitchResult,
+  ComputerUseAppInput,
+  ComputerUseSettingsOutput,
   CreateAgentInput,
   CustomPetsOutput,
   CustomPromptOutput,
@@ -185,6 +187,18 @@ export function createTauriHostBridge(): HostBridge {
       removeBrowserUseOrigin: (input: BrowserUseOriginInput) =>
         invokeWithInput<BrowserUseOriginInput, BrowserUseSettingsOutput>(
           "app_browser_use_origin_remove",
+          input
+        ),
+      readComputerUseSettings: () =>
+        invokeCommand<ComputerUseSettingsOutput>("app_computer_use_settings_read"),
+      addComputerUseApp: (input: ComputerUseAppInput) =>
+        invokeWithInput<ComputerUseAppInput, ComputerUseSettingsOutput>(
+          "app_computer_use_app_add",
+          input
+        ),
+      removeComputerUseApp: (input: ComputerUseAppInput) =>
+        invokeWithInput<ComputerUseAppInput, ComputerUseSettingsOutput>(
+          "app_computer_use_app_remove",
           input
         ),
       openCodexConfigToml: (input: OpenCodexConfigTomlInput) =>

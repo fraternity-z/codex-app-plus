@@ -223,6 +223,22 @@
   opacity: 0.76;
 }
 
+.computer-use-plugin-icon {
+  background: linear-gradient(135deg, #1f2937 0%, #375467 54%, #00a6a6 100%);
+}
+
+.computer-use-plugin-icon svg rect,
+.computer-use-plugin-icon svg path {
+  fill: currentColor;
+}
+
+.computer-use-config-path {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+  font-family: var(--app-code-font-family);
+  font-size: var(--app-code-font-size);
+}
+
 .browser-use-enabled-mark {
   color: var(--text-subtle);
   font-size: var(--app-ui-font-size-3xl);

@@ -1,6 +1,6 @@
 {
   "name": "computer-use",
-  "version": "0.1.38",
+  "version": "0.1.39",
   "description": "Bundled Windows Computer Use MCP server for Codex App Plus.",
   "author": {
     "name": "Codex App Plus"
@@ -16,7 +16,7 @@
   "interface": {
     "displayName": "Computer Use",
     "shortDescription": "Control Windows apps from Codex",
-    "longDescription": "Computer Use for Windows lets Codex inspect and control desktop apps through a local MCP server. It uses Windows UI Automation first, then Win32 window messages as fallback input when an app does not expose semantic actions.",
+    "longDescription": "Computer Use for Windows lets Codex inspect and control desktop apps through a local MCP server. It uses Windows UI Automation first, then Win32 window messages as fallback input when an app does not expose semantic actions. App access can be constrained with CODEX_HOME/computer-use/config.toml.",
     "developerName": "Codex App Plus",
     "category": "Productivity",
     "capabilities": [

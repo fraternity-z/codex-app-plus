@@ -142,6 +142,21 @@ function createHostBridge(): HostBridge {
         allowedOrigins: [],
         deniedOrigins: []
       }),
+      readComputerUseSettings: vi.fn().mockResolvedValue({
+        configPath: "C:/Users/Administrator/.codex/computer-use/config.toml",
+        allowedApps: [],
+        deniedApps: []
+      }),
+      addComputerUseApp: vi.fn().mockResolvedValue({
+        configPath: "C:/Users/Administrator/.codex/computer-use/config.toml",
+        allowedApps: [],
+        deniedApps: []
+      }),
+      removeComputerUseApp: vi.fn().mockResolvedValue({
+        configPath: "C:/Users/Administrator/.codex/computer-use/config.toml",
+        allowedApps: [],
+        deniedApps: []
+      }),
       getCodexAuthModeState: vi.fn().mockResolvedValue({
         activeMode: "chatgpt",
         activeProviderId: null,

@@ -144,6 +144,21 @@ function createBaseProps(
       allowedOrigins: [],
       deniedOrigins: [],
     }),
+    readComputerUseSettings: vi.fn().mockResolvedValue({
+      configPath: "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+      allowedApps: [],
+      deniedApps: [],
+    }),
+    addComputerUseApp: vi.fn().mockResolvedValue({
+      configPath: "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+      allowedApps: ["notepad"],
+      deniedApps: [],
+    }),
+    removeComputerUseApp: vi.fn().mockResolvedValue({
+      configPath: "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+      allowedApps: [],
+      deniedApps: [],
+    }),
     clearBrowserBrowsingData: vi.fn().mockResolvedValue(undefined),
     clearBrowserBrowsingDataByKind: vi.fn().mockResolvedValue(undefined),
     refreshMcpData: vi.fn(),
@@ -263,6 +278,17 @@ describe("SettingsView", () => {
     expect(screen.getByText("清除所有浏览数据")).toBeInTheDocument();
   });
 
+  it("renders computer use settings", async () => {
+    render(<SettingsView {...createBaseProps({ section: "computerUse" })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.getByRole("heading", { name: "电脑操控" })).toBeInTheDocument();
+    expect(await screen.findByText("Computer Use")).toBeInTheDocument();
+    expect(screen.getByText("访问策略")).toBeInTheDocument();
+    expect(screen.getByText("已屏蔽的应用")).toBeInTheDocument();
+  });
+
   it("renders hooks as a TODO placeholder section", () => {
     render(<SettingsView {...createBaseProps({ section: "hooks" })} />, {
       wrapper: createI18nWrapper("zh-CN"),
@@ -330,6 +356,52 @@ describe("SettingsView", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "添加" })[0]!);
 
     expect(screen.getByPlaceholderText("example.com")).toBeInTheDocument();
+  });
+
+  it("keeps computer use app forms collapsed until adding an app", async () => {
+    render(<SettingsView {...createBaseProps({ section: "computerUse" })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.queryByPlaceholderText("notepad、code 或 chrome")).toBeNull();
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: "添加" })[0]).not.toBeDisabled();
+    });
+
+    fireEvent.click(screen.getAllByRole("button", { name: "添加" })[0]!);
+
+    expect(screen.getByPlaceholderText("notepad、code 或 chrome")).toBeInTheDocument();
+  });
+
+  it("adds computer use apps through the settings bridge", async () => {
+    const addComputerUseApp = vi.fn().mockResolvedValue({
+      configPath: "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+      allowedApps: [],
+      deniedApps: ["powershell"],
+    });
+    render(<SettingsView {...createBaseProps({
+      section: "computerUse",
+      addComputerUseApp,
+    })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: "添加" })[0]).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "添加" })[0]!);
+    fireEvent.change(screen.getByPlaceholderText("notepad、code 或 chrome"), {
+      target: { value: "powershell.exe" },
+    });
+    fireEvent.click(screen.getAllByRole("button", { name: "添加" })[1]!);
+
+    await waitFor(() => {
+      expect(addComputerUseApp).toHaveBeenCalledWith({
+        kind: "denied",
+        app: "powershell.exe",
+      });
+    });
   });
 
   it("keeps the settings sidebar visible while adding an MCP server", async () => {

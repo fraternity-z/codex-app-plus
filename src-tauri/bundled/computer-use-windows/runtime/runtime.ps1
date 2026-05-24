@@ -465,7 +465,7 @@ function Send-Key($process, [IntPtr]$hwnd, [string]$key) {
     Send-KeyChordWithInput $chord
 }
 
-function Resolve-App([string]$query) {
+function Resolve-App([string]$query, [bool]$allowLaunch = $true) {
     $normalized = $query.Trim()
     $processQuery = $normalized
     if ($processQuery.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) {
@@ -490,7 +490,7 @@ function Resolve-App([string]$query) {
         return $match
     }
 
-    if (Test-EnvFlagEnabled "OPEN_COMPUTER_USE_WINDOWS_ALLOW_APP_LAUNCH") {
+    if ($allowLaunch -and (Test-EnvFlagEnabled "OPEN_COMPUTER_USE_WINDOWS_ALLOW_APP_LAUNCH")) {
         try {
             $started = Start-Process -FilePath $normalized -PassThru
             for ($i = 0; $i -lt 20; $i++) {
@@ -757,17 +757,21 @@ function Get-SelectedText($processId) {
     return $null
 }
 
+function Get-AppDescriptor($process) {
+    [pscustomobject]@{
+        name = $process.ProcessName
+        bundleIdentifier = $process.ProcessName
+        pid = [int]$process.Id
+    }
+}
+
 function Build-Snapshot([string]$query) {
     $process = Resolve-App $query
     $element = Get-MainElement $process
     $bounds = Get-WindowBounds $process $element
     $rendered = Render-Tree $element $bounds
     [pscustomobject]@{
-        app = [pscustomobject]@{
-            name = $process.ProcessName
-            bundleIdentifier = $process.ProcessName
-            pid = [int]$process.Id
-        }
+        app = Get-AppDescriptor $process
         windowTitle = $process.MainWindowTitle
         windowBounds = $bounds
         screenshotPngBase64 = Capture-WindowPngBase64 $bounds
@@ -1038,6 +1042,13 @@ $operation = Get-Content -Raw -Path $OperationPath | ConvertFrom-Json
 try {
     if ($operation.tool -eq "list_apps") {
         $response = [pscustomobject]@{ ok = $true; text = (List-Apps) }
+    } elseif ($operation.tool -eq "resolve_app") {
+        $process = Resolve-App $operation.app $false
+        $response = [pscustomobject]@{
+            ok = $true
+            app = Get-AppDescriptor $process
+            windowTitle = $process.MainWindowTitle
+        }
     } elseif ($operation.tool -eq "get_app_state") {
         $response = [pscustomobject]@{ ok = $true; snapshot = (Build-Snapshot $operation.app) }
     } else {

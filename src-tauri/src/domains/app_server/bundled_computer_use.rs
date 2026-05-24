@@ -14,7 +14,15 @@ const MARKETPLACE_NAME: &str = "codex-app-plus-bundled";
 const PLUGIN_NAME: &str = "computer-use";
 const PLUGIN_ID: &str = "computer-use@codex-app-plus-bundled";
 const PLUGIN_RELATIVE_PATH: &str = "plugins/computer-use";
+const APP_POLICY_CONFIG_PATH: &str = "computer-use/config.toml";
 const USER_CONFIG_PATH: &str = ".codex/config.toml";
+const DEFAULT_APP_POLICY_CONFIG: &str = r#"# Windows Computer Use app access policy.
+# Leave allowed empty to permit visible apps except entries in denied.
+# Add process names without ".exe", for example: allowed = ["notepad", "code"]
+[apps]
+allowed = []
+denied = []
+"#;
 
 pub fn ensure_registered(app: &AppHandle, agent_environment: AgentEnvironment) -> AppResult<()> {
     if agent_environment != AgentEnvironment::WindowsNative {
@@ -33,6 +41,7 @@ pub fn ensure_registered(app: &AppHandle, agent_environment: AgentEnvironment) -
             config_path.host_path.display()
         ))
     })?;
+    ensure_app_policy_config(codex_home)?;
     let plugin_cache_root = plugin_cache_root(codex_home, &plugin_version);
     materialize_plugin_cache(&install_root, &plugin_cache_root)?;
     register_marketplace_in_config(&config_path.host_path, &install_root)
@@ -136,6 +145,18 @@ fn materialize_plugin_cache(marketplace_root: &Path, plugin_cache_root: &Path) -
     copy_directory(&plugin_source_root, plugin_cache_root)
 }
 
+fn ensure_app_policy_config(codex_home: &Path) -> AppResult<()> {
+    let config_path = codex_home.join(APP_POLICY_CONFIG_PATH);
+    if config_path.exists() {
+        return Ok(());
+    }
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(config_path, DEFAULT_APP_POLICY_CONFIG)?;
+    Ok(())
+}
+
 fn copy_directory(source: &Path, destination: &Path) -> AppResult<()> {
     fs::create_dir_all(destination)?;
     for entry in fs::read_dir(source)? {
@@ -204,7 +225,10 @@ fn normalize_path_for_toml(path: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{plugin_cache_root, update_config, MARKETPLACE_NAME, PLUGIN_ID};
+    use super::{
+        ensure_app_policy_config, plugin_cache_root, update_config, MARKETPLACE_NAME, PLUGIN_ID,
+    };
+    use std::fs;
 
     #[test]
     fn update_config_adds_bundled_marketplace_and_plugin() {
@@ -239,13 +263,36 @@ mod tests {
 
     #[test]
     fn plugin_cache_root_matches_codex_store_layout() {
-        let root = plugin_cache_root(std::path::Path::new(r"C:\Users\me\.codex"), "0.1.38");
+        let root = plugin_cache_root(std::path::Path::new(r"C:\Users\me\.codex"), "0.1.39");
 
         assert_eq!(
             root,
             std::path::PathBuf::from(
-                r"C:\Users\me\.codex\plugins\cache\codex-app-plus-bundled\computer-use\0.1.38"
+                r"C:\Users\me\.codex\plugins\cache\codex-app-plus-bundled\computer-use\0.1.39"
             )
         );
+    }
+
+    #[test]
+    fn ensure_app_policy_config_creates_default_policy_without_overwriting() {
+        let root = std::env::temp_dir().join(format!(
+            "codex-app-plus-computer-use-test-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+
+        ensure_app_policy_config(&root).expect("create policy config");
+        let config_path = root.join("computer-use/config.toml");
+        let created = fs::read_to_string(&config_path).expect("read created config");
+        assert!(created.contains("[apps]"));
+        assert!(created.contains("allowed = []"));
+        assert!(created.contains("denied = []"));
+
+        fs::write(&config_path, "[apps]\nallowed = [\"notepad\"]\n").expect("write custom config");
+        ensure_app_policy_config(&root).expect("preserve policy config");
+        let preserved = fs::read_to_string(&config_path).expect("read preserved config");
+        assert!(preserved.contains("notepad"));
+
+        fs::remove_dir_all(root).expect("cleanup");
     }
 }
