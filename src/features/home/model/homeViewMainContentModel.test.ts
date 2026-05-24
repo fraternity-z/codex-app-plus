@@ -74,7 +74,7 @@ function createThreadSummary(overrides?: Partial<ThreadSummary>): ThreadSummary 
 }
 
 describe("createTurnPlanOverview", () => {
-  it("prefers the current turn diff snapshot and counts generated images from the same turn", () => {
+  it("prefers the current turn diff snapshot and collects generated results from the same turn", () => {
     const plan = createTurnPlanModel(createPlanEntry());
     const activities: ReadonlyArray<TimelineEntry> = [
       {
@@ -116,6 +116,21 @@ describe("createTurnPlanOverview", () => {
         result: "",
         savedPath: "E:/code/output/image.png",
       },
+      {
+        id: "thread-1:turn-1:fileChange",
+        kind: "fileChange",
+        threadId: "thread-1",
+        turnId: "turn-1",
+        itemId: "file-change-1",
+        changes: [{
+          path: "docs/report.pdf",
+          kind: { type: "add" },
+          diff: "",
+        }],
+        status: "completed",
+        output: "",
+        approvalRequestId: null,
+      },
     ];
 
     const overview = createTurnPlanOverview({
@@ -123,6 +138,7 @@ describe("createTurnPlanOverview", () => {
       diffItems: [createDiffItem({ additions: 99, deletions: 88 })],
       gitStatus: createGitStatus(),
       plan,
+      workspacePath: "E:/code/codex-app-plus",
     });
 
     expect(overview).toEqual({
@@ -130,7 +146,28 @@ describe("createTurnPlanOverview", () => {
       backgroundTasks: [],
       changedFiles: 1,
       deletions: 1,
-      generatedImages: 1,
+      generatedResults: [
+        {
+          id: "thread-1:turn-1:image",
+          target: {
+            kind: "file",
+            fileKind: "image",
+            path: "E:/code/output/image.png",
+            name: "image.png",
+            extension: "PNG",
+          },
+        },
+        {
+          id: "thread-1:turn-1:fileChange:docs/report.pdf",
+          target: {
+            kind: "file",
+            fileKind: "document",
+            path: "E:/code/codex-app-plus/docs/report.pdf",
+            name: "report.pdf",
+            extension: "PDF",
+          },
+        },
+      ],
     });
   });
 

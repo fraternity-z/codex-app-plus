@@ -510,8 +510,9 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
       gitStatus: props.gitController.status,
       plan: derivedState.currentTurnPlan,
       threads: props.threads,
+      workspacePath: props.selectedRootPath,
     }),
-    [derivedState.currentTurnPlan, props.activities, props.diffItems, props.gitController.status, props.threads],
+    [derivedState.currentTurnPlan, props.activities, props.diffItems, props.gitController.status, props.selectedRootPath, props.threads],
   );
   const { openFileLink } = useFileLinkOpener(
     props.hostBridge,
@@ -664,6 +665,7 @@ export function HomeViewMainContent(props: HomeViewMainContentProps): JSX.Elemen
           visible={showTurnPlanDrawer}
           gitController={props.gitController}
           onOpenDiff={props.selectedRootPath === null ? undefined : props.onToggleDiff}
+          onOpenGeneratedResult={props.selectedRootPath === null ? undefined : props.onOpenPreviewTarget}
           onSelectThread={props.onSelectThread}
         />
       </div>

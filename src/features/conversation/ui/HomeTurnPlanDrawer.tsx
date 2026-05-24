@@ -1,8 +1,19 @@
-import type { TurnPlanBackgroundTask, TurnPlanModel, TurnPlanOverview } from "../model/homeTurnPlanModel";
+import { useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import type {
+  TurnPlanBackgroundTask,
+  TurnPlanGeneratedResult,
+  TurnPlanGeneratedResultTarget,
+  TurnPlanModel,
+  TurnPlanOverview,
+} from "../model/homeTurnPlanModel";
 import { formatTurnPlanStatusLabel } from "../model/homeTurnPlanModel";
 import type { WorkspaceGitController } from "../../git/model/types";
-import { GitOperationsMenu } from "../../git/ui/GitOperationsMenu";
-import { GitBranchIcon, GitHubMarkIcon } from "../../git/ui/gitIcons";
+import { canOpenCommitDialog, canPushChanges } from "../../git/model/gitActionAvailability";
+import { GitCommitNodeIcon, GitHubMarkIcon, GitMoreHorizontalIcon, GitPushIcon } from "../../git/ui/gitIcons";
+import { GitPushConfirmDialog } from "../../git/ui/GitPushConfirmDialog";
+import { readStoredAppPreferences } from "../../settings/hooks/useAppPreferences";
+import { useToolbarMenuDismissal } from "../../shared/hooks/useToolbarMenuDismissal";
 import { useI18n } from "../../../i18n/useI18n";
 import type { TurnPlanStep } from "../../../protocol/generated/v2/TurnPlanStep";
 
@@ -14,6 +25,7 @@ interface HomeTurnPlanDrawerProps {
   readonly visible: boolean;
   readonly gitController?: WorkspaceGitController;
   readonly onOpenDiff?: () => void;
+  readonly onOpenGeneratedResult?: (target: TurnPlanGeneratedResultTarget) => void;
   readonly onSelectThread?: (threadId: string) => void;
 }
 
@@ -76,6 +88,7 @@ export function HomeTurnPlanDrawer(props: HomeTurnPlanDrawerProps): JSX.Element 
         <OverviewSections
           gitController={props.gitController}
           onOpenDiff={props.onOpenDiff}
+          onOpenGeneratedResult={props.onOpenGeneratedResult}
           onSelectThread={props.onSelectThread}
           overview={props.overview}
         />
@@ -105,6 +118,7 @@ function PlanStepMarker(props: { readonly status: TurnPlanStep["status"] }): JSX
 function OverviewSections(props: {
   readonly gitController?: WorkspaceGitController;
   readonly onOpenDiff?: () => void;
+  readonly onOpenGeneratedResult?: (target: TurnPlanGeneratedResultTarget) => void;
   readonly onSelectThread?: (threadId: string) => void;
   readonly overview?: TurnPlanOverview;
 }): JSX.Element {
@@ -114,8 +128,9 @@ function OverviewSections(props: {
     backgroundTasks: [],
     changedFiles: 0,
     deletions: null,
-    generatedImages: 0,
+    generatedResults: [],
   };
+  const showGeneratedResults = overview.generatedResults.length > 0;
 
   return (
     <>
@@ -129,24 +144,7 @@ function OverviewSections(props: {
         >
           <ChangeSummary overview={overview} />
         </OverviewRow>
-        {props.gitController === undefined ? (
-          <OverviewRow icon={<GitBranchIcon className="home-turn-progress-row-icon" />} label={t("home.turnPlan.gitOperation")} />
-        ) : (
-          <GitOperationsMenu
-            controller={props.gitController}
-            triggerLabel={t("home.turnPlan.gitOperation")}
-            triggerClassName="home-turn-progress-row home-turn-progress-row-action"
-            activeTriggerClassName="home-turn-progress-row home-turn-progress-row-action home-turn-progress-row-action-active"
-            wrapperClassName="home-turn-progress-menu-wrap"
-            menuClassName="workspace-diff-actions-menu workspace-diff-git-menu home-turn-progress-git-menu"
-            triggerChildren={(
-              <>
-                <GitBranchIcon className="home-turn-progress-row-icon" />
-                <span className="home-turn-progress-row-label">{t("home.turnPlan.gitOperation")}</span>
-              </>
-            )}
-          />
-        )}
+        <GitCommitOverviewRow controller={props.gitController} />
         <OverviewRow
           muted
           icon={<GitHubMarkIcon className="home-turn-progress-row-icon" />}
@@ -166,11 +164,150 @@ function OverviewSections(props: {
           </section>
         </>
       ) : null}
-      <div className="home-turn-progress-divider" />
-      <section className="home-turn-progress-section" aria-label={t("home.turnPlan.generatedResults")}>
-        <h3>{t("home.turnPlan.generatedResults")}</h3>
-        <OverviewRow icon={<ImageResultIcon className="home-turn-progress-row-icon" />} label={formatGeneratedImages(overview.generatedImages, t)} />
-      </section>
+      {showGeneratedResults ? (
+        <>
+          <div className="home-turn-progress-divider" />
+          <section className="home-turn-progress-section" aria-label={t("home.turnPlan.generatedResults")}>
+            <h3>{t("home.turnPlan.generatedResults")}</h3>
+            <div className="home-turn-generated-result-list">
+              {overview.generatedResults.map((result) => (
+                <GeneratedResultRow
+                  key={result.id}
+                  result={result}
+                  onOpen={props.onOpenGeneratedResult}
+                />
+              ))}
+            </div>
+          </section>
+        </>
+      ) : null}
+    </>
+  );
+}
+
+function GitCommitOverviewRow(props: {
+  readonly controller?: WorkspaceGitController;
+}): JSX.Element {
+  const { t } = useI18n();
+  const appPreferences = readStoredAppPreferences();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ readonly left: number; readonly top: number } | null>(null);
+  const [pushConfirmOpen, setPushConfirmOpen] = useState(false);
+  const [pushConfirmPending, setPushConfirmPending] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+    setMenuPosition(null);
+  }, []);
+  const controller = props.controller;
+  const commitDisabled = controller === undefined || !canOpenCommitDialog(controller);
+  const pushDisabled = controller === undefined || !canPushChanges(controller);
+  const branchName = controller?.status?.branch?.head ?? null;
+
+  useToolbarMenuDismissal(menuOpen, menuRef, closeMenu, [menuButtonRef]);
+
+  const closePushConfirm = useCallback(() => {
+    if (!pushConfirmPending) {
+      setPushConfirmOpen(false);
+    }
+  }, [pushConfirmPending]);
+
+  const confirmPush = useCallback(async () => {
+    if (controller === undefined) {
+      return;
+    }
+    setPushConfirmPending(true);
+    try {
+      await controller.push();
+      setPushConfirmOpen(false);
+    } finally {
+      setPushConfirmPending(false);
+    }
+  }, [controller]);
+
+  const openMenu = useCallback(() => {
+    const rect = menuButtonRef.current?.getBoundingClientRect();
+    if (rect === undefined) {
+      return;
+    }
+    const menuWidth = 160;
+    const viewportWidth = typeof window === "undefined" ? rect.right : window.innerWidth;
+    const left = Math.max(8, Math.min(viewportWidth - menuWidth - 8, rect.right - menuWidth));
+    setMenuPosition({ left, top: rect.bottom + 6 });
+    setMenuOpen(true);
+  }, []);
+
+  const toggleMenu = useCallback(() => {
+    if (menuOpen) {
+      closeMenu();
+      return;
+    }
+    openMenu();
+  }, [closeMenu, menuOpen, openMenu]);
+
+  return (
+    <>
+      <div className="home-turn-progress-git-row">
+        <button
+          type="button"
+          className="home-turn-progress-row home-turn-progress-row-action"
+          aria-label={t("home.turnPlan.gitCommit")}
+          disabled={commitDisabled}
+          onClick={() => controller?.openCommitDialog()}
+        >
+          <GitCommitNodeIcon className="home-turn-progress-row-icon" />
+          <span className="home-turn-progress-row-label">{t("home.turnPlan.gitCommit")}</span>
+        </button>
+        <button
+          ref={menuButtonRef}
+          type="button"
+          className={menuOpen ? "home-turn-progress-more-button home-turn-progress-more-button-active" : "home-turn-progress-more-button"}
+          aria-label={t("home.turnPlan.moreGitOperations")}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          disabled={controller === undefined}
+          title={t("home.turnPlan.moreGitOperations")}
+          onClick={toggleMenu}
+        >
+          <GitMoreHorizontalIcon className="home-turn-progress-more-icon" />
+        </button>
+        {menuOpen && menuPosition !== null && typeof document !== "undefined" ? createPortal(
+          <div
+            ref={menuRef}
+            className="workspace-diff-actions-menu workspace-diff-git-menu home-turn-progress-git-menu home-turn-progress-git-more-menu"
+            role="menu"
+            aria-label={t("home.turnPlan.moreGitOperations")}
+            style={{ position: "fixed", left: menuPosition.left, right: "auto", top: menuPosition.top }}
+          >
+            <button
+              type="button"
+              className="workspace-diff-actions-menu-item"
+              role="menuitem"
+              disabled={pushDisabled}
+              onClick={() => {
+                if (pushDisabled) {
+                  return;
+                }
+                closeMenu();
+                setPushConfirmOpen(true);
+              }}
+            >
+              <GitPushIcon className="workspace-diff-actions-menu-icon" />
+              <span>{t("home.turnPlan.gitPush")}</span>
+            </button>
+          </div>,
+          document.body,
+        ) : null}
+      </div>
+      <GitPushConfirmDialog
+        branchName={branchName}
+        forceWithLease={appPreferences.gitPushForceWithLease}
+        open={pushConfirmOpen}
+        pending={pushConfirmPending}
+        onClose={closePushConfirm}
+        onConfirm={() => void confirmPush()}
+      />
     </>
   );
 }
@@ -273,11 +410,44 @@ function ChangeSummary(props: { readonly overview: TurnPlanOverview }): JSX.Elem
   );
 }
 
-function formatGeneratedImages(count: number, t: ReturnType<typeof useI18n>["t"]): string {
-  if (count === 0) {
-    return t("home.turnPlan.noGeneratedResults");
+function GeneratedResultRow(props: {
+  readonly onOpen?: (target: TurnPlanGeneratedResultTarget) => void;
+  readonly result: TurnPlanGeneratedResult;
+}): JSX.Element {
+  const { t } = useI18n();
+  const target = props.result.target;
+  return (
+    <OverviewRow
+      actionLabel={t("home.turnPlan.openGeneratedResult", { name: target.name })}
+      icon={<GeneratedResultIcon target={target} className="home-turn-progress-row-icon" />}
+      label={target.name}
+      onClick={props.onOpen === undefined ? undefined : () => props.onOpen?.(target)}
+    >
+      <span className="home-turn-progress-row-value">
+        {formatGeneratedResultKind(target, t)}
+      </span>
+    </OverviewRow>
+  );
+}
+
+function formatGeneratedResultKind(
+  target: TurnPlanGeneratedResultTarget,
+  t: ReturnType<typeof useI18n>["t"],
+): string {
+  const extension = target.extension.length > 0 ? target.extension : "-";
+  return target.fileKind === "image"
+    ? t("home.turnPlan.generatedResultImage", { extension })
+    : t("home.turnPlan.generatedResultDocument", { extension });
+}
+
+function GeneratedResultIcon(props: {
+  readonly className?: string;
+  readonly target: TurnPlanGeneratedResultTarget;
+}): JSX.Element {
+  if (props.target.fileKind === "image") {
+    return <ImageResultIcon className={props.className} />;
   }
-  return t("home.turnPlan.generatedImages", { count });
+  return <DocumentResultIcon className={props.className} />;
 }
 
 function ChangeIcon(props: { readonly className?: string }): JSX.Element {
@@ -295,6 +465,16 @@ function ImageResultIcon(props: { readonly className?: string }): JSX.Element {
       <rect x="3.8" y="4" width="12.4" height="12" rx="2.4" stroke="currentColor" strokeWidth="1.5" />
       <circle cx="7.3" cy="7.6" r="1.15" fill="currentColor" />
       <path d="m5.2 13.5 3.05-3.2 2.25 2.25 1.3-1.4 3 3.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function DocumentResultIcon(props: { readonly className?: string }): JSX.Element {
+  return (
+    <svg className={props.className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M5.3 3.5h6.2l3.2 3.2v9.8H5.3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M11.5 3.7v3.2h3.1" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M7.7 10.2h4.6M7.7 12.8h4.6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }

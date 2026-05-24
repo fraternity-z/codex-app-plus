@@ -5,6 +5,7 @@ import type { ThreadSummary } from "../../../domain/types";
 import {
   createTurnPlanModel,
   type TurnPlanBackgroundTask,
+  type TurnPlanGeneratedResult,
   type TurnPlanModel,
   type TurnPlanOverview,
 } from "../../conversation/model/homeTurnPlanModel";
@@ -14,6 +15,13 @@ import {
   selectLatestPlanModePrompt,
   type PlanModePromptModel,
 } from "../../composer/model/planModePrompt";
+import {
+  getPathBaseName,
+  getPathExtension,
+  getQuickPreviewFileKind,
+  resolveQuickPreviewFilePath,
+} from "../../preview/model/previewTargets";
+
 interface HomeConversationPlaceholder {
   readonly title: string;
   readonly body: string;
@@ -91,6 +99,7 @@ export function createTurnPlanOverview(options: {
   readonly gitStatus: GitStatusOutput | null | undefined;
   readonly plan: TurnPlanModel | null;
   readonly threads?: ReadonlyArray<ThreadSummary>;
+  readonly workspacePath?: string | null;
 }): TurnPlanOverview {
   const turnId = options.plan?.entry.turnId ?? null;
   const scopedActivities = turnId === null
@@ -114,7 +123,7 @@ export function createTurnPlanOverview(options: {
     backgroundTasks: createTurnPlanBackgroundTasks(scopedActivities, options.threads ?? []),
     changedFiles: diffSummary?.changedFiles ?? fallbackChangedFiles,
     deletions: diffSummary?.deletions ?? null,
-    generatedImages: countGeneratedImages(scopedActivities),
+    generatedResults: createGeneratedResults(scopedActivities, options.workspacePath ?? null),
   };
 }
 
@@ -154,13 +163,6 @@ function countStatusChanges(status: GitStatusOutput | null | undefined): number 
     + (status.unstaged?.length ?? 0)
     + (status.untracked?.length ?? 0)
     + (status.conflicted?.length ?? 0);
-}
-
-function countGeneratedImages(entries: ReadonlyArray<TimelineEntry>): number {
-  return entries.filter((entry) => (
-    entry.kind === "imageGeneration"
-    && (entry.savedPath !== null || entry.result.trim().length > 0)
-  )).length;
 }
 
 function createTurnPlanBackgroundTasks(
@@ -237,4 +239,65 @@ function createSubagentBackgroundTask(
     label: metadata.label,
     threadId,
   };
+}
+
+function createGeneratedResults(
+  entries: ReadonlyArray<TimelineEntry>,
+  workspacePath: string | null,
+): Array<TurnPlanGeneratedResult> {
+  const results: TurnPlanGeneratedResult[] = [];
+  const seenPaths = new Set<string>();
+
+  for (const entry of entries) {
+    if (entry.kind === "imageGeneration") {
+      if (entry.savedPath !== null) {
+        pushGeneratedResult(results, seenPaths, entry.id, entry.savedPath, null);
+      }
+      continue;
+    }
+
+    if (entry.kind !== "fileChange" || entry.status !== "completed") {
+      continue;
+    }
+
+    for (const change of entry.changes) {
+      if (change.kind.type === "delete") {
+        continue;
+      }
+      pushGeneratedResult(results, seenPaths, `${entry.id}:${change.path}`, change.path, workspacePath);
+    }
+  }
+
+  return results;
+}
+
+function pushGeneratedResult(
+  results: Array<TurnPlanGeneratedResult>,
+  seenPaths: Set<string>,
+  id: string,
+  rawPath: string,
+  workspacePath: string | null,
+): void {
+  const path = resolveQuickPreviewFilePath(rawPath, workspacePath);
+  const fileKind = getQuickPreviewFileKind(path);
+  if (fileKind === null) {
+    return;
+  }
+
+  const dedupeKey = path.replace(/\\/g, "/").toLowerCase();
+  if (seenPaths.has(dedupeKey)) {
+    return;
+  }
+
+  seenPaths.add(dedupeKey);
+  results.push({
+    id,
+    target: {
+      kind: "file",
+      fileKind,
+      path,
+      name: getPathBaseName(path),
+      extension: getPathExtension(path).toUpperCase(),
+    },
+  });
 }

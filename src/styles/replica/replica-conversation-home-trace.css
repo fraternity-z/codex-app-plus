@@ -360,12 +360,12 @@
 
 .home-main-stage > .home-turn-progress-card {
   position: absolute;
-  --home-turn-progress-card-edge-gap: 18px;
+  --home-turn-progress-card-edge-gap: 12px;
   top: 0;
   right: 0;
   bottom: 0;
   z-index: 24;
-  width: min(352px, calc(100% - var(--home-turn-progress-card-edge-gap)));
+  width: min(300px, calc(100% - var(--home-turn-progress-card-edge-gap)));
   margin: 0;
   pointer-events: none;
 }
@@ -381,8 +381,8 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  padding: 22px 20px 24px;
+  gap: 18px;
+  padding: 18px 14px 20px;
   border: 1px solid var(--border-light);
   border-radius: 24px;
   background: color-mix(in srgb, var(--surface-panel) 96%, transparent);
@@ -551,11 +551,54 @@
   min-width: 0;
 }
 
+.home-turn-progress-git-row {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+}
+
 .home-turn-progress-git-menu {
   top: calc(100% + 4px);
   right: auto;
   left: 0;
   width: 200px;
+}
+
+.home-turn-progress-git-more-menu {
+  width: 160px;
+  z-index: 80;
+}
+
+.home-turn-progress-more-button {
+  width: 34px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+.home-turn-progress-more-button:hover,
+.home-turn-progress-more-button-active {
+  background: var(--surface-hover);
+}
+
+.home-turn-progress-more-button:disabled {
+  cursor: default;
+  color: var(--text-muted);
+}
+
+.home-turn-progress-more-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .home-turn-progress-row-muted {
@@ -582,6 +625,11 @@
 }
 
 .home-turn-background-task-list {
+  display: grid;
+  gap: 8px;
+}
+
+.home-turn-generated-result-list {
   display: grid;
   gap: 8px;
 }

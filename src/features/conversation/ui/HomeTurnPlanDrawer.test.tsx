@@ -83,12 +83,27 @@ function createGitController(overrides?: Partial<WorkspaceGitController>): Works
 describe("HomeTurnPlanDrawer", () => {
   it("renders the progress card with overview sections when expanded", () => {
     const plan = createTurnPlanModel(createPlanEntry());
+    const generatedTarget = {
+      kind: "file" as const,
+      fileKind: "image" as const,
+      path: "E:/code/output/image.png",
+      name: "image.png",
+      extension: "PNG",
+    };
+    const onOpenGeneratedResult = vi.fn();
     const { container } = render(
       <HomeTurnPlanDrawer
         plan={plan}
-        overview={{ additions: 12, backgroundTasks: [], changedFiles: 2, deletions: 4, generatedImages: 1 }}
+        overview={{
+          additions: 12,
+          backgroundTasks: [],
+          changedFiles: 2,
+          deletions: 4,
+          generatedResults: [{ id: "generated-image", target: generatedTarget }],
+        }}
         pinned={false}
         visible
+        onOpenGeneratedResult={onOpenGeneratedResult}
       />,
       {
         wrapper: createI18nWrapper("en-US"),
@@ -106,10 +121,14 @@ describe("HomeTurnPlanDrawer", () => {
     expect(screen.getByText("Branch details")).toBeInTheDocument();
     expect(screen.getByText("+12")).toBeInTheDocument();
     expect(screen.getByText("-4")).toBeInTheDocument();
-    expect(screen.getByText("Git operations")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Commit" })).toBeInTheDocument();
     expect(screen.getByText("GitHub CLI not authenticated")).toBeInTheDocument();
     expect(screen.getByText("Generated results")).toBeInTheDocument();
-    expect(screen.getByText("1 generated image(s)")).toBeInTheDocument();
+    expect(screen.getByText("image.png")).toBeInTheDocument();
+    expect(screen.getByText("Image · PNG")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open image.png" }));
+    expect(onOpenGeneratedResult).toHaveBeenCalledWith(generatedTarget);
   });
 
   it("shows empty state when plan is cleared", () => {
@@ -164,7 +183,7 @@ describe("HomeTurnPlanDrawer", () => {
     render(
       <HomeTurnPlanDrawer
         plan={plan}
-        overview={{ additions: 7, backgroundTasks: [], changedFiles: 2, deletions: 3, generatedImages: 0 }}
+        overview={{ additions: 7, backgroundTasks: [], changedFiles: 2, deletions: 3, generatedResults: [] }}
         pinned={false}
         showProgress={false}
         visible
@@ -178,6 +197,7 @@ describe("HomeTurnPlanDrawer", () => {
     expect(screen.queryByText("Progress")).toBeNull();
     expect(screen.queryByText("Prepare UI")).toBeNull();
     expect(screen.getByText("Branch details")).toBeInTheDocument();
+    expect(screen.queryByText("Generated results")).toBeNull();
     expect(screen.getByText("+7")).toBeInTheDocument();
     expect(screen.getByText("-3")).toBeInTheDocument();
   });
@@ -215,7 +235,7 @@ describe("HomeTurnPlanDrawer", () => {
           ],
           changedFiles: 0,
           deletions: null,
-          generatedImages: 0,
+          generatedResults: [],
         }}
         pinned={false}
         showProgress={false}
@@ -236,7 +256,7 @@ describe("HomeTurnPlanDrawer", () => {
     expect(onSelectThread).toHaveBeenCalledWith("thread-agent-1");
   });
 
-  it("opens git operations from the Git row", () => {
+  it("opens commit from the Git row and exposes push in the more menu", () => {
     const openCommitDialog = vi.fn();
     const gitController = createGitController({ openCommitDialog });
     render(
@@ -252,16 +272,13 @@ describe("HomeTurnPlanDrawer", () => {
       },
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Git operations" }));
-
-    const menu = screen.getByRole("menu", { name: "Git operations" });
-    expect(within(menu).getByRole("menuitem", { name: "提交" })).not.toBeDisabled();
-    expect(within(menu).getByRole("menuitem", { name: "推送" })).not.toBeDisabled();
-    expect(within(menu).getByRole("menuitem", { name: "创建分支" })).not.toBeDisabled();
-
-    fireEvent.click(within(menu).getByRole("menuitem", { name: "提交" }));
-
+    fireEvent.click(screen.getByRole("button", { name: "Commit" }));
     expect(openCommitDialog).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "More Git operations" }));
+
+    const menu = screen.getByRole("menu", { name: "More Git operations" });
+    expect(within(menu).getByRole("menuitem", { name: "Push" })).not.toBeDisabled();
   });
 
   it("stays hidden in the new conversation empty state", () => {

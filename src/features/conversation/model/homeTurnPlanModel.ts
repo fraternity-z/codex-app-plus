@@ -2,6 +2,14 @@ import type { TimelineEntry, TurnPlanSnapshotEntry } from "../../../domain/timel
 import type { MessageKey } from "../../../i18n/messages/schema";
 import type { TranslationParams } from "../../../i18n/types";
 import type { TurnPlanStep } from "../../../protocol/generated/v2/TurnPlanStep";
+import type { QuickPreviewTarget } from "../../preview/model/previewTargets";
+
+export type TurnPlanGeneratedResultTarget = Extract<QuickPreviewTarget, { readonly kind: "file" }>;
+
+export interface TurnPlanGeneratedResult {
+  readonly id: string;
+  readonly target: TurnPlanGeneratedResultTarget;
+}
 
 export interface TurnPlanModel {
   readonly entry: TurnPlanSnapshotEntry;
@@ -15,7 +23,7 @@ export interface TurnPlanOverview {
   readonly backgroundTasks: ReadonlyArray<TurnPlanBackgroundTask>;
   readonly changedFiles: number;
   readonly deletions: number | null;
-  readonly generatedImages: number;
+  readonly generatedResults: ReadonlyArray<TurnPlanGeneratedResult>;
 }
 
 export type TurnPlanBackgroundTask =
