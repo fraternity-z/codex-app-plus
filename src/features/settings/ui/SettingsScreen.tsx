@@ -28,6 +28,7 @@ const LazySettingsView = lazy(async () => {
 interface SettingsScreenProps {
   readonly controller: Pick<
     SettingsViewProps,
+    | "applyAgentsConfig"
     | "batchWriteConfig"
     | "batchWriteConfigSnapshot"
     | "checkForAppUpdate"
@@ -36,7 +37,6 @@ interface SettingsScreenProps {
     | "refreshConfigSnapshot"
     | "refreshMcpData"
     | "resetMemories"
-    | "setMultiAgentEnabled"
     | "setThreadMemoryMode"
     | "unarchiveThread"
     | "writeConfigValue"
@@ -243,7 +243,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
         agentEnvironment: props.preferences.agentEnvironment,
         path,
       }),
-    setMultiAgentEnabled: props.controller.setMultiAgentEnabled,
+    applyAgentsConfig: props.controller.applyAgentsConfig,
     writeGlobalAgentInstructions: (input) =>
       props.hostBridge.app.writeGlobalAgentInstructions({
         ...input,

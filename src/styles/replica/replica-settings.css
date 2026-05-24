@@ -398,6 +398,150 @@
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
+.settings-save-btn:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.settings-agents-card {
+  overflow: visible;
+}
+
+.settings-agents-advanced {
+  border-top: 1px solid var(--border-light);
+}
+
+.settings-agents-advanced-toggle {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  color: var(--text-main);
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--app-ui-font-size-lg);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-agents-advanced-toggle:hover {
+  background: var(--surface-hover);
+}
+
+.settings-agents-advanced-panel {
+  display: grid;
+  gap: 18px;
+  padding: 0 18px 18px;
+}
+
+.settings-agents-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-agents-field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-base);
+}
+
+.settings-agents-field span {
+  font-weight: 600;
+}
+
+.settings-agents-field small {
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.45;
+}
+
+.settings-agents-field input,
+.settings-agents-field textarea {
+  min-width: 0;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--surface-panel-muted);
+  color: var(--text-main);
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.settings-agents-field input:focus,
+.settings-agents-field textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.settings-agents-field textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.settings-agents-field-wide {
+  margin-top: 12px;
+}
+
+.settings-agents-role-editor {
+  padding-top: 4px;
+}
+
+.settings-agents-role-heading {
+  margin-bottom: 12px;
+}
+
+.settings-agents-role-heading strong,
+.settings-agents-role-list strong {
+  display: block;
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-lg);
+  line-height: 1.45;
+}
+
+.settings-agents-role-heading p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.6;
+}
+
+.settings-agents-role-list {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-agents-role-list > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-agents-role-chip {
+  min-height: 28px;
+  max-width: 100%;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  background: var(--surface-panel-muted);
+  color: var(--text-soft);
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--app-ui-font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-agents-save-row {
+  padding: 0;
+}
+
 /* Appearance Page Custom Styles */
 .appearance-settings {
   font-family: var(--app-ui-font-family);
@@ -866,5 +1010,9 @@
   .settings-code-style-select,
   .settings-code-style-trigger {
     width: 100%;
+  }
+
+  .settings-agents-grid {
+    grid-template-columns: 1fr;
   }
 }

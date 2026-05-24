@@ -28,6 +28,7 @@ import {
 import { reportServerRequestError } from "./appControllerServerRequests";
 import {
   toErrorMessage,
+  type AgentsConfigUpdateInput,
   type AppController,
   type ConfigBatchWriteParams,
   type ConfigReadResponse,
@@ -74,12 +75,66 @@ function createMultiAgentConfigWriteParams(
   };
 }
 
+function createAgentsConfigWriteParams(
+  snapshot: ConfigReadResponse | null,
+  settings: AgentsConfigUpdateInput,
+): ConfigBatchWriteParams {
+  const writeTarget = readUserConfigWriteTarget(snapshot);
+  const edits: ConfigBatchWriteParams["edits"] = [
+    { keyPath: "features.multi_agent", value: settings.multiAgentEnabled, mergeStrategy: "replace" },
+    { keyPath: "features.multi_agent_v2", value: settings.multiAgentV2Enabled, mergeStrategy: "replace" },
+    { keyPath: "agents.max_threads", value: settings.maxThreads, mergeStrategy: "replace" },
+    { keyPath: "agents.max_depth", value: settings.maxDepth, mergeStrategy: "replace" },
+    {
+      keyPath: "agents.job_max_runtime_seconds",
+      value: settings.jobMaxRuntimeSeconds,
+      mergeStrategy: "replace",
+    },
+  ];
+
+  if (settings.role !== null) {
+    const roleKey = `agents.${settings.role.name}`;
+    edits.push(
+      {
+        keyPath: `${roleKey}.description`,
+        value: settings.role.description,
+        mergeStrategy: "replace",
+      },
+      {
+        keyPath: `${roleKey}.config_file`,
+        value: settings.role.configFile,
+        mergeStrategy: "replace",
+      },
+      {
+        keyPath: `${roleKey}.nickname_candidates`,
+        value: settings.role.nicknameCandidates === null ? null : [...settings.role.nicknameCandidates],
+        mergeStrategy: "replace",
+      },
+    );
+  }
+
+  return {
+    edits,
+    filePath: writeTarget.filePath,
+    expectedVersion: writeTarget.expectedVersion,
+    reloadUserConfig: true,
+  };
+}
+
 async function writeMultiAgentConfigValues(
   client: ProtocolClient,
   snapshot: ConfigReadResponse | null,
   enabled: boolean,
 ): Promise<void> {
   await client.request("config/batchWrite", createMultiAgentConfigWriteParams(snapshot, enabled));
+}
+
+async function writeAgentsConfigValues(
+  client: ProtocolClient,
+  snapshot: ConfigReadResponse | null,
+  settings: AgentsConfigUpdateInput,
+): Promise<void> {
+  await client.request("config/batchWrite", createAgentsConfigWriteParams(snapshot, settings));
 }
 
 export function useAppControllerActions({
@@ -195,6 +250,19 @@ export function useAppControllerActions({
       await bootstrap(true);
     });
   }, [bootstrap, client, configSnapshot, dispatch, runBusy]);
+  const applyAgentsConfig = useCallback(async (settings: AgentsConfigUpdateInput) => {
+    await runBusy(async () => {
+      try {
+        await writeAgentsConfigValues(client, configSnapshot, settings);
+      } catch (error) {
+        if (!isConfigVersionConflictError(error)) {
+          throw error;
+        }
+        await writeAgentsConfigValues(client, await readConfigSnapshot(client, dispatch), settings);
+      }
+      await bootstrap(true);
+    });
+  }, [bootstrap, client, configSnapshot, dispatch, runBusy]);
   const resolveServerRequest = useCallback(async (resolution: ServerRequestResolution) => {
     const request = pendingRequestsRef.current[resolution.requestId];
     if (request === undefined) {
@@ -230,6 +298,7 @@ export function useAppControllerActions({
 
   return {
     archiveThread,
+    applyAgentsConfig,
     batchWriteConfig,
     batchWriteConfigSnapshot,
     listArchivedThreads,

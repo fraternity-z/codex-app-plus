@@ -93,6 +93,7 @@ export interface AppController {
   setAppEnabled: (appId: string, enabled: boolean) => Promise<ConfigWriteResponse>;
   setMarketplacePluginEnabled: (pluginId: string, enabled: boolean) => Promise<ConfigWriteResponse>;
   setMultiAgentEnabled: (enabled: boolean) => Promise<void>;
+  applyAgentsConfig: (settings: AgentsConfigUpdateInput) => Promise<void>;
   checkForAppUpdate: () => Promise<void>;
   installAppUpdate: () => Promise<void>;
   login: () => Promise<void>;
@@ -109,6 +110,22 @@ export function createInitializeParams(): InitializeParams {
       optOutNotificationMethods: null,
     },
   };
+}
+
+export interface AgentsConfigRoleUpdateInput {
+  readonly name: string;
+  readonly description: string | null;
+  readonly configFile: string | null;
+  readonly nicknameCandidates: ReadonlyArray<string> | null;
+}
+
+export interface AgentsConfigUpdateInput {
+  readonly multiAgentEnabled: boolean;
+  readonly multiAgentV2Enabled: boolean;
+  readonly maxThreads: number;
+  readonly maxDepth: number;
+  readonly jobMaxRuntimeSeconds: number | null;
+  readonly role: AgentsConfigRoleUpdateInput | null;
 }
 
 export function toErrorMessage(error: unknown): string {

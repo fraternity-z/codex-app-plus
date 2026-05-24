@@ -28,6 +28,7 @@ import type { GitWorktreeEntry } from "../../../bridge/types";
 import type { ConfigBatchWriteParams } from "../../../protocol/generated/v2/ConfigBatchWriteParams";
 import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/ConfigValueWriteParams";
 import type { ThreadMemoryMode } from "../../../protocol/generated/ThreadMemoryMode";
+import type { AgentsConfigUpdateInput } from "../../../app/controller/appControllerTypes";
 import "../../../styles/replica/replica-settings.css";
 import "../../../styles/replica/replica-settings-extra.css";
 import "../../../styles/replica/replica-settings-layout.css";
@@ -110,7 +111,7 @@ export interface SettingsViewProps {
   ) => Promise<ManagedPromptOutput>;
   deleteManagedPrompt: (name: string) => Promise<void>;
   setUserModelInstructionsFile: (path: string | null) => Promise<void>;
-  setMultiAgentEnabled: (enabled: boolean) => Promise<void>;
+  applyAgentsConfig: (settings: AgentsConfigUpdateInput) => Promise<void>;
   readProxySettings: (input: { readonly agentEnvironment: AgentEnvironment }) => Promise<ReadProxySettingsOutput>;
   writeGlobalAgentInstructions: (
     input: UpdateGlobalAgentInstructionsInput
@@ -303,7 +304,7 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
           configSnapshot={props.configSnapshot}
           experimentalFeatures={props.experimentalFeatures}
           refreshConfigSnapshot={props.refreshConfigSnapshot}
-          setMultiAgentEnabled={props.setMultiAgentEnabled}
+          applyAgentsConfig={props.applyAgentsConfig}
         />
       </>
     );

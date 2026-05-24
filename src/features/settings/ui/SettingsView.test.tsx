@@ -100,7 +100,7 @@ function createBaseProps(
     }),
     deleteManagedPrompt: vi.fn().mockResolvedValue(undefined),
     setUserModelInstructionsFile: vi.fn().mockResolvedValue(undefined),
-    setMultiAgentEnabled: vi.fn().mockResolvedValue(undefined),
+    applyAgentsConfig: vi.fn().mockResolvedValue(undefined),
     readProxySettings: vi.fn().mockResolvedValue({
       settings: {
         mode: "disabled",

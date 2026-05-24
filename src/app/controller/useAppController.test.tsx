@@ -504,6 +504,66 @@ describe("useAppController auth helpers", () => {
     expect(protocolState.restartAppServer).toHaveBeenCalledTimes(1);
   });
 
+  it("applies advanced agents config through config batch writes", async () => {
+    const initialSnapshot = createConfigSnapshot("u1");
+    const baseRequest = createRequestStub();
+    protocolState.request = vi.fn(async (method: string, _params: unknown) => {
+      if (method === "config/read") {
+        return initialSnapshot;
+      }
+      if (method === "config/batchWrite") {
+        return {
+          status: "ok",
+          version: "u2",
+          filePath: "C:/Users/Administrator/.codex/config.toml",
+          overriddenMetadata: null,
+        };
+      }
+      return baseRequest(method);
+    });
+    const hostBridge = createHostBridge();
+    const { result } = renderHook(() => useControllerHarness(hostBridge), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.configSnapshot).toBe(initialSnapshot);
+    });
+    protocolState.request.mockClear();
+    protocolState.restartAppServer.mockClear();
+
+    await act(async () => {
+      await result.current.controller.applyAgentsConfig({
+        multiAgentEnabled: true,
+        multiAgentV2Enabled: false,
+        maxThreads: 8,
+        maxDepth: 2,
+        jobMaxRuntimeSeconds: 2400,
+        role: {
+          name: "reviewer",
+          description: "Review code changes.",
+          configFile: "agents/reviewer.toml",
+          nicknameCandidates: ["Atlas", "Delta"],
+        },
+      });
+    });
+
+    expect(protocolState.request).toHaveBeenCalledWith("config/batchWrite", {
+      expectedVersion: "u1",
+      filePath: "C:/Users/Administrator/.codex/config.toml",
+      reloadUserConfig: true,
+      edits: [
+        { keyPath: "features.multi_agent", value: true, mergeStrategy: "replace" },
+        { keyPath: "features.multi_agent_v2", value: false, mergeStrategy: "replace" },
+        { keyPath: "agents.max_threads", value: 8, mergeStrategy: "replace" },
+        { keyPath: "agents.max_depth", value: 2, mergeStrategy: "replace" },
+        { keyPath: "agents.job_max_runtime_seconds", value: 2400, mergeStrategy: "replace" },
+        { keyPath: "agents.reviewer.description", value: "Review code changes.", mergeStrategy: "replace" },
+        { keyPath: "agents.reviewer.config_file", value: "agents/reviewer.toml", mergeStrategy: "replace" },
+        { keyPath: "agents.reviewer.nickname_candidates", value: ["Atlas", "Delta"], mergeStrategy: "replace" },
+      ],
+    });
+    expect(protocolState.restartAppServer).toHaveBeenCalledTimes(1);
+  });
+
   it("reloads the conversation catalog after the session index refresh event", async () => {
     type SessionIndexHandler = (payload: {
       readonly agentEnvironment: "windowsNative" | "wsl";
