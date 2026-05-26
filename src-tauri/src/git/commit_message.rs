@@ -62,6 +62,7 @@ pub async fn generate_commit_message(
         &AppServerStartInput {
             agent_environment: input.agent_environment,
             codex_path: None,
+            remote_ssh_host: None,
         },
     )?;
     let result = run_codex_exec(

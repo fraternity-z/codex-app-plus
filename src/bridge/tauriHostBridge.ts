@@ -62,6 +62,8 @@ import type {
   ReadAgentConfigInput,
   ReadAgentConfigOutput,
   ReadCustomPromptsInput,
+  SaveSshHostInput,
+  SshHostConfig,
   ReadMcpSharedPoolSettingsInput,
   ReadMcpSharedPoolSettingsOutput,
   OpenCodexConfigTomlInput,
@@ -332,6 +334,10 @@ export function createTauriHostBridge(): HostBridge {
         invokeWithInput("app_show_context_menu", input),
       importOfficialData: (input: ImportOfficialDataInput) =>
         invokeWithInput("app_import_official_data", input),
+      listSshHosts: () =>
+        invokeCommand<ReadonlyArray<SshHostConfig>>("app_list_ssh_hosts"),
+      saveSshHost: (input: SaveSshHostInput) =>
+        invokeWithInput<SaveSshHostInput, SshHostConfig>("app_save_ssh_host", input),
       listCodexSessions: (input: ListCodexSessionsInput) =>
         invokeWithInput<ListCodexSessionsInput, ReadonlyArray<CodexSessionSummaryOutput>>(
           "app_list_codex_sessions",

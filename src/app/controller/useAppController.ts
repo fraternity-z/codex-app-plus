@@ -49,6 +49,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
   const pendingRequestsRef = useRef(runtimeState.pendingRequestsById);
   const previousAgentEnvironmentRef = useRef(agentEnvironment);
   const agentEnvironmentRef = useRef(agentEnvironment);
+  const remoteSshHostRef = useRef<string | null>(null);
   const sessionIndexReloadInFlightRef = useRef(false);
   const approvalAllowlistRef = useRef<CommandApprovalAllowlist>({});
 
@@ -168,7 +169,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
     return clientRef.current;
   }, [dispatch, hostBridge, requestTracker, scheduleRetry]);
 
-  const bootstrap = useCallback((forceRestart: boolean): Promise<void> => {
+  const bootstrap = useCallback((forceRestart: boolean, options?: { readonly throwOnError?: boolean }): Promise<void> => {
     if (bootstrapPromiseRef.current !== null) {
       return bootstrapPromiseRef.current;
     }
@@ -179,16 +180,19 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
       dispatch({ type: "initialized/changed", ready: false });
       try {
         if (forceRestart) {
-          await client.restartAppServer(createAppServerStartInput(agentEnvironment));
+          await client.restartAppServer(createAppServerStartInput(agentEnvironment, remoteSshHostRef.current));
         } else {
-          await startOrReuseAppServer(client, agentEnvironment);
+          await startOrReuseAppServer(client, agentEnvironment, remoteSshHostRef.current);
         }
         await client.initializeConnection(createInitializeParams());
         dispatch({ type: "initialized/changed", ready: true });
-        await loadBootstrapSnapshot(client, hostBridge, dispatch, agentEnvironment);
+        await loadBootstrapSnapshot(client, hostBridge, dispatch, agentEnvironment, remoteSshHostRef.current);
       } catch (error) {
         dispatch({ type: "fatal/error", message: toErrorMessage(error) });
         scheduleRetry();
+        if (options?.throwOnError === true) {
+          throw error;
+        }
       } finally {
         dispatch({ type: "bootstrapBusy/changed", busy: false });
         bootingRef.current = false;
@@ -197,7 +201,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
     })();
     bootstrapPromiseRef.current = promise;
     return promise;
-  }, [agentEnvironment, clearRetry, client, dispatch, scheduleRetry]);
+  }, [agentEnvironment, clearRetry, client, dispatch, hostBridge, scheduleRetry]);
 
   const ensureAppServerReady = useCallback(async (): Promise<boolean> => {
     if (client.isInitialized()) {
@@ -218,6 +222,7 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
         hostBridge,
         dispatch,
         agentEnvironmentRef.current,
+        remoteSshHostRef.current,
       );
     } catch (error) {
       console.error("刷新工作区会话目录失败", error);
@@ -227,6 +232,42 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
   }, [dispatch, hostBridge]);
 
   retryHandlerRef.current = () => void bootstrap(true);
+
+  const connectSshRemoteHost = useCallback(async (hostAlias: string): Promise<void> => {
+    const normalizedHost = hostAlias.trim();
+    if (normalizedHost.length === 0) {
+      throw new Error("SSH host 不能为空");
+    }
+    if (bootstrapPromiseRef.current !== null) {
+      await bootstrapPromiseRef.current;
+    }
+    remoteSshHostRef.current = normalizedHost;
+    dispatch({ type: "sshRemote/connecting", hostAlias: normalizedHost });
+    try {
+      await bootstrap(true, { throwOnError: true });
+      dispatch({ type: "sshRemote/connected", hostAlias: normalizedHost });
+    } catch (error) {
+      dispatch({ type: "sshRemote/failed", hostAlias: normalizedHost, error: toErrorMessage(error) });
+      throw error;
+    }
+  }, [bootstrap, dispatch]);
+
+  const disconnectSshRemoteHost = useCallback(async (): Promise<void> => {
+    if (bootstrapPromiseRef.current !== null) {
+      await bootstrapPromiseRef.current;
+    }
+    const previousHost = remoteSshHostRef.current;
+    remoteSshHostRef.current = null;
+    dispatch({ type: "sshRemote/disconnecting" });
+    try {
+      await bootstrap(true, { throwOnError: true });
+      dispatch({ type: "sshRemote/disconnected" });
+    } catch (error) {
+      remoteSshHostRef.current = previousHost;
+      dispatch({ type: "sshRemote/failed", hostAlias: previousHost, error: toErrorMessage(error) });
+      throw error;
+    }
+  }, [bootstrap, dispatch]);
 
   useEffect(() => {
     void client.attach();
@@ -306,6 +347,8 @@ export function useAppController(hostBridge: HostBridge, agentEnvironment: Agent
     retryConnection: () => bootstrap(true),
     checkForAppUpdate: appUpdater.checkForAppUpdate,
     installAppUpdate: appUpdater.installAppUpdate,
+    connectSshRemoteHost,
+    disconnectSshRemoteHost,
     ...controllerActions,
   };
 }

@@ -104,6 +104,12 @@ function createBaseProps(
     resolvedTheme: "light",
     configSnapshot: createConfigSnapshot(),
     selectedConversationId: "thread-1",
+    sshRemoteConnection: {
+      activeHost: null,
+      pendingHost: null,
+      pending: false,
+      error: null,
+    },
     experimentalFeatures: [],
     steerAvailable: true,
     busy: false,
@@ -112,6 +118,7 @@ function createBaseProps(
     onBackHome: vi.fn(),
     onSelectSection: vi.fn(),
     onAddRoot: vi.fn(),
+    onAddRemoteRoot: vi.fn(),
     onTogglePetAwake: vi.fn(),
     onOpenConfigToml: vi.fn().mockResolvedValue(undefined),
     onOpenConfigDocs: vi.fn().mockResolvedValue(undefined),
@@ -204,6 +211,17 @@ function createBaseProps(
     clearBrowserBrowsingData: vi.fn().mockResolvedValue(undefined),
     clearBrowserBrowsingDataByKind: vi.fn().mockResolvedValue(undefined),
     refreshMcpData: vi.fn(),
+    listSshHosts: vi.fn().mockResolvedValue([]),
+    saveSshHost: vi.fn().mockResolvedValue({
+      alias: "devbox",
+      hostName: "devbox.example.com",
+      user: null,
+      port: null,
+      resolved: true,
+      resolveError: null,
+    }),
+    connectSshRemoteHost: vi.fn().mockResolvedValue(undefined),
+    disconnectSshRemoteHost: vi.fn().mockResolvedValue(undefined),
     listHooks: vi.fn().mockResolvedValue(createHooksResponse()),
     listArchivedThreads: vi.fn().mockResolvedValue([]),
     unarchiveThread: vi.fn().mockResolvedValue(undefined),
@@ -386,17 +404,87 @@ describe("SettingsView", () => {
     expect(screen.queryByText("TODO")).toBeNull();
   });
 
-  it("renders connections as a TODO placeholder section", () => {
-    render(<SettingsView {...createBaseProps({ section: "connections" })} />, {
+  it("lists SSH hosts and connects through the remote app-server path", async () => {
+    const connectSshRemoteHost = vi.fn().mockResolvedValue(undefined);
+    const listSshHosts = vi.fn().mockResolvedValue([{
+      alias: "devbox",
+      hostName: "devbox.example.com",
+      user: "you",
+      port: 22,
+      resolved: true,
+      resolveError: null,
+    }]);
+
+    render(<SettingsView {...createBaseProps({
+      section: "connections",
+      listSshHosts,
+      connectSshRemoteHost,
+    })} />, {
       wrapper: createI18nWrapper("zh-CN"),
     });
 
-    expect(screen.getByRole("button", { name: "连接" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "连接" })).toBeInTheDocument();
-    expect(screen.getByText("SSH connections from this PC")).toBeInTheDocument();
-    expect(screen.getByText("Connect to a remote device through SSH connection")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
-    expect(screen.getByText("TODO")).toBeInTheDocument();
+    expect(screen.getByText("通过 SSH 连接到远程设备")).toBeInTheDocument();
+    expect(screen.queryByText("TODO")).toBeNull();
+    expect(await screen.findByText("devbox")).toBeInTheDocument();
+    expect(screen.getByText("you@devbox.example.com")).toBeInTheDocument();
+    const connectButtons = screen.getAllByRole("button", { name: "连接" });
+    fireEvent.click(connectButtons[connectButtons.length - 1]!);
+
+    await waitFor(() => {
+      expect(connectSshRemoteHost).toHaveBeenCalledWith("devbox");
+    });
+  });
+
+  it("adds an SSH host from the connections dialog", async () => {
+    const listSshHosts = vi.fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{
+        alias: "devbox",
+        hostName: "devbox.example.com",
+        user: "you",
+        port: 2222,
+        resolved: true,
+        resolveError: null,
+      }]);
+    const saveSshHost = vi.fn().mockResolvedValue({
+      alias: "devbox",
+      hostName: "devbox.example.com",
+      user: "you",
+      port: 2222,
+      resolved: true,
+      resolveError: null,
+    });
+
+    render(<SettingsView {...createBaseProps({
+      section: "connections",
+      listSshHosts,
+      saveSshHost,
+    })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(await screen.findByText("未发现可用 SSH host")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "添加" }));
+
+    expect(screen.getByRole("dialog", { name: "添加 SSH 连接" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("显示名称"), { target: { value: "devbox" } });
+    fireEvent.change(screen.getByLabelText("主机名"), { target: { value: "you@devbox.example.com" } });
+    fireEvent.change(screen.getByLabelText("SSH 端口（可选）"), { target: { value: "2222" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(saveSshHost).toHaveBeenCalledWith({
+        alias: "devbox",
+        hostName: "you@devbox.example.com",
+        port: 2222,
+        identityFile: null,
+      });
+    });
+    expect(await screen.findByText("devbox")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "添加 SSH 连接" })).not.toBeInTheDocument();
+    });
   });
 
   it("expands browser use browsing data cleanup details separately from the clear all button", async () => {

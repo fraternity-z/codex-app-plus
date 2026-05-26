@@ -8,6 +8,7 @@ export interface SettingsScreenState {
   readonly experimentalFeatures: AppState["experimentalFeatures"];
   readonly initialized: boolean;
   readonly selectedConversationId: AppState["selectedConversationId"];
+  readonly sshRemoteConnection: AppState["sshRemoteConnection"];
 }
 
 function selectSettingsScreenState(state: AppState): SettingsScreenState {
@@ -18,6 +19,7 @@ function selectSettingsScreenState(state: AppState): SettingsScreenState {
     experimentalFeatures: state.experimentalFeatures,
     initialized: state.initialized,
     selectedConversationId: state.selectedConversationId,
+    sshRemoteConnection: state.sshRemoteConnection,
   };
 }
 
@@ -27,7 +29,8 @@ function isSettingsScreenStateEqual(left: SettingsScreenState, right: SettingsSc
     && Object.is(left.configSnapshot, right.configSnapshot)
     && Object.is(left.experimentalFeatures, right.experimentalFeatures)
     && left.initialized === right.initialized
-    && left.selectedConversationId === right.selectedConversationId;
+    && left.selectedConversationId === right.selectedConversationId
+    && Object.is(left.sshRemoteConnection, right.sshRemoteConnection);
 }
 
 export function useSettingsScreenState(): SettingsScreenState {

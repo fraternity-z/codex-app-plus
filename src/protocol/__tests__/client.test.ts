@@ -202,6 +202,15 @@ function createHostBridge(): HostBridge {
       showNotification: vi.fn().mockResolvedValue(undefined),
       showContextMenu: vi.fn().mockResolvedValue(undefined),
       importOfficialData: vi.fn().mockResolvedValue(undefined),
+      listSshHosts: vi.fn().mockResolvedValue([]),
+      saveSshHost: vi.fn().mockResolvedValue({
+        alias: "devbox",
+        hostName: "devbox.example.com",
+        user: null,
+        port: null,
+        resolved: true,
+        resolveError: null
+      }),
       listCodexSessions: vi.fn().mockResolvedValue([]),
       readCodexSession: vi.fn().mockResolvedValue({ threadId: "1", messages: [] }),
       searchCodexSessions: vi.fn().mockResolvedValue([]),

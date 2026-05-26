@@ -997,19 +997,7 @@ func setClipboard(t *testing.T, value string) {
 	}
 }
 
-func getClipboard(t *testing.T) string {
-	t.Helper()
-	script := "$value = Get-Clipboard -Raw; if ($null -eq $value) { $value = '' }; [Console]::Out.Write([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes([string]$value)))"
-	output, err := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script).CombinedOutput()
-	if err != nil {
-		t.Fatalf("failed to get clipboard: %v\n%s", err, string(output))
-	}
-	decoded, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(output)))
-	if err != nil {
-		t.Fatalf("failed to decode clipboard output %q: %v", string(output), err)
-	}
-	return string(decoded)
-}
+
 
 func getNotepadDocumentText(t *testing.T, pid int) string {
 	t.Helper()

@@ -37,6 +37,8 @@ import type {
   ReadAgentConfigInput,
   ReadAgentConfigOutput,
   ReadCustomPromptsInput,
+  SaveSshHostInput,
+  SshHostConfig,
   ReadMcpSharedPoolSettingsInput,
   ReadMcpSharedPoolSettingsOutput,
   OpenCodexConfigTomlInput,
@@ -187,6 +189,8 @@ export interface HostBridge {
     showNotification(input: ShowNotificationInput): Promise<void>;
     showContextMenu(input: ShowContextMenuInput): Promise<void>;
     importOfficialData(input: ImportOfficialDataInput): Promise<void>;
+    listSshHosts(): Promise<ReadonlyArray<SshHostConfig>>;
+    saveSshHost(input: SaveSshHostInput): Promise<SshHostConfig>;
     listCodexSessions(input: ListCodexSessionsInput): Promise<ReadonlyArray<CodexSessionSummaryOutput>>;
     readCodexSession(input: CodexSessionReadInput): Promise<CodexSessionReadOutput>;
     searchCodexSessions(input: SearchCodexSessionsInput): Promise<ReadonlyArray<CodexSessionSearchResultOutput>>;

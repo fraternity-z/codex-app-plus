@@ -1,4 +1,4 @@
-import type { AgentEnvironment, HostBridge } from "../../bridge/types";
+import type { AgentEnvironment, AppServerStartInput, HostBridge } from "../../bridge/types";
 import type { AppAction } from "../../domain/types";
 import type { CollaborationModeListResponse } from "../../protocol/generated/v2/CollaborationModeListResponse";
 import type { ConfigReadResponse } from "../../protocol/generated/v2/ConfigReadResponse";
@@ -13,8 +13,13 @@ import { toErrorMessage } from "./appControllerTypes";
 
 type Dispatch = (action: AppAction) => void;
 
-export function createAppServerStartInput(agentEnvironment: AgentEnvironment): { agentEnvironment: AgentEnvironment } {
-  return { agentEnvironment };
+export function createAppServerStartInput(
+  agentEnvironment: AgentEnvironment,
+  remoteSshHost: string | null = null,
+): AppServerStartInput {
+  return remoteSshHost === null
+    ? { agentEnvironment }
+    : { agentEnvironment, remoteSshHost };
 }
 
 export async function loadConversationCatalog(
@@ -22,10 +27,13 @@ export async function loadConversationCatalog(
   hostBridge: HostBridge,
   dispatch: Dispatch,
   agentEnvironment: AgentEnvironment,
+  remoteSshHost: string | null = null,
 ): Promise<void> {
   const threads = await loadThreadCatalog(
     { request: (method, params) => client.request(method, params) },
-    () => hostBridge.app.listCodexSessions({ agentEnvironment }),
+    remoteSshHost === null
+      ? () => hostBridge.app.listCodexSessions({ agentEnvironment })
+      : () => Promise.resolve([]),
     agentEnvironment,
   );
   dispatch({
@@ -42,10 +50,11 @@ export async function loadBootstrapSnapshot(
   hostBridge: HostBridge,
   dispatch: Dispatch,
   agentEnvironment: AgentEnvironment,
+  remoteSshHost: string | null = null,
 ): Promise<void> {
   const [, , config, collaborationModes, experimentalFeatures] = await Promise.all([
     refreshAccountState(client, dispatch),
-    loadConversationCatalog(client, hostBridge, dispatch, agentEnvironment),
+    loadConversationCatalog(client, hostBridge, dispatch, agentEnvironment, remoteSshHost),
     client.request("config/read", { includeLayers: true }),
     client.request("collaborationMode/list", {}),
     listAllExperimentalFeatures(client),
@@ -68,9 +77,13 @@ export async function listArchivedThreads(client: ProtocolClient, agentEnvironme
   return listAllThreads({ request: (method, params) => client.request(method, params) }, agentEnvironment, true);
 }
 
-export async function startOrReuseAppServer(client: ProtocolClient, agentEnvironment: AgentEnvironment): Promise<void> {
+export async function startOrReuseAppServer(
+  client: ProtocolClient,
+  agentEnvironment: AgentEnvironment,
+  remoteSshHost: string | null = null,
+): Promise<void> {
   try {
-    await client.startAppServer(createAppServerStartInput(agentEnvironment));
+    await client.startAppServer(createAppServerStartInput(agentEnvironment, remoteSshHost));
   } catch (error) {
     if (!toErrorMessage(error).includes("already")) {
       throw error;

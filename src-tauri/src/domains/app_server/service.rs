@@ -18,6 +18,7 @@ use crate::error::{AppError, AppResult};
 use crate::events::emit_connection_changed;
 use crate::infra::filesystem::agent_environment::resolve_agent_environment;
 use crate::infra::process::codex_cli::CodexCli;
+use crate::infra::process::ssh_remote;
 use crate::infra::process::supervisor::ProcessSupervisor;
 use crate::infra::rpc::io::{
     spawn_reader_task, spawn_stderr_task, spawn_writer_task, PendingMap, PendingOutcome,
@@ -228,6 +229,24 @@ async fn spawn_runtime(
     runtime_store: Arc<Mutex<Option<Arc<AppServerRuntime>>>>,
     input: AppServerStartInput,
 ) -> AppResult<Arc<AppServerRuntime>> {
+    if let Some(remote_ssh_host) = input.remote_ssh_host.as_deref() {
+        let supervisor = ProcessSupervisor::new("remote-app-server")?;
+        let stderr_log = AppServerStderrLog::new();
+        let mut spawned = ssh_remote::spawn_ssh_app_server(remote_ssh_host)?;
+        if let Err(error) = supervisor.assign_tokio_child(&spawned.child) {
+            terminate_tokio_child(&mut spawned.child).await;
+            return Err(error);
+        }
+        return Ok(create_runtime_from_spawned(
+            app,
+            runtime_store,
+            spawned,
+            supervisor,
+            stderr_log,
+            None,
+        ));
+    }
+
     let agent_environment = resolve_agent_environment(input.agent_environment);
     if let Err(error) = bundled_computer_use::ensure_registered(&app, agent_environment) {
         eprintln!("Computer Use bundled registration failed: {error}");
@@ -261,6 +280,24 @@ async fn spawn_runtime(
         return Err(error);
     }
 
+    Ok(create_runtime_from_spawned(
+        app,
+        runtime_store,
+        spawned,
+        supervisor,
+        stderr_log,
+        mcp_shared_pool,
+    ))
+}
+
+fn create_runtime_from_spawned(
+    app: AppHandle,
+    runtime_store: Arc<Mutex<Option<Arc<AppServerRuntime>>>>,
+    spawned: crate::infra::process::codex_cli::SpawnedAppServer,
+    supervisor: ProcessSupervisor,
+    stderr_log: AppServerStderrLog,
+    mcp_shared_pool: Option<McpSharedPoolRuntime>,
+) -> Arc<AppServerRuntime> {
     let (writer, writer_rx) = mpsc::unbounded_channel();
     let pending = Arc::new(Mutex::new(std::collections::HashMap::<
         String,
@@ -277,7 +314,7 @@ async fn spawn_runtime(
     let stderr_task = spawn_stderr_task(spawned.stderr, stderr_log.clone());
     let wait_task = spawn_wait_task(app, child.clone(), runtime_store, stderr_log);
 
-    Ok(Arc::new(AppServerRuntime {
+    Arc::new(AppServerRuntime {
         writer,
         pending,
         child,
@@ -288,7 +325,7 @@ async fn spawn_runtime(
         wait_task,
         next_id: AtomicU64::new(1),
         mcp_shared_pool,
-    }))
+    })
 }
 
 async fn terminate_tokio_child(child: &mut Child) {

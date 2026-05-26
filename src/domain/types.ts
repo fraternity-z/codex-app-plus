@@ -94,6 +94,13 @@ export interface WindowsSandboxSetupState {
   readonly error: string | null;
 }
 
+export interface SshRemoteConnectionState {
+  readonly activeHost: string | null;
+  readonly pendingHost: string | null;
+  readonly pending: boolean;
+  readonly error: string | null;
+}
+
 export type WorkspaceSwitchPhase = "idle" | "switching" | "ready" | "failed";
 
 export interface UiBanner {
@@ -160,6 +167,7 @@ export interface AppState {
   readonly authLogin: AuthLoginState;
   readonly tokenRefresh: TokenRefreshState;
   readonly windowsSandboxSetup: WindowsSandboxSetupState;
+  readonly sshRemoteConnection: SshRemoteConnectionState;
   readonly workspaceSwitch: WorkspaceSwitchState;
   readonly realtimeByThreadId: Readonly<Record<string, RealtimeState>>;
   readonly fuzzySearchSessionsById: Readonly<Record<string, FuzzySearchSessionState>>;
@@ -234,6 +242,11 @@ export type AppAction =
   | { type: "windowsSandbox/setupStarted"; mode: "elevated" | "unelevated" }
   | { type: "windowsSandbox/setupCompleted"; mode: "elevated" | "unelevated"; success: boolean; error: string | null }
   | { type: "windowsSandbox/setupCleared" }
+  | { type: "sshRemote/connecting"; hostAlias: string }
+  | { type: "sshRemote/disconnecting" }
+  | { type: "sshRemote/connected"; hostAlias: string }
+  | { type: "sshRemote/disconnected" }
+  | { type: "sshRemote/failed"; hostAlias: string | null; error: string }
   | { type: "realtime/started"; threadId: string; sessionId: string | null }
   | { type: "realtime/itemAdded"; threadId: string; item: unknown }
   | { type: "realtime/audioAdded"; threadId: string; audio: ThreadRealtimeAudioChunk }
@@ -280,6 +293,7 @@ export const INITIAL_STATE: AppState = {
   authLogin: { loginId: null, authUrl: null, pending: false, error: null },
   tokenRefresh: { requestId: null, previousAccountId: null, pending: false, error: null },
   windowsSandboxSetup: { pending: false, mode: null, success: null, error: null },
+  sshRemoteConnection: { activeHost: null, pendingHost: null, pending: false, error: null },
   realtimeByThreadId: {},
   fuzzySearchSessionsById: {},
   banners: [],

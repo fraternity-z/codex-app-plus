@@ -281,6 +281,51 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, windowsSandboxSetup: { pending: false, mode: action.mode, success: action.success, error: action.error } };
     case "windowsSandbox/setupCleared":
       return { ...state, windowsSandboxSetup: INITIAL_STATE.windowsSandboxSetup };
+    case "sshRemote/connecting":
+      return {
+        ...state,
+        sshRemoteConnection: {
+          activeHost: state.sshRemoteConnection.activeHost,
+          pendingHost: action.hostAlias,
+          pending: true,
+          error: null,
+        },
+      };
+    case "sshRemote/disconnecting":
+      return {
+        ...state,
+        sshRemoteConnection: {
+          activeHost: state.sshRemoteConnection.activeHost,
+          pendingHost: null,
+          pending: true,
+          error: null,
+        },
+      };
+    case "sshRemote/connected":
+      return {
+        ...state,
+        sshRemoteConnection: {
+          activeHost: action.hostAlias,
+          pendingHost: null,
+          pending: false,
+          error: null,
+        },
+      };
+    case "sshRemote/disconnected":
+      return {
+        ...state,
+        sshRemoteConnection: INITIAL_STATE.sshRemoteConnection,
+      };
+    case "sshRemote/failed":
+      return {
+        ...state,
+        sshRemoteConnection: {
+          activeHost: state.sshRemoteConnection.activeHost,
+          pendingHost: action.hostAlias,
+          pending: false,
+          error: action.error,
+        },
+      };
     case "realtime/started":
       return updateRealtimeState(state, action.threadId, (current) => ({ ...current, sessionId: action.sessionId, closed: false, error: null }));
     case "realtime/itemAdded":

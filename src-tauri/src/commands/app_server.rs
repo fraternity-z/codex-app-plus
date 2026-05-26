@@ -2,9 +2,10 @@ use tauri::{AppHandle, State};
 
 use crate::domains::app_server::models::{
     AppServerStartInput, RpcCancelInput, RpcNotifyInput, RpcRequestInput, RpcRequestOutput,
-    ServerRequestResolveInput,
+    SaveSshHostInput, ServerRequestResolveInput, SshHostConfig,
 };
 use crate::domains::app_server::service::ProcessManager;
+use crate::infra::process::ssh_remote;
 
 use super::to_result;
 
@@ -32,6 +33,16 @@ pub async fn app_server_restart(
     input: AppServerStartInput,
 ) -> Result<(), String> {
     to_result(state.restart(app, input).await)
+}
+
+#[tauri::command]
+pub async fn app_list_ssh_hosts() -> Result<Vec<SshHostConfig>, String> {
+    to_result(ssh_remote::list_ssh_hosts().await)
+}
+
+#[tauri::command]
+pub async fn app_save_ssh_host(input: SaveSshHostInput) -> Result<SshHostConfig, String> {
+    to_result(ssh_remote::save_ssh_host(input).await)
 }
 
 #[tauri::command]

@@ -19,6 +19,27 @@ impl Default for AgentEnvironment {
 pub struct AppServerStartInput {
     pub agent_environment: Option<AgentEnvironment>,
     pub codex_path: Option<String>,
+    pub remote_ssh_host: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SshHostConfig {
+    pub alias: String,
+    pub host_name: Option<String>,
+    pub user: Option<String>,
+    pub port: Option<u16>,
+    pub resolved: bool,
+    pub resolve_error: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveSshHostInput {
+    pub alias: String,
+    pub host_name: String,
+    pub port: Option<u16>,
+    pub identity_file: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Default)]

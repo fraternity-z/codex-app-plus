@@ -1,7 +1,7 @@
 import type { ConfigMutationResult, ConfigSnapshotMutationResult, McpRefreshResult } from "../config/configOperations";
 import type { CSSProperties, MouseEvent as ReactMouseEvent } from "react";
 import type { AppPreferencesController } from "../hooks/useAppPreferences";
-import type { AppUpdateState } from "../../../domain/types";
+import type { AppUpdateState, SshRemoteConnectionState } from "../../../domain/types";
 import type { ResolvedTheme } from "../../../domain/theme";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
 import type { HooksListResponse } from "../../../protocol/generated/v2/HooksListResponse";
@@ -11,6 +11,8 @@ import type {
   ManagedPromptOutput,
   ReadProxySettingsOutput,
   ReadMcpSharedPoolSettingsOutput,
+  SaveSshHostInput,
+  SshHostConfig,
   UpsertManagedPromptInput,
   UpdateProxySettingsInput,
   UpdateProxySettingsOutput,
@@ -87,6 +89,7 @@ export interface SettingsViewProps {
   readonly resolvedTheme: ResolvedTheme;
   readonly configSnapshot: ConfigReadResponse | null;
   readonly selectedConversationId: string | null;
+  readonly sshRemoteConnection: SshRemoteConnectionState;
   readonly experimentalFeatures: ReadonlyArray<import("../../../protocol/generated/v2/ExperimentalFeature").ExperimentalFeature>;
   readonly steerAvailable: boolean;
   readonly busy: boolean;
@@ -107,6 +110,7 @@ export interface SettingsViewProps {
   onOpenConfigDocs: () => Promise<void>;
   onOpenHooksDocs: () => Promise<void>;
   onOpenMcpDocs: () => Promise<void>;
+  onAddRemoteRoot: (input: { readonly name: string; readonly path: string }) => void;
   writeProjectPermissionConfig: (input: WriteProjectPermissionConfigInput) => Promise<unknown>;
   refreshConfigSnapshot: (cwd?: string | null) => Promise<ConfigReadResponse>;
   readGlobalAgentInstructions: () => Promise<GlobalAgentInstructionsOutput>;
@@ -151,6 +155,10 @@ export interface SettingsViewProps {
     input: { readonly kind: BrowserBrowsingDataKind }
   ) => Promise<void>;
   refreshMcpData: () => Promise<McpRefreshResult>;
+  listSshHosts: () => Promise<ReadonlyArray<SshHostConfig>>;
+  saveSshHost: (input: SaveSshHostInput) => Promise<SshHostConfig>;
+  connectSshRemoteHost: (hostAlias: string) => Promise<void>;
+  disconnectSshRemoteHost: () => Promise<void>;
   listHooks: (cwds?: ReadonlyArray<string>) => Promise<HooksListResponse>;
   listArchivedThreads: () => Promise<ReadonlyArray<import("../../../domain/types").ThreadSummary>>;
   unarchiveThread: (threadId: string) => Promise<void>;
@@ -377,7 +385,17 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
     );
   }
   if (section === "connections") {
-    return <ConnectionsPlaceholderContent />;
+    return (
+      <ConnectionsPlaceholderContent
+        busy={props.busy}
+        sshRemoteConnection={props.sshRemoteConnection}
+        listSshHosts={props.listSshHosts}
+        saveSshHost={props.saveSshHost}
+        connectSshRemoteHost={props.connectSshRemoteHost}
+        disconnectSshRemoteHost={props.disconnectSshRemoteHost}
+        onAddRemoteRoot={props.onAddRemoteRoot}
+      />
+    );
   }
   if (section === "about") {
     return (

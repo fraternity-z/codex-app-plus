@@ -1943,6 +1943,13 @@
   width: min(100%, 840px);
 }
 
+.settings-section-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .settings-connection-placeholder-card {
   min-height: 210px;
   padding: 32px 24px;
@@ -1994,6 +2001,199 @@
 .settings-placeholder-pill:disabled {
   cursor: default;
   opacity: 0.78;
+}
+
+.settings-connection-card,
+.settings-remote-project-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.settings-connection-summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.settings-connection-summary .settings-connection-placeholder-visual {
+  justify-content: flex-start;
+}
+
+.settings-connection-summary .settings-connection-placeholder-copy {
+  font-size: var(--app-ui-font-size-md);
+  text-align: left;
+}
+
+.settings-ssh-host-row {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-light);
+}
+
+.settings-ssh-host-row:first-of-type {
+  border-top: 0;
+}
+
+.settings-ssh-host-row-active {
+  background: var(--surface-panel-soft);
+}
+
+.settings-ssh-host-main {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.settings-ssh-host-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.settings-ssh-host-title strong,
+.settings-ssh-host-meta,
+.settings-ssh-host-warning {
+  overflow-wrap: anywhere;
+}
+
+.settings-ssh-host-title strong {
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-md);
+  font-weight: 650;
+}
+
+.settings-ssh-host-meta {
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.45;
+}
+
+.settings-ssh-host-warning {
+  color: #b91c1c;
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.45;
+}
+
+.settings-ssh-status-pill {
+  flex: 0 0 auto;
+  border: 1px solid #16a34a;
+  border-radius: 999px;
+  padding: 1px 7px;
+  color: #166534;
+  background: rgba(34, 197, 94, 0.1);
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+
+.settings-ssh-empty {
+  min-height: 118px;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 18px;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-md);
+  line-height: 1.55;
+}
+
+.settings-ssh-empty strong {
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-lg);
+}
+
+.settings-action-btn-secondary {
+  border-color: var(--border-light);
+  background: transparent;
+}
+
+.settings-ssh-dialog {
+  width: min(650px, 100%);
+}
+
+.settings-ssh-dialog-body {
+  display: grid;
+  gap: 18px;
+  overflow: auto;
+}
+
+.settings-form-field {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-form-field span {
+  color: var(--text-soft);
+  font-size: var(--app-ui-font-size-sm);
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.settings-ssh-dialog-input {
+  width: 100%;
+  height: 40px;
+}
+
+.settings-ssh-auth-toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+  border-radius: 10px;
+  background: var(--surface-panel-soft);
+  padding: 3px;
+}
+
+.settings-ssh-auth-toggle .settings-toggle-button {
+  min-width: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.settings-ssh-identity-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.settings-ssh-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.settings-form-row {
+  display: grid;
+  gap: 8px;
+  padding: 18px 18px 12px;
+}
+
+.settings-form-row label {
+  color: var(--text-soft);
+  font-size: var(--app-ui-font-size-sm);
+  font-weight: 600;
+}
+
+.settings-remote-project-input {
+  width: 100%;
+}
+
+.settings-remote-project-card .settings-section-head {
+  align-items: flex-start;
+  padding-top: 4px;
+}
+
+.settings-remote-project-card .settings-status-note {
+  padding: 0;
+  color: var(--text-muted);
 }
 
 .mcp-settings-page {
@@ -2946,6 +3146,19 @@ html[data-theme="dark"] .settings-license-link {
 }
 
 @media (max-width: 720px) {
+  .settings-section-actions,
+  .settings-ssh-dialog-actions {
+    flex-wrap: wrap;
+  }
+
+  .settings-section-actions {
+    justify-content: flex-start;
+  }
+
+  .settings-ssh-identity-row {
+    grid-template-columns: 1fr;
+  }
+
   .settings-hooks-overview-grid,
   .settings-hook-details {
     grid-template-columns: 1fr;

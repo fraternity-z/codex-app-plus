@@ -4,6 +4,23 @@ import type { AgentEnvironment, WorkspaceOpener } from "./sharedTypes";
 export interface AppServerStartInput {
   readonly agentEnvironment?: AgentEnvironment;
   readonly codexPath?: string;
+  readonly remoteSshHost?: string | null;
+}
+
+export interface SshHostConfig {
+  readonly alias: string;
+  readonly hostName: string | null;
+  readonly user: string | null;
+  readonly port: number | null;
+  readonly resolved: boolean;
+  readonly resolveError: string | null;
+}
+
+export interface SaveSshHostInput {
+  readonly alias: string;
+  readonly hostName: string;
+  readonly port?: number | null;
+  readonly identityFile?: string | null;
 }
 
 export interface McpSharedPoolSettings {

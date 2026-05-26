@@ -99,6 +99,8 @@ export interface AppController {
   applyAgentsConfig: (settings: AgentsConfigUpdateInput) => Promise<void>;
   checkForAppUpdate: () => Promise<void>;
   installAppUpdate: () => Promise<void>;
+  connectSshRemoteHost: (hostAlias: string) => Promise<void>;
+  disconnectSshRemoteHost: () => Promise<void>;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   resolveServerRequest: (resolution: ServerRequestResolution) => Promise<void>;

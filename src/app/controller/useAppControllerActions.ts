@@ -53,7 +53,15 @@ interface UseAppControllerActionsArgs {
   readonly configSnapshot: ConfigReadResponse | null;
 }
 
-type AppControllerActions = Omit<AppController, "retryConnection" | "setInput" | "checkForAppUpdate" | "installAppUpdate">;
+type AppControllerActions = Omit<
+  AppController,
+  | "retryConnection"
+  | "setInput"
+  | "checkForAppUpdate"
+  | "installAppUpdate"
+  | "connectSshRemoteHost"
+  | "disconnectSshRemoteHost"
+>;
 
 function isConfigVersionConflictError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);

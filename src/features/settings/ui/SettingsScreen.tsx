@@ -32,6 +32,8 @@ interface SettingsScreenProps {
     | "batchWriteConfig"
     | "batchWriteConfigSnapshot"
     | "checkForAppUpdate"
+    | "connectSshRemoteHost"
+    | "disconnectSshRemoteHost"
     | "installAppUpdate"
     | "listArchivedThreads"
     | "listHooks"
@@ -159,6 +161,10 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     }
   }, [reportError, worktreeController]);
 
+  const addRemoteRoot = useCallback((input: { readonly name: string; readonly path: string }) => {
+    props.workspace.addRoot(input);
+  }, [props.workspace]);
+
   const testNotificationSound = useCallback(() => {
     setNotificationTestFeedback(null);
     playNotificationSound(successSoundUrl, "test");
@@ -206,6 +212,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     resolvedTheme: props.resolvedTheme,
     configSnapshot: state.configSnapshot,
     selectedConversationId: state.selectedConversationId,
+    sshRemoteConnection: state.sshRemoteConnection,
     experimentalFeatures: state.experimentalFeatures,
     steerAvailable: steerState.available,
     busy: state.bootstrapBusy,
@@ -219,6 +226,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     onSidebarResizeStart: props.onSidebarResizeStart,
     onTogglePetAwake: props.onTogglePetAwake,
     onAddRoot: () => void addRoot(),
+    onAddRemoteRoot: addRemoteRoot,
     onOpenConfigToml: openConfigToml,
     onOpenConfigDocs: openConfigDocs,
     onOpenHooksDocs: openHooksDocs,
@@ -290,6 +298,10 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     clearBrowserBrowsingDataByKind: (input) =>
       props.hostBridge.app.clearBrowserBrowsingDataByKind(input),
     refreshMcpData: props.controller.refreshMcpData,
+    listSshHosts: () => props.hostBridge.app.listSshHosts(),
+    saveSshHost: (input) => props.hostBridge.app.saveSshHost(input),
+    connectSshRemoteHost: props.controller.connectSshRemoteHost,
+    disconnectSshRemoteHost: props.controller.disconnectSshRemoteHost,
     listHooks: props.controller.listHooks,
     listArchivedThreads: props.controller.listArchivedThreads,
     unarchiveThread: props.controller.unarchiveThread,
