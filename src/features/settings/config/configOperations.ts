@@ -5,6 +5,7 @@ import type { ConfigValueWriteParams } from "../../../protocol/generated/v2/Conf
 import type { ConfigWriteResponse } from "../../../protocol/generated/v2/ConfigWriteResponse";
 import type { ExperimentalFeature } from "../../../protocol/generated/v2/ExperimentalFeature";
 import type { ExperimentalFeatureListResponse } from "../../../protocol/generated/v2/ExperimentalFeatureListResponse";
+import type { HooksListResponse } from "../../../protocol/generated/v2/HooksListResponse";
 import type { ListMcpServerStatusResponse } from "../../../protocol/generated/v2/ListMcpServerStatusResponse";
 import type { McpServerStatusDetail } from "../../../protocol/generated/v2/McpServerStatusDetail";
 import type { McpServerRefreshResponse } from "../../../protocol/generated/v2/McpServerRefreshResponse";
@@ -120,6 +121,15 @@ export async function listAllExperimentalFeatures(client: ProtocolClient): Promi
   } while (cursor !== null);
 
   return features;
+}
+
+export async function listConfiguredHooks(
+  client: ProtocolClient,
+  cwds?: ReadonlyArray<string>,
+): Promise<HooksListResponse> {
+  const normalizedCwds = [...new Set((cwds ?? []).map((cwd) => cwd.trim()).filter(Boolean))];
+  const params = normalizedCwds.length === 0 ? {} : { cwds: normalizedCwds };
+  return (await client.request("hooks/list", params)) as HooksListResponse;
 }
 
 export async function refreshMcpData(client: ProtocolClient, dispatch: Dispatch): Promise<McpRefreshResult> {

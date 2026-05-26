@@ -3,6 +3,7 @@ export {
   batchWriteConfigAndRefresh,
   listAllExperimentalFeatures,
   listAllMcpServerStatuses,
+  listConfiguredHooks,
   readConfigSnapshot,
   refreshMcpData,
   writeConfigValueAndRefresh,

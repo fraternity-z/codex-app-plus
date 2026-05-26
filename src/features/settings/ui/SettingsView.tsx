@@ -4,6 +4,7 @@ import type { AppPreferencesController } from "../hooks/useAppPreferences";
 import type { AppUpdateState } from "../../../domain/types";
 import type { ResolvedTheme } from "../../../domain/theme";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
+import type { HooksListResponse } from "../../../protocol/generated/v2/HooksListResponse";
 import type {
   AgentEnvironment,
   GlobalAgentInstructionsOutput,
@@ -45,13 +46,13 @@ import { ComputerUseSettingsSection } from "./ComputerUseSettingsSection";
 import { ConfigSettingsSection } from "./ConfigSettingsSection";
 import { GeneralSettingsSection } from "./GeneralSettingsSection";
 import { GitSettingsSection } from "./GitSettingsSection";
+import { HooksSettingsSection } from "./HooksSettingsSection";
 import { PersonalizationSettingsSection } from "./PersonalizationSettingsSection";
 import { ProxySettingsCard } from "./ProxySettingsCard";
 import { SettingsNavIcon, type SettingsNavIconKind } from "./settingsNavIcons";
 import {
   ConnectionsPlaceholderContent,
   EnvironmentContent,
-  HooksPlaceholderContent,
   PlaceholderContent,
   WorktreeContent,
 } from "./SettingsStaticSections";
@@ -104,6 +105,7 @@ export interface SettingsViewProps {
   onTogglePetAwake: () => void;
   onOpenConfigToml: (filePath?: string | null) => Promise<void>;
   onOpenConfigDocs: () => Promise<void>;
+  onOpenHooksDocs: () => Promise<void>;
   onOpenMcpDocs: () => Promise<void>;
   writeProjectPermissionConfig: (input: WriteProjectPermissionConfigInput) => Promise<unknown>;
   refreshConfigSnapshot: (cwd?: string | null) => Promise<ConfigReadResponse>;
@@ -149,6 +151,7 @@ export interface SettingsViewProps {
     input: { readonly kind: BrowserBrowsingDataKind }
   ) => Promise<void>;
   refreshMcpData: () => Promise<McpRefreshResult>;
+  listHooks: (cwds?: ReadonlyArray<string>) => Promise<HooksListResponse>;
   listArchivedThreads: () => Promise<ReadonlyArray<import("../../../domain/types").ThreadSummary>>;
   unarchiveThread: (threadId: string) => Promise<void>;
   writeConfigValue: (params: ConfigValueWriteParams) => Promise<ConfigMutationResult>;
@@ -363,7 +366,15 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
     );
   }
   if (section === "hooks") {
-    return <HooksPlaceholderContent />;
+    return (
+      <HooksSettingsSection
+        ready={props.ready}
+        roots={props.roots}
+        selectedRoot={props.selectedRoot}
+        listHooks={props.listHooks}
+        onOpenHooksDocs={props.onOpenHooksDocs}
+      />
+    );
   }
   if (section === "connections") {
     return <ConnectionsPlaceholderContent />;

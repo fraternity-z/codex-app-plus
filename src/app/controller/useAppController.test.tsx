@@ -80,6 +80,7 @@ vi.mock("../../features/settings", () => ({
   installPendingAppUpdate: vi.fn(),
   listAllExperimentalFeatures: vi.fn().mockResolvedValue([]),
   listAllMcpServerStatuses: vi.fn().mockResolvedValue([]),
+  listConfiguredHooks: vi.fn().mockResolvedValue({ data: [] }),
   readCurrentAppVersion: vi.fn().mockResolvedValue("0.1.0"),
   readConfigSnapshot: vi.fn(),
   readUserConfigWriteTarget: vi.fn((snapshot: unknown) => {

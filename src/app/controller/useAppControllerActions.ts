@@ -6,6 +6,7 @@ import type { ThreadMemoryMode } from "../../protocol/generated/ThreadMemoryMode
 import {
   batchWriteConfigAndReadSnapshot,
   batchWriteConfigAndRefresh,
+  listConfiguredHooks,
   listAllMcpServerStatuses,
   readConfigSnapshot,
   refreshMcpData as refreshMcpSnapshot,
@@ -211,6 +212,7 @@ export function useAppControllerActions({
     () => listArchivedThreadsForEnvironment(client, agentEnvironment),
     [agentEnvironment, client],
   );
+  const listHooks = useCallback((cwds?: ReadonlyArray<string>) => listConfiguredHooks(client, cwds), [client]);
   const archiveThread = useCallback(async (threadId: string) => {
     await client.request("thread/archive", { threadId });
     dispatch({ type: "conversation/hiddenChanged", conversationId: threadId, hidden: true });
@@ -302,6 +304,7 @@ export function useAppControllerActions({
     batchWriteConfig,
     batchWriteConfigSnapshot,
     listArchivedThreads,
+    listHooks,
     listMcpServerStatuses,
     login,
     logout,

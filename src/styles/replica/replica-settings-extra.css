@@ -1636,6 +1636,26 @@
   color: var(--accent-color);
 }
 
+.settings-hooks-doc-link {
+  border: 0;
+  background: transparent;
+  color: var(--accent-color);
+  padding: 0;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.settings-hooks-doc-link:hover {
+  text-decoration: underline;
+}
+
+.settings-hooks-doc-link:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .settings-placeholder-icon-button {
   flex: 0 0 auto;
   width: 30px;
@@ -1647,6 +1667,10 @@
   justify-content: center;
   color: var(--text-muted);
   background: transparent;
+}
+
+.settings-placeholder-icon-button:not(:disabled):hover {
+  background: var(--surface-hover);
 }
 
 .settings-placeholder-icon-button:disabled {
@@ -1662,6 +1686,228 @@
 
 .settings-hooks-placeholder-card {
   margin-top: 52px;
+}
+
+.settings-hooks-overview-card {
+  margin-top: 4px;
+}
+
+.settings-hooks-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--border-light);
+}
+
+.settings-hooks-overview-grid div {
+  min-width: 0;
+  padding: 14px 18px;
+  display: grid;
+  gap: 4px;
+  background: var(--surface-panel);
+}
+
+.settings-hooks-overview-grid strong {
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-2xl);
+  line-height: 1.2;
+  font-weight: 650;
+}
+
+.settings-hooks-overview-grid span {
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.4;
+}
+
+.settings-hooks-workspace-card {
+  margin-top: 14px;
+}
+
+.settings-hooks-workspace-head {
+  align-items: flex-start;
+}
+
+.settings-hooks-workspace-title {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.settings-hooks-workspace-title strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--app-code-font-family);
+  font-size: calc(var(--app-code-font-size) - 1px);
+}
+
+.settings-hooks-workspace-title span {
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.4;
+}
+
+.settings-hook-row {
+  padding: 15px 18px;
+  border-top: 1px solid var(--border-light);
+}
+
+.settings-hook-row-main {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.settings-hook-row-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.settings-hook-row-title strong {
+  color: var(--text-main);
+  font-size: var(--app-ui-font-size-lg);
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.settings-hook-badge {
+  width: max-content;
+  max-width: 100%;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: var(--surface-panel-soft);
+  color: var(--text-soft);
+  font-size: var(--app-ui-font-size-compact);
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.settings-hook-badge-enabled,
+.settings-hook-badge-trusted,
+.settings-hook-badge-managed {
+  border-color: color-mix(in srgb, var(--success-fg) 24%, transparent);
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+
+.settings-hook-badge-disabled,
+.settings-hook-badge-untrusted {
+  border-color: color-mix(in srgb, var(--error-fg) 24%, transparent);
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+.settings-hook-badge-modified {
+  border-color: color-mix(in srgb, var(--warning-fg) 24%, transparent);
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+}
+
+.settings-hook-status-message {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--app-ui-font-size-md);
+  line-height: 1.5;
+}
+
+.settings-hook-details {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 18px;
+}
+
+.settings-hook-detail {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.settings-hook-detail dt,
+.settings-hook-command span {
+  color: var(--text-subtle);
+  font-size: var(--app-ui-font-size-compact);
+  line-height: 1.35;
+  font-weight: 600;
+}
+
+.settings-hook-detail dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.settings-hook-detail code,
+.settings-hook-command code,
+.settings-hook-diagnostic-group code {
+  font-family: var(--app-code-font-family);
+  font-size: calc(var(--app-code-font-size) - 2px);
+}
+
+.settings-hook-command {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.settings-hook-command code {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: var(--surface-panel-soft);
+  color: var(--text-main);
+}
+
+.settings-hook-diagnostics {
+  display: grid;
+  gap: 10px;
+  padding: 0 18px 14px;
+}
+
+.settings-hook-diagnostic-group {
+  border: 1px solid color-mix(in srgb, var(--warning-fg) 24%, transparent);
+  border-radius: 10px;
+  background: var(--warning-bg);
+  padding: 10px 12px;
+  color: var(--warning-fg);
+}
+
+.settings-hook-diagnostic-group-error {
+  border-color: color-mix(in srgb, var(--error-fg) 24%, transparent);
+  background: var(--error-bg);
+  color: var(--error-fg);
+}
+
+.settings-hook-diagnostic-group strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.4;
+}
+
+.settings-hook-diagnostic-group p {
+  margin: 0;
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.settings-hook-diagnostic-group p + p {
+  margin-top: 4px;
 }
 
 .settings-placeholder-stack {
@@ -2697,4 +2943,15 @@ html[data-theme="dark"] .codex-provider-current {
 
 html[data-theme="dark"] .settings-license-link {
   color: var(--accent-strong);
+}
+
+@media (max-width: 720px) {
+  .settings-hooks-overview-grid,
+  .settings-hook-details {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-hook-command code {
+    white-space: normal;
+  }
 }

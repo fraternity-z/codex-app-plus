@@ -11,6 +11,7 @@ import type { ConfigValueWriteParams } from "../../protocol/generated/v2/ConfigV
 import type { ConfigWriteResponse } from "../../protocol/generated/v2/ConfigWriteResponse";
 import type { FsRemoveParams } from "../../protocol/generated/v2/FsRemoveParams";
 import type { FsRemoveResponse } from "../../protocol/generated/v2/FsRemoveResponse";
+import type { HooksListResponse } from "../../protocol/generated/v2/HooksListResponse";
 import type { MarketplaceAddParams } from "../../protocol/generated/v2/MarketplaceAddParams";
 import type { MarketplaceAddResponse } from "../../protocol/generated/v2/MarketplaceAddResponse";
 import type { MarketplaceRemoveParams } from "../../protocol/generated/v2/MarketplaceRemoveParams";
@@ -42,6 +43,7 @@ export type { ConfigValueWriteParams } from "../../protocol/generated/v2/ConfigV
 export type { ConfigWriteResponse } from "../../protocol/generated/v2/ConfigWriteResponse";
 export type { FsRemoveParams } from "../../protocol/generated/v2/FsRemoveParams";
 export type { FsRemoveResponse } from "../../protocol/generated/v2/FsRemoveResponse";
+export type { HooksListResponse } from "../../protocol/generated/v2/HooksListResponse";
 export type { MarketplaceAddParams } from "../../protocol/generated/v2/MarketplaceAddParams";
 export type { MarketplaceAddResponse } from "../../protocol/generated/v2/MarketplaceAddResponse";
 export type { MarketplaceRemoveParams } from "../../protocol/generated/v2/MarketplaceRemoveParams";
@@ -74,6 +76,7 @@ export interface AppController {
   refreshMcpData: () => Promise<McpRefreshResult>;
   listMcpServerStatuses: () => Promise<ReadonlyArray<McpServerStatus>>;
   listArchivedThreads: () => Promise<ReadonlyArray<ThreadSummary>>;
+  listHooks: (cwds?: ReadonlyArray<string>) => Promise<HooksListResponse>;
   archiveThread: (threadId: string) => Promise<void>;
   unarchiveThread: (threadId: string) => Promise<void>;
   writeConfigValue: (params: ConfigValueWriteParams) => Promise<ConfigMutationResult>;

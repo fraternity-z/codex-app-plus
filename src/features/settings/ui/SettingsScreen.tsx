@@ -34,6 +34,7 @@ interface SettingsScreenProps {
     | "checkForAppUpdate"
     | "installAppUpdate"
     | "listArchivedThreads"
+    | "listHooks"
     | "refreshConfigSnapshot"
     | "refreshMcpData"
     | "resetMemories"
@@ -117,6 +118,16 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
       );
     } catch (error) {
       reportError("打开 MCP 文档失败", error);
+    }
+  }, [props.hostBridge.app, reportError]);
+
+  const openHooksDocs = useCallback(async () => {
+    try {
+      await props.hostBridge.app.openExternal(
+        "https://developers.openai.com/codex/hooks",
+      );
+    } catch (error) {
+      reportError("打开 Codex Hooks 文档失败", error);
     }
   }, [props.hostBridge.app, reportError]);
 
@@ -210,6 +221,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     onAddRoot: () => void addRoot(),
     onOpenConfigToml: openConfigToml,
     onOpenConfigDocs: openConfigDocs,
+    onOpenHooksDocs: openHooksDocs,
     onOpenMcpDocs: openMcpDocs,
     writeProjectPermissionConfig: (input) =>
       props.hostBridge.app.writeProjectPermissionConfig(input),
@@ -278,6 +290,7 @@ export function SettingsScreen(props: SettingsScreenProps): JSX.Element {
     clearBrowserBrowsingDataByKind: (input) =>
       props.hostBridge.app.clearBrowserBrowsingDataByKind(input),
     refreshMcpData: props.controller.refreshMcpData,
+    listHooks: props.controller.listHooks,
     listArchivedThreads: props.controller.listArchivedThreads,
     unarchiveThread: props.controller.unarchiveThread,
     writeConfigValue: props.controller.writeConfigValue,

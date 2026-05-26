@@ -3,6 +3,7 @@ import type { ProtocolClient } from "../../../protocol/client";
 import {
   batchWriteConfigAndReadSnapshot,
   batchWriteConfigAndRefresh,
+  listConfiguredHooks,
   listAllMcpServerStatuses,
   writeConfigValueAndRefresh
 } from "./configOperations";
@@ -39,6 +40,9 @@ function createClient() {
     }
     if (method === "mcpServerStatus/list") {
       return STATUS_PAGE;
+    }
+    if (method === "hooks/list") {
+      return { data: [] };
     }
     throw new Error(`unexpected method: ${method}`);
   });
@@ -128,5 +132,23 @@ describe("configOperations", () => {
       { cursor: null, limit: 100, detail: "toolsAndAuthOnly" },
       { cursor: null, limit: 100, detail: "toolsAndAuthOnly" }
     ]);
+  });
+
+  it("lists configured hooks for unique non-empty workspaces", async () => {
+    const { client, request } = createClient();
+
+    await listConfiguredHooks(client, [" E:/code/app ", "", "E:/code/app", "E:/code/other"]);
+
+    expect(request).toHaveBeenCalledWith("hooks/list", {
+      cwds: ["E:/code/app", "E:/code/other"],
+    });
+  });
+
+  it("lets app-server choose the current cwd when no hook workspace is provided", async () => {
+    const { client, request } = createClient();
+
+    await listConfiguredHooks(client, []);
+
+    expect(request).toHaveBeenCalledWith("hooks/list", {});
   });
 });

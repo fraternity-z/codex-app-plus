@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ConfigReadResponse } from "../../../protocol/generated/v2/ConfigReadResponse";
+import type { HookMetadata } from "../../../protocol/generated/v2/HookMetadata";
+import type { HooksListResponse } from "../../../protocol/generated/v2/HooksListResponse";
 import { INITIAL_APP_UPDATE_STATE } from "../../../domain/appUpdate";
 import { createI18nWrapper } from "../../../test/createI18nWrapper";
 import {
@@ -56,6 +58,36 @@ function createConfigSnapshot(): ConfigReadResponse {
   } as unknown as ConfigReadResponse;
 }
 
+function createHookMetadata(overrides: Partial<HookMetadata> = {}): HookMetadata {
+  return {
+    key: "hook-1",
+    eventName: "preToolUse",
+    handlerType: "command",
+    matcher: "Bash",
+    command: "py -3 E:/repo/.codex/hooks/pre_tool_use.py",
+    timeoutSec: 30n,
+    statusMessage: "Checking Bash command",
+    sourcePath: "E:/repo/.codex/hooks.json",
+    source: "project",
+    pluginId: null,
+    displayOrder: 1n,
+    enabled: true,
+    isManaged: false,
+    currentHash: "abcdef1234567890",
+    trustStatus: "trusted",
+    ...overrides,
+  };
+}
+
+function createHooksResponse(
+  overrides: Partial<HooksListResponse> = {},
+): HooksListResponse {
+  return {
+    data: [],
+    ...overrides,
+  };
+}
+
 function createBaseProps(
   overrides: Partial<SettingsViewProps> = {}
 ): SettingsViewProps {
@@ -83,6 +115,7 @@ function createBaseProps(
     onTogglePetAwake: vi.fn(),
     onOpenConfigToml: vi.fn().mockResolvedValue(undefined),
     onOpenConfigDocs: vi.fn().mockResolvedValue(undefined),
+    onOpenHooksDocs: vi.fn().mockResolvedValue(undefined),
     onOpenMcpDocs: vi.fn().mockResolvedValue(undefined),
     writeProjectPermissionConfig: vi.fn().mockResolvedValue({ filePath: "E:/code/project/.codex/config.toml" }),
     refreshConfigSnapshot: vi.fn().mockResolvedValue({ config: {}, origins: {}, layers: [] }),
@@ -171,6 +204,7 @@ function createBaseProps(
     clearBrowserBrowsingData: vi.fn().mockResolvedValue(undefined),
     clearBrowserBrowsingDataByKind: vi.fn().mockResolvedValue(undefined),
     refreshMcpData: vi.fn(),
+    listHooks: vi.fn().mockResolvedValue(createHooksResponse()),
     listArchivedThreads: vi.fn().mockResolvedValue([]),
     unarchiveThread: vi.fn().mockResolvedValue(undefined),
     writeConfigValue: vi.fn().mockResolvedValue({}),
@@ -299,17 +333,57 @@ describe("SettingsView", () => {
     expect(screen.getByText("已屏蔽的应用")).toBeInTheDocument();
   });
 
-  it("renders hooks as a TODO placeholder section", () => {
-    render(<SettingsView {...createBaseProps({ section: "hooks" })} />, {
+  it("lists configured hooks through the official app-server method", async () => {
+    const listHooks = vi.fn().mockResolvedValue(createHooksResponse({
+      data: [{
+        cwd: "E:/repo",
+        hooks: [createHookMetadata()],
+        warnings: ["hooks.json and inline [hooks] are both configured"],
+        errors: [{ path: "E:/repo/.codex/hooks.json", message: "invalid matcher regex" }],
+      }],
+    }));
+    const onOpenHooksDocs = vi.fn().mockResolvedValue(undefined);
+
+    render(<SettingsView {...createBaseProps({
+      section: "hooks",
+      roots: [
+        { id: "repo", name: "repo", path: "E:/repo" },
+        { id: "other", name: "other", path: "E:/other" },
+      ],
+      selectedRoot: { id: "repo", name: "repo", path: "E:/repo" },
+      listHooks,
+      onOpenHooksDocs,
+    })} />, {
       wrapper: createI18nWrapper("zh-CN"),
     });
 
     expect(screen.getByRole("button", { name: "钩子" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "钩子" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "刷新钩子" })).toBeDisabled();
-    expect(screen.getByText("No hooks found")).toBeInTheDocument();
-    expect(screen.getByText("Projects with configured hooks will appear here")).toBeInTheDocument();
-    expect(screen.getByText("TODO")).toBeInTheDocument();
+    expect(await screen.findByText("PreToolUse")).toBeInTheDocument();
+    expect(screen.getByText("Checking Bash command")).toBeInTheDocument();
+    expect(screen.getByText("py -3 E:/repo/.codex/hooks/pre_tool_use.py")).toBeInTheDocument();
+    expect(screen.getByText("已信任")).toBeInTheDocument();
+    expect(screen.getByText("hooks.json and inline [hooks] are both configured")).toBeInTheDocument();
+    expect(screen.getAllByText((_, node) => node?.textContent?.includes("invalid matcher regex") ?? false).length).toBeGreaterThan(0);
+    expect(listHooks).toHaveBeenCalledWith(["E:/repo", "E:/other"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "了解更多" }));
+    expect(onOpenHooksDocs).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "刷新钩子" }));
+    await waitFor(() => {
+      expect(listHooks).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("renders hooks empty state without the old TODO placeholder", async () => {
+    render(<SettingsView {...createBaseProps({ section: "hooks" })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(await screen.findByText("没有找到钩子")).toBeInTheDocument();
+    expect(screen.getByText("配置了 hooks.json 或 [hooks] 的项目会显示在这里。")).toBeInTheDocument();
+    expect(screen.queryByText("TODO")).toBeNull();
   });
 
   it("renders connections as a TODO placeholder section", () => {
