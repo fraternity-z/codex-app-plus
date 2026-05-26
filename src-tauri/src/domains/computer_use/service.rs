@@ -4,18 +4,61 @@ use std::path::{Path, PathBuf};
 
 use toml_edit::{Array, DocumentMut, Item, Table, Value};
 
-use super::models::{ComputerUseAppInput, ComputerUseAppKind, ComputerUseSettingsOutput};
+use super::models::{
+    ComputerUseAppInput, ComputerUseAppKind, ComputerUseApprovalMode, ComputerUseApprovalModeInput,
+    ComputerUseSettingsOutput,
+};
 use crate::error::{AppError, AppResult};
 use crate::infra::filesystem::agent_environment::resolve_codex_home_relative_path;
 use crate::models::AgentEnvironment;
 
 const USER_COMPUTER_USE_CONFIG_PATH: &str = ".codex/computer-use/config.toml";
 const MAX_APP_IDENTIFIER_CHARS: usize = 120;
+const DEFAULT_DENIED_APPS: &[&str] = &[
+    "1password",
+    "bitwarden",
+    "cmd",
+    "compmgmt",
+    "conhost",
+    "credentialuibroker",
+    "dashlane",
+    "diskmgmt",
+    "diskpart",
+    "enpass",
+    "format",
+    "keepass",
+    "keepassxc",
+    "lastpass",
+    "mmc",
+    "nordpass",
+    "powershell",
+    "protonpass",
+    "pwsh",
+    "regedit",
+    "regedt32",
+    "taskmgr",
+    "wt",
+    "windowsterminal",
+];
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ComputerUsePolicyConfig {
+    approval_mode: ComputerUseApprovalMode,
     allowed_apps: Vec<String>,
     denied_apps: Vec<String>,
+}
+
+impl Default for ComputerUsePolicyConfig {
+    fn default() -> Self {
+        Self {
+            approval_mode: ComputerUseApprovalMode::AllowVisible,
+            allowed_apps: Vec::new(),
+            denied_apps: DEFAULT_DENIED_APPS
+                .iter()
+                .map(|app| (*app).to_string())
+                .collect(),
+        }
+    }
 }
 
 pub fn read_computer_use_settings() -> AppResult<ComputerUseSettingsOutput> {
@@ -31,6 +74,13 @@ pub fn add_computer_use_app(input: ComputerUseAppInput) -> AppResult<ComputerUse
 pub fn remove_computer_use_app(input: ComputerUseAppInput) -> AppResult<ComputerUseSettingsOutput> {
     let path = computer_use_config_path()?;
     remove_computer_use_app_at(&path, input)
+}
+
+pub fn write_computer_use_approval_mode(
+    input: ComputerUseApprovalModeInput,
+) -> AppResult<ComputerUseSettingsOutput> {
+    let path = computer_use_config_path()?;
+    write_computer_use_approval_mode_at(&path, input)
 }
 
 fn computer_use_config_path() -> AppResult<PathBuf> {
@@ -59,6 +109,18 @@ fn remove_computer_use_app_at(
     input: ComputerUseAppInput,
 ) -> AppResult<ComputerUseSettingsOutput> {
     mutate_computer_use_config(path, input, AppListMutation::Remove)
+}
+
+fn write_computer_use_approval_mode_at(
+    path: &Path,
+    input: ComputerUseApprovalModeInput,
+) -> AppResult<ComputerUseSettingsOutput> {
+    let text = read_config_text(path)?;
+    let mut config = parse_policy_config(&text)?;
+    config.approval_mode = input.approval_mode;
+    let updated = update_config_text_with_config(&text, &config)?;
+    write_config_text(path, &updated)?;
+    read_computer_use_settings_at(path)
 }
 
 enum AppListMutation {
@@ -100,7 +162,6 @@ fn update_config_text(
     app: &str,
     mutation: AppListMutation,
 ) -> AppResult<String> {
-    let mut doc = parse_document(text)?;
     let mut config = parse_policy_config(text)?;
 
     match mutation {
@@ -108,7 +169,17 @@ fn update_config_text(
         AppListMutation::Remove => remove_app_from_config(&mut config, kind, app),
     }
 
+    update_config_text_with_config(text, &config)
+}
+
+fn update_config_text_with_config(
+    text: &str,
+    config: &ComputerUsePolicyConfig,
+) -> AppResult<String> {
+    let mut doc = parse_document(text)?;
     let apps_table = ensure_child_table(doc.as_table_mut(), "apps");
+    apps_table["require_approvals"] =
+        toml_edit::value(config.approval_mode == ComputerUseApprovalMode::RequireApprovals);
     apps_table["allowed"] = string_array_item(&config.allowed_apps);
     apps_table["denied"] = string_array_item(&config.denied_apps);
 
@@ -130,7 +201,16 @@ fn parse_policy_config(text: &str) -> AppResult<ComputerUsePolicyConfig> {
         AppError::InvalidInput(format!("computer-use/config.toml 解析失败: {error}"))
     })?;
     let apps = value.get("apps");
+    let require_approvals = apps
+        .and_then(|item| item.get("require_approvals"))
+        .and_then(toml::Value::as_bool)
+        .unwrap_or(false);
     Ok(ComputerUsePolicyConfig {
+        approval_mode: if require_approvals {
+            ComputerUseApprovalMode::RequireApprovals
+        } else {
+            ComputerUseApprovalMode::AllowVisible
+        },
         allowed_apps: parse_app_list(apps.and_then(|item| item.get("allowed"))),
         denied_apps: parse_app_list(apps.and_then(|item| item.get("denied"))),
     })
@@ -158,6 +238,7 @@ fn parse_app_list(value: Option<&toml::Value>) -> Vec<String> {
 fn settings_from_config(path: &Path, config: ComputerUsePolicyConfig) -> ComputerUseSettingsOutput {
     ComputerUseSettingsOutput {
         config_path: path.display().to_string(),
+        approval_mode: config.approval_mode,
         allowed_apps: config.allowed_apps,
         denied_apps: config.denied_apps,
     }
@@ -240,9 +321,13 @@ fn normalize_app_identifier(value: &str) -> AppResult<String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        normalize_app_identifier, parse_policy_config, update_config_text, AppListMutation,
+        normalize_app_identifier, parse_policy_config, update_config_text,
+        write_computer_use_approval_mode_at, AppListMutation,
     };
-    use crate::models::ComputerUseAppKind;
+    use crate::models::{
+        ComputerUseAppKind, ComputerUseApprovalMode, ComputerUseApprovalModeInput,
+    };
+    use std::fs;
 
     #[test]
     fn normalizes_process_names_and_paths() {
@@ -268,6 +353,33 @@ denied = ["powershell.exe", 3, "notepad"]
     }
 
     #[test]
+    fn parses_require_approvals_mode() {
+        let config = parse_policy_config(
+            r#"
+[apps]
+require_approvals = true
+allowed = []
+denied = []
+"#,
+        )
+        .expect("config");
+
+        assert_eq!(
+            config.approval_mode,
+            ComputerUseApprovalMode::RequireApprovals
+        );
+    }
+
+    #[test]
+    fn empty_config_uses_default_denied_apps() {
+        let config = parse_policy_config("").expect("default config");
+
+        assert!(config.denied_apps.iter().any(|app| app == "powershell"));
+        assert!(config.denied_apps.iter().any(|app| app == "diskmgmt"));
+        assert!(config.denied_apps.iter().any(|app| app == "bitwarden"));
+    }
+
+    #[test]
     fn adding_app_moves_it_from_opposite_list() {
         let updated = update_config_text(
             r#"
@@ -282,6 +394,7 @@ denied = ["notepad", "powershell"]
         .expect("update config");
 
         let config = parse_policy_config(&updated).expect("updated config");
+        assert_eq!(config.approval_mode, ComputerUseApprovalMode::AllowVisible);
         assert_eq!(config.allowed_apps, vec!["notepad"]);
         assert_eq!(config.denied_apps, vec!["powershell"]);
     }
@@ -303,5 +416,44 @@ denied = ["powershell"]
         let config = parse_policy_config(&updated).expect("updated config");
         assert_eq!(config.allowed_apps, vec!["code"]);
         assert!(config.denied_apps.is_empty());
+    }
+
+    #[test]
+    fn writes_approval_mode_without_dropping_app_lists() {
+        let root = std::env::temp_dir().join(format!(
+            "codex-app-plus-computer-use-policy-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system time")
+                .as_nanos()
+        ));
+        let path = root.join("config.toml");
+        fs::create_dir_all(&root).expect("create temp root");
+        fs::write(
+            &path,
+            "[apps]\nallowed = [\"code\"]\ndenied = [\"powershell\"]\n",
+        )
+        .expect("write config");
+
+        let settings = write_computer_use_approval_mode_at(
+            &path,
+            ComputerUseApprovalModeInput {
+                approval_mode: ComputerUseApprovalMode::RequireApprovals,
+            },
+        )
+        .expect("write approval mode");
+
+        assert_eq!(
+            settings.approval_mode,
+            ComputerUseApprovalMode::RequireApprovals
+        );
+        assert_eq!(settings.allowed_apps, vec!["code"]);
+        assert_eq!(settings.denied_apps, vec!["powershell"]);
+
+        let text = fs::read_to_string(&path).expect("read config");
+        assert!(text.contains("require_approvals = true"));
+
+        fs::remove_dir_all(root).expect("cleanup");
     }
 }

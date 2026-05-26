@@ -13,8 +13,36 @@ const (
 	appPolicyEnvPath               = "OPEN_COMPUTER_USE_WINDOWS_CONFIG"
 	appPolicyEnvRequireApprovals   = "OPEN_COMPUTER_USE_WINDOWS_REQUIRE_APP_APPROVALS"
 	appPolicyEnvAllowUnapproved    = "OPEN_COMPUTER_USE_WINDOWS_ALLOW_UNAPPROVED_APPS"
+	appPolicyEnvAllowProtected     = "OPEN_COMPUTER_USE_WINDOWS_ALLOW_PROTECTED_APPS"
 	appPolicyDefaultRelativeConfig = "computer-use/config.toml"
 )
+
+var protectedAppReasons = map[string]string{
+	"cmd":                "terminal shells can run arbitrary commands outside Computer Use UI safeguards",
+	"conhost":            "terminal hosts can run arbitrary commands outside Computer Use UI safeguards",
+	"powershell":         "terminal shells can run arbitrary commands outside Computer Use UI safeguards",
+	"pwsh":               "terminal shells can run arbitrary commands outside Computer Use UI safeguards",
+	"windowsterminal":    "terminal shells can run arbitrary commands outside Computer Use UI safeguards",
+	"wt":                 "terminal shells can run arbitrary commands outside Computer Use UI safeguards",
+	"diskmgmt":           "disk management tools can format, repartition, or erase drives",
+	"diskpart":           "disk management tools can format, repartition, or erase drives",
+	"format":             "disk formatting tools can erase drives",
+	"mmc":                "management consoles can change disks, certificates, users, and system policy",
+	"compmgmt":           "management consoles can change disks, users, services, and system policy",
+	"regedit":            "registry editors can change system-wide settings",
+	"regedt32":           "registry editors can change system-wide settings",
+	"taskmgr":            "task managers can terminate processes or change startup behavior",
+	"credentialuibroker": "credential prompts may expose or submit secrets",
+	"1password":          "password managers may expose saved secrets",
+	"bitwarden":          "password managers may expose saved secrets",
+	"dashlane":           "password managers may expose saved secrets",
+	"enpass":             "password managers may expose saved secrets",
+	"keepass":            "password managers may expose saved secrets",
+	"keepassxc":          "password managers may expose saved secrets",
+	"lastpass":           "password managers may expose saved secrets",
+	"nordpass":           "password managers may expose saved secrets",
+	"protonpass":         "password managers may expose saved secrets",
+}
 
 type appAccessPolicy struct {
 	allowed          map[string]struct{}
@@ -41,7 +69,10 @@ func loadAppAccessPolicy() appAccessPolicy {
 		return policy
 	}
 
-	allowed, denied := parseAppPolicyConfig(string(data))
+	allowed, denied, requireApprovals := parseAppPolicyConfig(string(data))
+	if requireApprovals {
+		policy.requireApprovals = true
+	}
 	for _, value := range allowed {
 		if normalized := normalizeAppIdentifier(value); normalized != "" {
 			policy.allowed[normalized] = struct{}{}
@@ -57,6 +88,9 @@ func loadAppAccessPolicy() appAccessPolicy {
 
 func (p appAccessPolicy) authorize(app appDescriptor) error {
 	aliases := appIdentifierAliases(app)
+	if reason := protectedAppReason(aliases); reason != "" && !envFlagEnabled(appPolicyEnvAllowProtected) {
+		return fmt.Errorf("Computer Use blocks %s because %s. Use dedicated Codex tools or handle this app manually; set %s=1 only for trusted local debugging.", appLabel(app), reason, appPolicyEnvAllowProtected)
+	}
 	if hasAnyIdentifier(p.denied, aliases) {
 		return fmt.Errorf("Computer Use is denied for %s. Remove it from [apps].denied in %s to allow access.", appLabel(app), p.displayPath())
 	}
@@ -77,6 +111,15 @@ func (p appAccessPolicy) authorize(app appDescriptor) error {
 	}
 
 	return nil
+}
+
+func protectedAppReason(aliases []string) string {
+	for _, alias := range aliases {
+		if reason, ok := protectedAppReasons[alias]; ok {
+			return reason
+		}
+	}
+	return ""
 }
 
 func (p appAccessPolicy) displayPath() string {
@@ -161,18 +204,19 @@ func envFlagEnabled(name string) bool {
 	}
 }
 
-func parseAppPolicyConfig(text string) (allowed []string, denied []string) {
+func parseAppPolicyConfig(text string) (allowed []string, denied []string, requireApprovals bool) {
 	section := ""
 	pendingKey := ""
 	pendingValue := ""
 
 	commit := func(key, value string) {
-		values := parseTomlStringArray(value)
 		switch key {
 		case "allowed":
-			allowed = append(allowed, values...)
+			allowed = append(allowed, parseTomlStringArray(value)...)
 		case "denied":
-			denied = append(denied, values...)
+			denied = append(denied, parseTomlStringArray(value)...)
+		case "require_approvals":
+			requireApprovals = parseTomlBool(value)
 		}
 	}
 
@@ -206,7 +250,7 @@ func parseAppPolicyConfig(text string) (allowed []string, denied []string) {
 		}
 		key = strings.TrimSpace(key)
 		value = strings.TrimSpace(value)
-		if key != "allowed" && key != "denied" {
+		if key != "allowed" && key != "denied" && key != "require_approvals" {
 			continue
 		}
 		if strings.HasPrefix(value, "[") && !strings.Contains(value, "]") {
@@ -217,7 +261,17 @@ func parseAppPolicyConfig(text string) (allowed []string, denied []string) {
 		commit(key, value)
 	}
 
-	return allowed, denied
+	return allowed, denied, requireApprovals
+}
+
+func parseTomlBool(value string) bool {
+	value = strings.TrimSpace(strings.ToLower(stripTomlComment(value)))
+	switch value {
+	case "true", "1", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func stripTomlComment(line string) string {

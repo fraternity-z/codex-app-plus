@@ -21,6 +21,7 @@ import type {
   BrowserUseOriginKind,
   BrowserUseSettingsOutput,
   ComputerUseAppKind,
+  ComputerUseApprovalMode,
   ComputerUseSettingsOutput,
   CustomPetsOutput,
   WriteProjectPermissionConfigInput,
@@ -134,6 +135,9 @@ export interface SettingsViewProps {
     input: { readonly kind: BrowserUseOriginKind; readonly origin: string }
   ) => Promise<BrowserUseSettingsOutput>;
   readComputerUseSettings: () => Promise<ComputerUseSettingsOutput>;
+  writeComputerUseApprovalMode: (
+    input: { readonly approvalMode: ComputerUseApprovalMode }
+  ) => Promise<ComputerUseSettingsOutput>;
   addComputerUseApp: (
     input: { readonly kind: ComputerUseAppKind; readonly app: string }
   ) => Promise<ComputerUseSettingsOutput>;
@@ -398,6 +402,8 @@ function SettingsContent(props: SettingsViewProps & { readonly sectionTitle: str
     return (
       <ComputerUseSettingsSection
         readComputerUseSettings={props.readComputerUseSettings}
+        onOpenConfigToml={props.onOpenConfigToml}
+        writeComputerUseApprovalMode={props.writeComputerUseApprovalMode}
         addComputerUseApp={props.addComputerUseApp}
         removeComputerUseApp={props.removeComputerUseApp}
       />

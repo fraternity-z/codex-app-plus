@@ -1,1 +1,4 @@
-pub use crate::models::{ComputerUseAppInput, ComputerUseAppKind, ComputerUseSettingsOutput};
+pub use crate::models::{
+    ComputerUseAppInput, ComputerUseAppKind, ComputerUseApprovalMode, ComputerUseApprovalModeInput,
+    ComputerUseSettingsOutput,
+};

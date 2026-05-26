@@ -14,6 +14,7 @@ import type {
   CodexAuthModeStateOutput,
   CodexAuthSwitchResult,
   ComputerUseAppInput,
+  ComputerUseApprovalModeInput,
   ComputerUseSettingsOutput,
   CreateAgentInput,
   CustomPetsOutput,
@@ -136,6 +137,9 @@ export interface HostBridge {
     addBrowserUseOrigin(input: BrowserUseOriginInput): Promise<BrowserUseSettingsOutput>;
     removeBrowserUseOrigin(input: BrowserUseOriginInput): Promise<BrowserUseSettingsOutput>;
     readComputerUseSettings(): Promise<ComputerUseSettingsOutput>;
+    writeComputerUseApprovalMode(
+      input: ComputerUseApprovalModeInput
+    ): Promise<ComputerUseSettingsOutput>;
     addComputerUseApp(input: ComputerUseAppInput): Promise<ComputerUseSettingsOutput>;
     removeComputerUseApp(input: ComputerUseAppInput): Promise<ComputerUseSettingsOutput>;
     openCodexConfigToml(input: OpenCodexConfigTomlInput): Promise<void>;

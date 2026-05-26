@@ -146,16 +146,25 @@ function createBaseProps(
     }),
     readComputerUseSettings: vi.fn().mockResolvedValue({
       configPath: "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+      approvalMode: "allowVisible",
+      allowedApps: [],
+      deniedApps: [],
+    }),
+    writeComputerUseApprovalMode: vi.fn().mockResolvedValue({
+      configPath: "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+      approvalMode: "requireApprovals",
       allowedApps: [],
       deniedApps: [],
     }),
     addComputerUseApp: vi.fn().mockResolvedValue({
       configPath: "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+      approvalMode: "allowVisible",
       allowedApps: ["notepad"],
       deniedApps: [],
     }),
     removeComputerUseApp: vi.fn().mockResolvedValue({
       configPath: "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+      approvalMode: "allowVisible",
       allowedApps: [],
       deniedApps: [],
     }),
@@ -286,6 +295,7 @@ describe("SettingsView", () => {
     expect(screen.getByRole("heading", { name: "电脑操控" })).toBeInTheDocument();
     expect(await screen.findByText("Computer Use")).toBeInTheDocument();
     expect(screen.getByText("访问策略")).toBeInTheDocument();
+    expect(screen.getByText("默认应用访问")).toBeInTheDocument();
     expect(screen.getByText("已屏蔽的应用")).toBeInTheDocument();
   });
 
@@ -377,6 +387,7 @@ describe("SettingsView", () => {
   it("adds computer use apps through the settings bridge", async () => {
     const addComputerUseApp = vi.fn().mockResolvedValue({
       configPath: "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+      approvalMode: "allowVisible",
       allowedApps: [],
       deniedApps: ["powershell"],
     });
@@ -402,6 +413,133 @@ describe("SettingsView", () => {
         app: "powershell.exe",
       });
     });
+  });
+
+  it("quick-adds suggested computer use apps through the settings bridge", async () => {
+    const addComputerUseApp = vi.fn().mockResolvedValue({
+      configPath: "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+      approvalMode: "allowVisible",
+      allowedApps: [],
+      deniedApps: ["powershell"],
+    });
+    render(<SettingsView {...createBaseProps({
+      section: "computerUse",
+      addComputerUseApp,
+    })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    await screen.findByText("Computer Use");
+    fireEvent.click(screen.getByRole("button", { name: "powershell" }));
+
+    await waitFor(() => {
+      expect(addComputerUseApp).toHaveBeenCalledWith({
+        kind: "denied",
+        app: "powershell",
+      });
+    });
+  });
+
+  it("applies recommended computer use shell blocks through the settings bridge", async () => {
+    const configPath = "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml";
+    const readComputerUseSettings = vi.fn().mockResolvedValue({
+      configPath,
+      approvalMode: "allowVisible",
+      allowedApps: [],
+      deniedApps: [
+        "powershell",
+        "wt",
+        "windowsterminal",
+        "diskmgmt",
+        "diskpart",
+        "regedit",
+        "mmc",
+        "taskmgr",
+        "bitwarden",
+        "1password",
+      ],
+    });
+    const addComputerUseApp = vi.fn()
+      .mockResolvedValueOnce({
+        configPath,
+        approvalMode: "allowVisible",
+        allowedApps: [],
+        deniedApps: ["powershell", "pwsh"],
+      })
+      .mockResolvedValueOnce({
+        configPath,
+        approvalMode: "allowVisible",
+        allowedApps: [],
+        deniedApps: ["powershell", "pwsh", "cmd"],
+      });
+
+    render(<SettingsView {...createBaseProps({
+      section: "computerUse",
+      readComputerUseSettings,
+      addComputerUseApp,
+    })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    const blockShellApps = await screen.findByRole("button", { name: "屏蔽高风险应用" });
+    await waitFor(() => {
+      expect(blockShellApps).not.toBeDisabled();
+    });
+    fireEvent.click(blockShellApps);
+
+    await waitFor(() => {
+      expect(addComputerUseApp).toHaveBeenCalledTimes(2);
+    });
+    expect(addComputerUseApp).toHaveBeenNthCalledWith(1, {
+      kind: "denied",
+      app: "pwsh",
+    });
+    expect(addComputerUseApp).toHaveBeenNthCalledWith(2, {
+      kind: "denied",
+      app: "cmd",
+    });
+  });
+
+  it("updates computer use approval mode through the settings bridge", async () => {
+    const writeComputerUseApprovalMode = vi.fn().mockResolvedValue({
+      configPath: "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+      approvalMode: "requireApprovals",
+      allowedApps: [],
+      deniedApps: [],
+    });
+    render(<SettingsView {...createBaseProps({
+      section: "computerUse",
+      writeComputerUseApprovalMode,
+    })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    const trigger = await screen.findByRole("button", { name: "默认应用访问：允许可见应用" });
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("menuitemradio", { name: /要求应用授权/ }));
+
+    await waitFor(() => {
+      expect(writeComputerUseApprovalMode).toHaveBeenCalledWith({
+        approvalMode: "requireApprovals",
+      });
+    });
+  });
+
+  it("opens the computer use policy config from settings", async () => {
+    const onOpenConfigToml = vi.fn().mockResolvedValue(undefined);
+    render(<SettingsView {...createBaseProps({
+      section: "computerUse",
+      onOpenConfigToml,
+    })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    await screen.findByText("Computer Use");
+    fireEvent.click(screen.getByRole("button", { name: "打开配置" }));
+
+    expect(onOpenConfigToml).toHaveBeenCalledWith(
+      "C:\\Users\\Administrator\\.codex\\computer-use\\config.toml",
+    );
   });
 
   it("keeps the settings sidebar visible while adding an MCP server", async () => {

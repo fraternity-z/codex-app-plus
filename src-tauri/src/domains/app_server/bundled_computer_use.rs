@@ -18,10 +18,13 @@ const APP_POLICY_CONFIG_PATH: &str = "computer-use/config.toml";
 const USER_CONFIG_PATH: &str = ".codex/config.toml";
 const DEFAULT_APP_POLICY_CONFIG: &str = r#"# Windows Computer Use app access policy.
 # Leave allowed empty to permit visible apps except entries in denied.
+# Set require_approvals = true to block unlisted apps until they are added to allowed.
 # Add process names without ".exe", for example: allowed = ["notepad", "code"]
+# High-risk local apps are blocked by default because they can expose secrets or cause hard-to-undo system changes.
 [apps]
+require_approvals = false
 allowed = []
-denied = []
+denied = ["powershell", "pwsh", "cmd", "wt", "windowsterminal", "conhost", "diskmgmt", "diskpart", "format", "mmc", "compmgmt", "regedit", "regedt32", "taskmgr", "credentialuibroker", "1password", "bitwarden", "keepass", "keepassxc", "lastpass", "dashlane", "enpass", "nordpass", "protonpass"]
 "#;
 
 pub fn ensure_registered(app: &AppHandle, agent_environment: AgentEnvironment) -> AppResult<()> {
@@ -72,6 +75,7 @@ fn is_module_root(path: &Path) -> bool {
 fn is_plugin_root(path: &Path) -> bool {
     path.join(".codex-plugin/plugin.json").is_file()
         && path.join(".mcp.json").is_file()
+        && path.join("skills/computer-use/SKILL.md").is_file()
         && path.join("open-computer-use.exe").is_file()
 }
 
@@ -109,7 +113,13 @@ fn materialize_module(source_root: &Path, install_root: &Path) -> AppResult<()> 
         return Ok(());
     }
     if install_root.exists() {
-        fs::remove_dir_all(install_root)?;
+        let Some(parent) = install_root.parent() else {
+            return Err(AppError::InvalidInput(format!(
+                "无法安全清理 Computer Use 模块安装目录: {}",
+                install_root.display()
+            )));
+        };
+        remove_directory(install_root, parent, "清理 Computer Use 模块安装目录失败")?;
     }
     copy_directory(source_root, install_root)
 }
@@ -136,10 +146,18 @@ fn materialize_plugin_cache(marketplace_root: &Path, plugin_cache_root: &Path) -
         )));
     }
 
-    if let Some(plugin_base_root) = plugin_cache_root.parent() {
-        if plugin_base_root.exists() {
-            fs::remove_dir_all(plugin_base_root)?;
-        }
+    if plugin_cache_root.exists() {
+        let Some(parent) = plugin_cache_root.parent() else {
+            return Err(AppError::InvalidInput(format!(
+                "无法安全清理 Computer Use 插件缓存目录: {}",
+                plugin_cache_root.display()
+            )));
+        };
+        remove_directory(
+            plugin_cache_root,
+            parent,
+            "清理 Computer Use 插件缓存目录失败",
+        )?;
     }
 
     copy_directory(&plugin_source_root, plugin_cache_root)
@@ -158,22 +176,64 @@ fn ensure_app_policy_config(codex_home: &Path) -> AppResult<()> {
 }
 
 fn copy_directory(source: &Path, destination: &Path) -> AppResult<()> {
-    fs::create_dir_all(destination)?;
-    for entry in fs::read_dir(source)? {
-        let entry = entry?;
+    fs::create_dir_all(destination).map_err(|error| {
+        AppError::Io(format!("创建目录 {} 失败: {error}", destination.display()))
+    })?;
+    for entry in fs::read_dir(source)
+        .map_err(|error| AppError::Io(format!("读取目录 {} 失败: {error}", source.display())))?
+    {
+        let entry = entry.map_err(|error| {
+            AppError::Io(format!("读取目录项 {} 失败: {error}", source.display()))
+        })?;
         let source_path = entry.path();
         let destination_path = destination.join(entry.file_name());
-        let file_type = entry.file_type()?;
+        let file_type = entry.file_type().map_err(|error| {
+            AppError::Io(format!(
+                "读取文件类型 {} 失败: {error}",
+                source_path.display()
+            ))
+        })?;
         if file_type.is_dir() {
             copy_directory(&source_path, &destination_path)?;
         } else if file_type.is_file() {
             if let Some(parent) = destination_path.parent() {
-                fs::create_dir_all(parent)?;
+                fs::create_dir_all(parent).map_err(|error| {
+                    AppError::Io(format!("创建目录 {} 失败: {error}", parent.display()))
+                })?;
             }
-            fs::copy(&source_path, &destination_path)?;
+            fs::copy(&source_path, &destination_path).map_err(|error| {
+                AppError::Io(format!(
+                    "复制 {} 到 {} 失败: {error}",
+                    source_path.display(),
+                    destination_path.display()
+                ))
+            })?;
+        } else if file_type.is_symlink() {
+            return Err(AppError::InvalidInput(format!(
+                "Computer Use 模块不能包含符号链接: {}",
+                source_path.display()
+            )));
         }
     }
     Ok(())
+}
+
+fn remove_directory(path: &Path, expected_parent: &Path, context: &str) -> AppResult<()> {
+    let canonical_path = fs::canonicalize(path)
+        .map_err(|error| AppError::Io(format!("{context}: {}: {error}", path.display())))?;
+    let canonical_parent = fs::canonicalize(expected_parent).map_err(|error| {
+        AppError::Io(format!("{context}: {}: {error}", expected_parent.display()))
+    })?;
+
+    if canonical_path == canonical_parent || !canonical_path.starts_with(&canonical_parent) {
+        return Err(AppError::InvalidInput(format!(
+            "{context}: refusing to remove path outside expected parent: {}",
+            path.display()
+        )));
+    }
+
+    fs::remove_dir_all(&canonical_path)
+        .map_err(|error| AppError::Io(format!("{context}: {}: {error}", path.display())))
 }
 
 fn register_marketplace_in_config(config_path: &Path, marketplace_root: &Path) -> AppResult<()> {
@@ -226,7 +286,8 @@ fn normalize_path_for_toml(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        ensure_app_policy_config, plugin_cache_root, update_config, MARKETPLACE_NAME, PLUGIN_ID,
+        ensure_app_policy_config, materialize_plugin_cache, plugin_cache_root, remove_directory,
+        update_config, MARKETPLACE_NAME, PLUGIN_ID,
     };
     use std::fs;
 
@@ -263,12 +324,12 @@ mod tests {
 
     #[test]
     fn plugin_cache_root_matches_codex_store_layout() {
-        let root = plugin_cache_root(std::path::Path::new(r"C:\Users\me\.codex"), "0.1.39");
+        let root = plugin_cache_root(std::path::Path::new(r"C:\Users\me\.codex"), "0.1.41");
 
         assert_eq!(
             root,
             std::path::PathBuf::from(
-                r"C:\Users\me\.codex\plugins\cache\codex-app-plus-bundled\computer-use\0.1.39"
+                r"C:\Users\me\.codex\plugins\cache\codex-app-plus-bundled\computer-use\0.1.41"
             )
         );
     }
@@ -285,8 +346,11 @@ mod tests {
         let config_path = root.join("computer-use/config.toml");
         let created = fs::read_to_string(&config_path).expect("read created config");
         assert!(created.contains("[apps]"));
+        assert!(created.contains("require_approvals = false"));
         assert!(created.contains("allowed = []"));
-        assert!(created.contains("denied = []"));
+        assert!(created.contains("\"powershell\""));
+        assert!(created.contains("\"diskmgmt\""));
+        assert!(created.contains("\"bitwarden\""));
 
         fs::write(&config_path, "[apps]\nallowed = [\"notepad\"]\n").expect("write custom config");
         ensure_app_policy_config(&root).expect("preserve policy config");
@@ -294,5 +358,65 @@ mod tests {
         assert!(preserved.contains("notepad"));
 
         fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn remove_directory_refuses_to_delete_expected_parent() {
+        let root = std::env::temp_dir().join(format!(
+            "codex-app-plus-computer-use-remove-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system time")
+                .as_nanos()
+        ));
+        fs::create_dir_all(&root).expect("create root");
+
+        let result = remove_directory(&root, &root, "test remove");
+
+        assert!(result.is_err());
+        assert!(root.is_dir());
+
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn materialize_plugin_cache_keeps_existing_version_siblings() {
+        let root = std::env::temp_dir().join(format!(
+            "codex-app-plus-computer-use-cache-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system time")
+                .as_nanos()
+        ));
+        let marketplace_root = root.join("marketplace");
+        let plugin_source = marketplace_root.join("plugins/computer-use");
+        create_minimal_plugin_root(&plugin_source);
+
+        let cache_base = root.join(".codex/plugins/cache/codex-app-plus-bundled/computer-use");
+        let old_version = cache_base.join("0.1.38");
+        create_minimal_plugin_root(&old_version);
+        let new_version = cache_base.join("0.1.41");
+
+        materialize_plugin_cache(&marketplace_root, &new_version).expect("copy plugin cache");
+
+        assert!(old_version.join("open-computer-use.exe").is_file());
+        assert!(new_version.join("open-computer-use.exe").is_file());
+
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    fn create_minimal_plugin_root(path: &std::path::Path) {
+        fs::create_dir_all(path.join(".codex-plugin")).expect("create plugin dir");
+        fs::write(path.join(".codex-plugin/plugin.json"), "{}").expect("write manifest");
+        fs::write(path.join(".mcp.json"), "{}").expect("write mcp config");
+        fs::create_dir_all(path.join("skills/computer-use")).expect("create skill dir");
+        fs::write(
+            path.join("skills/computer-use/SKILL.md"),
+            "---\nname: computer-use\n---\n",
+        )
+        .expect("write skill");
+        fs::write(path.join("open-computer-use.exe"), "fake exe").expect("write executable");
     }
 }

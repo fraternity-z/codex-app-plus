@@ -144,16 +144,25 @@ function createHostBridge(): HostBridge {
       }),
       readComputerUseSettings: vi.fn().mockResolvedValue({
         configPath: "C:/Users/Administrator/.codex/computer-use/config.toml",
+        approvalMode: "allowVisible",
+        allowedApps: [],
+        deniedApps: []
+      }),
+      writeComputerUseApprovalMode: vi.fn().mockResolvedValue({
+        configPath: "C:/Users/Administrator/.codex/computer-use/config.toml",
+        approvalMode: "requireApprovals",
         allowedApps: [],
         deniedApps: []
       }),
       addComputerUseApp: vi.fn().mockResolvedValue({
         configPath: "C:/Users/Administrator/.codex/computer-use/config.toml",
+        approvalMode: "allowVisible",
         allowedApps: [],
         deniedApps: []
       }),
       removeComputerUseApp: vi.fn().mockResolvedValue({
         configPath: "C:/Users/Administrator/.codex/computer-use/config.toml",
+        approvalMode: "allowVisible",
         allowedApps: [],
         deniedApps: []
       }),

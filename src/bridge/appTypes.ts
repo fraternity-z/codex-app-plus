@@ -380,6 +380,7 @@ export interface BrowserSidebarOpenInput extends BrowserSidebarBoundsInput {
 export type BrowserBrowsingDataKind = "cookies" | "siteData" | "cache";
 export type BrowserUseApprovalMode = "alwaysAsk" | "neverAsk";
 export type BrowserUseOriginKind = "allowed" | "denied";
+export type ComputerUseApprovalMode = "allowVisible" | "requireApprovals";
 export type ComputerUseAppKind = "allowed" | "denied";
 
 export interface BrowserBrowsingDataKindInput {
@@ -403,8 +404,13 @@ export interface BrowserUseOriginInput {
 
 export interface ComputerUseSettingsOutput {
   readonly configPath: string;
+  readonly approvalMode: ComputerUseApprovalMode;
   readonly allowedApps: ReadonlyArray<string>;
   readonly deniedApps: ReadonlyArray<string>;
+}
+
+export interface ComputerUseApprovalModeInput {
+  readonly approvalMode: ComputerUseApprovalMode;
 }
 
 export interface ComputerUseAppInput {

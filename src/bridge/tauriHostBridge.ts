@@ -19,6 +19,7 @@ import type {
   CodexAuthModeStateOutput,
   CodexAuthSwitchResult,
   ComputerUseAppInput,
+  ComputerUseApprovalModeInput,
   ComputerUseSettingsOutput,
   CreateAgentInput,
   CustomPetsOutput,
@@ -191,6 +192,11 @@ export function createTauriHostBridge(): HostBridge {
         ),
       readComputerUseSettings: () =>
         invokeCommand<ComputerUseSettingsOutput>("app_computer_use_settings_read"),
+      writeComputerUseApprovalMode: (input: ComputerUseApprovalModeInput) =>
+        invokeWithInput<ComputerUseApprovalModeInput, ComputerUseSettingsOutput>(
+          "app_computer_use_approval_mode_write",
+          input
+        ),
       addComputerUseApp: (input: ComputerUseAppInput) =>
         invokeWithInput<ComputerUseAppInput, ComputerUseSettingsOutput>(
           "app_computer_use_app_add",

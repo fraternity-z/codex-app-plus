@@ -1,13 +1,35 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   ComputerUseAppKind,
+  ComputerUseApprovalMode,
   ComputerUseSettingsOutput,
 } from "../../../bridge/types";
 import { useI18n } from "../../../i18n";
 import { OfficialPlusIcon } from "../../shared/ui/officialIcons";
+import { SettingsSelectRow, type SettingsSelectOption } from "./SettingsSelectRow";
+
+const ALLOWED_APP_SUGGESTIONS = ["notepad", "code", "chrome", "msedge"] as const;
+const DENIED_APP_SUGGESTIONS = [
+  "powershell",
+  "pwsh",
+  "cmd",
+  "wt",
+  "windowsterminal",
+  "diskmgmt",
+  "diskpart",
+  "regedit",
+  "mmc",
+  "taskmgr",
+  "bitwarden",
+  "1password",
+] as const;
 
 interface ComputerUseSettingsSectionProps {
   readonly readComputerUseSettings: () => Promise<ComputerUseSettingsOutput>;
+  readonly onOpenConfigToml: (filePath?: string | null) => Promise<void>;
+  readonly writeComputerUseApprovalMode: (
+    input: { readonly approvalMode: ComputerUseApprovalMode },
+  ) => Promise<ComputerUseSettingsOutput>;
   readonly addComputerUseApp: (
     input: { readonly kind: ComputerUseAppKind; readonly app: string },
   ) => Promise<ComputerUseSettingsOutput>;
@@ -18,6 +40,10 @@ interface ComputerUseSettingsSectionProps {
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function hasAppName(apps: ReadonlyArray<string>, appName: string): boolean {
+  return apps.some((app) => app.toLowerCase() === appName.toLowerCase());
 }
 
 function ComputerUsePluginIcon(): JSX.Element {
@@ -41,13 +67,20 @@ function AppList(props: {
   readonly apps: ReadonlyArray<string>;
   readonly draft: string;
   readonly adding: boolean;
+  readonly suggestions: ReadonlyArray<string>;
   readonly pending: boolean;
+  readonly recommendedActionLabel?: string;
+  readonly onRecommendedAction?: () => void;
   readonly onDraftChange: (value: string) => void;
   readonly onStartAdd: (kind: ComputerUseAppKind) => void;
   readonly onAdd: (kind: ComputerUseAppKind) => void;
+  readonly onAddSuggestion: (kind: ComputerUseAppKind, app: string) => void;
   readonly onRemove: (kind: ComputerUseAppKind, app: string) => void;
 }): JSX.Element {
   const { t } = useI18n();
+  const visibleSuggestions = props.suggestions.filter(
+    (suggestion) => !hasAppName(props.apps, suggestion),
+  );
   return (
     <section className="browser-use-domain-block">
       <div className="browser-use-domain-heading">
@@ -55,15 +88,27 @@ function AppList(props: {
           <strong>{props.title}</strong>
           <p>{props.description}</p>
         </div>
-        <button
-          type="button"
-          className="browser-use-domain-add-button"
-          disabled={props.pending}
-          onClick={() => props.onStartAdd(props.kind)}
-        >
-          <OfficialPlusIcon className="browser-use-domain-add-icon" />
-          <span>{t("settings.computerUse.add")}</span>
-        </button>
+        <div className="browser-use-domain-actions">
+          {props.recommendedActionLabel !== undefined && props.onRecommendedAction !== undefined ? (
+            <button
+              type="button"
+              className="settings-action-btn settings-action-btn-sm"
+              disabled={props.pending}
+              onClick={props.onRecommendedAction}
+            >
+              {props.recommendedActionLabel}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="browser-use-domain-add-button"
+            disabled={props.pending}
+            onClick={() => props.onStartAdd(props.kind)}
+          >
+            <OfficialPlusIcon className="browser-use-domain-add-icon" />
+            <span>{t("settings.computerUse.add")}</span>
+          </button>
+        </div>
       </div>
       {props.adding ? (
         <form
@@ -85,6 +130,21 @@ function AppList(props: {
             {t("settings.computerUse.add")}
           </button>
         </form>
+      ) : null}
+      {visibleSuggestions.length > 0 ? (
+        <div className="computer-use-app-suggestions">
+          <span>{t("settings.computerUse.quickAdd")}</span>
+          {visibleSuggestions.map((app) => (
+            <button
+              key={app}
+              type="button"
+              disabled={props.pending}
+              onClick={() => props.onAddSuggestion(props.kind, app)}
+            >
+              {app}
+            </button>
+          ))}
+        </div>
       ) : null}
       {props.apps.length === 0 ? (
         <div className="browser-use-empty-domain-list">{props.emptyText}</div>
@@ -153,15 +213,46 @@ export function ComputerUseSettingsSection(
     };
   }, [props, t]);
 
-  const addApp = useCallback(async (kind: ComputerUseAppKind) => {
-    const draft = kind === "allowed" ? allowedDraft : deniedDraft;
-    if (draft.trim().length === 0) {
+  const approvalOptions = useMemo<ReadonlyArray<SettingsSelectOption<ComputerUseApprovalMode>>>(
+    () => [
+      {
+        value: "allowVisible",
+        label: t("settings.computerUse.approvalOptions.allowVisible"),
+      },
+      {
+        value: "requireApprovals",
+        label: t("settings.computerUse.approvalOptions.requireApprovals"),
+      },
+    ],
+    [t],
+  );
+
+  const changeApprovalMode = useCallback(async (approvalMode: ComputerUseApprovalMode) => {
+    setPending(true);
+    setFeedback(null);
+    try {
+      const next = await props.writeComputerUseApprovalMode({ approvalMode });
+      setSettings(next);
+      setFeedback({ tone: "success", message: t("settings.computerUse.saved") });
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        message: t("settings.computerUse.saveFailed", { error: toErrorMessage(error) }),
+      });
+    } finally {
+      setPending(false);
+    }
+  }, [props, t]);
+
+  const submitApp = useCallback(async (kind: ComputerUseAppKind, app: string) => {
+    const trimmed = app.trim();
+    if (trimmed.length === 0) {
       return;
     }
     setPending(true);
     setFeedback(null);
     try {
-      const next = await props.addComputerUseApp({ kind, app: draft });
+      const next = await props.addComputerUseApp({ kind, app: trimmed });
       setSettings(next);
       if (kind === "allowed") {
         setAllowedDraft("");
@@ -178,7 +269,16 @@ export function ComputerUseSettingsSection(
     } finally {
       setPending(false);
     }
-  }, [allowedDraft, deniedDraft, props, t]);
+  }, [props, t]);
+
+  const addApp = useCallback((kind: ComputerUseAppKind) => {
+    const draft = kind === "allowed" ? allowedDraft : deniedDraft;
+    void submitApp(kind, draft);
+  }, [allowedDraft, deniedDraft, submitApp]);
+
+  const addSuggestedApp = useCallback((kind: ComputerUseAppKind, app: string) => {
+    void submitApp(kind, app);
+  }, [submitApp]);
 
   const removeApp = useCallback(async (
     kind: ComputerUseAppKind,
@@ -202,12 +302,52 @@ export function ComputerUseSettingsSection(
 
   const currentSettings = settings ?? {
     configPath: "~/.codex/computer-use/config.toml",
+    approvalMode: "allowVisible" as const,
     allowedApps: [],
     deniedApps: [],
   };
+  const missingRecommendedDeniedApps = useMemo(
+    () => DENIED_APP_SUGGESTIONS.filter(
+      (app) => !hasAppName(currentSettings.deniedApps, app),
+    ),
+    [currentSettings.deniedApps],
+  );
   const policyDescription = currentSettings.allowedApps.length > 0
     ? t("settings.computerUse.policyAllowlistMode")
-    : t("settings.computerUse.policyDefaultMode");
+    : currentSettings.approvalMode === "requireApprovals"
+      ? t("settings.computerUse.policyRequireApprovalsMode")
+      : t("settings.computerUse.policyDefaultMode");
+
+  const applyRecommendedDeniedApps = useCallback(async () => {
+    if (missingRecommendedDeniedApps.length === 0) {
+      return;
+    }
+    setPending(true);
+    setFeedback(null);
+    try {
+      let next: ComputerUseSettingsOutput | null = null;
+      for (const app of missingRecommendedDeniedApps) {
+        next = await props.addComputerUseApp({ kind: "denied", app });
+      }
+      if (next !== null) {
+        setSettings(next);
+      }
+      setDeniedDraft("");
+      setActiveAppForm(null);
+      setFeedback({ tone: "success", message: t("settings.computerUse.saved") });
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        message: t("settings.computerUse.saveFailed", { error: toErrorMessage(error) }),
+      });
+    } finally {
+      setPending(false);
+    }
+  }, [missingRecommendedDeniedApps, props, t]);
+
+  const openConfigToml = useCallback(() => {
+    void props.onOpenConfigToml(currentSettings.configPath);
+  }, [currentSettings.configPath, props]);
 
   return (
     <div className="settings-panel-group browser-use-settings-page computer-use-settings-page">
@@ -245,7 +385,31 @@ export function ComputerUseSettingsSection(
                   {t("settings.computerUse.configPath", { path: currentSettings.configPath })}
                 </p>
               </div>
+              <div className="settings-row-control">
+                <button
+                  type="button"
+                  className="settings-action-btn settings-action-btn-sm"
+                  disabled={loading}
+                  onClick={openConfigToml}
+                >
+                  {t("settings.computerUse.openConfig")}
+                </button>
+              </div>
             </div>
+          </section>
+        </section>
+
+        <section className="browser-use-settings-section">
+          <div className="browser-use-section-label">{t("settings.computerUse.permissionsSection")}</div>
+          <section className="settings-card browser-use-permissions-card">
+            <SettingsSelectRow
+              label={t("settings.computerUse.approvalLabel")}
+              description={t("settings.computerUse.approvalDescription")}
+              value={currentSettings.approvalMode}
+              options={approvalOptions}
+              disabled={loading || pending}
+              onChange={(approvalMode) => void changeApprovalMode(approvalMode)}
+            />
           </section>
         </section>
 
@@ -255,12 +419,24 @@ export function ComputerUseSettingsSection(
           emptyText={t("settings.computerUse.deniedAppsEmpty")}
           kind="denied"
           apps={currentSettings.deniedApps}
+          suggestions={DENIED_APP_SUGGESTIONS}
           draft={deniedDraft}
           adding={activeAppForm === "denied"}
           pending={loading || pending}
+          recommendedActionLabel={
+            missingRecommendedDeniedApps.length > 0
+              ? t("settings.computerUse.blockShellApps")
+              : undefined
+          }
+          onRecommendedAction={
+            missingRecommendedDeniedApps.length > 0
+              ? () => void applyRecommendedDeniedApps()
+              : undefined
+          }
           onDraftChange={setDeniedDraft}
           onStartAdd={setActiveAppForm}
-          onAdd={(kind) => void addApp(kind)}
+          onAdd={addApp}
+          onAddSuggestion={addSuggestedApp}
           onRemove={(kind, app) => void removeApp(kind, app)}
         />
 
@@ -270,12 +446,14 @@ export function ComputerUseSettingsSection(
           emptyText={t("settings.computerUse.allowedAppsEmpty")}
           kind="allowed"
           apps={currentSettings.allowedApps}
+          suggestions={ALLOWED_APP_SUGGESTIONS}
           draft={allowedDraft}
           adding={activeAppForm === "allowed"}
           pending={loading || pending}
           onDraftChange={setAllowedDraft}
           onStartAdd={setActiveAppForm}
-          onAdd={(kind) => void addApp(kind)}
+          onAdd={addApp}
+          onAddSuggestion={addSuggestedApp}
           onRemove={(kind, app) => void removeApp(kind, app)}
         />
 

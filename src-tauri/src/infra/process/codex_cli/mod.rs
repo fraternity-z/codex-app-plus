@@ -253,14 +253,10 @@ mod tests {
         assert_eq!(std::path::PathBuf::from(&cli.program), bundled_binary);
         assert!(cli.prefix_args.is_empty());
         assert_eq!(std::path::PathBuf::from(&cli.display_path), bundled_binary);
-        assert!(
-            cli.environment
-                .iter()
-                .any(|(key, value)| key == "PATH"
-                    && value
-                        .as_deref()
-                        .is_some_and(|value| value.contains("codex-path")))
-        );
+        assert!(cli.environment.iter().any(|(key, value)| key == "PATH"
+            && value
+                .as_deref()
+                .is_some_and(|value| value.contains("codex-path"))));
     }
 
     #[test]

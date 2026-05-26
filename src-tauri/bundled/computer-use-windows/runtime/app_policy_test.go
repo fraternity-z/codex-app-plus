@@ -8,8 +8,9 @@ import (
 )
 
 func TestParseAppPolicyConfig(t *testing.T) {
-	allowed, denied := parseAppPolicyConfig(`
+	allowed, denied, requireApprovals := parseAppPolicyConfig(`
 [apps]
+require_approvals = true
 allowed = [
   "notepad.exe",
   "Code",
@@ -23,15 +24,18 @@ denied = ["powershell"] # shell access is blocked
 	if strings.Join(denied, ",") != "powershell" {
 		t.Fatalf("denied = %#v", denied)
 	}
+	if !requireApprovals {
+		t.Fatal("require_approvals was not parsed")
+	}
 }
 
 func TestAppAccessPolicyBlocksDeniedApps(t *testing.T) {
 	policy := appAccessPolicy{
 		allowed: map[string]struct{}{},
-		denied:  map[string]struct{}{"powershell": {}},
+		denied:  map[string]struct{}{"notepad": {}},
 	}
 
-	err := policy.authorize(appDescriptor{Name: "powershell", BundleIdentifier: "powershell", PID: 42})
+	err := policy.authorize(appDescriptor{Name: "notepad", BundleIdentifier: "notepad", PID: 42})
 	if err == nil || !strings.Contains(err.Error(), "denied") {
 		t.Fatalf("authorize denied app error = %v", err)
 	}
@@ -58,7 +62,7 @@ func TestLoadAppAccessPolicyReadsCodexHomeConfig(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(configPath), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(configPath, []byte("[apps]\nallowed = [\"notepad\"]\ndenied = [\"powershell.exe\"]\n"), 0o600); err != nil {
+	if err := os.WriteFile(configPath, []byte("[apps]\nrequire_approvals = true\nallowed = [\"notepad\"]\ndenied = [\"powershell.exe\"]\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("CODEX_HOME", root)
@@ -72,6 +76,49 @@ func TestLoadAppAccessPolicyReadsCodexHomeConfig(t *testing.T) {
 	}
 	if _, ok := policy.denied["powershell"]; !ok {
 		t.Fatalf("denied policy missing powershell: %#v", policy.denied)
+	}
+	if !policy.requireApprovals {
+		t.Fatal("policy did not enable require approvals from config")
+	}
+}
+
+func TestProtectedAppsAreBlockedBeforePolicyChecks(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("CODEX_HOME", root)
+	t.Setenv(appPolicyEnvPath, "")
+	t.Setenv(appPolicyEnvRequireApprovals, "")
+	t.Setenv(appPolicyEnvAllowUnapproved, "1")
+	t.Setenv(appPolicyEnvAllowProtected, "")
+
+	policy := loadAppAccessPolicy()
+	err := policy.authorize(appDescriptor{Name: "regedit", BundleIdentifier: "regedit", PID: 42})
+	if err == nil || !strings.Contains(err.Error(), "blocks") {
+		t.Fatalf("authorize protected app error = %v", err)
+	}
+}
+
+func TestProtectedAppOverrideFallsThroughToPolicy(t *testing.T) {
+	t.Setenv(appPolicyEnvAllowProtected, "1")
+
+	policy := appAccessPolicy{
+		allowed: map[string]struct{}{},
+		denied:  map[string]struct{}{},
+	}
+
+	if err := policy.authorize(appDescriptor{Name: "regedit", BundleIdentifier: "regedit", PID: 42}); err != nil {
+		t.Fatalf("authorize protected app with override: %v", err)
+	}
+}
+
+func TestProtectedAppReasonUsesNormalizedAliases(t *testing.T) {
+	reason := protectedAppReason(appIdentifierAliases(appDescriptor{
+		Name:             `C:\Program Files\WindowsApps\Microsoft.WindowsTerminal.exe`,
+		BundleIdentifier: "WindowsTerminal",
+		PID:              42,
+	}))
+
+	if !strings.Contains(reason, "terminal shells") {
+		t.Fatalf("protected app reason = %q", reason)
 	}
 }
 

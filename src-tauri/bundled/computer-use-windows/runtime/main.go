@@ -13,10 +13,9 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 )
 
-var version = "0.1.39"
+var version = "0.1.44"
 
 //go:embed runtime.ps1
 var windowsRuntimeScript string
@@ -28,7 +27,7 @@ const (
 	maxClickCount    = 10
 )
 
-const serverInstructions = "Computer Use tools let you interact with Windows apps by performing UI actions.\n\nBegin by calling `get_app_state` every turn you want to use Computer Use to get the latest state before acting. The available tools are list_apps, get_app_state, click, perform_secondary_action, scroll, drag, type_text, press_key, and set_value. Cross-platform aliases list_mac_apps, get_state, and perform_accessibility_action are also accepted.\n\nPrefer element-targeted interactions over coordinate clicks when an index for the targeted element is available. Windows actions use UI Automation patterns first and fall back to window messages when an app does not expose the needed pattern. Modifier keyboard shortcuts are delivered through foreground keyboard input so Ctrl/Alt/Shift state is preserved. The Windows runtime does not auto-launch apps, perform SetFocus, or use UIA text fallback by default, so background-capable actions do not intentionally steal the user's foreground focus. App access is filtered by CODEX_HOME/computer-use/config.toml when configured; denied apps are always blocked and a non-empty allowed list restricts Computer Use to those apps."
+const serverInstructions = "Computer Use tools let you interact with Windows apps by performing UI actions.\n\nBegin by calling `get_app_state` every turn you want to use Computer Use to get the latest state before acting. The available tools are list_apps, get_app_state, activate_app, click, perform_secondary_action, scroll, drag, type_text, press_key, and set_value. Cross-platform aliases list_mac_apps, get_state, and perform_accessibility_action are also accepted.\n\nPrefer element-targeted interactions over coordinate clicks when an index for the targeted element is available. Windows actions use UI Automation patterns first and fall back to window messages when an app does not expose the needed pattern. The MCP server reuses a PowerShell UI Automation worker so repeated calls avoid reloading UIA assemblies each time. Modifier keyboard shortcuts are delivered through foreground keyboard input so Ctrl/Alt/Shift state is preserved; use activate_app before modifier shortcuts when the target app is not foreground. After activate_app, the worker may re-activate the same app for subsequent modifier shortcuts in that session. The Windows runtime does not auto-launch apps, perform implicit SetFocus, use UIA text fallback, or use raw text fallback by default, so background-capable actions do not intentionally steal the user's foreground focus or type into an ambiguous window. App access is filtered by CODEX_HOME/computer-use/config.toml; denied apps are always blocked, a non-empty allowed list restricts access, and require_approvals blocks unlisted apps when no allowlist is configured. Protected shells, disk-management tools, registry consoles, credential prompts, and password managers are blocked before app policy checks. The runtime also refuses to inspect or control the desktop while Windows is locked or a secure non-Default input desktop is active. Password fields, window titles, and known secret-looking UI text are redacted from snapshots, and screenshots are omitted when sensitive controls or known secret text are present. Action guards block risky clicks, coordinate actions, text entry, and confirmation keys when the current UI appears to delete data, format storage, expose credentials, submit data, or create financial side effects. Error results include a machine-readable errorCode such as app_not_found, missing_app_state, app_policy_blocked, desktop_locked, action_blocked, unknown_element, invalid_arguments, or windows_runtime_error so callers can recover without parsing prose."
 
 type toolDefinition struct {
 	Name        string         `json:"name"`
@@ -45,18 +44,66 @@ type contentItem struct {
 }
 
 type toolCallResult struct {
-	Content []contentItem `json:"content"`
-	IsError bool          `json:"isError"`
+	Content   []contentItem `json:"content"`
+	IsError   bool          `json:"isError"`
+	ErrorCode string        `json:"errorCode,omitempty"`
 }
 
 func textResult(text string, isError bool) toolCallResult {
-	return toolCallResult{Content: []contentItem{{Type: "text", Text: text}}, IsError: isError}
+	return toolCallResult{
+		Content:   []contentItem{{Type: "text", Text: text}},
+		IsError:   isError,
+		ErrorCode: classifyToolError(text, isError),
+	}
+}
+
+func classifyToolError(text string, isError bool) string {
+	if !isError {
+		return ""
+	}
+	normalized := strings.ToLower(strings.TrimSpace(text))
+	switch {
+	case strings.HasPrefix(normalized, "unsupportedtool("):
+		return "unsupported_tool"
+	case strings.HasPrefix(normalized, "appnotfound("):
+		return "app_not_found"
+	case strings.Contains(normalized, "no app state is available"):
+		return "missing_app_state"
+	case strings.Contains(normalized, "unknown element_index"):
+		return "unknown_element"
+	case strings.Contains(normalized, "computer use blocked"):
+		if strings.Contains(normalized, "desktop access") || strings.Contains(normalized, "interactive desktop") || strings.Contains(normalized, "input desktop") {
+			return "desktop_locked"
+		}
+		return "action_blocked"
+	case strings.Contains(normalized, "computer use blocks ") || strings.Contains(normalized, "computer use is denied") || strings.Contains(normalized, "computer use requires approval"):
+		return "app_policy_blocked"
+	case strings.Contains(normalized, "missing required argument") ||
+		strings.Contains(normalized, "requires either") ||
+		strings.Contains(normalized, "requires a ") ||
+		strings.Contains(normalized, "must be") ||
+		strings.Contains(normalized, "invalid "):
+		return "invalid_arguments"
+	case strings.Contains(normalized, "windows runtime") ||
+		strings.Contains(normalized, "could not activate") ||
+		strings.Contains(normalized, "cannot activate") ||
+		strings.Contains(normalized, "powershell") ||
+		strings.Contains(normalized, "uia "):
+		return "windows_runtime_error"
+	default:
+		return "tool_error"
+	}
 }
 
 type appDescriptor struct {
 	Name             string `json:"name"`
 	BundleIdentifier string `json:"bundleIdentifier,omitempty"`
 	PID              int    `json:"pid"`
+}
+
+type appListEntry struct {
+	App         appDescriptor `json:"app"`
+	WindowTitle string        `json:"windowTitle,omitempty"`
 }
 
 type frame struct {
@@ -82,6 +129,7 @@ type elementRecord struct {
 	NativeWindowHandle   int64    `json:"nativeWindowHandle,omitempty"`
 	Frame                *frame   `json:"frame,omitempty"`
 	Actions              []string `json:"actions,omitempty"`
+	IsSensitive          bool     `json:"isSensitive,omitempty"`
 }
 
 type appSnapshot struct {
@@ -93,6 +141,7 @@ type appSnapshot struct {
 	FocusedSummary      string          `json:"focusedSummary,omitempty"`
 	SelectedText        string          `json:"selectedText,omitempty"`
 	Elements            []elementRecord `json:"elements,omitempty"`
+	SensitiveRedacted   bool            `json:"sensitiveContentRedacted,omitempty"`
 }
 
 func (s *appSnapshot) renderedText() string {
@@ -113,6 +162,9 @@ func (s *appSnapshot) renderedText() string {
 		fmt.Sprintf("Window: %q, App: %s.", title, s.App.Name),
 	}
 	lines = append(lines, s.TreeLines...)
+	if s.SensitiveRedacted {
+		lines = append(lines, "", "Sensitive UI content was redacted; screenshot omitted.")
+	}
 	if strings.TrimSpace(s.SelectedText) != "" {
 		lines = append(lines, "", fmt.Sprintf("Selected text: [%s]", s.SelectedText))
 	} else if strings.TrimSpace(s.FocusedSummary) != "" {
@@ -161,16 +213,25 @@ type psResponse struct {
 	Text        string         `json:"text,omitempty"`
 	Error       string         `json:"error,omitempty"`
 	App         *appDescriptor `json:"app,omitempty"`
+	Apps        []appListEntry `json:"apps,omitempty"`
 	WindowTitle string         `json:"windowTitle,omitempty"`
 	Snapshot    *appSnapshot   `json:"snapshot,omitempty"`
 }
 
 type service struct {
 	snapshots map[string]*appSnapshot
+	runner    *powerShellRunner
 }
 
 func newService() *service {
-	return &service{snapshots: map[string]*appSnapshot{}}
+	return &service{snapshots: map[string]*appSnapshot{}, runner: newPowerShellRunner()}
+}
+
+func (s *service) close() {
+	if s == nil || s.runner == nil {
+		return
+	}
+	s.runner.close()
 }
 
 func (s *service) callTool(name string, args map[string]any) toolCallResult {
@@ -180,6 +241,8 @@ func (s *service) callTool(name string, args map[string]any) toolCallResult {
 		return s.listApps()
 	case "get_app_state":
 		return s.getAppState(requiredString(args, "app"))
+	case "activate_app":
+		return s.activateApp(requiredString(args, "app"))
 	case "click":
 		return s.click(
 			requiredString(args, "app"),
@@ -211,11 +274,11 @@ func (s *service) callTool(name string, args map[string]any) toolCallResult {
 			requiredFloat(args, "to_y"),
 		)
 	case "type_text":
-		return s.typeText(requiredString(args, "app"), requiredString(args, "text"))
+		return s.typeText(requiredString(args, "app"), optionalString(args, "element_index"), requiredLiteralString(args, "text"))
 	case "press_key":
 		return s.pressKey(requiredString(args, "app"), requiredString(args, "key"))
 	case "set_value":
-		return s.setValue(requiredString(args, "app"), requiredString(args, "element_index"), requiredString(args, "value"))
+		return s.setValue(requiredString(args, "app"), requiredString(args, "element_index"), requiredLiteralString(args, "value"))
 	default:
 		return textResult(fmt.Sprintf("unsupportedTool(%q)", name), true)
 	}
@@ -235,17 +298,21 @@ func canonicalToolName(name string) string {
 }
 
 func (s *service) listApps() toolCallResult {
-	response, err := runPowerShell(psRequest{Tool: "list_apps"})
+	response, err := s.runPowerShell(psRequest{Tool: "list_apps"})
 	if err != nil {
 		return textResult(err.Error(), true)
 	}
 	if !response.OK {
 		return textResult(response.Error, true)
 	}
-	if strings.TrimSpace(response.Text) == "" {
-		response.Text = "No running top-level apps are visible to this Windows runtime."
+	text := response.Text
+	if len(response.Apps) > 0 {
+		text = renderAppList(filterAppListEntries(response.Apps, loadAppAccessPolicy()))
 	}
-	return textResult(response.Text, false)
+	if strings.TrimSpace(text) == "" {
+		text = "No running top-level apps are visible or allowed by the Computer Use policy."
+	}
+	return textResult(text, false)
 }
 
 func (s *service) getAppState(app string) toolCallResult {
@@ -258,6 +325,14 @@ func (s *service) getAppState(app string) toolCallResult {
 		return result
 	}
 	return snapshot.result()
+}
+
+func (s *service) activateApp(app string) toolCallResult {
+	resolved, _, result := s.resolveAppForUse(app)
+	if result.IsError {
+		return result
+	}
+	return s.actionResult(app, psRequest{Tool: "activate_app", App: strconv.Itoa(resolved.PID)})
 }
 
 func (s *service) click(app, elementIndex string, x, y *float64, clickCount int, mouseButton string) toolCallResult {
@@ -293,7 +368,21 @@ func (s *service) click(app, elementIndex string, x, y *float64, clickCount int,
 		if err != nil {
 			return textResult(err.Error(), true)
 		}
+		if err := guardElementActionInSnapshot("click", *resolved, snapshot, record); err != nil {
+			return textResult(err.Error(), true)
+		}
+		if err := validateElementClickTarget(record); err != nil {
+			return textResult(err.Error(), true)
+		}
 		request.Element = record
+	} else {
+		point := coordinatePoint{x: *x, y: *y}
+		if err := validateCoordinateBounds("click", snapshot, point); err != nil {
+			return textResult(err.Error(), true)
+		}
+		if err := guardCoordinateAction("click", *resolved, snapshot, point); err != nil {
+			return textResult(err.Error(), true)
+		}
 	}
 	return s.actionResult(app, request)
 }
@@ -315,6 +404,9 @@ func (s *service) performSecondaryAction(app, elementIndex, action string) toolC
 	}
 	record, err := lookupElement(snapshot, elementIndex)
 	if err != nil {
+		return textResult(err.Error(), true)
+	}
+	if err := guardElementActionInSnapshot("perform_secondary_action", *resolved, snapshot, record); err != nil {
 		return textResult(err.Error(), true)
 	}
 	return s.actionResult(app, psRequest{Tool: "perform_secondary_action", App: strconv.Itoa(resolved.PID), Element: record, Action: action})
@@ -346,6 +438,12 @@ func (s *service) scroll(app, direction, elementIndex string, pages float64) too
 	if err != nil {
 		return textResult(err.Error(), true)
 	}
+	if err := guardScrollAction(*resolved, snapshot, record); err != nil {
+		return textResult(err.Error(), true)
+	}
+	if err := validateElementScrollTarget(record); err != nil {
+		return textResult(err.Error(), true)
+	}
 	return s.actionResult(app, psRequest{Tool: "scroll", App: strconv.Itoa(resolved.PID), Element: record, Direction: normalized, Pages: pages})
 }
 
@@ -370,10 +468,18 @@ func (s *service) drag(app string, fromX, fromY, toX, toY *float64) toolCallResu
 	if snapshot == nil {
 		return textResult("No app state is available for "+app+". Run get_app_state before action tools.", true)
 	}
+	from := coordinatePoint{x: *fromX, y: *fromY}
+	to := coordinatePoint{x: *toX, y: *toY}
+	if err := validateCoordinateBounds("drag", snapshot, from, to); err != nil {
+		return textResult(err.Error(), true)
+	}
+	if err := guardCoordinateAction("drag", *resolved, snapshot, from, to); err != nil {
+		return textResult(err.Error(), true)
+	}
 	return s.actionResult(app, psRequest{Tool: "drag", App: strconv.Itoa(resolved.PID), FromX: fromX, FromY: fromY, ToX: toX, ToY: toY, WindowBounds: snapshot.WindowBounds})
 }
 
-func (s *service) typeText(app, text string) toolCallResult {
+func (s *service) typeText(app, elementIndex, text string) toolCallResult {
 	resolved, _, result := s.resolveAppForUse(app)
 	if result.IsError {
 		return result
@@ -384,10 +490,24 @@ func (s *service) typeText(app, text string) toolCallResult {
 	if runeCount(text) > maxTextRunes {
 		return textResult(fmt.Sprintf("text must be <= %d characters", maxTextRunes), true)
 	}
-	if s.currentSnapshotFor(app, resolved) == nil {
+	snapshot := s.currentSnapshotFor(app, resolved)
+	if snapshot == nil {
 		return textResult("No app state is available for "+app+". Run get_app_state before action tools.", true)
 	}
-	return s.actionResult(app, psRequest{Tool: "type_text", App: strconv.Itoa(resolved.PID), Text: text})
+	request := psRequest{Tool: "type_text", App: strconv.Itoa(resolved.PID), Text: text}
+	var record *elementRecord
+	if strings.TrimSpace(elementIndex) != "" {
+		var err error
+		record, err = lookupElement(snapshot, elementIndex)
+		if err != nil {
+			return textResult(err.Error(), true)
+		}
+		request.Element = record
+	}
+	if err := guardTextAction("type_text", *resolved, snapshot, record, text); err != nil {
+		return textResult(err.Error(), true)
+	}
+	return s.actionResult(app, request)
 }
 
 func (s *service) pressKey(app, key string) toolCallResult {
@@ -398,8 +518,12 @@ func (s *service) pressKey(app, key string) toolCallResult {
 	if key == "" {
 		return textResult("Missing required argument: key", true)
 	}
-	if s.currentSnapshotFor(app, resolved) == nil {
+	snapshot := s.currentSnapshotFor(app, resolved)
+	if snapshot == nil {
 		return textResult("No app state is available for "+app+". Run get_app_state before action tools.", true)
+	}
+	if err := guardKeyAction(*resolved, snapshot, key); err != nil {
+		return textResult(err.Error(), true)
 	}
 	return s.actionResult(app, psRequest{Tool: "press_key", App: strconv.Itoa(resolved.PID), Key: key})
 }
@@ -423,6 +547,9 @@ func (s *service) setValue(app, elementIndex, value string) toolCallResult {
 	if err != nil {
 		return textResult(err.Error(), true)
 	}
+	if err := guardTextAction("set_value", *resolved, snapshot, record, value); err != nil {
+		return textResult(err.Error(), true)
+	}
 	return s.actionResult(app, psRequest{Tool: "set_value", App: strconv.Itoa(resolved.PID), Element: record, Value: value})
 }
 
@@ -439,18 +566,29 @@ func (s *service) currentSnapshot(app string) *appSnapshot {
 }
 
 func (s *service) currentSnapshotFor(app string, resolved *appDescriptor) *appSnapshot {
-	if snapshot := s.currentSnapshot(app); snapshot != nil {
+	if snapshot := s.currentSnapshot(app); snapshotMatchesResolved(snapshot, resolved) {
 		return snapshot
 	}
 	if resolved == nil {
 		return nil
 	}
 	for _, key := range []string{strconv.Itoa(resolved.PID), resolved.Name, resolved.BundleIdentifier} {
-		if snapshot := s.currentSnapshot(key); snapshot != nil {
+		if snapshot := s.currentSnapshot(key); snapshotMatchesResolved(snapshot, resolved) {
 			return snapshot
 		}
 	}
 	return nil
+}
+
+func snapshotMatchesResolved(snapshot *appSnapshot, resolved *appDescriptor) bool {
+	if snapshot == nil || resolved == nil {
+		return false
+	}
+	if snapshot.App.PID != 0 && resolved.PID != 0 {
+		return snapshot.App.PID == resolved.PID
+	}
+	return strings.EqualFold(snapshot.App.Name, resolved.Name) ||
+		strings.EqualFold(snapshot.App.BundleIdentifier, resolved.BundleIdentifier)
 }
 
 func (s *service) resolveAppForUse(app string) (*appDescriptor, string, toolCallResult) {
@@ -459,7 +597,7 @@ func (s *service) resolveAppForUse(app string) (*appDescriptor, string, toolCall
 		return nil, "", textResult(err.Error(), true)
 	}
 
-	response, err := runPowerShell(psRequest{Tool: "resolve_app", App: query})
+	response, err := s.runPowerShell(psRequest{Tool: "resolve_app", App: query})
 	if err != nil {
 		return nil, "", textResult(err.Error(), true)
 	}
@@ -473,6 +611,28 @@ func (s *service) resolveAppForUse(app string) (*appDescriptor, string, toolCall
 		return nil, "", textResult(err.Error(), true)
 	}
 	return response.App, response.WindowTitle, toolCallResult{}
+}
+
+func filterAppListEntries(entries []appListEntry, policy appAccessPolicy) []appListEntry {
+	filtered := make([]appListEntry, 0, len(entries))
+	for _, entry := range entries {
+		if err := policy.authorize(entry.App); err == nil {
+			filtered = append(filtered, entry)
+		}
+	}
+	return filtered
+}
+
+func renderAppList(entries []appListEntry) string {
+	lines := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		title := strings.TrimSpace(entry.WindowTitle)
+		if title == "" {
+			title = "untitled"
+		}
+		lines = append(lines, fmt.Sprintf("%s -- %s [running, pid=%d, window=%s]", entry.App.Name, entry.App.Name, entry.App.PID, title))
+	}
+	return strings.Join(lines, "\n")
 }
 
 func cleanAppQuery(app string) (string, error) {
@@ -491,7 +651,7 @@ func runeCount(value string) int {
 }
 
 func (s *service) refreshSnapshot(app string, request psRequest) (*appSnapshot, toolCallResult) {
-	response, err := runPowerShell(request)
+	response, err := s.runPowerShell(request)
 	if err != nil {
 		return nil, textResult(err.Error(), true)
 	}
@@ -503,6 +663,13 @@ func (s *service) refreshSnapshot(app string, request psRequest) (*appSnapshot, 
 	}
 	s.rememberSnapshot(app, response.Snapshot)
 	return response.Snapshot, toolCallResult{}
+}
+
+func (s *service) runPowerShell(request psRequest) (*psResponse, error) {
+	if s.runner == nil {
+		return runPowerShell(request)
+	}
+	return s.runner.run(request)
 }
 
 func (s *service) rememberSnapshot(query string, snapshot *appSnapshot) {
@@ -529,7 +696,57 @@ func lookupElement(snapshot *appSnapshot, elementIndex string) (*elementRecord, 
 	return nil, fmt.Errorf("unknown element_index %q", elementIndex)
 }
 
+func validateElementClickTarget(record *elementRecord) error {
+	if record == nil || record.Frame != nil || elementHasPreferredClickAction(record) {
+		return nil
+	}
+	return fmt.Errorf("element_index %d requires a semantic click action or frame; refresh app state or use x/y coordinates without element_index", record.Index)
+}
+
+func validateElementScrollTarget(record *elementRecord) error {
+	if record == nil || record.Frame != nil || elementHasAction(record, "scroll") {
+		return nil
+	}
+	return fmt.Errorf("element_index %d requires Scroll support or frame; refresh app state before scrolling", record.Index)
+}
+
+func elementHasPreferredClickAction(record *elementRecord) bool {
+	return elementHasAction(record, "invoke", "select", "toggle")
+}
+
+func elementHasAction(record *elementRecord, names ...string) bool {
+	if record == nil {
+		return false
+	}
+	allowed := map[string]struct{}{}
+	for _, name := range names {
+		allowed[strings.ToLower(strings.TrimSpace(name))] = struct{}{}
+	}
+	for _, action := range record.Actions {
+		if _, ok := allowed[strings.ToLower(strings.TrimSpace(action))]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func validateCoordinateBounds(tool string, snapshot *appSnapshot, points ...coordinatePoint) error {
+	if snapshot == nil || snapshot.WindowBounds == nil || snapshot.WindowBounds.Width <= 0 || snapshot.WindowBounds.Height <= 0 {
+		return fmt.Errorf("%s coordinates require latest app state with window bounds", tool)
+	}
+	for _, point := range points {
+		if point.x < 0 || point.y < 0 || point.x >= snapshot.WindowBounds.Width || point.y >= snapshot.WindowBounds.Height {
+			return fmt.Errorf("%s coordinates must be within latest screenshot bounds (0 <= x < %.0f, 0 <= y < %.0f)", tool, snapshot.WindowBounds.Width, snapshot.WindowBounds.Height)
+		}
+	}
+	return nil
+}
+
 func runPowerShell(request psRequest) (*psResponse, error) {
+	return runPowerShellOnce(request)
+}
+
+func runPowerShellOnce(request psRequest) (*psResponse, error) {
 	if runtime.GOOS != "windows" {
 		return nil, errors.New("Windows Computer Use runtime requires powershell.exe on Windows")
 	}
@@ -553,13 +770,14 @@ func runPowerShell(request psRequest) (*psResponse, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	timeout := powerShellToolTimeout(request.Tool)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", scriptPath, operationPath)
 	output, err := cmd.CombinedOutput()
 	if ctx.Err() == context.DeadlineExceeded {
-		return nil, errors.New("Windows runtime timed out after 30s")
+		return nil, fmt.Errorf("Windows runtime timed out after %s", formatDurationSeconds(timeout))
 	}
 	if err != nil {
 		text := strings.TrimSpace(string(output))
@@ -579,6 +797,11 @@ func runPowerShell(request psRequest) (*psResponse, error) {
 func requiredString(args map[string]any, key string) string {
 	value, _ := args[key].(string)
 	return strings.TrimSpace(value)
+}
+
+func requiredLiteralString(args map[string]any, key string) string {
+	value, _ := args[key].(string)
+	return value
 }
 
 func optionalString(args map[string]any, key string) string {
@@ -629,6 +852,14 @@ func defaultString(value, fallback string) string {
 
 func toolDefinitions() []toolDefinition {
 	return []toolDefinition{
+		{
+			Name:        "activate_app",
+			Description: "Bring a visible target app window to the foreground. Use before modifier keyboard shortcuts such as ctrl+v when the target app is not already foreground. This tool is part of plugin `Computer Use`.",
+			Annotations: defaultAnnotations(),
+			InputSchema: objectSchema(map[string]any{
+				"app": stringProperty("App name or bundle identifier"),
+			}, []string{"app"}),
+		},
 		{
 			Name:        "click",
 			Description: "Click an element by index or pixel coordinates from screenshot. This tool is part of plugin `Computer Use`.",
@@ -704,7 +935,7 @@ func toolDefinitions() []toolDefinition {
 		},
 		{
 			Name:        "press_key",
-			Description: "Press a key or key-combination on the keyboard, including modifier and navigation keys.\n  - This supports xdotool's `key` syntax.\n  - Modifier combinations such as \"ctrl+v\" and \"Control_L+v\" use foreground keyboard input so the modifier state is preserved; activate the target app first unless focus actions are explicitly enabled.\n  - Examples: \"a\", \"Return\", \"Tab\", \"ctrl+v\", \"Control_L+v\", \"super+c\", \"Up\", \"KP_0\" (for the numpad 0). This tool is part of plugin `Computer Use`.",
+			Description: "Press a key or key-combination on the keyboard, including modifier and navigation keys.\n  - This supports xdotool's `key` syntax.\n  - Modifier combinations such as \"ctrl+v\" and \"Control_L+v\" use foreground keyboard input so the modifier state is preserved; call activate_app first unless the target app is already foreground.\n  - Windows global shortcuts such as win+r, super+l, alt+tab, and ctrl+shift+esc are blocked by the action guard.\n  - Examples: \"a\", \"Return\", \"Tab\", \"ctrl+v\", \"Control_L+v\", \"Up\", \"KP_0\" (for the numpad 0). This tool is part of plugin `Computer Use`.",
 			Annotations: defaultAnnotations(),
 			InputSchema: objectSchema(map[string]any{
 				"app": stringProperty("App name or bundle identifier"),
@@ -737,8 +968,9 @@ func toolDefinitions() []toolDefinition {
 			Description: "Type literal text using keyboard input. This tool is part of plugin `Computer Use`.",
 			Annotations: defaultAnnotations(),
 			InputSchema: objectSchema(map[string]any{
-				"app":  stringProperty("App name or bundle identifier"),
-				"text": stringProperty("Literal text to type"),
+				"app":           stringProperty("App name or bundle identifier"),
+				"element_index": stringProperty("Optional text-entry element index from the latest app state"),
+				"text":          stringProperty("Literal text to type"),
 			}, []string{"app", "text"}),
 		},
 	}
@@ -812,7 +1044,9 @@ func runCLI(args []string, stdout io.Writer) error {
 		fmt.Fprintln(stdout, "Windows runtime: UI Automation and Win32 window-message bridge are available when this process runs in the signed-in desktop session.")
 		return nil
 	case "list-apps":
-		result := newService().callTool("list_apps", map[string]any{})
+		svc := newService()
+		defer svc.close()
+		result := svc.callTool("list_apps", map[string]any{})
 		if result.IsError {
 			return errors.New(result.Content[0].Text)
 		}
@@ -822,14 +1056,18 @@ func runCLI(args []string, stdout io.Writer) error {
 		if len(args) != 2 {
 			return errors.New("snapshot requires an app name, process name, window title, or pid")
 		}
-		result := newService().callTool("get_app_state", map[string]any{"app": args[1]})
+		svc := newService()
+		defer svc.close()
+		result := svc.callTool("get_app_state", map[string]any{"app": args[1]})
 		if result.IsError {
 			return errors.New(result.Content[0].Text)
 		}
 		fmt.Fprintln(stdout, result.Content[0].Text)
 		return nil
 	case "call":
-		output, hasError, err := runCallCommand(args[1:], newService())
+		svc := newService()
+		defer svc.close()
+		output, hasError, err := runCallCommand(args[1:], svc)
 		if err != nil {
 			return err
 		}
@@ -1002,6 +1240,7 @@ func readJSONSource(inline, file string) (string, error) {
 
 func runMCP(stdin io.Reader, stdout io.Writer) error {
 	svc := newService()
+	defer svc.close()
 	decoder := json.NewDecoder(stdin)
 	encoder := json.NewEncoder(stdout)
 	for {

@@ -728,10 +728,18 @@ pub enum ComputerUseAppKind {
     Denied,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ComputerUseApprovalMode {
+    AllowVisible,
+    RequireApprovals,
+}
+
 #[derive(Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ComputerUseSettingsOutput {
     pub config_path: String,
+    pub approval_mode: ComputerUseApprovalMode,
     pub allowed_apps: Vec<String>,
     pub denied_apps: Vec<String>,
 }
@@ -741,6 +749,12 @@ pub struct ComputerUseSettingsOutput {
 pub struct ComputerUseAppInput {
     pub kind: ComputerUseAppKind,
     pub app: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ComputerUseApprovalModeInput {
+    pub approval_mode: ComputerUseApprovalMode,
 }
 
 #[derive(Debug, Serialize, Clone)]

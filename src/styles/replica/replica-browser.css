@@ -390,6 +390,13 @@
   line-height: 1.45;
 }
 
+.browser-use-domain-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .browser-use-domain-add-button {
   min-width: 82px;
   height: 34px;
@@ -437,6 +444,37 @@
   border: 1px solid var(--border-light);
   border-radius: 12px;
   background: var(--surface-panel);
+}
+
+.computer-use-app-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+}
+
+.computer-use-app-suggestions button {
+  min-height: 28px;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  padding: 0 10px;
+  background: var(--surface-panel-soft);
+  color: var(--text-main);
+  font-family: var(--app-code-font-family);
+  font-size: var(--app-code-font-size);
+}
+
+.computer-use-app-suggestions button:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.computer-use-app-suggestions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
 }
 
 .browser-use-empty-domain-list,
@@ -506,6 +544,7 @@
   .browser-secondary-action,
   .browser-use-clear-button,
   .browser-use-domain-add-button,
+  .browser-use-domain-actions .settings-action-btn,
   .browser-use-domain-form button {
     width: 100%;
   }
@@ -534,6 +573,11 @@
 
   .browser-use-domain-heading {
     align-items: stretch;
+  }
+
+  .browser-use-domain-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .browser-use-plugin-card .settings-row,
