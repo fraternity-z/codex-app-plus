@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: '手动指定 release tag，例如 v0.2.0'
+        description: "手动指定 release tag，例如 v0.2.0"
         required: true
         type: string
 
@@ -12,9 +12,29 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: windows-latest
-    timeout-minutes: 30
+  build:
+    name: Build ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Windows x64
+            os: windows-latest
+            build_command: pnpm run build:tauri
+            artifact_name: release-assets-windows-x86_64
+            updater_platform: windows-x86_64
+          - label: macOS Apple Silicon
+            os: macos-15
+            build_command: pnpm run build:tauri:mac
+            artifact_name: release-assets-darwin-aarch64
+            updater_platform: darwin-aarch64
+          - label: macOS Intel
+            os: macos-15-intel
+            build_command: pnpm run build:tauri:mac
+            artifact_name: release-assets-darwin-x86_64
+            updater_platform: darwin-x86_64
 
     steps:
       - name: Checkout repository
@@ -145,6 +165,7 @@ jobs:
         run: |
           Write-Host "Release tag: ${{ steps.meta.outputs.tag }}"
           Write-Host "Effective version: $env:RELEASE_VERSION"
+          Write-Host "Build platform: ${{ matrix.updater_platform }}"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -175,7 +196,46 @@ jobs:
         env:
           EXPECTED_CODEX_CLI_VERSION: ${{ steps.codex_cli.outputs.version }}
         run: |
-          $codex = "src-tauri/bundled/codex-cli/npm/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe"
+          $target = switch ("$env:RUNNER_OS/$env:RUNNER_ARCH") {
+            "Windows/X64" {
+              @{
+                Package = "@openai/codex-win32-x64"
+                Triple = "x86_64-pc-windows-msvc"
+                Binary = "codex.exe"
+              }
+            }
+            "Windows/ARM64" {
+              @{
+                Package = "@openai/codex-win32-arm64"
+                Triple = "aarch64-pc-windows-msvc"
+                Binary = "codex.exe"
+              }
+            }
+            "macOS/X64" {
+              @{
+                Package = "@openai/codex-darwin-x64"
+                Triple = "x86_64-apple-darwin"
+                Binary = "codex"
+              }
+            }
+            "macOS/ARM64" {
+              @{
+                Package = "@openai/codex-darwin-arm64"
+                Triple = "aarch64-apple-darwin"
+                Binary = "codex"
+              }
+            }
+            default {
+              throw "Unsupported runner platform: $env:RUNNER_OS/$env:RUNNER_ARCH"
+            }
+          }
+
+          $codex = Join-Path "src-tauri/bundled/codex-cli/npm/node_modules" $target.Package
+          $codex = Join-Path $codex "vendor"
+          $codex = Join-Path $codex $target.Triple
+          $codex = Join-Path $codex "bin"
+          $codex = Join-Path $codex $target.Binary
+
           if (-not (Test-Path $codex)) {
             throw "Bundled Codex CLI binary missing: $codex"
           }
@@ -193,27 +253,242 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Bundled Codex CLI app-server command is unavailable"
           }
+
       - name: Build installer
         env:
           CI: true
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: pnpm run build:tauri
+        run: ${{ matrix.build_command }}
 
-      - name: Verify updater output
+      - name: Verify bundle output
         shell: pwsh
         run: |
           $bundleRoot = "src-tauri/target/release/bundle"
-          $installers = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.exe"
-          $signatures = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.sig"
 
-          if ($installers.Count -eq 0) {
-            throw "未找到 NSIS 安装包输出。"
+          if ($env:RUNNER_OS -eq "Windows") {
+            $installers = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.exe"
+            $signatures = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.sig"
+
+            if ($installers.Count -eq 0) {
+              throw "未找到 NSIS 安装包输出。"
+            }
+
+            if ($signatures.Count -eq 0) {
+              throw "未找到 updater 签名文件 .sig。"
+            }
+            return
           }
 
-          if ($signatures.Count -eq 0) {
-            throw "未找到 updater 签名文件 .sig。"
+          if ($env:RUNNER_OS -eq "macOS") {
+            $installers = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.dmg"
+            $updaters = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.app.tar.gz"
+            $signatures = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.app.tar.gz.sig"
+
+            if ($installers.Count -eq 0) {
+              throw "未找到 macOS DMG 安装包输出。"
+            }
+
+            if ($updaters.Count -eq 0) {
+              throw "未找到 macOS updater .app.tar.gz 输出。"
+            }
+
+            if ($signatures.Count -eq 0) {
+              throw "未找到 macOS updater 签名文件 .app.tar.gz.sig。"
+            }
+            return
           }
+
+          throw "Unsupported runner OS: $env:RUNNER_OS"
+
+      - name: Collect release assets
+        shell: pwsh
+        env:
+          UPDATER_PLATFORM: ${{ matrix.updater_platform }}
+        run: |
+          function Get-ReleaseAssetName([string]$fileName, [string]$platform) {
+            $normalized = [regex]::Replace($fileName.Trim(), '\s+', '.')
+            if ($normalized.EndsWith(".app.tar.gz", [System.StringComparison]::OrdinalIgnoreCase)) {
+              $baseName = $normalized.Substring(0, $normalized.Length - ".app.tar.gz".Length)
+              return "$baseName-$platform.app.tar.gz"
+            }
+
+            $extension = [System.IO.Path]::GetExtension($normalized)
+            if ([string]::IsNullOrWhiteSpace($extension)) {
+              return "$normalized-$platform"
+            }
+
+            $baseName = [System.IO.Path]::GetFileNameWithoutExtension($normalized)
+            return "$baseName-$platform$extension"
+          }
+
+          function Copy-ReleaseAsset([System.IO.FileInfo]$source, [string]$assetName, [string]$assetDir) {
+            Copy-Item $source.FullName (Join-Path $assetDir $assetName)
+            return $assetName
+          }
+
+          $bundleRoot = "src-tauri/target/release/bundle"
+          $assetDir = "release-assets"
+          Remove-Item $assetDir -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $assetDir | Out-Null
+
+          if ($env:RUNNER_OS -eq "Windows") {
+            $installer = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.exe" | Select-Object -First 1
+            if ($null -eq $installer) {
+              throw "未找到 Windows 安装包，无法收集 release 资产。"
+            }
+
+            $signatureFile = Get-ChildItem $bundleRoot -Recurse -File | Where-Object {
+              $_.Name -eq "$($installer.Name).sig"
+            } | Select-Object -First 1
+
+            if ($null -eq $signatureFile) {
+              throw "未找到与 Windows 安装包匹配的签名文件：$($installer.Name).sig"
+            }
+
+            $updaterAssetName = Get-ReleaseAssetName $installer.Name $env:UPDATER_PLATFORM
+            Copy-ReleaseAsset $installer $updaterAssetName $assetDir | Out-Null
+            Copy-ReleaseAsset $signatureFile "$updaterAssetName.sig" $assetDir | Out-Null
+          }
+          elseif ($env:RUNNER_OS -eq "macOS") {
+            $installer = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.dmg" | Select-Object -First 1
+            if ($null -eq $installer) {
+              throw "未找到 macOS DMG 安装包，无法收集 release 资产。"
+            }
+
+            $updater = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.app.tar.gz" | Select-Object -First 1
+            if ($null -eq $updater) {
+              throw "未找到 macOS updater .app.tar.gz，无法生成 updater 清单。"
+            }
+
+            $signatureFile = Get-ChildItem $bundleRoot -Recurse -File | Where-Object {
+              $_.Name -eq "$($updater.Name).sig"
+            } | Select-Object -First 1
+
+            if ($null -eq $signatureFile) {
+              throw "未找到与 macOS updater 匹配的签名文件：$($updater.Name).sig"
+            }
+
+            $installerAssetName = Get-ReleaseAssetName $installer.Name $env:UPDATER_PLATFORM
+            Copy-ReleaseAsset $installer $installerAssetName $assetDir | Out-Null
+            $updaterAssetName = Get-ReleaseAssetName $updater.Name $env:UPDATER_PLATFORM
+            Copy-ReleaseAsset $updater $updaterAssetName $assetDir | Out-Null
+            Copy-ReleaseAsset $signatureFile "$updaterAssetName.sig" $assetDir | Out-Null
+          }
+          else {
+            throw "Unsupported runner OS: $env:RUNNER_OS"
+          }
+
+          $signature = (Get-Content $signatureFile.FullName -Raw).Trim()
+          $platformMetadata = [ordered]@{
+            platform = $env:UPDATER_PLATFORM
+            updater_asset = $updaterAssetName
+            signature = $signature
+          }
+
+          $platformMetadata |
+            ConvertTo-Json -Depth 5 |
+            Set-Content (Join-Path $assetDir "platform.json") -Encoding utf8
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve release metadata
+        id: meta
+        shell: pwsh
+        env:
+          INPUT_TAG_NAME: ${{ github.event.inputs.tag_name }}
+        run: |
+          $package = Get-Content package.json -Raw | ConvertFrom-Json
+          $tauriConfig = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          $cargoToml = Get-Content src-tauri/Cargo.toml -Raw
+          $cargoVersionMatch = [regex]::Match($cargoToml, '(?m)^version\s*=\s*"([^"]+)"')
+
+          if (-not $cargoVersionMatch.Success) {
+            throw "未能从 src-tauri/Cargo.toml 解析版本号。"
+          }
+
+          $versions = @(
+            @{ Name = "package.json"; Value = [string]$package.version },
+            @{ Name = "src-tauri/tauri.conf.json"; Value = [string]$tauriConfig.version },
+            @{ Name = "src-tauri/Cargo.toml"; Value = [string]$cargoVersionMatch.Groups[1].Value }
+          )
+          $distinctVersions = $versions.Value | Sort-Object -Unique
+
+          if ($distinctVersions.Count -ne 1) {
+            $details = $versions | ForEach-Object { "$($_.Name)=$($_.Value)" }
+            throw "版本号不一致：$($details -join ', ')"
+          }
+
+          $manualTag = if ($null -eq $env:INPUT_TAG_NAME) { "" } else { $env:INPUT_TAG_NAME.Trim() }
+          if ([string]::IsNullOrWhiteSpace($manualTag)) {
+            throw "必须提供 tag_name。"
+          }
+
+          $tag = $manualTag
+          $version = if ($tag.StartsWith("v")) { $tag.Substring(1) } else { $tag }
+
+          if (-not [regex]::IsMatch($version, '^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$')) {
+            throw "tag 必须包含合法语义化版本，例如 v0.2.0 或 0.2.0；当前输入：$tag"
+          }
+
+          git check-ref-format "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 0) {
+            throw "非法 tag 名称：$tag"
+          }
+
+          git fetch --force --tags origin
+          if ($LASTEXITCODE -ne 0) {
+            throw "拉取远端 tag 失败。"
+          }
+
+          git show-ref --verify --quiet "refs/tags/$tag"
+          $tagExistsExitCode = $LASTEXITCODE
+          $global:LASTEXITCODE = 0
+
+          if ($tagExistsExitCode -eq 0) {
+            $tagCommit = (git rev-list -n 1 $tag).Trim()
+            if ([string]::IsNullOrWhiteSpace($tagCommit)) {
+              throw "无法解析现有 tag 指向的 commit：$tag"
+            }
+
+            if ($tagCommit -ne $env:GITHUB_SHA) {
+              throw "tag 已存在且指向其他 commit：$tag -> $tagCommit"
+            }
+          }
+          elseif ($tagExistsExitCode -ne 1) {
+            throw "检查 tag 是否存在失败：$tag"
+          }
+
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded-assets
+          pattern: release-assets-*
 
       - name: Generate release notes
         shell: pwsh
@@ -231,49 +506,64 @@ jobs:
           RELEASE_TAG: ${{ steps.meta.outputs.tag }}
           RELEASE_VERSION: ${{ steps.meta.outputs.version }}
         run: |
-          function Get-ReleaseAssetName([string]$fileName) {
-            return [regex]::Replace($fileName.Trim(), '\s+', '.')
-          }
-
-          $bundleRoot = "src-tauri/target/release/bundle"
+          $downloadRoot = "downloaded-assets"
           $assetDir = "release-assets"
           Remove-Item $assetDir -Recurse -Force -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Force -Path $assetDir | Out-Null
 
-          $installer = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.exe" | Select-Object -First 1
-          if ($null -eq $installer) {
-            throw "未找到安装包，无法生成 updater 清单。"
+          $metadataFiles = Get-ChildItem $downloadRoot -Recurse -File -Filter "platform.json"
+          if ($metadataFiles.Count -eq 0) {
+            throw "未找到平台构建 metadata，无法生成 updater 清单。"
           }
 
-          $signatureFile = Get-ChildItem $bundleRoot -Recurse -File | Where-Object {
-            $_.Name -eq "$($installer.Name).sig"
-          } | Select-Object -First 1
-
-          if ($null -eq $signatureFile) {
-            throw "未找到与安装包匹配的签名文件：$($installer.Name).sig"
+          $releaseFiles = Get-ChildItem $downloadRoot -Recurse -File | Where-Object {
+            $_.Name -ne "platform.json"
           }
 
-          $signature = (Get-Content $signatureFile.FullName -Raw).Trim()
+          foreach ($releaseFile in $releaseFiles) {
+            Copy-Item $releaseFile.FullName (Join-Path $assetDir $releaseFile.Name)
+          }
+
           $notes = (Get-Content release-notes.md -Raw).Trim()
-          $releaseInstallerName = Get-ReleaseAssetName $installer.Name
-          $releaseSignatureName = "$releaseInstallerName.sig"
-          $encodedInstallerName = [System.Uri]::EscapeDataString($releaseInstallerName)
-          $releaseUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$env:RELEASE_TAG/$encodedInstallerName"
+          $platforms = [ordered]@{}
+
+          foreach ($metadataFile in $metadataFiles) {
+            $metadata = Get-Content $metadataFile.FullName -Raw | ConvertFrom-Json
+            $platform = [string]$metadata.platform
+            $updaterAsset = [string]$metadata.updater_asset
+            $signature = [string]$metadata.signature
+
+            if ([string]::IsNullOrWhiteSpace($platform)) {
+              throw "平台 metadata 缺少 platform: $($metadataFile.FullName)"
+            }
+            if ([string]::IsNullOrWhiteSpace($updaterAsset)) {
+              throw "平台 metadata 缺少 updater_asset: $($metadataFile.FullName)"
+            }
+            if ([string]::IsNullOrWhiteSpace($signature)) {
+              throw "平台 metadata 缺少 signature: $($metadataFile.FullName)"
+            }
+
+            $updaterAssetPath = Join-Path $assetDir $updaterAsset
+            if (-not (Test-Path $updaterAssetPath)) {
+              throw "updater 资产不存在：$updaterAsset"
+            }
+
+            $encodedAssetName = [System.Uri]::EscapeDataString($updaterAsset)
+            $releaseUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$env:RELEASE_TAG/$encodedAssetName"
+            $platforms[$platform] = [ordered]@{
+              signature = $signature
+              url = $releaseUrl
+            }
+          }
+
           $manifest = [ordered]@{
             version = $env:RELEASE_VERSION
             notes = $notes
             pub_date = [DateTimeOffset]::UtcNow.ToString("o")
-            platforms = [ordered]@{
-              "windows-x86_64" = [ordered]@{
-                signature = $signature
-                url = $releaseUrl
-              }
-            }
+            platforms = $platforms
           }
 
           $manifest | ConvertTo-Json -Depth 10 | Set-Content (Join-Path $assetDir "latest.json") -Encoding utf8
-          Copy-Item $installer.FullName (Join-Path $assetDir $releaseInstallerName)
-          Copy-Item $signatureFile.FullName (Join-Path $assetDir $releaseSignatureName)
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
