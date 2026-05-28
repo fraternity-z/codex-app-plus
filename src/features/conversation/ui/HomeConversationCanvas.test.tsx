@@ -454,10 +454,12 @@ describe("HomeConversationCanvas", () => {
     expect(assistantClassNames[2]).toContain("home-assistant-transcript-message");
     expect(groupSummary?.textContent).toBe("已执行2个命令");
     expect(groupDetails?.open).toBe(false);
-    expect(nestedCommandDetails).toHaveLength(2);
+    expect(nestedCommandDetails).toHaveLength(0);
 
     fireEvent.click(groupSummary as Element);
+    fireEvent(groupDetails as HTMLDetailsElement, new Event("toggle", { bubbles: true }));
     expect(groupDetails?.open).toBe(true);
+    expect(toolGroup?.querySelectorAll(".home-assistant-transcript-details-trace")).toHaveLength(2);
   });
 
   it("keeps between-text commands ungrouped while the assistant stream is active", () => {
@@ -567,11 +569,13 @@ describe("HomeConversationCanvas", () => {
     const toolGroup = container.querySelector(".home-assistant-transcript-tool-group");
     const groupDetails = toolGroup?.querySelector(":scope > details") as HTMLDetailsElement | null;
     const groupSummary = toolGroup?.querySelector(":scope > details > summary");
-    const groupBody = toolGroup?.querySelector(".home-assistant-transcript-tool-group-body");
 
     expect(groupSummary?.textContent).toBe("已编辑2个文件");
+    expect(toolGroup?.querySelector(".home-assistant-transcript-tool-group-body")).toBeNull();
     fireEvent.click(groupSummary as Element);
+    fireEvent(groupDetails as HTMLDetailsElement, new Event("toggle", { bubbles: true }));
     expect(groupDetails?.open).toBe(true);
+    const groupBody = toolGroup?.querySelector(".home-assistant-transcript-tool-group-body");
 
     const rowSummaries = Array.from(
       groupBody?.querySelectorAll(".home-assistant-transcript-details-trace > details > summary .home-assistant-transcript-summary-text") ?? [],

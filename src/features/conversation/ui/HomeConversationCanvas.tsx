@@ -91,6 +91,7 @@ function useMeasuredRenderGroups(groups: ReadonlyArray<RenderGroup>) {
     getItemKey: (index) => groups[index]?.key ?? String(index),
     getScrollElement: () => scrollRef.current,
     initialRect: { width: 0, height: INITIAL_VIEWPORT_HEIGHT },
+    initialOffset: () => Math.max(0, groups.length * GROUP_ESTIMATED_HEIGHT - INITIAL_VIEWPORT_HEIGHT),
     estimateSize: () => GROUP_ESTIMATED_HEIGHT,
     overscan: GROUP_OVERSCAN,
   });
@@ -397,29 +398,35 @@ function HomeAssistantToolGroup(props: {
   readonly onEditUserMessage: (message: ConversationMessage, text: string) => Promise<void>;
 }): JSX.Element {
   const { t } = useI18n();
-  const bodyNodes = createAssistantToolGroupBodyNodes(props.node.nodes);
+  const [expanded, setExpanded] = useState(false);
+  const bodyNodes = useMemo(
+    () => (expanded ? createAssistantToolGroupBodyNodes(props.node.nodes) : []),
+    [expanded, props.node.nodes],
+  );
   const summaryParts = createAssistantToolGroupSummaryParts(props.node.nodes, t);
   return (
     <section className="home-assistant-transcript-entry home-assistant-transcript-tool-group">
-      <details>
+      <details onToggle={(event) => setExpanded(event.currentTarget.open)}>
         <summary className="home-assistant-transcript-line home-assistant-transcript-summary home-assistant-transcript-tool-group-summary">
           <AssistantToolGroupSummary parts={summaryParts} separator={t("home.conversation.transcript.toolGroupSeparator")} />
           <span className="home-assistant-transcript-tool-group-chevron" aria-hidden="true" />
         </summary>
-        <div className="home-assistant-transcript-tool-group-body">
-          {bodyNodes.map((node) => (
-            <HomeTimelineEntry
-              key={node.key}
-              node={node}
-              turnStatus={props.turnStatus}
-              onResolveServerRequest={props.onResolveServerRequest}
-              copiedMessageId={props.copiedMessageId}
-              canEditMessages={false}
-              onCopyMessage={props.onCopyMessage}
-              onEditUserMessage={props.onEditUserMessage}
-            />
-          ))}
-        </div>
+        {expanded ? (
+          <div className="home-assistant-transcript-tool-group-body">
+            {bodyNodes.map((node) => (
+              <HomeTimelineEntry
+                key={node.key}
+                node={node}
+                turnStatus={props.turnStatus}
+                onResolveServerRequest={props.onResolveServerRequest}
+                copiedMessageId={props.copiedMessageId}
+                canEditMessages={false}
+                onCopyMessage={props.onCopyMessage}
+                onEditUserMessage={props.onEditUserMessage}
+              />
+            ))}
+          </div>
+        ) : null}
       </details>
     </section>
   );

@@ -409,8 +409,13 @@ export function createConversationFromThreadSummary(thread: ThreadSummary): Conv
 export function hydrateConversationFromThread(conversation: ConversationState, thread: Thread): ConversationState {
   const activeFlags = thread.status.type === "active" ? thread.status.activeFlags : [];
   const { isSubagent: _isSubagent, agentNickname: _agentNickname, agentRole: _agentRole, ...baseConversation } = conversation;
+  const existingTurnsById = new Map(
+    conversation.turns
+      .filter((turn) => turn.turnId !== null)
+      .map((turn) => [turn.turnId, turn]),
+  );
   const hydratedTurns = thread.turns.map((turn) => {
-    const existingTurn = conversation.turns.find((item) => item.turnId === turn.id) ?? null;
+    const existingTurn = existingTurnsById.get(turn.id) ?? null;
     return createTurnState(turn, existingTurn?.params ?? null, { goalSubmission: existingTurn?.goalSubmission, goalSubmissionId: existingTurn?.goalSubmissionId });
   });
   return { ...baseConversation, title: thread.name ?? thread.preview, branch: thread.gitInfo?.branch ?? null, cwd: thread.cwd, updatedAt: toIsoFromUnixSeconds(thread.updatedAt), source: thread.source, ...createThreadSubagentFields(thread), status: thread.status.type, activeFlags, goal: conversation.goal ?? null, resumeState: "resumed", turns: mergeGoalSubmissionTurns(hydratedTurns, conversation.turns) };
