@@ -175,20 +175,22 @@ interface NavItem {
   readonly key: SettingsSection;
   readonly label: string;
   readonly icon: SettingsNavIconKind;
+  readonly experimental: boolean;
 }
 
 const NAV_ITEM_DEFINITIONS: ReadonlyArray<{
   readonly key: SettingsSection;
   readonly icon: SettingsNavIconKind;
   readonly labelKey: MessageKey;
+  readonly experimental?: boolean;
 }> = [
   { key: "general", labelKey: "settings.nav.general", icon: "general" },
   { key: "appearance", labelKey: "settings.nav.appearance", icon: "appearance" },
   { key: "config", labelKey: "settings.nav.config", icon: "config" },
   { key: "personalization", labelKey: "settings.nav.personalization", icon: "personalization" },
   { key: "mcp", labelKey: "settings.nav.mcp", icon: "mcp" },
-  { key: "hooks", labelKey: "settings.nav.hooks", icon: "hooks" },
-  { key: "connections", labelKey: "settings.nav.connections", icon: "connections" },
+  { key: "hooks", labelKey: "settings.nav.hooks", icon: "hooks", experimental: true },
+  { key: "connections", labelKey: "settings.nav.connections", icon: "connections", experimental: true },
   { key: "git", labelKey: "settings.nav.git", icon: "git" },
   { key: "environment", labelKey: "settings.nav.environment", icon: "environment" },
   { key: "worktree", labelKey: "settings.nav.worktree", icon: "worktree" },
@@ -201,6 +203,7 @@ function createNavItems(t: (key: MessageKey) => string): ReadonlyArray<NavItem> 
     key: item.key,
     label: t(item.labelKey),
     icon: item.icon,
+    experimental: item.experimental === true,
   }));
 }
 
@@ -211,6 +214,7 @@ function resolveVisibleSection(section: SettingsSection): Exclude<SettingsSectio
 function SettingsSidebar(props: {
   readonly backToAppLabel: string;
   readonly collapsed: boolean;
+  readonly experimentalBadgeLabel: string;
   readonly navItems: ReadonlyArray<NavItem>;
   readonly section: SettingsSection;
   readonly sidebarResizing?: boolean;
@@ -234,7 +238,8 @@ function SettingsSidebar(props: {
         onClick={comingSoon ? undefined : () => props.onSelectSection(item.key)}
       >
         <span className="settings-nav-icon"><SettingsNavIcon className="settings-nav-icon-svg" kind={item.icon} /></span>
-        <span>{item.label}</span>
+        <span className="settings-nav-label">{item.label}</span>
+        {item.experimental ? <span className="settings-nav-experimental-badge" aria-hidden="true">{props.experimentalBadgeLabel}</span> : null}
         {comingSoon && <span className="settings-nav-coming-soon-badge">Coming Soon</span>}
       </button>
     );
@@ -460,6 +465,7 @@ export function SettingsView(props: SettingsViewProps): JSX.Element {
       <SettingsSidebar
         backToAppLabel={t("settings.sidebar.backToApp")}
         collapsed={props.sidebarCollapsed}
+        experimentalBadgeLabel={t("settings.experimental.badge")}
         navItems={navItems}
         section={props.section}
         sidebarResizing={props.sidebarResizing}

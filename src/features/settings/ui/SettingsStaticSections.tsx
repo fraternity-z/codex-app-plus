@@ -11,11 +11,17 @@ import type { WorkspaceRoot } from "../../workspace/hooks/useWorkspaceRoots";
 function SectionHeader(props: {
   readonly title: string;
   readonly subtitle?: string;
+  readonly badgeLabel?: string;
+  readonly notice?: string;
 }): JSX.Element {
   return (
     <header className="settings-title-wrap">
-      <h1 className="settings-page-title">{props.title}</h1>
+      <div className="settings-title-row">
+        <h1 className="settings-page-title">{props.title}</h1>
+        {props.badgeLabel ? <span className="settings-experimental-badge">{props.badgeLabel}</span> : null}
+      </div>
       {props.subtitle ? <p className="settings-subtitle">{props.subtitle}</p> : null}
+      {props.notice ? <p className="settings-experimental-notice">{props.notice}</p> : null}
     </header>
   );
 }
@@ -392,7 +398,10 @@ function AddSshHostDialog(props: {
         onClick={(event) => event.stopPropagation()}
       >
         <header className="settings-dialog-header">
-          <strong>{t("settings.connections.addDialogTitle")}</strong>
+          <div className="settings-dialog-title-row">
+            <strong>{t("settings.connections.addDialogTitle")}</strong>
+            <span className="settings-experimental-badge">{t("settings.experimental.badge")}</span>
+          </div>
           <button type="button" className="settings-dialog-close" onClick={props.onCancel} aria-label={t("settings.connections.closeDialog")}>×</button>
         </header>
         <form className="settings-dialog-body settings-ssh-dialog-body" onSubmit={handleSubmit}>
@@ -537,10 +546,14 @@ export function HooksPlaceholderContent(): JSX.Element {
     <div className="settings-panel-group settings-hooks-page">
       <header className="settings-title-wrap settings-title-wrap-with-action">
         <div>
-          <h1 className="settings-page-title">{t("settings.hooks.title")}</h1>
+          <div className="settings-title-row">
+            <h1 className="settings-page-title">{t("settings.hooks.title")}</h1>
+            <span className="settings-experimental-badge">{t("settings.experimental.badge")}</span>
+          </div>
           <p className="settings-subtitle">
             {t("settings.hooks.subtitle")} <span className="settings-placeholder-link">{t("settings.hooks.learnMore")}</span>
           </p>
+          <p className="settings-experimental-notice">{t("settings.experimental.availabilityNotice")}</p>
         </div>
         <button type="button" className="settings-placeholder-icon-button" aria-label={t("settings.hooks.refreshAction")} disabled>
           <RefreshIcon />
@@ -641,10 +654,18 @@ export function ConnectionsPlaceholderContent(props: {
 
   return (
     <div className="settings-panel-group settings-connections-page">
-      <SectionHeader title={t("settings.connections.title")} subtitle={t("settings.connections.subtitle")} />
+      <SectionHeader
+        title={t("settings.connections.title")}
+        subtitle={t("settings.connections.subtitle")}
+        badgeLabel={t("settings.experimental.badge")}
+        notice={t("settings.experimental.availabilityNotice")}
+      />
       <section className="settings-page-section">
         <div className="settings-section-head">
-          <h2 className="settings-section-title">{t("settings.connections.sshTitle")}</h2>
+          <div className="settings-section-title-row">
+            <h2 className="settings-section-title">{t("settings.connections.sshTitle")}</h2>
+            <span className="settings-experimental-badge">{t("settings.experimental.badge")}</span>
+          </div>
           <div className="settings-section-actions">
             <button
               type="button"
@@ -699,7 +720,10 @@ export function ConnectionsPlaceholderContent(props: {
         </section>
       </section>
       <section className="settings-page-section">
-        <h2 className="settings-section-title">{t("settings.connections.remoteProjectTitle")}</h2>
+        <div className="settings-section-title-row">
+          <h2 className="settings-section-title">{t("settings.connections.remoteProjectTitle")}</h2>
+          <span className="settings-experimental-badge">{t("settings.experimental.badge")}</span>
+        </div>
         <section className="settings-card settings-remote-project-card">
           <div className="settings-form-row">
             <label htmlFor="remote-project-path">{t("settings.connections.remoteProjectLabel")}</label>

@@ -56,6 +56,10 @@ export const zhCN = {
       message: "该页面仍保留官方布局占位，后续可接入真实设置数据。",
       todo: "TODO",
     },
+    experimental: {
+      badge: "实验性",
+      availabilityNotice: "实验性功能，不保证可用性。",
+    },
     hooks: {
       title: "钩子",
       subtitle: "通过官方 app-server 协议查看配置和插件中的生命周期钩子",

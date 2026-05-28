@@ -113,9 +113,7 @@ type frame struct {
 	Height float64 `json:"height"`
 }
 
-func (f frame) renderedLocalFrame() string {
-	return fmt.Sprintf("{{x: %.0f, y: %.0f, width: %.0f, height: %.0f}}", f.X, f.Y, f.Width, f.Height)
-}
+
 
 type elementRecord struct {
 	Index                int      `json:"index"`

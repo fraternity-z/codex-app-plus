@@ -329,6 +329,23 @@ describe("SettingsView", () => {
     expect(container.querySelector(".settings-layout-sidebar-collapsed")).not.toBeNull();
   });
 
+  it("marks hook and SSH settings as experimental", () => {
+    const { container, rerender } = render(<SettingsView {...createBaseProps({ section: "hooks" })} />, {
+      wrapper: createI18nWrapper("zh-CN"),
+    });
+
+    expect(screen.getByRole("button", { name: "钩子" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "连接" })).toBeInTheDocument();
+    expect(container.querySelectorAll(".settings-nav-experimental-badge")).toHaveLength(2);
+    expect(container.querySelector(".settings-hooks-page .settings-experimental-badge")).toHaveTextContent("实验性");
+    expect(screen.getByText("实验性功能，不保证可用性。")).toBeInTheDocument();
+
+    rerender(<SettingsView {...createBaseProps({ section: "connections" })} />);
+
+    expect(screen.getByRole("heading", { name: "连接" })).toBeInTheDocument();
+    expect(container.querySelectorAll(".settings-connections-page .settings-experimental-badge")).toHaveLength(3);
+  });
+
   it("renders browser use settings", async () => {
     render(<SettingsView {...createBaseProps({ section: "browserUse" })} />, {
       wrapper: createI18nWrapper("zh-CN"),

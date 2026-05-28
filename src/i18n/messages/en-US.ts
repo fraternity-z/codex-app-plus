@@ -57,6 +57,10 @@ export const enUS = {
       message: "This page still uses the official placeholder layout and can be wired to real settings data later.",
       todo: "TODO",
     },
+    experimental: {
+      badge: "Experimental",
+      availabilityNotice: "Experimental feature. Availability is not guaranteed.",
+    },
     hooks: {
       title: "Hooks",
       subtitle: "View lifecycle hooks from configuration and enabled plugins through the official app-server protocol",

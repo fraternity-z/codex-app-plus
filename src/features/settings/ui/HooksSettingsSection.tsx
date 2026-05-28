@@ -301,13 +301,17 @@ export function HooksSettingsSection(props: HooksSettingsSectionProps): JSX.Elem
     <div className="settings-panel-group settings-hooks-page">
       <header className="settings-title-wrap settings-title-wrap-with-action">
         <div>
-          <h1 className="settings-page-title">{t("settings.hooks.title")}</h1>
+          <div className="settings-title-row">
+            <h1 className="settings-page-title">{t("settings.hooks.title")}</h1>
+            <span className="settings-experimental-badge">{t("settings.experimental.badge")}</span>
+          </div>
           <p className="settings-subtitle">
             {t("settings.hooks.subtitle")}{" "}
             <button type="button" className="settings-hooks-doc-link" onClick={() => void props.onOpenHooksDocs()}>
               {t("settings.hooks.learnMore")}
             </button>
           </p>
+          <p className="settings-experimental-notice">{t("settings.experimental.availabilityNotice")}</p>
         </div>
         <button
           type="button"

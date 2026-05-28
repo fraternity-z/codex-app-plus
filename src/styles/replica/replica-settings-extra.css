@@ -15,6 +15,48 @@
   font-weight: 650;
 }
 
+.settings-title-row,
+.settings-section-title-row,
+.settings-dialog-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings-title-row .settings-page-title,
+.settings-section-title-row .settings-section-title {
+  margin: 0;
+}
+
+.settings-section-title-row {
+  margin: 0 0 18px;
+}
+
+.settings-section-head .settings-section-title-row {
+  margin: 0;
+}
+
+.settings-experimental-badge {
+  flex-shrink: 0;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--surface-panel-muted);
+  color: var(--text-muted);
+  font-size: var(--app-ui-font-size-sm);
+  font-weight: 550;
+  line-height: 1.2;
+}
+
+.settings-experimental-notice {
+  margin: 8px 0 0;
+  color: var(--text-subtle);
+  font-size: var(--app-ui-font-size-sm);
+  line-height: 1.5;
+}
+
 .settings-head-action {
   border: 1px solid transparent;
   background: var(--surface-panel-soft);
