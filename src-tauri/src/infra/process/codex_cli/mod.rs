@@ -214,10 +214,18 @@ mod tests {
         let original_allow_system = env::var_os("CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX");
         let bundle_root = unique_temp_dir("codex-app-plus", "bundled");
         let path_root = unique_temp_dir("codex-app-plus", "system");
+        let native_bundle = native_bundle_fixture();
         let package_root = bundle_root.join("npm/node_modules/@openai/codex");
-        let platform_root = bundle_root.join("npm/node_modules/@openai/codex-win32-x64");
-        let bundled_binary = platform_root.join("vendor/x86_64-pc-windows-msvc/bin/codex.exe");
-        let bundled_path_dir = platform_root.join("vendor/x86_64-pc-windows-msvc/codex-path");
+        let platform_root = bundle_root.join(native_bundle.package_relative);
+        let bundled_binary = platform_root
+            .join("vendor")
+            .join(native_bundle.target_triple)
+            .join("bin")
+            .join(native_bundle.binary_name);
+        let bundled_path_dir = platform_root
+            .join("vendor")
+            .join(native_bundle.target_triple)
+            .join("codex-path");
         fs::create_dir_all(bundled_binary.parent().unwrap()).unwrap();
         fs::create_dir_all(&bundled_path_dir).unwrap();
         fs::create_dir_all(package_root.join("bin")).unwrap();
@@ -237,7 +245,10 @@ mod tests {
         fs::write(path_root.join("codex.cmd"), "@echo off").unwrap();
         fs::write(
             bundle_root.join("manifest.json"),
-            r#"{"schemaVersion":2,"version":"test","npmPackage":{"name":"@openai/codex","root":"npm/node_modules/@openai/codex","platformPackages":{"windowsX64":"npm/node_modules/@openai/codex-win32-x64","linuxX64":"npm/node_modules/@openai/codex-linux-x64"}}}"#,
+            format!(
+                r#"{{"schemaVersion":2,"version":"test","npmPackage":{{"name":"@openai/codex","root":"npm/node_modules/@openai/codex","platformPackages":{{"{}":"{}"}}}}}}"#,
+                native_bundle.manifest_key, native_bundle.package_relative
+            ),
         )
         .unwrap();
         env::set_var("PATH", &path_root);
@@ -362,6 +373,62 @@ mod tests {
             codex_home.ends_with(".codex"),
             "unexpected CODEX_HOME: {codex_home}"
         );
+    }
+
+    struct NativeBundleFixture {
+        manifest_key: &'static str,
+        package_relative: &'static str,
+        target_triple: &'static str,
+        binary_name: &'static str,
+    }
+
+    fn native_bundle_fixture() -> NativeBundleFixture {
+        if cfg!(target_os = "macos") {
+            if cfg!(target_arch = "aarch64") {
+                return NativeBundleFixture {
+                    manifest_key: "darwinArm64",
+                    package_relative: "npm/node_modules/@openai/codex-darwin-arm64",
+                    target_triple: "aarch64-apple-darwin",
+                    binary_name: "codex",
+                };
+            }
+            return NativeBundleFixture {
+                manifest_key: "darwinX64",
+                package_relative: "npm/node_modules/@openai/codex-darwin-x64",
+                target_triple: "x86_64-apple-darwin",
+                binary_name: "codex",
+            };
+        }
+        if cfg!(target_os = "linux") {
+            if cfg!(target_arch = "aarch64") {
+                return NativeBundleFixture {
+                    manifest_key: "linuxArm64",
+                    package_relative: "npm/node_modules/@openai/codex-linux-arm64",
+                    target_triple: "aarch64-unknown-linux-musl",
+                    binary_name: "codex",
+                };
+            }
+            return NativeBundleFixture {
+                manifest_key: "linuxX64",
+                package_relative: "npm/node_modules/@openai/codex-linux-x64",
+                target_triple: "x86_64-unknown-linux-musl",
+                binary_name: "codex",
+            };
+        }
+        if cfg!(target_arch = "aarch64") {
+            return NativeBundleFixture {
+                manifest_key: "windowsArm64",
+                package_relative: "npm/node_modules/@openai/codex-win32-arm64",
+                target_triple: "aarch64-pc-windows-msvc",
+                binary_name: "codex.exe",
+            };
+        }
+        NativeBundleFixture {
+            manifest_key: "windowsX64",
+            package_relative: "npm/node_modules/@openai/codex-win32-x64",
+            target_triple: "x86_64-pc-windows-msvc",
+            binary_name: "codex.exe",
+        }
     }
 
     fn restore_env(name: &str, value: Option<std::ffi::OsString>) {

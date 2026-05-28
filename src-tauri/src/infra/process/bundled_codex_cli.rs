@@ -19,6 +19,8 @@ const ENV_ALLOW_SYSTEM_CODEX: &str = "CODEX_APP_PLUS_ALLOW_SYSTEM_CODEX";
 const CODEX_NPM_PACKAGE_NAME: &str = "@openai/codex";
 const WINDOWS_X64_TRIPLE: &str = "x86_64-pc-windows-msvc";
 const WINDOWS_ARM64_TRIPLE: &str = "aarch64-pc-windows-msvc";
+const DARWIN_X64_TRIPLE: &str = "x86_64-apple-darwin";
+const DARWIN_ARM64_TRIPLE: &str = "aarch64-apple-darwin";
 const LINUX_X64_TRIPLE: &str = "x86_64-unknown-linux-musl";
 const LINUX_ARM64_TRIPLE: &str = "aarch64-unknown-linux-musl";
 const BINARY_DIR_NAME: &str = "bin";
@@ -85,6 +87,8 @@ struct ManifestNpmPackage {
 struct ManifestPlatformPackages {
     windows_x64: Option<String>,
     windows_arm64: Option<String>,
+    darwin_x64: Option<String>,
+    darwin_arm64: Option<String>,
     linux_x64: Option<String>,
     linux_arm64: Option<String>,
 }
@@ -92,6 +96,7 @@ struct ManifestPlatformPackages {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum BundledPlatform {
     Windows,
+    Macos,
     Linux,
 }
 
@@ -113,7 +118,7 @@ pub(crate) fn resolve_windows_cli(app: Option<&AppHandle>) -> AppResult<Option<B
         return Ok(None);
     };
     let manifest = read_manifest(&root)?;
-    let location = resolve_npm_binary_location(&root, &manifest, BundledPlatform::Windows)?;
+    let location = resolve_npm_binary_location(&root, &manifest, native_platform())?;
     Ok(Some(BundledCodexCli {
         path: location.binary_path,
         version: manifest.version,
@@ -316,7 +321,18 @@ fn validate_relative_manifest_path(path: &str) -> AppResult<PathBuf> {
 fn target_triple(platform: BundledPlatform) -> &'static str {
     match platform {
         BundledPlatform::Windows => windows_target_triple(),
+        BundledPlatform::Macos => darwin_target_triple(),
         BundledPlatform::Linux => linux_target_triple(),
+    }
+}
+
+fn native_platform() -> BundledPlatform {
+    if cfg!(target_os = "macos") {
+        BundledPlatform::Macos
+    } else if cfg!(target_os = "linux") {
+        BundledPlatform::Linux
+    } else {
+        BundledPlatform::Windows
     }
 }
 
@@ -325,6 +341,14 @@ fn windows_target_triple() -> &'static str {
         WINDOWS_ARM64_TRIPLE
     } else {
         WINDOWS_X64_TRIPLE
+    }
+}
+
+fn darwin_target_triple() -> &'static str {
+    if cfg!(target_arch = "aarch64") {
+        DARWIN_ARM64_TRIPLE
+    } else {
+        DARWIN_X64_TRIPLE
     }
 }
 
@@ -339,6 +363,7 @@ fn linux_target_triple() -> &'static str {
 fn binary_name(platform: BundledPlatform) -> &'static str {
     match platform {
         BundledPlatform::Windows => "codex.exe",
+        BundledPlatform::Macos => "codex",
         BundledPlatform::Linux => "codex",
     }
 }
@@ -466,6 +491,12 @@ impl ManifestNpmPackage {
                 self.platform_packages.windows_x64.as_deref()
             }
             .or(self.platform_packages.windows_x64.as_deref()),
+            BundledPlatform::Macos => if cfg!(target_arch = "aarch64") {
+                self.platform_packages.darwin_arm64.as_deref()
+            } else {
+                self.platform_packages.darwin_x64.as_deref()
+            }
+            .or(self.platform_packages.darwin_x64.as_deref()),
             BundledPlatform::Linux => if cfg!(target_arch = "aarch64") {
                 self.platform_packages.linux_arm64.as_deref()
             } else {

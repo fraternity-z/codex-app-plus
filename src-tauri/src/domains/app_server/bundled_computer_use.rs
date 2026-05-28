@@ -9,11 +9,20 @@ use crate::error::{AppError, AppResult};
 use crate::infra::filesystem::agent_environment::resolve_codex_home_relative_path;
 use crate::models::AgentEnvironment;
 
-const MODULE_RESOURCE_PATH: &str = "bundled/computer-use-windows";
+const WINDOWS_MODULE_RESOURCE_PATH: &str = "bundled/computer-use-windows";
+const MACOS_MODULE_RESOURCE_PATH: &str = "bundled/computer-use-macos";
 const MARKETPLACE_NAME: &str = "codex-app-plus-bundled";
 const PLUGIN_NAME: &str = "computer-use";
 const PLUGIN_ID: &str = "computer-use@codex-app-plus-bundled";
 const PLUGIN_RELATIVE_PATH: &str = "plugins/computer-use";
+const WINDOWS_PLUGIN_EXECUTABLE_PATH: &str = "open-computer-use.exe";
+const WINDOWS_PLUGIN_EXECUTABLE_PATHS: &[&str] = &[WINDOWS_PLUGIN_EXECUTABLE_PATH];
+const MACOS_PLUGIN_EXECUTABLE_PATHS: &[&str] = &[
+    "Codex Computer Use.app/Contents/MacOS/SkyComputerUseService",
+    "Codex Computer Use.app/Contents/SharedSupport/Codex Computer Use Installer.app/Contents/MacOS/Codex Computer Use Installer",
+    "Codex Computer Use.app/Contents/SharedSupport/CUALockScreenGuardian.app/Contents/MacOS/CUALockScreenGuardian",
+    "Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient",
+];
 const APP_POLICY_CONFIG_PATH: &str = "computer-use/config.toml";
 const USER_CONFIG_PATH: &str = ".codex/config.toml";
 const DEFAULT_APP_POLICY_CONFIG: &str = r#"# Windows Computer Use app access policy.
@@ -36,6 +45,7 @@ pub fn ensure_registered(app: &AppHandle, agent_environment: AgentEnvironment) -
     let plugin_version = read_plugin_version(&source_root)?;
     let install_root = install_root(&plugin_version)?;
     materialize_module(&source_root, &install_root)?;
+    prepare_plugin_executable(&install_root.join(PLUGIN_RELATIVE_PATH))?;
 
     let config_path = resolve_codex_home_relative_path(agent_environment, USER_CONFIG_PATH)?;
     let codex_home = config_path.host_path.parent().ok_or_else(|| {
@@ -44,19 +54,22 @@ pub fn ensure_registered(app: &AppHandle, agent_environment: AgentEnvironment) -
             config_path.host_path.display()
         ))
     })?;
-    ensure_app_policy_config(codex_home)?;
+    if cfg!(target_os = "windows") {
+        ensure_app_policy_config(codex_home)?;
+    }
     let plugin_cache_root = plugin_cache_root(codex_home, &plugin_version);
     materialize_plugin_cache(&install_root, &plugin_cache_root)?;
+    prepare_plugin_executable(&plugin_cache_root)?;
     register_marketplace_in_config(&config_path.host_path, &install_root)
 }
 
 fn resolve_module_source_root(app: &AppHandle) -> AppResult<PathBuf> {
-    let resource_candidate = app.path().resource_dir()?.join(MODULE_RESOURCE_PATH);
+    let resource_candidate = app.path().resource_dir()?.join(module_resource_path());
     if is_module_root(&resource_candidate) {
         return Ok(resource_candidate);
     }
 
-    let dev_candidate = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(MODULE_RESOURCE_PATH);
+    let dev_candidate = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(module_resource_path());
     if is_module_root(&dev_candidate) {
         return Ok(dev_candidate);
     }
@@ -76,7 +89,9 @@ fn is_plugin_root(path: &Path) -> bool {
     path.join(".codex-plugin/plugin.json").is_file()
         && path.join(".mcp.json").is_file()
         && path.join("skills/computer-use/SKILL.md").is_file()
-        && path.join("open-computer-use.exe").is_file()
+        && plugin_executable_relative_paths()
+            .iter()
+            .all(|executable_path| path.join(executable_path).is_file())
 }
 
 fn read_plugin_version(module_root: &Path) -> AppResult<String> {
@@ -100,11 +115,11 @@ fn read_plugin_version(module_root: &Path) -> AppResult<String> {
 
 fn install_root(plugin_version: &str) -> AppResult<PathBuf> {
     let local_data = dirs::data_local_dir()
-        .ok_or_else(|| AppError::InvalidInput("无法解析 LOCALAPPDATA".to_string()))?;
+        .ok_or_else(|| AppError::InvalidInput("无法解析本地数据目录".to_string()))?;
     Ok(local_data
         .join("CodexAppPlus")
         .join("bundled-plugins")
-        .join("computer-use-windows")
+        .join(module_install_dir_name())
         .join(plugin_version))
 }
 
@@ -161,6 +176,67 @@ fn materialize_plugin_cache(marketplace_root: &Path, plugin_cache_root: &Path) -
     }
 
     copy_directory(&plugin_source_root, plugin_cache_root)
+}
+
+fn module_resource_path() -> &'static str {
+    if cfg!(target_os = "macos") {
+        MACOS_MODULE_RESOURCE_PATH
+    } else {
+        WINDOWS_MODULE_RESOURCE_PATH
+    }
+}
+
+fn module_install_dir_name() -> &'static str {
+    if cfg!(target_os = "macos") {
+        "computer-use-macos"
+    } else {
+        "computer-use-windows"
+    }
+}
+
+fn plugin_executable_relative_path() -> &'static str {
+    plugin_executable_relative_paths()[0]
+}
+
+fn plugin_executable_relative_paths() -> &'static [&'static str] {
+    if cfg!(target_os = "macos") {
+        MACOS_PLUGIN_EXECUTABLE_PATHS
+    } else {
+        WINDOWS_PLUGIN_EXECUTABLE_PATHS
+    }
+}
+
+fn prepare_plugin_executable(plugin_root: &Path) -> AppResult<()> {
+    for executable_relative_path in plugin_executable_relative_paths() {
+        let executable_path = plugin_root.join(executable_relative_path);
+        if !executable_path.is_file() {
+            return Err(AppError::InvalidInput(format!(
+                "Computer Use plugin executable is missing: {}",
+                executable_path.display()
+            )));
+        }
+        set_executable_permissions(&executable_path)?;
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn set_executable_permissions(path: &Path) -> AppResult<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let mut permissions = fs::metadata(path)?.permissions();
+    let current_mode = permissions.mode();
+    let executable_mode = current_mode | 0o755;
+    if executable_mode != current_mode {
+        permissions.set_mode(executable_mode);
+        fs::set_permissions(path, permissions)?;
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn set_executable_permissions(_path: &Path) -> AppResult<()> {
+    Ok(())
 }
 
 fn ensure_app_policy_config(codex_home: &Path) -> AppResult<()> {
@@ -286,7 +362,8 @@ fn normalize_path_for_toml(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        ensure_app_policy_config, materialize_plugin_cache, plugin_cache_root, remove_directory,
+        ensure_app_policy_config, materialize_plugin_cache, plugin_cache_root,
+        plugin_executable_relative_path, plugin_executable_relative_paths, remove_directory,
         update_config, MARKETPLACE_NAME, PLUGIN_ID,
     };
     use std::fs;
@@ -401,8 +478,12 @@ mod tests {
 
         materialize_plugin_cache(&marketplace_root, &new_version).expect("copy plugin cache");
 
-        assert!(old_version.join("open-computer-use.exe").is_file());
-        assert!(new_version.join("open-computer-use.exe").is_file());
+        assert!(old_version
+            .join(plugin_executable_relative_path())
+            .is_file());
+        assert!(new_version
+            .join(plugin_executable_relative_path())
+            .is_file());
 
         fs::remove_dir_all(root).expect("cleanup");
     }
@@ -417,6 +498,12 @@ mod tests {
             "---\nname: computer-use\n---\n",
         )
         .expect("write skill");
-        fs::write(path.join("open-computer-use.exe"), "fake exe").expect("write executable");
+        for executable_relative_path in plugin_executable_relative_paths() {
+            let executable_path = path.join(executable_relative_path);
+            if let Some(parent) = executable_path.parent() {
+                fs::create_dir_all(parent).expect("create executable dir");
+            }
+            fs::write(executable_path, "fake executable").expect("write executable");
+        }
     }
 }

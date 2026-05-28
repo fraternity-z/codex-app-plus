@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "computer-use": {
+      "command": "./Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient",
+      "args": ["mcp"],
+      "cwd": "."
+    }
+  }
+}

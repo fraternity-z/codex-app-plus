@@ -19,6 +19,16 @@ const PLATFORM_TARGETS = Object.freeze({
     triple: "aarch64-pc-windows-msvc",
     binaryName: "codex.exe"
   },
+  "darwin:x64": {
+    packageKey: "darwinX64",
+    triple: "x86_64-apple-darwin",
+    binaryName: "codex"
+  },
+  "darwin:arm64": {
+    packageKey: "darwinArm64",
+    triple: "aarch64-apple-darwin",
+    binaryName: "codex"
+  },
   "linux:x64": {
     packageKey: "linuxX64",
     triple: "x86_64-unknown-linux-musl",

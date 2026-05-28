@@ -8,6 +8,7 @@
     "dev:tauri": "tauri dev",
     "build": "tsc --noEmit && vite build",
     "build:tauri": "pnpm run build && tauri build",
+    "build:tauri:mac": "tauri build --bundles dmg",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

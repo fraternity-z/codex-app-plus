@@ -10,6 +10,8 @@ const META_PACKAGE_RELATIVE = "npm/node_modules/@openai/codex";
 const PLATFORM_PACKAGE_RELATIVES = {
   windowsX64: "npm/node_modules/@openai/codex-win32-x64",
   windowsArm64: "npm/node_modules/@openai/codex-win32-arm64",
+  darwinX64: "npm/node_modules/@openai/codex-darwin-x64",
+  darwinArm64: "npm/node_modules/@openai/codex-darwin-arm64",
   linuxX64: "npm/node_modules/@openai/codex-linux-x64",
   linuxArm64: "npm/node_modules/@openai/codex-linux-arm64",
 };
