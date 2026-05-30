@@ -266,6 +266,70 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: ${{ matrix.build_command }}
 
+      - name: Ensure macOS updater artifact
+        if: runner.os == 'macOS'
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          $bundleRoot = "src-tauri/target/release/bundle"
+          $updater = Get-ChildItem $bundleRoot -Recurse -File -Filter "*.app.tar.gz" | Select-Object -First 1
+          $signature = if ($null -eq $updater) {
+            $null
+          } else {
+            Get-ChildItem $bundleRoot -Recurse -File | Where-Object {
+              $_.Name -eq "$($updater.Name).sig"
+            } | Select-Object -First 1
+          }
+
+          if ($null -ne $updater -and $null -ne $signature) {
+            Write-Host "macOS updater artifact already exists: $($updater.FullName)"
+            return
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+            throw "TAURI_SIGNING_PRIVATE_KEY is required to create a macOS updater signature."
+          }
+
+          $macosBundleRoot = Join-Path $bundleRoot "macos"
+          $appBundle = Get-ChildItem $macosBundleRoot -Directory -Filter "*.app" | Select-Object -First 1
+          if ($null -eq $appBundle) {
+            Get-ChildItem $bundleRoot -Recurse | ForEach-Object { Write-Host $_.FullName }
+            throw "未找到 macOS .app，无法创建 updater .app.tar.gz。"
+          }
+
+          $archivePath = Join-Path $appBundle.Parent.FullName "$($appBundle.Name).tar.gz"
+          Remove-Item $archivePath -Force -ErrorAction SilentlyContinue
+          Remove-Item "$archivePath.sig" -Force -ErrorAction SilentlyContinue
+
+          Push-Location $appBundle.Parent.FullName
+          try {
+            tar -czf $archivePath $appBundle.Name
+            if ($LASTEXITCODE -ne 0) {
+              throw "创建 macOS updater 归档失败：$archivePath"
+            }
+          }
+          finally {
+            Pop-Location
+          }
+
+          $signingPassword = if ($null -eq $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) {
+            ""
+          } else {
+            $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          }
+          & pnpm tauri signer sign "--password=$signingPassword" $archivePath
+          if ($LASTEXITCODE -ne 0) {
+            throw "签名 macOS updater 归档失败：$archivePath"
+          }
+
+          if (-not (Test-Path "$archivePath.sig")) {
+            throw "签名命令未生成 macOS updater 签名文件：$archivePath.sig"
+          }
+
+          Write-Host "Created macOS updater artifact: $archivePath"
+
       - name: Verify bundle output
         shell: pwsh
         run: |
