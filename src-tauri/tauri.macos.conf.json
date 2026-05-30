@@ -1,6 +1,6 @@
 {
   "bundle": {
-    "targets": "dmg",
+    "targets": ["app", "dmg"],
     "resources": ["bundled/computer-use-macos", "bundled/codex-cli"],
     "createUpdaterArtifacts": true
   }
