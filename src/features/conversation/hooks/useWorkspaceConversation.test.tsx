@@ -581,6 +581,91 @@ describe("useWorkspaceConversation", () => {
     ]);
   });
 
+  it("creates a thread goal with image attachments as model-visible context", async () => {
+    window.localStorage.clear();
+    const attachments: ReadonlyArray<ComposerAttachment> = [
+      { id: "image-1", kind: "image", source: "localImage", name: "screen.png", value: "E:/code/FPGA/screen.png" },
+      { id: "image-2", kind: "image", source: "dataUrl", name: "paste.png", value: "data:image/png;base64,cGFzdGU=" },
+    ];
+    const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
+      if (input.method === "thread/start") {
+        return createThreadStartResponse();
+      }
+      if (input.method === "fs/readFile") {
+        return { requestId: "request-read", result: { dataBase64: "bG9jYWw=" } };
+      }
+      if (input.method === "thread/inject_items") {
+        return { requestId: "request-inject", result: {} };
+      }
+      if (input.method === "thread/goal/set") {
+        return { requestId: "request-goal", result: { goal: createGoal({ objective: "inspect the screenshot" }) } };
+      }
+      throw new Error(`unexpected method: ${input.method}`);
+    });
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    await act(async () => {
+      await result.current.conversation.sendTurn(createSendOptions("/goal inspect the screenshot", attachments));
+    });
+
+    expect(request).toHaveBeenNthCalledWith(1, expect.objectContaining({ method: "thread/start" }));
+    expect(request).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      method: "fs/readFile",
+      params: { path: "E:/code/FPGA/screen.png" },
+    }));
+    expect(request).toHaveBeenNthCalledWith(3, expect.objectContaining({
+      method: "thread/inject_items",
+      params: {
+        threadId: "thread-1",
+        items: [{
+          type: "message",
+          role: "user",
+          content: [
+            { type: "input_text", text: "inspect the screenshot" },
+            { type: "input_image", image_url: "data:image/png;base64,bG9jYWw=" },
+            { type: "input_image", image_url: "data:image/png;base64,cGFzdGU=" },
+          ],
+        }],
+      },
+    }));
+    expect(request).toHaveBeenNthCalledWith(4, expect.objectContaining({
+      method: "thread/goal/set",
+      params: {
+        threadId: "thread-1",
+        objective: "inspect the screenshot",
+      },
+    }));
+    expect(request).not.toHaveBeenCalledWith(expect.objectContaining({ method: "turn/start" }));
+    expect(result.current.conversation.activities).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        kind: "userMessage",
+        text: "inspect the screenshot",
+        submissionKind: "goal",
+        attachments: [
+          { kind: "image", source: "localPath", value: "E:/code/FPGA/screen.png" },
+          { kind: "image", source: "dataUrl", value: "data:image/png;base64,cGFzdGU=" },
+        ],
+      }),
+    ]));
+    expect(readGoalSubmissionHistory("thread-1")[0]?.input).toEqual([
+      { type: "text", text: "inspect the screenshot", text_elements: [] },
+      { type: "localImage", path: "E:/code/FPGA/screen.png" },
+      { type: "image", url: "data:image/png;base64,cGFzdGU=" },
+    ]);
+  });
+
+  it("rejects non-image attachments for /goal", async () => {
+    const request = vi.fn();
+    const hostBridge = { rpc: { request, notify: vi.fn(), cancel: vi.fn() }, app: {} } as unknown as HostBridge;
+    const { result } = renderConversation(hostBridge);
+
+    await expect(result.current.conversation.sendTurn(createSendOptions("/goal inspect notes", [
+      { id: "file-1", kind: "file", source: "mention", name: "notes.md", value: "E:/code/FPGA/notes.md" },
+    ]))).rejects.toThrow("目标命令目前只支持图片附件");
+    expect(request).not.toHaveBeenCalled();
+  });
+
   it("updates the selected thread goal from /goal without sending a user turn", async () => {
     const request = vi.fn(async (input: { readonly method: string; readonly params: unknown }) => {
       if (input.method === "thread/goal/set") {

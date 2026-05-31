@@ -26,6 +26,30 @@ describe("goalSubmissionHistory", () => {
     ]);
   });
 
+  it("persists optional goal submission inputs", () => {
+    const entry = createGoalSubmissionHistoryEntry(
+      "thread-1",
+      "inspect the screenshot",
+      20,
+      [
+        { type: "text", text: "inspect the screenshot", text_elements: [] },
+        { type: "image", url: "data:image/png;base64,aGVsbG8=" },
+      ],
+    );
+
+    saveGoalSubmissionHistoryEntry(entry);
+
+    expect(readGoalSubmissionHistory("thread-1")).toEqual([
+      expect.objectContaining({
+        objective: "inspect the screenshot",
+        input: [
+          { type: "text", text: "inspect the screenshot", text_elements: [] },
+          { type: "image", url: "data:image/png;base64,aGVsbG8=" },
+        ],
+      }),
+    ]);
+  });
+
   it("ignores corrupt stored data", () => {
     window.localStorage.setItem(GOAL_SUBMISSION_HISTORY_STORAGE_KEY, "{broken");
 

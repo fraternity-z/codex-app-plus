@@ -197,6 +197,29 @@ describe("conversationState", () => {
     expect(hydrated.turns[0]?.params?.input).toEqual([{ type: "text", text: "finish the migration", text_elements: [] }]);
   });
 
+  it("rehydrates persisted goal submissions with image input", () => {
+    const thread = createThread();
+    const conversation = addGoalSubmissionHistoryEntries(
+      createConversationFromThread(thread, { resumeState: "resumed" }),
+      [{
+        id: "goal-1",
+        threadId: "thread-1",
+        objective: "inspect the screenshot",
+        createdAtMs: 2_000,
+        input: [
+          { type: "text", text: "inspect the screenshot", text_elements: [] },
+          { type: "localImage", path: "E:/code/codex-app-plus/screen.png" },
+        ],
+      }],
+    );
+
+    expect(conversation.turns[0]?.goalSubmission).toBe(true);
+    expect(conversation.turns[0]?.params?.input).toEqual([
+      { type: "text", text: "inspect the screenshot", text_elements: [] },
+      { type: "localImage", path: "E:/code/codex-app-plus/screen.png" },
+    ]);
+  });
+
   it("sets token usage without changing the existing turn content", () => {
     const conversation = createConversation();
     const [originalTurn] = conversation.turns;

@@ -312,8 +312,11 @@ function mergeSparseTurnState(currentTurn: ConversationTurnState, turn: Turn): C
   };
 }
 
-function createGoalSubmissionInput(objective: string): ConversationTurnParams["input"] {
-  return [{ type: "text", text: objective, text_elements: [] }];
+function createGoalSubmissionInput(entry: GoalSubmissionHistoryEntry): ConversationTurnParams["input"] {
+  if (entry.input !== undefined && entry.input.length > 0) {
+    return [...entry.input];
+  }
+  return [{ type: "text", text: entry.objective, text_elements: [] }];
 }
 
 function createGoalSubmissionTurn(
@@ -324,7 +327,7 @@ function createGoalSubmissionTurn(
     ...createEmptyTurn(null, { goalSubmission: true, goalSubmissionId: entry.id }),
     status: "completed",
     params: {
-      input: createGoalSubmissionInput(entry.objective),
+      input: createGoalSubmissionInput(entry),
       cwd: conversation.cwd,
       model: null,
       effort: null,

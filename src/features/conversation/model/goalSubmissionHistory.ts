@@ -1,4 +1,5 @@
 import type { GoalSubmissionHistoryEntry } from "../../../domain/conversation";
+import type { UserInput } from "../../../protocol/generated/v2/UserInput";
 
 export const GOAL_SUBMISSION_HISTORY_STORAGE_KEY = "codex.goalSubmissionHistory.v1";
 
@@ -14,6 +15,30 @@ function getDefaultStorage(): Storage | null {
   }
 }
 
+function isUserInput(value: unknown): value is UserInput {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const input = value as Record<string, unknown>;
+  if (input.type === "text") {
+    return typeof input.text === "string" && Array.isArray(input.text_elements);
+  }
+  if (input.type === "image") {
+    return typeof input.url === "string";
+  }
+  if (input.type === "localImage") {
+    return typeof input.path === "string";
+  }
+  if (input.type === "skill" || input.type === "mention") {
+    return typeof input.name === "string" && typeof input.path === "string";
+  }
+  return false;
+}
+
+function isHistoryInput(value: unknown): value is ReadonlyArray<UserInput> {
+  return Array.isArray(value) && value.every(isUserInput);
+}
+
 function isHistoryEntry(value: unknown): value is GoalSubmissionHistoryEntry {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -22,6 +47,7 @@ function isHistoryEntry(value: unknown): value is GoalSubmissionHistoryEntry {
   return typeof entry.id === "string"
     && typeof entry.threadId === "string"
     && typeof entry.objective === "string"
+    && (entry.input === undefined || isHistoryInput(entry.input))
     && typeof entry.createdAtMs === "number"
     && Number.isFinite(entry.createdAtMs);
 }
@@ -76,11 +102,13 @@ export function createGoalSubmissionHistoryEntry(
   threadId: string,
   objective: string,
   createdAtMs = Date.now(),
+  input?: ReadonlyArray<UserInput>,
 ): GoalSubmissionHistoryEntry {
   return {
     id: createSubmissionId(threadId, createdAtMs),
     threadId,
     objective,
+    ...(input === undefined || input.length === 0 ? {} : { input: [...input] }),
     createdAtMs,
   };
 }
@@ -104,7 +132,11 @@ export function saveGoalSubmissionHistoryEntry(
   const currentEntries = store[entry.threadId] ?? [];
   const nextEntries = [
     ...currentEntries.filter((current) => current.id !== entry.id),
-    { ...entry, objective },
+    {
+      ...entry,
+      objective,
+      ...(entry.input === undefined || entry.input.length === 0 ? {} : { input: [...entry.input] }),
+    },
   ]
     .sort((left, right) => left.createdAtMs - right.createdAtMs)
     .slice(-MAX_ENTRIES_PER_THREAD);

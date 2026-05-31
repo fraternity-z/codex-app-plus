@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { ConversationState, GoalSubmissionHistoryEntry } from "../../../domain/conversation";
-import type { CollaborationPreset } from "../../../domain/timeline";
+import type { CollaborationPreset, ComposerAttachment } from "../../../domain/timeline";
+import type { JsonValue } from "../../../protocol/generated/serde_json/JsonValue";
+import type { FsReadFileResponse } from "../../../protocol/generated/v2/FsReadFileResponse";
 import type { ThreadGoal } from "../../../protocol/generated/v2/ThreadGoal";
 import type { ThreadMetadataUpdateResponse } from "../../../protocol/generated/v2/ThreadMetadataUpdateResponse";
 import type { ThreadGoalClearResponse } from "../../../protocol/generated/v2/ThreadGoalClearResponse";
@@ -35,7 +37,7 @@ import type { SkillsListResponse } from "../../../protocol/generated/v2/SkillsLi
 import type { SkillMetadata } from "../../../protocol/generated/v2/SkillMetadata";
 import { buildInterruptedTurn, createInput, createQueuedFollowUp, mergeSkillsListResponses, resolveConversationCwd, resolveRequestedCollaborationMode, toErrorMessage } from "./workspaceConversationHelpers";
 import type { CreateThreadOptions, RegenerateEditedUserMessageOptions, SendTurnOptions, UseWorkspaceConversationOptions, WorkspaceConversationController } from "./workspaceConversationTypes";
-import { createHostBridgeAppServerClient } from "../../../protocol/appServerClient";
+import { createHostBridgeAppServerClient, type AppServerClient } from "../../../protocol/appServerClient";
 
 type AppDispatch = ReturnType<typeof useAppDispatch>;
 type AppStoreApi = ReturnType<typeof useAppStoreApi>;
@@ -68,9 +70,27 @@ type WorkspaceConversationActions = Pick<
 
 const APP_SERVER_NOT_READY_MESSAGE = "Codex is still starting or not connected. Wait for the connection before sending.";
 const STEER_UNAVAILABLE_MESSAGE = "当前 Codex 配置未启用 steer，无法发送活动中的后续消息。";
-const GOAL_ATTACHMENTS_UNSUPPORTED_MESSAGE = "目标命令不支持附件。请只发送 /goal <目标>。";
+const GOAL_ATTACHMENTS_UNSUPPORTED_MESSAGE = "目标命令目前只支持图片附件。请移除其他附件后重试。";
+const GOAL_CONTROL_ATTACHMENTS_UNSUPPORTED_MESSAGE = "只有 /goal <目标> 支持图片附件。请移除附件后重试。";
 const GOAL_THREAD_REQUIRED_MESSAGE = "当前没有线程。请使用 /goal <目标> 创建新的长任务目标。";
 const SKILL_MENTION_PATTERN = /(?:^|[\s])\$[A-Za-z0-9_-]+/;
+const GOAL_IMAGE_MIME_TYPES: Readonly<Record<string, string>> = {
+  avif: "image/avif",
+  bmp: "image/bmp",
+  gif: "image/gif",
+  heic: "image/heic",
+  heif: "image/heif",
+  ico: "image/x-icon",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  svg: "image/svg+xml",
+  tif: "image/tiff",
+  tiff: "image/tiff",
+  webp: "image/webp",
+};
+
+type GoalImageAttachment = Extract<ComposerAttachment, { readonly kind: "image" }>;
 
 function createAppServerNotReadyError(): Error {
   return new Error(APP_SERVER_NOT_READY_MESSAGE);
@@ -78,6 +98,97 @@ function createAppServerNotReadyError(): Error {
 
 function createSteerUnavailableError(): Error {
   return new Error(STEER_UNAVAILABLE_MESSAGE);
+}
+
+function isGoalImageAttachment(attachment: ComposerAttachment): attachment is GoalImageAttachment {
+  return attachment.kind === "image";
+}
+
+function validateGoalAttachments(
+  command: NonNullable<ReturnType<typeof parseThreadGoalSlashCommand>>,
+  attachments: ReadonlyArray<ComposerAttachment>,
+): ReadonlyArray<GoalImageAttachment> {
+  if (attachments.length === 0) {
+    return [];
+  }
+  if (command.type !== "setObjective") {
+    throw new Error(GOAL_CONTROL_ATTACHMENTS_UNSUPPORTED_MESSAGE);
+  }
+  if (attachments.some((attachment) => !isGoalImageAttachment(attachment))) {
+    throw new Error(GOAL_ATTACHMENTS_UNSUPPORTED_MESSAGE);
+  }
+  return attachments.filter(isGoalImageAttachment);
+}
+
+function isFsReadFileResponse(value: unknown): value is FsReadFileResponse {
+  return typeof value === "object"
+    && value !== null
+    && typeof (value as { readonly dataBase64?: unknown }).dataBase64 === "string";
+}
+
+function getPathExtension(path: string): string {
+  const fileName = path.split(/[\\/]/).filter((part) => part.length > 0).at(-1) ?? "";
+  return fileName.split(/[?#]/)[0]?.split(".").at(-1)?.toLowerCase() ?? "";
+}
+
+function getImageMimeType(path: string): string {
+  return GOAL_IMAGE_MIME_TYPES[getPathExtension(path)] ?? "application/octet-stream";
+}
+
+async function readGoalImageDataUrl(
+  appServerClient: AppServerClient,
+  attachment: GoalImageAttachment,
+): Promise<string> {
+  if (attachment.source === "dataUrl") {
+    return attachment.value;
+  }
+  const path = resolveAgentWorkspacePath(attachment.value, "windowsNative");
+  const response = await appServerClient.request("fs/readFile", { path });
+  if (!isFsReadFileResponse(response)) {
+    throw new Error("读取目标图片附件返回数据格式不正确。");
+  }
+  return `data:${getImageMimeType(path)};base64,${response.dataBase64}`;
+}
+
+function createGoalImageContextItem(
+  objective: string,
+  imageDataUrls: ReadonlyArray<string>,
+): JsonValue {
+  return {
+    type: "message",
+    role: "user",
+    content: [
+      { type: "input_text", text: objective },
+      ...imageDataUrls.map((imageUrl) => ({ type: "input_image", image_url: imageUrl })),
+    ],
+  } as JsonValue;
+}
+
+async function injectGoalImageContext(
+  appServerClient: AppServerClient,
+  threadId: string,
+  objective: string,
+  attachments: ReadonlyArray<GoalImageAttachment>,
+): Promise<void> {
+  if (attachments.length === 0) {
+    return;
+  }
+  const imageDataUrls = await Promise.all(attachments.map((attachment) => readGoalImageDataUrl(appServerClient, attachment)));
+  await appServerClient.request("thread/inject_items", {
+    threadId,
+    items: [createGoalImageContextItem(objective, imageDataUrls)],
+  });
+}
+
+function addGoalSubmissionHistoryInput(
+  submission: GoalSubmissionHistoryEntry,
+  input: GoalSubmissionHistoryEntry["input"],
+  attachments: ReadonlyArray<GoalImageAttachment>,
+): GoalSubmissionHistoryEntry {
+  if (attachments.length === 0 || input === undefined || input.length === 0) {
+    return submission;
+  }
+  return { ...submission, input };
 }
 
 export function useWorkspaceConversationController({
@@ -455,13 +566,14 @@ export function useWorkspaceConversationController({
   ) => {
     const availableSkills = await resolveInputSkills(objective, cwdOverride ?? options.selectedRootPath);
     const collaborationMode = resolveRequestedCollaborationMode(options.collaborationModes, sendOptions);
+    const input = createInput(objective, sendOptions.attachments, options.agentEnvironment, availableSkills);
     dispatch({
       type: "conversation/turnPlaceholderAdded",
       conversationId,
       goalSubmission: true,
       goalSubmissionId: submission.id,
       params: {
-        input: createInput(objective, [], options.agentEnvironment, availableSkills),
+        input,
         cwd: resolveConversationCwd(cwdOverride, options.agentEnvironment),
         model: sendOptions.selection.model,
         effort: sendOptions.selection.effort,
@@ -469,6 +581,7 @@ export function useWorkspaceConversationController({
         collaborationMode: collaborationMode ?? null,
       },
     });
+    return input;
   }, [dispatch, options.agentEnvironment, options.collaborationModes, options.selectedRootPath, resolveInputSkills]);
 
   const editThreadGoalFromPrompt = useCallback(async (conversationId: string) => {
@@ -585,21 +698,20 @@ export function useWorkspaceConversationController({
     command: NonNullable<ReturnType<typeof parseThreadGoalSlashCommand>>,
     sendOptions: SendTurnOptions,
   ) => {
-    if (sendOptions.attachments.length > 0) {
-      throw new Error(GOAL_ATTACHMENTS_UNSUPPORTED_MESSAGE);
-    }
+    const goalImageAttachments = validateGoalAttachments(command, sendOptions.attachments);
     if (command.type === "setObjective" && selectedConversation === null) {
       const materialized = await materializeConversation(sendOptions, command.objective);
       const submission = createGoalSubmissionHistoryEntry(materialized.conversation.id, command.objective);
-      await addGoalSubmissionPlaceholder(
+      const input = await addGoalSubmissionPlaceholder(
         materialized.conversation.id,
         sendOptions,
         command.objective,
         materialized.cwd,
         submission,
       );
+      await injectGoalImageContext(appServerClient, materialized.conversation.id, command.objective, goalImageAttachments);
       await setThreadGoalObjective(materialized.conversation.id, command.objective);
-      saveGoalSubmissionHistoryEntry(submission);
+      saveGoalSubmissionHistoryEntry(addGoalSubmissionHistoryInput(submission, input, goalImageAttachments));
       dispatch({ type: "input/changed", value: "" });
       return;
     }
@@ -634,18 +746,20 @@ export function useWorkspaceConversationController({
     }
     const currentConversation = getConversation(selectedConversation.id) ?? selectedConversation;
     const submission = createGoalSubmissionHistoryEntry(selectedConversation.id, command.objective);
-    await addGoalSubmissionPlaceholder(
+    const input = await addGoalSubmissionPlaceholder(
       selectedConversation.id,
       sendOptions,
       command.objective,
       currentConversation.cwd ?? options.selectedRootPath,
       submission,
     );
+    await injectGoalImageContext(appServerClient, selectedConversation.id, command.objective, goalImageAttachments);
     await setThreadGoalObjective(selectedConversation.id, command.objective);
-    saveGoalSubmissionHistoryEntry(submission);
+    saveGoalSubmissionHistoryEntry(addGoalSubmissionHistoryInput(submission, input, goalImageAttachments));
     dispatch({ type: "input/changed", value: "" });
   }, [
     addGoalSubmissionPlaceholder,
+    appServerClient,
     clearThreadGoal,
     dispatch,
     editThreadGoalFromPrompt,

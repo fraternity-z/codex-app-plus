@@ -79,6 +79,7 @@ export interface GoalSubmissionHistoryEntry {
   readonly id: string;
   readonly threadId: string;
   readonly objective: string;
+  readonly input?: ReadonlyArray<UserInput>;
   readonly createdAtMs: number;
 }
 
